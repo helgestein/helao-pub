@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class pump():
     def __init__():
+            #there is
             self.conf = dict(port='COM1', baud=9600, timeout=1,
                         pumpAddr={i: i + 21 for i in range(14)},  # numbering is left to right top to bottom
                         pumpBlockings={i: time.time() for i in range(14)},  # init the blockings with now
@@ -95,7 +96,7 @@ class pump():
         )
         return retc
 
-    def shutdown():
+    def shutdown(self):
         for i in range(14):
             self.stopPump(i)
         self.ser.close()

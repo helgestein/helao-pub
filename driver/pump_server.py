@@ -19,30 +19,15 @@ class return_class(BaseModel):
 
 @app.get("/pump/isBlocked")
 def isBlocked(pump: int):
-    #this is nessesary since there is no serial command that says "pump is still pumping"
-    if conf['pumpBlockings'][pump] >= time.time():
-        retc = return_class(
-                    measurement_type="pump_command",
-                    parameters={"command": "isBlocked","pump":pump},
-                    data={'status':True}
-                )
-        return retc
-    else:
-        retc = return_class(
-            measurement_type="pump_command",
-            parameters={"command": "isBlocked"},
-            data={'status': False}
-        )
-        return retc
+    ret = p.isBlocked(pump)
+    retc = return_class(*ret)
+    return retc
 
 @app.get("/pump/setBlock")
 def setBlock(pump:int, time_block:float):
     #this sets a block
-    conf['pumpBlockings'][pump] = time_block
-    retc = return_class(
-        measurement_type="pump_command",
-        parameters={"command": "block","time_block":time_block},
-    )
+    ret = p.setBlock(pump,time_block)
+    retc = return_class(ret)
     return retc
 
 @app.get("/pump/dispenseVolume")
@@ -114,12 +99,6 @@ def shutdown():
 
 
 if __name__ == "__main__":
-    # the pump can only communicate over com port 1 at 9600 baud
-    conf = dict(port='COM1', baud=9600, timeout=1,
-                pumpAddr={i: i + 21 for i in range(14)},  # numbering is left to right top to bottom
-                pumpBlockings={i: time.time() for i in range(14)},  # init the blockings with now
-                )
-    #i set the serial connection here once
-    ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
 
+    p = pump()
     uvicorn.run(app, host="127.0.0.1", port=13370)

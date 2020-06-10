@@ -6,11 +6,6 @@ import serial
 import time
 from pydantic import BaseModel
 
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
-
 class pump():
     def __init__():
             self.conf = dict(port='COM1', baud=9600, timeout=1,
@@ -23,14 +18,14 @@ class pump():
     def isBlocked(self, pump: int):
         #this is nessesary since there is no serial command that says "pump is still pumping"
         if self.conf['pumpBlockings'][pump] >= time.time():
-            retc = return_class(
+            retc = dict(
                         measurement_type="pump_command",
                         parameters={"command": "isBlocked","pump":pump},
                         data={'status':True}
                     )
             return retc
         else:
-            retc = return_class(
+            retc = dict(
                 measurement_type="pump_command",
                 parameters={"command": "isBlocked"},
                 data={'status': False}
@@ -40,7 +35,7 @@ class pump():
     def setBlock(self, pump:int, time_block:float):
         #this sets a block
         self.conf['pumpBlockings'][pump] = time_block
-        retc = return_class(
+        retc = dict(
             measurement_type="pump_command",
             parameters={"command": "block","time_block":time_block},
         )
@@ -62,7 +57,7 @@ class pump():
 
         ans = self.ser.read(1000)
 
-        retc = return_class(
+        retc = dict(
             measurement_type="pump_command",
             parameters={
                 "command": "dispenseVolume",
@@ -84,7 +79,7 @@ class pump():
         self.ser.write(bytes('{},WON,0\r'.format(conf['pumpAddr'][pump]), 'utf-8'))
         time_block = time.time()
         _ = self.setBlock(pump,time_block)
-        retc = return_class(
+        retc = dict(
             measurement_type="pump_command",
             parameters={
                 "command": "stopPump",
@@ -102,9 +97,9 @@ class pump():
 
     def shutdown():
         for i in range(14):
-            stopPump(i)
-        ser.close()
-        retc = return_class(
+            self.stopPump(i)
+        self.ser.close()
+        retc = dict(
             measurement_type="pump_command",
             parameters={"command": "shutdown"},
             data={'data':'shutdown'}

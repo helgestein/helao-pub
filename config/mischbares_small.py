@@ -21,17 +21,17 @@ config['pump'] = dict(direction_pin_B = 'd:13:o',
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
-                    procp = r"C:\Users\Helge\OneDrive\Documents\git\auro-master\auro-master\conf\echemprocedures",
+                    procp = r"C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\echemprocedures",
                     #hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
                     hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88078.xml",
                     micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
-                    proceuduresd = {'cp': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\CP.nox',
-                                    'ca': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\CA.nox',
-                                    'cv': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\CV.nox',
-                                    'eis': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\EIS.nox',
-                                    'ocp': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\OCP.nox',
-                                    'on': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\ON.nox',
-                                    'off': r'C:\Users\Operator\Documents\git\auro-master\conf\echemprocedures\OFF.nox'})
+                    proceuduresd = {'cp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CP.nox',
+                                    'ca': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CA.nox',
+                                    'cv': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CV.nox',
+                                    'eis': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\EIS.nox',
+                                    'ocp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OCP.nox',
+                                    'on': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\ON.nox',
+                                    'off': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OFF.nox'})
 
 ## Configuration of the electrochemical experiments
 config['echem'] = dict(procedures=dict())

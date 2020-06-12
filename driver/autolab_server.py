@@ -1,78 +1,94 @@
 #this is the server
 import sys
 sys.path.append(r"./config")
-sys.path.append(r"./driver")
 from autolab_driver import Autolab
 import mischbares_small
-autolab_conf = mischbares_small.config['autolab']
-a = Autolab(mischbares_small.config['autolab'])
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
 
+app = FastAPI(title="Autolab server V1",
+    description="This is a very fancy autolab server",
+    version="1.0",)
 
+class return_class(BaseModel):
+    measurement_type: str = None
+    parameters: dict = None
+    data: dict = None
 
-def disconnect(self):
-        try:
-            # to be sure that the procedure is stopped we try to abort it
-            self.proc.Abort()
-        except:
-            print('Procedure abort failed. Disconnecting anyhow.')
-        self.inst.Disconnect()
+@app.get("/potentiostat/disconnect")
+def disconnect():
+    a.disconnect()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'disconnect',
+                                    'parameters':None},
+                        data = {'data':None})
+    return retc
 
-def ismeasuring(self):
-        try:
-            return self.proc.IsMeasuring
-        except:
-            # likely no procedure set
-            return False
+@app.get("/potentiostat/ismeasuring")
+def ismeasuring():
+    ret = a.ismeasuring()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'ismeasuring',
+                                    'parameters':None},
+                        data = {'ismeasuring':ret})
+    return retc
 
-def potential(self):
-        # just gives the currently applied raw potential vs. ref
-        return float(self.inst.Ei.get_Potential())
+@app.get("/potentiostat/potential")
+def potential():
+    ret = a.potential()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'getpotential',
+                                    'parameters':None},
+                        data = {'potential':ret})
+    return retc
 
-def current(self):
-        # just gives the currently applied raw potential
-        return float(self.inst.Ei.Current)
+@app.get("/potentiostat/current")
+def current():
+    ret = a.current()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'getcurrent',
+                                    'parameters':None},
+                        data = {'current':ret})
+    return retc
 
-def setCurrentRange(self,range):
-        if range == "10A":
-            self.inst.Ei.CurrentRange = 1
-        elif range == "1A":
-            self.inst.Ei.CurrentRange = 0
-        elif range == "100A":
-            self.inst.Ei.CurrentRange = -1
-        elif range == "10mA":
-            self.inst.Ei.CurrentRange = -2
-        elif range == "1mA":
-            self.inst.Ei.CurrentRange = -3
-        elif range == "100uA":
-            self.inst.Ei.CurrentRange = -4
-        elif range == "10uA":
-            self.inst.Ei.CurrentRange = -5
-        elif range == "1uA":
-            self.inst.Ei.CurrentRange = -6
-        elif range == "100nA":
-            self.inst.Ei.CurrentRange = -7
-        elif range == "10nA":
-            self.inst.Ei.CurrentRange = -8
+@app.get("/potentiostat/setcurrentrange")
+def setCurrentRange(crange: str):
+    a.setCurrentRange(crange)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'setcurrentrange',
+                                    'parameters':crange},
+                        data = {'currentrange':crange})
+    return retc
 
-def setStability(self,stability):
-        if stability=="high":
-            self.inst.Ei.Bandwith = 2
-        else:
-            self.inst.Ei.Bandwith = 1
+@app.get("/potentiostat/setstability")
+def setStability(stability):
+    a.setStability(stability)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'setStability',
+                                    'parameters':stability},
+                        data = {'currentrange':stability})
+    return retc
 
-def time(self):
-        return 'TODO'
+@app.get("/potentiostat/appliedpotential")
+def appliedPotential():
+    ret = a.appliedPotential()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'appliedpotential',
+                                    'parameters':None},
+                        data = {'appliedpotential':ret})
+    return retc
 
-def appliedPotential(self):
-        return float(self.inst.Ei.PotentialApplied)
+@app.get("/potentiostat/abort")
+def abort():
+    ret = a.abort()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'abort',
+                                    'parameters':None},
+                        data = {'abort':True})
 
-def abort(self):
-        try:
-            self.proc.Abort()
-        except:
-            print('Failed to abort. Likely nothing to abort.')
-
-def loadProcedure(self, name):
+@app.get("/potentiostat/abort")
+def loadProcedure(name:str):
         self.proc = self.inst.LoadProcedure(self.proceduresd[name])
 
 def setSetpoints(self, setpoints):
@@ -138,3 +154,11 @@ def performMeasurement(self, conf):
         json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
         self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
         self.parseNox(conf)
+
+
+if __name__ == "__main__":
+    p = pump()
+    uvicorn.run(app, host="127.0.0.1", port=13371)
+
+    autolab_conf = mischbares_small.config['autolab']
+    a = Autolab(mischbares_small.config['autolab'])

@@ -6,6 +6,7 @@ import mischbares_small
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
+import json
 
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
@@ -15,15 +16,6 @@ class return_class(BaseModel):
     measurement_type: str = None
     parameters: dict = None
     data: dict = None
-
-@app.get("/potentiostat/disconnect")
-def disconnect():
-    a.disconnect()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'disconnect',
-                                    'parameters':None},
-                        data = {'data':None})
-    return retc
 
 @app.get("/potentiostat/ismeasuring")
 def ismeasuring():
@@ -87,78 +79,46 @@ def abort():
                                     'parameters':None},
                         data = {'abort':True})
 
-@app.get("/potentiostat/abort")
-def loadProcedure(name:str):
-        self.proc = self.inst.LoadProcedure(self.proceduresd[name])
+@app.get("/potentiostat/cellonoff")
+def CellOnOff(onoff:str):
+    a.CellOnOff(onoff)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'cellonoff',
+                                    'parameters':onoff},
+                        data = {'onoff':onoff})
+    return retc
 
-def setSetpoints(self, setpoints):
-        for comm, params in setpoints.items():
-            for param, value in params.items():
-                self.proc.Commands[comm].CommandParameters[param].Value = value
+@app.get("/potentiostat/measure")
+def performMeasurement(conf: dict):
+    a.performMeasurement(conf)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                    parameters= {'command':'measure',
+                                'parameters':conf},
+                    data = {'data':None})
+    return retc
 
-def whileMeasuring(self, type):
-        import time
-        from copy import copy
-        then = copy(time.monotonic())
-        while self.proc.IsMeasuring:
-            freq = 100  # not to cause an exception
-            sleep(0.5)
-            if type == 'impedance':
-                try:
-                    freq = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_Frequency()
-                    hreal = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Real()
-                    imag = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Imaginary()
-                    phase = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Phase()
-                    modulus = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Modulus()
-                    print('_freq:{}_real:{}_imag:{}_phase:{}_modulus:{}'.format(freq, hreal, imag, phase, modulus))
-                except:
-                    pass
-                sleep(0.5)
-            elif type == 'tCV':
-                now = copy(time.monotonic())
-                print('_time:{}_potential:{}_current: {}'.format(now-then, self.potential(), self.current()))
-                sleep(0.1)
+@app.get("/potentiostat/retrieve")
+def retrieve(conf: dict):
+    path = os.path.join(conf['safepath'],conf['filename'])
+    with open(path.replace('.nox', '_data.json'), 'r') as f:
+        ret = json.load(f)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                    parameters= {'command':'retrieve',
+                                'parameters':conf},
+                    data = {'appliedpotential':ret})
+    return retc
 
-def CellOnOff(self, onoff):
-        if onoff == 'on':
-            self.inst.Ei.CellOnOff = 1
-        elif onoff == 'off':
-            self.inst.Ei.CellOnOff = 0
-        elif onoff == 'na':
-            pass
-
-def parseNox(self, conf):
-        # this function will read in a .nox and eport the data as a json
-        path = os.path.join(conf['safepath'],conf['filename'])
-        self.finishedProc = self.inst.LoadProcedure(path)
-        self.data = {}
-        for comm in conf['parseinstructions']:
-            names = [str(n) for n in self.finishedProc.Commands[comm].Signals.Names]
-            self.data[comm] = {n: [float(f) for f in self.finishedProc.Commands[comm].Signals.get_Item(n).Value] for n in names}
-        with open(path.replace('.nox', '_data.json'), 'w') as f:
-            json.dump(self.data, f)
-
-def performMeasurement(self, conf):
-        #LOAD PROCEDURE
-        self.loadProcedure(conf['procedure'])
-        #SET SETPOINTS
-        self.setSetpoints(conf['setpoints'])
-        #MEASURE
-        self.proc.Measure()
-        #PLOT LIVE
-        self.whileMeasuring(conf['plot'])
-        #CELL ON/OFF
-        self.CellOnOff(conf['onoffafter'])
-        #SAVE
-        sleep(0.1) #give the potentiostat some time to stwich everything off and save the data
-        json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
-        self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
-        self.parseNox(conf)
-
+@app.on_event("shutdown")
+def disconnect():
+    a.disconnect()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'disconnect',
+                                    'parameters':None},
+                        data = {'data':None})
+    return retc
 
 if __name__ == "__main__":
-    p = pump()
-    uvicorn.run(app, host="127.0.0.1", port=13371)
-
     autolab_conf = mischbares_small.config['autolab']
     a = Autolab(mischbares_small.config['autolab'])
+    uvicorn.run(app, host="127.0.0.1", port=13371)
+    print('initialized autolab')

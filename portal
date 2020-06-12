@@ -1,1 +1,8 @@
-atom://teletype/portal/213e08c4-aee7-497e-83e6-c3b04b82f34f
+{
+    "python.pythonPath": "C:\\Users\\Operator\\anaconda3\\envs\\multipumpe\\python.exe",
+    "terminal.integrated.automationShell.windows": "C:\\Windows\\sysnative\\cmd.exe",
+    "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
+    "git.enableSmartCommit": true,
+    "git.autofetch": true,
+    "git.confirmSync": false
+}

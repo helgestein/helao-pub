@@ -27,7 +27,7 @@ class Mecademic:
         data={'status':True})
         # If the robot is not properly activated attempt a self repair
         if not msg == 'Motors activated.':
-            prfloat('Noproperly activated trying self repair')
+            print('Noproperly activated trying self repair')
             self.auto_repair()
             retc = dict(
                         measurement_type="mecademic_command",
@@ -35,7 +35,7 @@ class Mecademic:
                         data={'status': False}
                     )
             return retc
-        return rect
+        return retc
 
 
     def auto_repair(self):
@@ -53,7 +53,7 @@ class Mecademic:
             parameters={"command": "error_is_reset"},
             data={'status': True}
             )
-        return rect
+        return retc
 
 
     def set_trf(self, x: float, y: float, z:float, alpha:float, beta:float, gamma: float):
@@ -65,7 +65,7 @@ class Mecademic:
                     parameters={"command": "tool_reference_frame", "x": x, "y": y, "z": z, "alpha": alpha, "beta": beta, "gamma": gamma},
                     data={'status': True}
                 )
-        return rect
+        return retc
 
     def mvposeplane(self, x: float, y: float):
         ppos = copy(self.api_robot.GetPose())  # plane_position: ppos
@@ -82,7 +82,7 @@ class Mecademic:
                 )
         # implement a (relative )mv pose from the current position to a position that is offset by x,y in the same
         # plane as it is now
-        return rect
+        return retc
 
     def DMoveJoints(self,a: float,b: float,c: float,d: float,e: float,f: float):
         while self.checkrobot()['EOB'] != 1:
@@ -93,11 +93,11 @@ class Mecademic:
                     parameters={"command": "move_joints", "joint1": a, "joint2": b, "joint3": c, "joint4": d, "joint5": e, "joint6": f},
                     data={'status': True}
                 )
-        return rect
+        return retc
 
 
     def DMoveLin(self, a: float, b: float, c: float, d: float, e: float, f: float):
-        prfloat('DO NOT USE THIS FUNCTION! USE DMOVEPOSE INSTEAD THIS IS DANGEROUS!')
+        print('DO NOT USE THIS FUNCTION! USE DMOVEPOSE INSTEAD THIS IS DANGEROUS!')
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.05)
         self.api_robot.MoveLin(a, b, c, d, e, f)
@@ -106,7 +106,7 @@ class Mecademic:
                     parameters={"command": "move_linear", "axis1": a, "axis2": b, "axis3": c, "axis4": d, "axis5": e, "axis6": f},
                     data={'status': True}
                 )
-        return rect
+        return retc
 
     def DMovePose(self, a: float, b: float, c: float, d: float, e: float, f: float):
         while self.checkrobot()['EOB'] != 1:
@@ -117,10 +117,10 @@ class Mecademic:
             parameters={"command": "movepose", "pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f},
             data={'status': True}
         )
-        return rect
+        return retc
         
 
-    def DQLinZ(self,z: float=20.0,nsteps: float=100.0):
+    def DQLinZ(self,z: float=20.0, nsteps: float=100.0):
         pose = self.DGetPose()
         poses = np.array([pose for i in range(nsteps)])
         poses[:,2] = np.linspace(pose[2],pose[2]+z,nsteps)
@@ -128,34 +128,51 @@ class Mecademic:
             self.DMovePose(*pose)
         retc = dict(
             measurement_type="mecademic_command",
-            parameters={"command": "movepose", "pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f},
+            parameters={"command": "linear_move_z", "z": z, "step_num": nsteps},
             data={'status': True}
             )
-        return rect
+        return retc
 
-    def DQLinX(self,x: float=20,nsteps: float=100):
+    def DQLinX(self,x: float=20, nsteps: float=100):
         pose = self.DGetPose()
         poses = np.array([pose for i in range(nsteps)])
         poses[:,0] = np.linspace(pose[0],pose[0]+x,nsteps)
         for pose in poses:
             self.DMovePose(*pose)
+        retc = dict(
+            measurement_type="mecademic_command",
+            parameters={"command": "linear_move_x", "x": x, "step_num": nsteps},
+            data={'status': True}
+            )
+        return retc
 
-    def DQLinY(self,y: float=20,nsteps: float=100):
+    def DQLinY(self,y: float=20, nsteps: float=100):
         pose = self.DGetPose()
         poses = np.array([pose for i in range(nsteps)])
         poses[:,1] = np.linspace(pose[1],pose[1]+y,nsteps)
         for pose in poses:
             self.DMovePose(*pose)
+        retc = dict(
+            measurement_type="mecademic_command",
+            parameters={"command": "linear_move_y", "y": y, "step_num": nsteps},
+            data={'status': True}
+            )
+        return retc
 
     def DGetPose(self):
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.1)
-        return copy(self.api_robot.GetPose())
+        retc = dict(
+            measurement_type="mecademic_command",
+            parameters={"command": "Get_pos", "pos": copy(self.api_robot.GetPose())},
+            data={'status': True}
+            )
+        return retc
 
-    def DGetJofloats(self):
+    def DGetJoints(self):
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.1)
-        return copy(self.api_robot.GetJofloats())
+        return copy(self.api_robot.GetJoints())
 
     def checkrobot(self):
         #this does not get a time delay

@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 
-app = FastAPI(title="Mecademic server V1",
-    description="This is a fancy mecademic server",
+app = FastAPI(title="Mecademic driver server V1",
+    description="This is a fancy mecademic driver server",
     version="1.0")
 
 class return_class(BaseModel):
@@ -20,7 +20,7 @@ class return_class(BaseModel):
 @app.get("/mecademic/connect")
 def auto_repair():
     m.auto_repair()
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "error_is_reset"},
         data={'status': True}
@@ -30,7 +30,7 @@ def auto_repair():
 @app.get("/mecademic/set_tool_refrence_frame")
 def set_trf(x: float, y: float, z: float, alpha: float, beta: float, gamma: float):
     m.set_tfr(x, y, z, alpha, beta, gamma)
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "tool_refrence_frame"},
         data={'data': "trf", "x": x, "y": y, "z": z, "alpha": alpha, "beta": beta, "gamma": gamma}
@@ -40,7 +40,7 @@ def set_trf(x: float, y: float, z: float, alpha: float, beta: float, gamma: floa
 @app.get("/mecademic/move_pose_plane")
 def mvposeplane(x: float, y: float):
     m.mvposeplane(x, y)
-    retc = dict(
+    retc = return_class(
             measurement_type="mecademic_command",
             parameters={"command": "move_pos_plane"},
             data={'data': "poses", "x": x, "y": y}
@@ -50,7 +50,7 @@ def mvposeplane(x: float, y: float):
 @app.get("/mecademic/move_joints")
 def DMoveJoints(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveJoints(a, b, c, d, e, f)
-    retc = dict(
+    retc = return_class(
             measurement_type="mecademic_command",
             parameters={"command": "move_joints"},
             data={'data': "joints" , "joint1": a, "joint2": b, "joint3": c, "joint4": d, "joint5": e, "joint6": f}
@@ -60,7 +60,7 @@ def DMoveJoints(a: float, b: float, c: float, d: float, e: float, f: float):
 @app.get("/mecademic/move_linear")
 def DMoveLin(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveLin(a, b, c, d, e, f)
-    retc = dict(
+    retc = return_class(
                 measurement_type="mecademic_command",
                 parameters={"command": "move_linear"},
                 data={'data': "axes" , "axis1": a, "axis2": b, "axis3": c, "axis4": d, "axis5": e, "axis6": f}
@@ -70,7 +70,7 @@ def DMoveLin(a: float, b: float, c: float, d: float, e: float, f: float):
 @app.get("/mecademic/move_pos")
 def DMovePose(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMovePose(a, b, c, d, e, f)
-    retc = dict(
+    retc = return_class(
             measurement_type="mecademic_command",
             parameters={"command": "movepose"},
             data={'data': "poses", "pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f}
@@ -80,7 +80,7 @@ def DMovePose(a: float, b: float, c: float, d: float, e: float, f: float):
 @app.get("/mecademic/linear_in_z")
 def DQLinZ(z: int=20,nsteps: int=100):
     m.DQLinZ(z, nsteps)
-    retc = dict(
+    retc = return_class(
             measurement_type="mecademic_command",
             parameters={"command": "linear_move_z"},
             data={"z": z, "step_num": nsteps}
@@ -90,7 +90,7 @@ def DQLinZ(z: int=20,nsteps: int=100):
 @app.get("/mecademic/linear_in_x")
 def DQLinX(x: int=20, nsteps: int=100):
     m.DQLinX(x, nsteps)
-    retc = dict(
+    retc = return_class(
             measurement_type="mecademic_command",
             parameters={"command": "linear_move_x"},
             data={"x": x, "step_num": nsteps}
@@ -100,7 +100,7 @@ def DQLinX(x: int=20, nsteps: int=100):
 @app.get("/mecademic/linear_in_y")
 def DQLinY(y: int=20, nsteps: int=100):
     m.DQLinY(y, nsteps)
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "linear_move_y"},
         data={"y": y, "step_num": nsteps}
@@ -110,7 +110,7 @@ def DQLinY(y: int=20, nsteps: int=100):
 @app.get("/mecademic/get_pose")
 def DGetPose():
     data= m.DGetPose()
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "Get_pos"},
         data={"poses": data}
@@ -122,7 +122,7 @@ def DGetJoints():
     data = m.DGetJoints()
     print(data)
     print(type(data))
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "get_joints"},
         data={"joints": data}
@@ -132,7 +132,7 @@ def DGetJoints():
 @app.get("/mecademic/check_robot")
 def checkrobot():
     data = m.checkrobot()
-    retc = dict(
+    retc = return_class(
         measurement_type="mecademic_command",
         parameters={"command": "check_robot"},
         data={"status": data}

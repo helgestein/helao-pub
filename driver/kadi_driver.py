@@ -31,7 +31,31 @@ class kadi():
 
 if __name__ == '__main__':
     conf = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
-            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
+            PAT = "acc833c1d1aa764b8923dd0bb519cd9aacc22c51332454e8")
     k = kadi(conf)
 
-    
+'''
+from kadi_apy.lib.core import KadiAPI
+from kadi_apy.lib.records import Record
+from kadi_apy.lib.collections import Collection
+
+
+host = r"https://kadi4mat.iam-cms.kit.edu"
+PAT = "acc833c1d1aa764b8923dd0bb519cd9aacc22c51332454e8"
+KadiAPI.token = PAT
+KadiAPI.host = host
+
+identifier = "just_a_string"
+title ="my_title"
+visibility = "private"
+my_first_record = Record(identifier=identifier, title=title, visibility=visibility)
+
+#erzeugt neuerdings:
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "C:\Users\Operator\anaconda3\envs\dev\lib\site-packages\kadi_apy\lib\records.py", line 27, in __init__
+    self._start_session_item(id=id, **kwargs)
+  File "C:\Users\Operator\anaconda3\envs\dev\lib\site-packages\kadi_apy\lib\core.py", line 104, in _start_session_item
+    raise KadiApyIdentifierError
+kadi_apy.lib.exceptions.KadiApyIdentifierError
+'''

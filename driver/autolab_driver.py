@@ -13,8 +13,11 @@ class Autolab:
         self.micsetupf = autolab_conf["micsetupf"]
         self.proceduresd = autolab_conf["proceuduresd"]
         clr.AddReference("EcoChemie.Autolab.Sdk")
-        from EcoChemie.Autolab import Sdk as sdk
-        from EcoChemie.Autolab import Sdk as sdk
+        #this is a hacky way of trying again
+        try:
+            from EcoChemie.Autolab import Sdk as sdk
+        except:
+            from EcoChemie.Autolab import Sdk as sdk
         self.inst = sdk.Instrument()
         self.connect()
         self.proc = None

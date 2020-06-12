@@ -14,6 +14,7 @@ class Autolab:
         self.proceduresd = autolab_conf["proceuduresd"]
         clr.AddReference("EcoChemie.Autolab.Sdk")
         from EcoChemie.Autolab import Sdk as sdk
+        from EcoChemie.Autolab import Sdk as sdk
         self.inst = sdk.Instrument()
         self.connect()
         self.proc = None

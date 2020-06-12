@@ -4,47 +4,34 @@ from kadi_apy.lib.core import KadiAPI
 from kadi_apy.lib.records import Record
 from kadi_apy.lib.collections import Collection
 
+class kadi():
+    def __init__(self,conf):
+        KadiAPI.token = conf['PAT']
+        KadiAPI.host = conf['host']
 
-host = r"https://kadi4mat.iam-cms.kit.edu"
-PAT = 
+    def addRecord(ident,title,visibility = 'public',filepath = None,meta = None):
+        #create a record
+        record = Record(identifier=ident, title=title, visibility=visibility)
+        if not filepath == None:
+            if not meta == None:
+                #upload a file
+                record.upload_file(file_path=pathToFile)
+                #add metadatum
+                record.add_metadatum(metadatum=meta, force=True)
 
+    def addCollection(ident,title,visibility = 'public',filepath = None,meta = None):
+        #create collection
+        collection = Collection(identifier=ident, title=title, visibility=visibility)
 
-def execute():
-
-    KadiAPI.token = PAT
-    KadiAPI.host = host
-
-    identifier = "just_a_string"
-    title ="my_title"
-    visibility = "private"
-
-    #create a record
-    my_first_record = Record(identifier=identifier, title=title, visibility=visibility)
-
-    pathToFile = "./foo.bar"
-
-    #upload a file
-    my_first_record.upload_file(file_path=pathToFile)
-
-
-    metadatum_new = {
-        "type": "float",
-        "unit": "km",
-        "key": "length",
-        "value": 5.0,
-    }
-    #add metadatum
-    my_first_record.add_metadatum(metadatum=metadatum_new, force=True)
-
-
-    #create collection
-    my_first_collection = Collection(identifier="collection_name_1", title="collection_1", visibility=visibility)
-
-    my_second_collection = Collection(identifier="collection_name_2", title="collection_2", visibility=visibility)
-
-    #add record to collection
-    my_first_collection.add_record(record_id=my_first_record.id)
-    my_second_collection.add_record(record_id=my_first_record.id)
+    def addRecordToCollection(identCollection,identRecord,visibility='public'):
+        collection = Collection(identifier=identCollection, title='title', visibility=visibility)
+        record = Record(identifier=identRecord, title='title', visibility=visibility)
+        #add record to collection
+        collection.add_record(record_id=record.id)
 
 if __name__ == '__main__':
-    execute()
+    conf = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
+            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
+    k = kadi(conf)
+
+    

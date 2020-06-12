@@ -17,15 +17,6 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/potentiostat/disconnect")
-def disconnect():
-    a.disconnect()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'disconnect',
-                                    'parameters':None},
-                        data = {'data':None})
-    return retc
-
 @app.get("/potentiostat/ismeasuring")
 def ismeasuring():
     ret = a.ismeasuring()
@@ -100,25 +91,34 @@ def CellOnOff(onoff:str):
 @app.get("/potentiostat/measure")
 def performMeasurement(conf: dict):
     a.performMeasurement(conf)
-    if retrieve:
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'measure',
                                 'parameters':conf},
-                    data = {'appliedpotential':ret})
+                    data = {'data':None})
     return retc
 
 @app.get("/potentiostat/retrieve")
 def retrieve(conf: dict):
     path = os.path.join(conf['safepath'],conf['filename'])
     with open(path.replace('.nox', '_data.json'), 'r') as f:
-        ret = json.dump(self.data, f)
+        ret = json.load(f)
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'retrieve',
                                 'parameters':conf},
                     data = {'appliedpotential':ret})
     return retc
 
+@app.on_event("shutdown")
+def disconnect():
+    a.disconnect()
+    retc = return_class(measurement_type='potentiostat_autolab',
+                        parameters= {'command':'disconnect',
+                                    'parameters':None},
+                        data = {'data':None})
+    return retc
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=13371)
     autolab_conf = mischbares_small.config['autolab']
     a = Autolab(mischbares_small.config['autolab'])
+    uvicorn.run(app, host="127.0.0.1", port=13371)
+    print('initialized autolab')

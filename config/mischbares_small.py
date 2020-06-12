@@ -20,18 +20,18 @@ config['pump'] = dict(direction_pin_B = 'd:13:o',
                       radiusTube = 0.02)
 
 ## Configuration of the potensiostat
-config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
-                    procp = r"C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\echemprocedures",
+config['autolab'] = dict(basep = "C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
+                    procp = "C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\echemprocedures",
                     #hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
-                    hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88078.xml",
-                    micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
-                    proceuduresd = {'cp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CP.nox',
-                                    'ca': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CA.nox',
-                                    'cv': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CV.nox',
-                                    'eis': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\EIS.nox',
-                                    'ocp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OCP.nox',
-                                    'on': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\ON.nox',
-                                    'off': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OFF.nox'})
+                    hwsetupf = "C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88078.xml",
+                    micsetupf = "C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
+                    proceuduresd = {'cp': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CP.nox',
+                                    'ca': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CA.nox',
+                                    'cv': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CV.nox',
+                                    'eis': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\EIS.nox',
+                                    'ocp': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OCP.nox',
+                                    'on': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\ON.nox',
+                                    'off': 'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OFF.nox'})
 
 ## Configuration of the electrochemical experiments
 config['echem'] = dict(procedures=dict())
@@ -41,7 +41,7 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                          'recordsignal': {'Duration': 10}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r'C:\Users\Operator\Documents\git\auro-master\temp',
+           'safepath': 'C:\Users\Operator\Documents\git\auro-master\temp',
            'filename': 'ca.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -50,7 +50,7 @@ config['echem']['procedures']['cp'] = {'procedure': 'cp',
                          'recordsignal': {'Duration': 10}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r'C:\Users\Operator\Documents\git\auro-master\temp',
+           'safepath': 'C:\Users\Operator\Documents\git\auro-master\temp',
            'filename': 'cp.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -65,7 +65,7 @@ config['echem']['procedures']['cv'] = {'procedure': 'cv',
                                       'ScanRate': 0.1}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r'C:\Users\Operator\Documents\git\auro-master\temp',
+           'safepath': 'C:\Users\Operator\Documents\git\auro-master\temp',
            'filename': 'cv.nox',
            'parseinstructions': ['CVLinearScanAdc164']}
 
@@ -73,6 +73,6 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
             'plot': 'impedance',
             'onoffafter': 'off',
-            'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+            'safepath': "C:\Users\Operator\Documents\git\auro-master\temp",
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}

@@ -1,5 +1,13 @@
-import comtypes
-import comtypes.client as client
+""" A device class for the Gamry USB potentiostat, used by a FastAPI server instance.
+
+The 'gamry' device class simulates potentiostat measurement functions provided by the
+'GamryCOM' 'comtypes' Win32 module. The simulation class does not depend on 'comtypes'. 
+Class methods are specific to Gamry devices. Device configuration is read from 
+config/config.py. 
+"""
+
+# import comtypes
+# import comtypes.client as client
 import pickle
 import os
 import collections

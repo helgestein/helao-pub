@@ -1,4 +1,13 @@
 # shell: uvicorn motion_server:app --reload
+""" A FastAPI service definition for a potentiostat device server, e.g. Gamry.
+
+The potentiostat service defines RESTful methods for sending commmands and retrieving 
+data from a potentiostat driver class such as 'gamry_driver' or 'gamry_simulate' using
+FastAPI. The methods provided by this service are not device-specific. Appropriate code
+must be written in the driver class to ensure that the service methods are generic, i.e.
+calls to 'poti.*' are not device-specific. Currently inherits configuration from driver 
+code, and hard-coded to use 'gamry' class (see "__main__").
+"""
 
 import os, sys
 

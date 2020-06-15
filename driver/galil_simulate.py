@@ -1,3 +1,9 @@
+""" A device class for the Galil motion controller, used by a FastAPI server instance.
+
+The 'galil' device class simulates the underlying motion and I/O functions provided by
+'gclib'. The simulation class does not depend on the external 'gclib' library.
+"""
+
 import sys
 import os
 import numpy as np

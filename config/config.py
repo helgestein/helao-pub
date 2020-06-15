@@ -1,4 +1,8 @@
-# default universal (non-instrument specific) config parameters can be placed here but need to override with the specific config
+""" A default universal configuration parameters file.
+
+Parameters may be overridden by instrument-specific configurations e.g. 'config_edep'
+"""
+
 GALIL_SETUPD = {
     "count_to_mm": {
         "A": 1.0 / 3154.787,

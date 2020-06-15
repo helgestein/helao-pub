@@ -1,3 +1,10 @@
+""" A device class for the Galil motion controller, used by a FastAPI server instance.
+
+The 'galil' device class exposes motion and I/O functions from the underlying 'gclib'
+library. Class methods are specific to Galil devices. Device configuration is read from
+config/config.py. 
+"""
+
 import sys
 import os
 import numpy as np

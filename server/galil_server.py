@@ -1,4 +1,13 @@
 # shell: uvicorn motion_server:app --reload
+""" A FastAPI service definition for a motion/IO server, e.g. Galil.
+
+The motion/IO service defines RESTful methods for sending commmands and retrieving data
+from a motion controller driver class such as 'galil_driver' or 'galil_simulate' using
+FastAPI. The methods provided by this service are not device-specific. Appropriate code
+must be written in the driver class to ensure that the service methods are generic, i.e.
+calls to 'motion.*' are not device-specific. Currently inherits configuration from
+driver code, and hard-coded to use 'galil' class (see "__main__").
+"""
 
 import os, sys
 

@@ -16,9 +16,9 @@ else:
     # interactive kernel mode requires path manipulation
     cwd = os.getcwd()
     pwd = os.path.dirname(cwd)
-    if os.path.basename(pwd) == "HELAO":
+    if os.path.basename(pwd) == "helao-dev":
         sys.path.insert(0, pwd)
-    if pwd in sys.path or os.path.basename(cwd) == "HELAO":
+    if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
         print("importing config vars from sys.path")
     else:
         raise ModuleNotFoundError(

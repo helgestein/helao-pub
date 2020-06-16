@@ -12,7 +12,7 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
     for c,p in zip(comprel,pumps):
         #someone check this logic ...
         #we pump at different speeds for formulation in the droplet coming out
-        #to make all pumps stop at the same time the volume per pump is also
+        #to make all pumps stop at roughly the same time the volume per pump is also
         #adjusted 
         v = int(totalvol*c)
         s = int(speed*c)

@@ -12,6 +12,7 @@ class pump():
                         pumpAddr={i: i + 21 for i in range(14)},  # numbering is left to right top to bottom
                         pumpBlockings={i: time.time() for i in range(14)},  # init the blockings with now
                         )
+            self.conf['pumpAddr']['all'] = 20 #global address
             #i set the serial connection here once
             self.ser = serial.Serial(self.conf['port'], self.conf['baud'], timeout=self.conf['timeout'])
 
@@ -41,8 +42,26 @@ class pump():
         )
         return retc
 
+    def setBlock(self, pump:int, time_block:float):
+        #this sets a block
+        self.conf['pumpBlockings'][pump] = time_block
+        retc = dict(
+            measurement_type="pump_command",
+            parameters={"command": "block","time_block":time_block},
+        )
+        return retc
 
-    def dispenseVolume(self, pump:int ,volume:int ,speed:int ,direction:int=1,read=False):
+    def allOn(time_:int):
+        self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
+        time_block = time.time()+time_
+        _ = self.setBlock(pump,time_block)        
+        retc = dict(
+            measurement_type="pump_command",
+            parameters={"command": "allOn","time_block":time_block},
+        )
+        return retc
+
+    def dispenseVolume(self, pump:int ,volume:int ,speed:int ,direction:int=1,read=False,prime=False):
         #pump is an index 0-13 incicating the pump channel
         #volume is the volume in µL
         #speed is a variable 0-1 going from 0µl/min to 4000µL/min
@@ -50,10 +69,11 @@ class pump():
         self.ser.write(bytes('{},PON,1234\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.conf['pumpAddr'][pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.conf['pumpAddr'][pump],volume),'utf-8'))
-        self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
+        if not prime:
+            self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
 
-        time_block = time.time()+volume/speed
-        _ = self.setBlock(pump,time_block)
+            time_block = time.time()+volume/speed
+            _ = self.setBlock(pump,time_block)
         if read:
             ans = self.ser.read(1000)
 

@@ -1,3 +1,12 @@
+""" A action server for electrochemistry
+
+the logic here is that you define recipes that are stored in files. This is a relatively specific implementation of Autolab Metrohm
+For this we pre define recipe files in the specific proreiatary xml language and then manipulate measurement parameters via
+configuration dicts. The dicts point to the files that are being uploaded to the potentiostat
+The actions cover measuring, setting the cell on or off asking the potential or current and if the potentiostat is measuring
+
+"""
+
 import sys
 import uvicorn
 from fastapi import FastAPI
@@ -16,7 +25,12 @@ class return_class(BaseModel):
 
 @app.get("/echem/measure/")
 def measure(measure_conf: dict):
-    res = requests.get("{}/motor/query/moving".format(motion_url), 
+    """
+    Measure a recipe and manipulate the parameters:
+
+    - **measure_conf**: is explained in the echemprocedures folder
+    """
+    res = requests.get("{}/motor/query/moving".format(poturl), 
                         params=measure_conf).json()
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
@@ -26,7 +40,7 @@ def measure(measure_conf: dict):
 
 @app.get("/echem/ismeasuring/")
 def ismeasuring():
-    res = = requests.get("{}/potentiostat/ismeasuring".format(poturl)).json()
+    res = requests.get("{}/potentiostat/ismeasuring".format(poturl)).json()
     retc = return_class(measurement_type='echem_ismeasuring',
                         parameters= {'command':'ismeasuring',
                                     'parameters':None},
@@ -82,7 +96,7 @@ def CellOnOff(onoff):
 
 @app.get("/echem/retrieve")
 def retrieve(conf: dict):
-   res = requests.get("{}/potentiostat/cellonoff".format(poturl),
+    res = requests.get("{}/potentiostat/cellonoff".format(poturl),
                         params=conf).json()
     retc = return_class(measurement_type='echem_retrieve',
                         parameters= {'command':'retrieve',

@@ -39,6 +39,12 @@ def stopPump(pump:int):
     retc = return_class(**ret)
     return retc
 
+@app.get("/pump/allOn")
+def allOn(time_:int):
+    ret = p.allOn(time)
+    retc = return_class(**ret)
+    return retc
+
 @app.on_event("shutdown")
 def shutdown():
     ret = p.shutdown()

@@ -42,15 +42,6 @@ class pump():
         )
         return retc
 
-    def setBlock(self, pump:int, time_block:float):
-        #this sets a block
-        self.conf['pumpBlockings'][pump] = time_block
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "block","time_block":time_block},
-        )
-        return retc
-
     def allOn(time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
         time_block = time.time()+time_
@@ -60,7 +51,7 @@ class pump():
             parameters={"command": "allOn","time_block":time_block},
         )
         return retc
-
+        
     def dispenseVolume(self, pump:int ,volume:int ,speed:int ,direction:int=1,read=False,prime=False):
         #pump is an index 0-13 incicating the pump channel
         #volume is the volume in µL

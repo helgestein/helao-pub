@@ -28,7 +28,7 @@ def setBlock(pump:int, time_block:float):
     return retc
 
 @app.get("/pump/dispenseVolume")
-def dispenseVolume(pump:int ,volume:int ,speed:int ,direction:int=1,read=False):
+def dispenseVolume(pump:int ,volume:int ,speed:int ,direction:int=1,read:bool=False,prime:bool=False):
     ret = p.dispenseVolume(pump, volume, speed, direction, read)
     retc = return_class(**ret)
     return retc
@@ -40,7 +40,7 @@ def stopPump(pump:int):
     return retc
 
 @app.get("/pump/allOn")
-def allOn(time_:int):
+def allOn(time:int):
     ret = p.allOn(time)
     retc = return_class(**ret)
     return retc

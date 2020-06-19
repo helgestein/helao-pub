@@ -8,3 +8,7 @@
 ## simulation servers
 - galil and gamry server code current import from driver.*_simulate
 - cd into server directory, execute start fastapi instances via  `python galil_server.py` and `python gamry_server.py`
+
+## design
+
+![helao](helao_figures.png)

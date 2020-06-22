@@ -120,5 +120,5 @@ def disconnect():
 if __name__ == "__main__":
     autolab_conf = mischbares_small.config['autolab']
     a = Autolab(mischbares_small.config['autolab'])
-    uvicorn.run(app, host="127.0.0.1", port=13371)
+    uvicorn.run(app, host="127.0.0.1", port=13375)
     print('initialized autolab')

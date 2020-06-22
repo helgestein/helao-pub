@@ -1,7 +1,17 @@
+""" A action server for electrochemistry
+
+the logic here is that you define recipes that are stored in files. This is a relatively specific implementation of Autolab Metrohm
+For this we pre define recipe files in the specific proreiatary xml language and then manipulate measurement parameters via
+configuration dicts. The dicts point to the files that are being uploaded to the potentiostat
+The actions cover measuring, setting the cell on or off asking the potential or current and if the potentiostat is measuring
+
+"""
+
 import sys
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
+import requests
 import json
 
 app = FastAPI(title="Echem Action server V1",
@@ -13,108 +23,88 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/potentiostat/ismeasuring")
+@app.get("/echem/measure/")
+def measure(measure_conf: dict):
+    """
+    Measure a recipe and manipulate the parameters:
+
+    - **measure_conf**: is explained in the echemprocedures folder
+    """
+    res = requests.get("{}/motor/query/moving".format(poturl), 
+                        params=measure_conf).json()
+    retc = return_class(measurement_type='echem_measure',
+                        parameters= {'command':'measure',
+                                    'parameters':measure_conf},
+                        data = {'data':res})
+    return retc
+
+@app.get("/echem/ismeasuring/")
 def ismeasuring():
-    ret = a.ismeasuring()
-    retc = return_class(measurement_type='potentiostat_autolab',
+    res = requests.get("{}/potentiostat/ismeasuring".format(poturl)).json()
+    retc = return_class(measurement_type='echem_ismeasuring',
                         parameters= {'command':'ismeasuring',
                                     'parameters':None},
-                        data = {'ismeasuring':ret})
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/potential")
+@app.get("/echem/potential/")
 def potential():
-    ret = a.potential()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'getpotential',
+    res = requests.get("{}/potentiostat/potential".format(poturl)).json()
+    retc = return_class(measurement_type='echem_potential',
+                        parameters= {'command':'potential',
                                     'parameters':None},
-                        data = {'potential':ret})
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/current")
+@app.get("/echem/current/")
 def current():
-    ret = a.current()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'getcurrent',
+    res = requests.get("{}/potentiostat/current".format(poturl)).json()
+    retc = return_class(measurement_type='echem_current',
+                        parameters= {'command':'current',
                                     'parameters':None},
-                        data = {'current':ret})
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/setcurrentrange")
-def setCurrentRange(crange: str):
-    a.setCurrentRange(crange)
-    retc = return_class(measurement_type='potentiostat_autolab',
+@app.get("/echem/setcurrentrange/")
+def setCurrentRange(crange):
+    res = requests.get("{}/potentiostat/setcurrentrange".format(poturl),
+                        params={'crange':crange}).json()
+    retc = return_class(measurement_type='echem_setcurrentrange',
                         parameters= {'command':'setcurrentrange',
-                                    'parameters':crange},
-                        data = {'currentrange':crange})
+                                    'parameters':{'crange':crange}},
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/setstability")
-def setStability(stability):
-    a.setStability(stability)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'setStability',
-                                    'parameters':stability},
-                        data = {'currentrange':stability})
-    return retc
-
-@app.get("/potentiostat/appliedpotential")
+@app.get("/echem/appliedpotential/")
 def appliedPotential():
-    ret = a.appliedPotential()
-    retc = return_class(measurement_type='potentiostat_autolab',
+    res = requests.get("{}/potentiostat/appliedpotential".format(poturl)).json()
+    retc = return_class(measurement_type='echem_appliedpotential',
                         parameters= {'command':'appliedpotential',
                                     'parameters':None},
-                        data = {'appliedpotential':ret})
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/abort")
-def abort():
-    ret = a.abort()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'abort',
-                                    'parameters':None},
-                        data = {'abort':True})
-
-@app.get("/potentiostat/cellonoff")
-def CellOnOff(onoff:str):
-    a.CellOnOff(onoff)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'cellonoff',
-                                    'parameters':onoff},
-                        data = {'onoff':onoff})
+@app.get("/echem/cellonoff/")
+def CellOnOff(onoff):
+    res = requests.get("{}/potentiostat/cellonoff".format(poturl),
+                        params={'onoff':onoff}).json()
+    retc = return_class(measurement_type='echem_onoff',
+                        parameters= {'command':'onoff',
+                                    'parameters':{'cellonoff':onoff}},
+                        data = {'data':res})
     return retc
 
-@app.get("/potentiostat/measure")
-def performMeasurement(conf: dict):
-    a.performMeasurement(conf)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                    parameters= {'command':'measure',
-                                'parameters':conf},
-                    data = {'data':None})
-    return retc
-
-@app.get("/potentiostat/retrieve")
+@app.get("/echem/retrieve")
 def retrieve(conf: dict):
-    path = os.path.join(conf['safepath'],conf['filename'])
-    with open(path.replace('.nox', '_data.json'), 'r') as f:
-        ret = json.load(f)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                    parameters= {'command':'retrieve',
-                                'parameters':conf},
-                    data = {'appliedpotential':ret})
-    return retc
-
-@app.on_event("shutdown")
-def disconnect():
-    a.disconnect()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'disconnect',
-                                    'parameters':None},
-                        data = {'data':None})
+    res = requests.get("{}/potentiostat/cellonoff".format(poturl),
+                        params=conf).json()
+    retc = return_class(measurement_type='echem_retrieve',
+                        parameters= {'command':'retrieve',
+                                    'parameters':{'retrieve':conf}},
+                        data = {'data':res})
     return retc
 
 if __name__ == "__main__":
-    autolab_conf = mischbares_small.config['autolab']
-    a = Autolab(mischbares_small.config['autolab'])
+    poturl = "http://{}:{}".format("127.0.0.1", "13375")
     print('initialized autolab starting the server')
-    uvicorn.run(app, host="127.0.0.1", port=13371)
+    uvicorn.run(app, host="127.0.0.1", port=13376)

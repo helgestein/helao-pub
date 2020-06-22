@@ -1,7 +1,7 @@
 # implement common movement procedures
 import sys
-sys.path.append(r'../drivers')
-from driver.mecademic import Mecademic
+sys.path.append(r'../driver')
+from driver.mecademic_driver import Mecademic
 from copy import copy
 import numpy as np
 

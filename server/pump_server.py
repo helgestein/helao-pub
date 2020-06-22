@@ -16,7 +16,7 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/pump/ispumping")
+@app.get("/pump/isPumping")
 def isBlocked(pump: int):
     ret = p.isBlocked(pump)
     retc = return_class(**ret)

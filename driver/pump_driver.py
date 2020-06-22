@@ -42,16 +42,7 @@ class pump():
         )
         return retc
 
-    def setBlock(self, pump:int, time_block:float):
-        #this sets a block
-        self.conf['pumpBlockings'][pump] = time_block
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "block","time_block":time_block},
-        )
-        return retc
-
-    def allOn(time_:int):
+    def allOn(self,time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
         time_block = time.time()+time_
         _ = self.setBlock(pump,time_block)        
@@ -61,7 +52,7 @@ class pump():
         )
         return retc
 
-    def dispenseVolume(self, pump:int ,volume:int ,speed:int ,direction:int=1,read=False,prime=False):
+    def dispenseVolume(self, pump:int ,volume:int ,speed:int, stage:bool,read=False,direction:int=1):
         #pump is an index 0-13 incicating the pump channel
         #volume is the volume in µL
         #speed is a variable 0-1 going from 0µl/min to 4000µL/min
@@ -69,11 +60,14 @@ class pump():
         self.ser.write(bytes('{},PON,1234\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.conf['pumpAddr'][pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.conf['pumpAddr'][pump],volume),'utf-8'))
-        if not prime:
+        if not stage:
             self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
 
             time_block = time.time()+volume/speed
             _ = self.setBlock(pump,time_block)
+        else:
+            time_block = 0
+            _ = self.setBlock(pump,0)
         if read:
             ans = self.ser.read(1000)
 

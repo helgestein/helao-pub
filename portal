@@ -1,8 +1,0 @@
-{
-    "python.pythonPath": "C:\\Users\\Operator\\anaconda3\\envs\\multipumpe\\python.exe",
-    "terminal.integrated.automationShell.windows": "C:\\Windows\\sysnative\\cmd.exe",
-    "terminal.integrated.shell.windows": "C:\\Windows\\System32\\cmd.exe",
-    "git.enableSmartCommit": true,
-    "git.autofetch": true,
-    "git.confirmSync": false
-}

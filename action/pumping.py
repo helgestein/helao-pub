@@ -26,7 +26,7 @@ def formulation_successive(comprel: list, pumps: list, speed: int, totalvol: int
 
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
-                                    'parameters':measure_conf},
+                                    'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol}},
                         data = {'data':retl})
     return retc
 

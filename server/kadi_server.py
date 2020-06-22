@@ -4,8 +4,7 @@ import json
 import sys
 sys.path.append('../config')
 sys.path.append('../driver')
-
-from driver.kadi_driver import kadi
+from kadi_driver import kadi
 import config.mischbares_small
 
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
@@ -13,16 +12,16 @@ app = FastAPI(title="KaDI4Mat Interface Driver V1",
     version="1.0",)
 
 @app.get("/kadi/addrecord")
-def addRecord(ident,title,visibility,filed,meta)
+def addRecord(ident,title,visibility,filed,meta):
     k.addRecord(ident,title,visibility,filepath,meta)
 
 @app.get("/kadi/addcollection")
-def addCollection(identifier, title, visibility)
+def addCollection(identifier, title, visibility):
     k.addCollection(identifier, title, visibility)
 
 @app.get("/kadi/addrecordtocollection")
 def addRecordToCollection(identCollection,identRecord,visibility='public',record=None):
-    k.addRecord(identCollection,identRecord,visibility='public',record)
+    k.addRecord(identCollection,identRecord,visibility,record)
 
 if __name__ == '__main__':
     k = kadi(config.mischbares_small.config['kadi'])

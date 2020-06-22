@@ -3,7 +3,7 @@ import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../config')
 sys.path.append(r'../server')
-from mischbares_small import config
+#from mischbares_small import config
 import mecademic_server
 from copy import copy
 import numpy as np
@@ -13,6 +13,33 @@ from pydantic import BaseModel
 import json
 import requests
 
+####################################################################test
+config = dict()
+
+#we define all the servers here so that the overview is a bit better
+config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
+                         pumpingServer = dict(host="127.0.0.1", port=13371),
+                         mecademicServer = dict(host="127.0.0.1", port=13372),
+                         movementServer = dict(host="127.0.0.1", port=13373),
+                         autolabServer = dict(host="127.0.0.1", port=13374),
+                         echemServer = dict(host="127.0.0.1", port=13375),
+                         kadiServer = dict(host="127.0.0.1", port=13376),
+                         dataServer = dict(host="127.0.0.1", port=13377))
+
+config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
+            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
+
+config['movement'] = dict(
+    safe_sample_joints = [-56.0, 30.0, 40.0, 5.0, -72.0, 0.0],
+    #pose (151.917, -245.409, 133.264, -42.574, -22.04, -70.12)
+    safe_reservoir_joints = [-113.5733, 53.743, -1.5102, -132.2144, -65.2762, 32.6695],
+    safe_waste_joints = [-10.0, -20.0, 45.0, 0.0, -25.0, 0.0],
+    sample_rotation = 0, reservoir_rotation = 0, waste_rotation = 0,
+    x_limit_sample = 75, y_limit_sample = 75,
+    x_limit_reservoir = 75, y_limit_reservoir = 75,
+    x_limit_waste = 10, y_limit_waste = 10)
+
+#############################################################################################
 # Add limit rejection
 # Add orientationhelp so we can load the same platemap for every plane and it takes care of it
 

@@ -109,6 +109,21 @@ class pump():
         )
         return retc
 
+    def read(self):
+        ans = []
+        for i in range(100):
+            a = self.ser.read(1000)
+            if not a == "":
+                ans.append(a)
+            else:
+                break
+        retc = dict(
+            measurement_type="pump_command",
+            parameters={"command": "read"},
+            data={'data':ans}
+        )
+        return retc        
+
     def shutdown(self):
         for i in range(14):
             self.stopPump(i)

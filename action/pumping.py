@@ -21,7 +21,7 @@ def formulation_successive(comprel: list, pumps: list, speed: int, totalvol: int
         s = int(speed*c)
         res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
                             params={'pump':p,'volume':v,'speed':speed,
-                                    'direction':1,'read':False}).json()
+                                    'direction':1,'read':False,'stage':False}).json()
         retl.append(res)
 
     retc = return_class(measurement_type='echem_measure',
@@ -44,10 +44,21 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
         s = int(speed*c)
         res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
                             params={'pump':p,'volume':v,'speed':speed,
-                                    'direction':1,'read':False,'prime':True}).json()
+                                    'direction':1,'read':False,'stage':True}).json()
         retl.append(res)
     res = requests.get("{}/pump/allOn".format(pumpurl), 
                     params={'time':totalvol/speed}).json()
+
+    retc = return_class(measurement_type='echem_measure',
+                        parameters= {'command':'measure',
+                                    'parameters':measure_conf},
+                        data = {'data':retl})
+    return retc
+
+
+@app.get("/pumping/flushSerial/")
+def formulation():
+    res = requests.get("{}/pump/read".format(pumpurl)).json()
 
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',

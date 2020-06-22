@@ -47,6 +47,12 @@ def allOn(time:int):
     retc = return_class(**ret)
     return retc
 
+@app.get("/pump/read")
+def allOn():
+    ret = p.read()
+    retc = return_class(**ret)
+    return retc
+
 @app.on_event("shutdown")
 def shutdown():
     ret = p.shutdown()

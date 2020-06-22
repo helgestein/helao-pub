@@ -27,4 +27,5 @@ def addRecordToCollection(identCollection,identRecord,visibility='public'):
 
 if __name__ == '__main__':
     k = kadi(config.mischbares_small.config['kadi'])
-    uvicorn.run(app, host=config['servers']['kadiServer']['host'], port=config['servers']['kadiServer']['port'])
+    uvicorn.run(app, host=config['servers']['kadiServer']['host'], 
+                     port=config['servers']['kadiServer']['port'])

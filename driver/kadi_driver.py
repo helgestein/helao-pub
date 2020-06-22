@@ -10,7 +10,6 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-
     def addRecord(ident,title,visibility,filed,meta = None):
         #create a record
         record = Record(identifier=ident, title=title, visibility=visibility)
@@ -20,7 +19,7 @@ class kadi():
         meta_flat = df.to_dict(orient='records')[0])
         record.add_metadatum(metadatum=meta_flat, force=True)
 
-    def addCollection(ident,title,visibility = 'public',filepath = None,meta = None):
+    def addCollection(identifier, title, visibility):
         #create collection
         collection = Collection(identifier=ident, title=title, visibility=visibility)
 

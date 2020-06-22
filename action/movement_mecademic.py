@@ -251,6 +251,7 @@ def mvrailrel(dist):
 if __name__ == "__main__":
     zeroj = [0, 0, 0, 0, 0, 0]
     move_to_home()
+<<<<<<< HEAD
     safe_sample_joints = config['movement']['safe_sample_joints']
     safe_reservoir_joints = config['movement']['safe_reservoir_joints']
     safe_waste_joints = config['movement']['safe_waste_joints']
@@ -265,5 +266,23 @@ if __name__ == "__main__":
     y_limit_waste = config['movement']['y_limit_waste']
     
     uvicorn.run(app, host=config['servers']['movementServer']['host'], port=config['servers']['movementServer']['port'])
+=======
+    safe_sample_joints = confd['safe_sample_joints']
+    safe_reservoir_joints = confd['safe_reservoir_joints']
+    safe_waste_joints = confd['safe_waste_joints']
+    sample_rotation = confd['sample_rotation']
+    reservoir_rotation = confd['reservoir_rotation']
+    waste_rotation = confd['waste_rotation']
+    x_limit_sample = confd['x_limit_sample']
+    y_limit_sample = confd['y_limit_sample']
+    x_limit_reservoir = confd['x_limit_reservoir']
+    y_limit_reservoir = confd['y_limit_reservoir']
+    x_limit_waste = confd['x_limit_waste']
+    y_limit_waste = confd['y_limit_waste']
+
+    url = "http://{}:{}".format("127.0.0.1", "13370")
+    uvicorn.run(app, host=config['servers']['movementServer']['host'], 
+                     port=config['servers']['movementServer']['port'])
+>>>>>>> cb8190d29751bc30840b3db9b3c684bc22dd9b02
     print("instantiated mecademic")
     

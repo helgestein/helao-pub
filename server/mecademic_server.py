@@ -29,114 +29,114 @@ def auto_repair():
         )
     return retc 
 
-@app.get("/mecademic/set_tool_refrence_frame")
+@app.get("/mecademic/setTrf")
 def set_trf(x: float, y: float, z: float, alpha: float, beta: float, gamma: float):
     m.set_tfr(x, y, z, alpha, beta, gamma)
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "tool_refrence_frame"},
+        parameters={"command": "set-trf"},
         data={'data': "trf", "x": x, "y": y, "z": z, "alpha": alpha, "beta": beta, "gamma": gamma}
         )
     return retc 
 
-@app.get("/mecademic/move_pose_plane")
+@app.get("/mecademic/mvPosePlane")
 def mvposeplane(x: float, y: float):
     m.mvposeplane(x, y)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "move_pos_plane"},
+            parameters={"command": "mvposeplane"},
             data={'data': "poses", "x": x, "y": y}
             )
     return retc 
 
-@app.get("/mecademic/move_joints")
+@app.get("/mecademic/dMoveJoints")
 def DMoveJoints(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveJoints(a, b, c, d, e, f)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "move_joints"},
+            parameters={"command": "DMoveJoints"},
             data={'data': "joints" , "joint1": a, "joint2": b, "joint3": c, "joint4": d, "joint5": e, "joint6": f}
         )
     return retc
 
-@app.get("/mecademic/move_linear")
+@app.get("/mecademic/dMoveLin")
 def DMoveLin(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveLin(a, b, c, d, e, f)
     retc = return_class(
                 measurement_type="mecademic_command",
-                parameters={"command": "move_linear"},
+                parameters={"command": "DMoveLin"},
                 data={'data': "axes" , "axis1": a, "axis2": b, "axis3": c, "axis4": d, "axis5": e, "axis6": f}
             )
     return retc
 
-@app.get("/mecademic/move_pos")
+@app.get("/mecademic/dMovePose")
 def DMovePose(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMovePose(a, b, c, d, e, f)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "movepose"},
+            parameters={"command": "DMovePose"},
             data={'data': "poses", "pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f}
         )
     return retc
 
-@app.get("/mecademic/linear_in_z")
+@app.get("/mecademic/dqLinZ")
 def DQLinZ(z: int=20,nsteps: int=100):
     m.DQLinZ(z, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "linear_move_z"},
+            parameters={"command": "DQLinZ"},
             data={"z": z, "step_num": nsteps}
             )
     return retc
 
-@app.get("/mecademic/linear_in_x")
+@app.get("/mecademic/dqLinX")
 def DQLinX(x: int=20, nsteps: int=100):
     m.DQLinX(x, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "linear_move_x"},
+            parameters={"command": "DQLinX"},
             data={"x": x, "step_num": nsteps}
             )
     return retc
 
-@app.get("/mecademic/linear_in_y")
+@app.get("/mecademic/dqLinY")
 def DQLinY(y: int=20, nsteps: int=100):
     m.DQLinY(y, nsteps)
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "linear_move_y"},
+        parameters={"command": "DQLinY"},
         data={"y": y, "step_num": nsteps}
         )
     return retc
 
-@app.get("/mecademic/get_pose")
+@app.get("/mecademic/dGetPose")
 def DGetPose():
     data= m.DGetPose()
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "Get_pos"},
+        parameters={"command": "DGetPose"},
         data={"poses": data}
         )
     return retc
 
-@app.get("/mecademic/get_joints")
+@app.get("/mecademic/dGetJoints")
 def DGetJoints():
     data = m.DGetJoints()
     print(data)
     print(type(data))
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "get_joints"},
+        parameters={"command": "DGetJoints"},
         data={"joints": data}
         )
     return retc
 
-@app.get("/mecademic/check_robot")
+@app.get("/mecademic/checkRobot")
 def checkrobot():
     data = m.checkrobot()
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "check_robot"},
+        parameters={"command": "checkrobot"},
         data={"status": data}
         )
     return retc

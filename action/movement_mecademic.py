@@ -45,7 +45,9 @@ def move_to_home():
 
 @app.get("/movement/jogging")
 def jogging(joints: int):
+    
     self.driver_robot.DMoveJoints(*joints)
+    data = requests.get("{}/mecademic/move_joints")
     print('Please jog the robot. \n dist:axis \n (i.e 0.1:x, 0.1:y or 0.1:z dist in mm)')
     print('this runs until you say exit')
     pose = copy(self.driver_robot.DGetPose())

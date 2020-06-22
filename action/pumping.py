@@ -67,4 +67,5 @@ def formulation():
 
 if __name__ == "__main__":
     pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
-    uvicorn.run(app, host=config['servers']['pumpingServer']['host'], port=config['servers']['pumpingServer']['port'])
+    uvicorn.run(app, host=config['servers']['pumpingServer']['host'], 
+                     port=config['servers']['pumpingServer']['port'])

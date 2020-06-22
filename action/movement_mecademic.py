@@ -39,54 +39,71 @@ def matrix_rotation(self,theta):
 def move_to_home():
     # this moves the robot safely to ou home which is defined as all joints at 0
     paramd = {lett:val for lett,val in zip("abcdef",zeroj)}
-    data = requests.get("{}/mecademic/move_joints".format(url), params=paramd).json()
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params=paramd).json()
     retc = return_class(measurement_type='movement_command', parameters= {'command':'move_to_home'}, data = {'data': data})
     return retc
 
 @app.get("/movement/jogging")
-def jogging(joints: int):
-    
-    self.driver_robot.DMoveJoints(*joints)
-    data = requests.get("{}/mecademic/move_joints")
+def jogging(joints: float):
+    paramd = {lett: val for lett,val in zip("abcdef", joints)}
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params= paramd).json()
     print('Please jog the robot. \n dist:axis \n (i.e 0.1:x, 0.1:y or 0.1:z dist in mm)')
     print('this runs until you say exit')
-    pose = copy(self.driver_robot.DGetPose())
-    pjoint = copy(self.driver_robot.DGetJoints())
-
+    pose = copy(requests.get("{}/mecademic/dGetPose".format(url)).json())
+    pjoint = copy(requests.get("{}/mecademic/dGetJoints".format(url)).json())
     while True:
         inp = input()
         if inp == 'exit':
-            pose = self.driver_robot.DGetPose()
-            pjoint = self.driver_robot.DGetJoints()
+            pose = requests.get("{}/mecademic/dGetPose".format(url)).json()
+            pjoint = requests.get("{}/mecademic/dGetJoints".format(url)).json()
             break
         dist, axis = inp.split(':')
-        # ok tell the robot to DMovePose by distance in axis direction
+        # Ask the robot to move the poses by distance in axis direction
         dist = float(dist)
         if axis == 'x':
             pose_mod = copy(list(pose))
             pose_mod[0] += dist
-            self.driver_robot.DMovePose(*pose_mod)
+            requests.get("{}/mecademic/dMovePose".format(url), params= *pose_mod).json()
+    
         if axis == 'y':
             pose_mod = copy(list(pose))
             pose_mod[1] += dist
-            self.driver_robot.DMovePose(*pose_mod)
+            requests.get("{}/mecademic/dMovePose".format(url), params= *pose_mod).json()
+        
         if axis == 'z':
             pose_mod = copy(list(pose))
             pose_mod[2] += dist
-            self.driver_robot.DMovePose(*pose_mod)
-        pose = self.driver_robot.DGetPose()
-        pjoint = self.driver_robot.DGetJoints()
+            requests.get("{}/mecademic/dMovePose".format(url), params= *pose_mod).json()
+
+        pose = requests.get("{}/mecademic/dGetPose".format(url)).json()
+        pjoint = requests.get("{}/mecademic/dGetJoints".format(url)).json()
+
     # move to the safe plane and then return the values
     pose_mod = copy(list(pose))
     pose_mod[2] += 20
-    self.driver_robot.DMovePose(*pose_mod)
-    pose = self.driver_robot.DGetPose()
-    pjoint = self.driver_robot.DGetJoints()
-    return pose, pjoint
+    requests.get("{}/mecademic/dMovePose".format(url), params= *pose_mod).json()
+    pose = requests.get("{}/mecademic/dGetPose".format(url)).json()
+    pjoint = requests.get("{}/mecademic/dGetJoints".format(url)).json()
 
-# Done: alignment to sample corner
-def align_sample(self):
-    self.safe_sample_corner, self.safe_sample_joints = self.jogging(self.safe_sample_joints)
+    retc = return_class(measurement_type='movement_command', 
+    parameters= {'command':'jogging', 'poses': pose, 'joints': pjoint}, data = {'data': data})
+    return retc
+
+#####
+@app.get("/movement/moveToHome")
+def move_to_home():
+    # this moves the robot safely to ou home which is defined as all joints at 0
+    paramd = {lett:val for lett,val in zip("abcdef",zeroj)}
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params=paramd).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'move_to_home'}, data = {'data': data})
+    return retc
+#####################
+
+# Alignment to sample corner
+@app.get("movement/alignSample")
+def align_sample():
+    safe_sample_corner, safe_sample_joints = jogging(safe_sample_joints)
+    data 
 
 # Done: alignment to reservoir corner @fuzhan
 def align_reservoir(self):

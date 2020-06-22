@@ -1,4 +1,18 @@
 config = dict()
+
+#we define all the servers here so that the overview is a bit better
+config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
+                         pumpingServer = dict(host="127.0.0.1", port=13367),
+                         mecademicServer = dict(host="127.0.0.1", port=13371),
+                         movementServer = dict(host="127.0.0.1", port=13371),
+                         autolabServer = dict(host="127.0.0.1", port=13371),
+                         echemServer = dict(host="127.0.0.1", port=13371),
+                         kadiServer = dict(host="127.0.0.1", port=13371),
+                         dataServer = dict(host="127.0.0.1", port=13371))
+
+config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
+            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
+
 config['movement'] = dict(
     safe_sample_joints = [-56.0, 30.0, 40.0, 5.0, -72.0, 0.0],
     #pose (151.917, -245.409, 133.264, -42.574, -22.04, -70.12)
@@ -10,14 +24,7 @@ config['movement'] = dict(
     x_limit_waste = 10, y_limit_waste = 10)
 
 ## Cofiguration of the pump
-config['pump'] = dict(direction_pin_B = 'd:13:o',
-                      speed_pin_B = 'd:11:p',
-                      brake_pin_B = 'd:8:o',
-                      direction_pin_A = 'd:12:o',
-                      speed_pin_A = 'd:3:p',
-                      brake_pin_A = 'd:9:o',
-                      radiusMotor = 0.2,
-                      radiusTube = 0.02)
+config['pump'] = dict()
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",

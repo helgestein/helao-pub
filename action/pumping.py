@@ -46,15 +46,14 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
                             params={'pump':p,'volume':v,'speed':speed,
                                     'direction':1,'read':False,'stage':True}).json()
         retl.append(res)
-    res = requests.get("{}/pump/allOn".format(pumpurl), 
-                    params={'time':totalvol/speed}).json()
+    retl.append(requests.get("{}/pump/allOn".format(pumpurl), 
+                    params={'time':totalvol/speed}).json())
 
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
-                                    'parameters':measure_conf},
+                                    'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol}},
                         data = {'data':retl})
     return retc
-
 
 @app.get("/pumping/flushSerial/")
 def formulation():
@@ -62,10 +61,10 @@ def formulation():
 
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
-                                    'parameters':measure_conf},
-                        data = {'data':retl})
+                                    'parameters':None},
+                        data = {'data':res})
     return retc
 
 if __name__ == "__main__":
     pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
-    uvicorn.run(app, host="127.0.0.1", port=13367)
+    uvicorn.run(app, host=config['servers']['pumpingServer']['host'], port=config['servers']['pumpingServer']['port'])

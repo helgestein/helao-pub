@@ -2,6 +2,8 @@ from kadi_driver import kadi
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+sys.path.append('../config')
+import config.mischbares_small
 
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
     description="This is a very fancy datamanagement server",
@@ -20,8 +22,5 @@ def addRecordToCollection(identCollection,identRecord,visibility='public'):
     pass
 
 if __name__ == '__main__':
-    conf = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
-            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
-    k = kadi(conf)
-    uvicorn.run(app, host="127.0.0.1", port=13371)
-
+    k = kadi(conf['kadi'])
+    uvicorn.run(app, host=config['servers']['kadiServer']['host'], port=config['servers']['kadiServer']['port'])

@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import sys
 sys.path.append('../driver')
+sys.path.append('../config')
+import config.mischbares_small
 from pump_driver import pump
 
 app = FastAPI(title="Pump server V1",
@@ -61,4 +63,4 @@ def shutdown():
 
 if __name__ == "__main__":
     p = pump()
-    uvicorn.run(app, host="127.0.0.1", port=13370)
+    uvicorn.run(app, host=config['servers']['pumpServer']['host'], port=config['servers']['pumpServer']['port'])

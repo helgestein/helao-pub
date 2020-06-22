@@ -154,6 +154,6 @@ def disconnect():
 
 if __name__ == "__main__":
     m = Mecademic()
-    uvicorn.run(app, host="127.0.0.1", port=13371)
+    uvicorn.run(app, host=config['servers']['mecademicServer']['host'], port=config['servers']['mecademicServer']['port'])
     print("instantiated mecademic")
     

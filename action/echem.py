@@ -107,4 +107,4 @@ def retrieve(conf: dict):
 if __name__ == "__main__":
     poturl = "http://{}:{}".format("127.0.0.1", "13375")
     print('initialized autolab starting the server')
-    uvicorn.run(app, host="127.0.0.1", port=13376)
+    uvicorn.run(app, host=config['servers']['echemServer']['host'], port=config['servers']['echemServer']['port'])

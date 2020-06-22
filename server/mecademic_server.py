@@ -1,11 +1,13 @@
 import sys
-sys.path.append(r"./config")
+sys.path.append(r"../config")
+sys.path.append(r"../driver")
 from mecademic_driver import Mecademic
 import mischbares_small
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+
 
 app = FastAPI(title="Mecademic driver server V1",
     description="This is a fancy mecademic driver server",

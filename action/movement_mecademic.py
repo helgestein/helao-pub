@@ -2,8 +2,8 @@
 import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../config')
-from driver.mecademic_driver import Mecademic
 import config.mischbares_small
+# from config.mischbares_small import config
 from copy import copy
 import numpy as np
 

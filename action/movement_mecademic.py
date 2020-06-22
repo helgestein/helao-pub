@@ -209,6 +209,7 @@ if __name__ == "__main__":
     y_limit_waste = confd['y_limit_waste']
 
     url = "http://{}:{}".format("127.0.0.1", "13370")
-    uvicorn.run(app, host=config['servers']['movementServer']['host'], port=config['servers']['movementServer']['port'])
+    uvicorn.run(app, host=config['servers']['movementServer']['host'], 
+                     port=config['servers']['movementServer']['port'])
     print("instantiated mecademic")
     

@@ -1,10 +1,11 @@
 # implement common movement procedures
 import sys
 sys.path.append(r'../driver')
+sys.path.append(r'../config')
 from driver.mecademic_driver import Mecademic
+import config.mischbares_small
 from copy import copy
 import numpy as np
-
 
 # Add limit rejection
 # Add orientationhelp so we can load the same platemap for every plane and it takes care of it

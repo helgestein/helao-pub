@@ -2,7 +2,7 @@ import sys
 sys.path.append(r"../config")
 sys.path.append(r"../driver")
 from mecademic_driver import Mecademic
-import mischbares_small
+from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel

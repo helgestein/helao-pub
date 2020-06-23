@@ -18,7 +18,7 @@ config['movement'] = dict(
     #pose (151.917, -245.409, 133.264, -42.574, -22.04, -70.12)
     safe_reservoir_joints = [-113.5733, 53.743, -1.5102, -132.2144, -65.2762, 32.6695],
     safe_waste_joints = [-10.0, -20.0, 45.0, 0.0, -25.0, 0.0],
-    sample_rotation = 0, reservoir_rotation = 0, waste_rotation = 0,
+    sample_rotation = 0.0, reservoir_rotation = 0.0, waste_rotation = 0.0,
     x_limit_sample = 75, y_limit_sample = 75,
     x_limit_reservoir = 75, y_limit_reservoir = 75,
     x_limit_waste = 10, y_limit_waste = 10)

@@ -11,6 +11,10 @@ import requests
 import time
 #start all servers if not already done
 
+#example action_book
+sdc_std = ['movement/home','movement/waste','pumping/dispense','movement/drop','movement/home','movement/sample','echem/measure','pump/aspirate','movement/home']
+
+
 #this orchestrator manages a list of experiments and expects 
 #dispense a formulation
 pumpurl = "http://{}:{}".format("127.0.0.1", "13370")

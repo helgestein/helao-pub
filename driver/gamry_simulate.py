@@ -1,3 +1,4 @@
+
 """ A device class for the Gamry USB potentiostat, used by a FastAPI server instance.
 
 The 'gamry' device class simulates potentiostat measurement functions provided by the
@@ -15,6 +16,8 @@ import numpy as np
 import sys
 from numba import jit
 import time
+import datetime
+import asyncio
 
 
 if __package__:
@@ -327,32 +330,83 @@ class GamryDtaqEvents(object):
     def __init__(self, meas_type):
         "Takes gamry dtaq object with .cook() method, stores points"
         self.dtaq = "simulate"
-        self.acquired_points = []
+        self.acquired_points = asyncio.Queue() # MIGHT NEED TO MAKE THIS AN ASYNC QUEUE
+
+        # import asyncio (completed)
+        # make the method async (completed)
+        # initialize the loop with: loop = asyncio.get_event_loop() (completed)
+        # set tasks: task1 = whatever we want to do with our queue (completed)
+        # if there are multiple tasks gather them: final_task = asyncio.gather(task1, task2, task3) (completed)
+        # complete tasks: loop.run_until_complete(final_task) (completed)
+        # await data being added to the queue: await name_of_queueu.put(whatever we want to add)
+        # might need to await async sleep
+
         self.status = "idle"
         self.start_time = time.time()
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    def simulate(self, sigramp):
+    def simulate(self, sigramp): #ASYNCABLE WITHIN THE WHILE LOOP
+
+        loop = asyncio.get_event_loop() # this line might need to be moved to main
+
         if self.meas_type == "IGamryDtaqRcv":
             fullt, fullv, fullj = cvsim(sigramp, 0.45)
         else:
             fullt, fullv, fullj = lssim(sigramp, 0.45)
         self.start_time = time.time()
         self.stop_time = self.start_time + fullt[-1]
-        while time.time() < self.stop_time:
-            self.status = "measuring"
-            self.acquired_points = [
-                [t, v, 0.0, j]
-                for t, v, j in zip(fullt, fullv, fullj)
-                if t < (time.time() - self.start_time)
-            ]
+
+        t0 = datetime.datetime.now()
+
+        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj)) # this line might need to be moved to main
+        task2 = loop.create_task(self.test_async())
+        final_task = asyncio.gather(task1, task2) # ADD MORE TASKS AS NEEDED
+        loop.run_until_complete(final_task)
+
+        dt = datetime.datetime.now() - t0
+        print(dt)
+
+        # while time.time() < self.stop_time:
+        #     self.status = "measuring"
+        #     self.acquired_points = [
+        #         [t, v, 0.0, j]
+        #         for t, v, j in zip(fullt, fullv, fullj)
+        #         if t < (time.time() - self.start_time)
+        #     ]
         self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
+    async def test_async(self):
+        for i in range(50):
+            print("here")
+            await asyncio.sleep(.5)
+
+    async def get_value_for_aquire_points(self, fullt, fullv, fullj):
+        return [ 
+            [t, v, 0.0, j]
+            for t, v, j in zip(fullt, fullv, fullj)
+            if t < (time.time() - self.start_time)
+        ]
+
+    async def set_status_aquire_points(self, fullt, fullv, fullj): # THIS CODE USE TO BE IN THE SIMULATE METHOD
+        counter = 0
+        while time.time() < self.stop_time:
+            counter += 1
+            if counter%10000 == 0:
+                print("there")
+            self.status = "measuring"
+            self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj)
+            await asyncio.sleep(0)
+            # self.acquired_points = [ 
+            #     [t, v, 0.0, j]
+            #     for t, v, j in zip(fullt, fullv, fullj)
+            #     if t < (time.time() - self.start_time)
+            # ]
+
 
 class gamry:
-    def __init__(self):
+    def __init__(self): #MIGHT NEED TO INITIALIZE self.data AS AN ASYNC QUEUE
         self.pstat = {"connected": 0}
         self.temp = []
 
@@ -381,7 +435,7 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    def measure(self, sigramp):
+    def measure(self, sigramp): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -494,9 +548,9 @@ class gamry:
         }
 
 
-# g = gamry()
-# g.potential_ramp(-1,1,0.2,0.05)
-#
-# g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
-#
-# egen(0, 1.0, 1.0, 1.0, 0.2, 0.5, 0.05)
+g = gamry()
+g.potential_ramp(-1,1,0.2,0.05)
+
+g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
+
+egen(0, 1.0, 1.0, 1.0, 0.2, 0.5, 0.05)

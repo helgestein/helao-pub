@@ -117,7 +117,7 @@ class gamry:
 
         self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
 
-    def measure(self, sigramp):
+    def measure(self, sigramp): 
         print("Opening Connection")
         ret = self.open_connection()
         self.pstat.SetIERange(8)
@@ -151,7 +151,7 @@ class gamry:
         except:
             return "other"
 
-    def dump_data(self):
+    def dump_data(self): 
         pickle.dump(
             self.data, open(os.path.join(setupd["temp_dump"], self.instance_id))
         )

@@ -16,8 +16,8 @@ import numpy as np
 import sys
 from numba import jit
 import time
-import datetime
 import asyncio
+import aiofiles
 
 
 if __package__:
@@ -330,8 +330,17 @@ class GamryDtaqEvents(object):
     def __init__(self, meas_type):
         "Takes gamry dtaq object with .cook() method, stores points"
         self.dtaq = "simulate"
-        self.acquired_points = asyncio.Queue() # MIGHT NEED TO MAKE THIS AN ASYNC QUEUE
+        self.acquired_points = asyncio.Queue() # STILL NEED TO IMPLEMENT AWAITING IT
+        self.status = "idle"
+        self.start_time = time.time()
+        self.stop_time = time.time()
+        self.meas_type = meas_type
 
+    def simulate(self, sigramp): #ASYNCABLE WITHIN THE WHILE LOOP
+        # set_status_aquire_points needs async sleep to work properly 
+        # test_async does not need async sleep to work properly 
+
+        loop = asyncio.get_event_loop() # this line might need to be moved to main later
         # import asyncio (completed)
         # make the method async (completed)
         # initialize the loop with: loop = asyncio.get_event_loop() (completed)
@@ -341,15 +350,6 @@ class GamryDtaqEvents(object):
         # await data being added to the queue: await name_of_queueu.put(whatever we want to add)
         # might need to await async sleep
 
-        self.status = "idle"
-        self.start_time = time.time()
-        self.stop_time = time.time()
-        self.meas_type = meas_type
-
-    def simulate(self, sigramp): #ASYNCABLE WITHIN THE WHILE LOOP
-
-        loop = asyncio.get_event_loop() # this line might need to be moved to main
-
         if self.meas_type == "IGamryDtaqRcv":
             fullt, fullv, fullj = cvsim(sigramp, 0.45)
         else:
@@ -357,31 +357,29 @@ class GamryDtaqEvents(object):
         self.start_time = time.time()
         self.stop_time = self.start_time + fullt[-1]
 
-        t0 = datetime.datetime.now()
+        task0 = self.clear_aiofile()
+        loop.run_until_complete(task0)
 
-        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj)) # this line might need to be moved to main
+        t0 = time.time()
+        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj)) 
         task2 = loop.create_task(self.test_async())
-        final_task = asyncio.gather(task1, task2) # ADD MORE TASKS AS NEEDED
+        final_task = asyncio.gather(task1, task2) 
         loop.run_until_complete(final_task)
-
-        dt = datetime.datetime.now() - t0
+        dt = time.time() - t0
         print(dt)
 
-        # while time.time() < self.stop_time:
-        #     self.status = "measuring"
-        #     self.acquired_points = [
-        #         [t, v, 0.0, j]
-        #         for t, v, j in zip(fullt, fullv, fullj)
-        #         if t < (time.time() - self.start_time)
-        #     ]
         self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
     async def test_async(self):
-        for i in range(50):
+        processed = 0
+        while processed < 20:
+            #item = await self.acquired_points.get() #this will not work if there is another call to .get() which is emptying our acquire_points queue
+            processed += 1
             print("here")
-            await asyncio.sleep(.5)
+            await asyncio.sleep(0.5)
 
+    # I AM NOT YET SURE IF THIS WILL BE HELPFUL TO AWAIT
     async def get_value_for_aquire_points(self, fullt, fullv, fullj):
         return [ 
             [t, v, 0.0, j]
@@ -389,20 +387,34 @@ class GamryDtaqEvents(object):
             if t < (time.time() - self.start_time)
         ]
 
+    async def clear_aiofile(self): # clears file
+        data = ""
+        async with aiofiles.open('acquired_points', 'w') as f:
+            await f.write(data)
+
+    async def write_to_aiofile(self, data): # acquire_points queue is converted to a string to be written
+        # data = await data.get()
+        data = ''.join(str(e) for e in data)
+        data = data.replace(']', ']\n')
+        async with aiofiles.open('acquired_points', 'a') as f:
+            await f.write(data)
+
     async def set_status_aquire_points(self, fullt, fullv, fullj): # THIS CODE USE TO BE IN THE SIMULATE METHOD
-        counter = 0
         while time.time() < self.stop_time:
-            counter += 1
-            if counter%10000 == 0:
-                print("there")
+            print("there")
             self.status = "measuring"
-            self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj)
-            await asyncio.sleep(0)
-            # self.acquired_points = [ 
+            self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj) 
+            await self.write_to_aiofile([ 
+                [t, v, 0.0, j]
+                for t, v, j in zip(fullt, fullv, fullj)
+                if t < (time.time() - self.start_time)
+            ])
+            # await self.acquired_points.put([ 
             #     [t, v, 0.0, j]
             #     for t, v, j in zip(fullt, fullv, fullj)
             #     if t < (time.time() - self.start_time)
-            # ]
+            # ])
+            await asyncio.sleep(.5)
 
 
 class gamry:

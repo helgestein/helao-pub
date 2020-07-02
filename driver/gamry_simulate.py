@@ -400,21 +400,52 @@ class GamryDtaqEvents(object):
             await f.write(data)
 
     async def set_status_aquire_points(self, fullt, fullv, fullj): # THIS CODE USE TO BE IN THE SIMULATE METHOD
-        while time.time() < self.stop_time:
+        
+        # ----OLD CODE----
+
+        # counter = 0
+        # while time.time() < self.stop_time:
+        #     print(fullt[counter])
+        #     print("there")
+        #     self.status = "measuring"
+        #     self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj) 
+        #     await self.write_to_aiofile([ # only need to get the last t v j in the for loop with each while iteration
+        #         [t, v, 0.0, j]
+        #         for t, v, j in zip(fullt, fullv, fullj)
+        #         if t < (time.time() - self.start_time)
+        #     ])
+        #     # await self.acquired_points.put([ 
+        #     #     [t, v, 0.0, j]
+        #     #     for t, v, j in zip(fullt, fullv, fullj)
+        #     #     if t < (time.time() - self.start_time)
+        #     # ])
+        #     counter += 1
+        #     await asyncio.sleep(.5)
+
+        # ----OLD CODE----
+
+        fullt_copy = np.copy(fullt)
+        fullv_copy = np.copy(fullv)
+        fullj_copy = np.copy(fullj)
+        while time.time() < self.stop_time: 
             print("there")
-            self.status = "measuring"
-            self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj) 
-            await self.write_to_aiofile([ 
-                [t, v, 0.0, j]
-                for t, v, j in zip(fullt, fullv, fullj)
-                if t < (time.time() - self.start_time)
-            ])
-            # await self.acquired_points.put([ 
-            #     [t, v, 0.0, j]
-            #     for t, v, j in zip(fullt, fullv, fullj)
-            #     if t < (time.time() - self.start_time)
-            # ])
+            self.status = "measuring" 
+            for t, v, j in zip(fullt_copy, fullv_copy, fullj_copy):
+                if t < (time.time() - self.start_time):
+                    await self.write_to_aiofile([[t, v, 0.0, j]])
+                    await self.acquired_points.put([[t, v, 0.0, j]])
+                    fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data but fullt fullv fullj cannot be used after
+                    fullv_copy = np.delete(fullv_copy, [0])
+                    fullj_copy = np.delete(fullj_copy, [0])
+            if(len(fullt_copy) == 1):
+                await self.write_to_aiofile([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                await self.acquired_points.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                fullt_copy = np.delete(fullt_copy, [0]) 
+                fullv_copy = np.delete(fullv_copy, [0])
+                fullj_copy = np.delete(fullj_copy, [0])
             await asyncio.sleep(.5)
+        print(fullt)
+        print(fullt_copy)
 
 
 class gamry:

@@ -363,7 +363,7 @@ class GamryDtaqEvents(object):
 
         t0 = time.time()
         task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate)) 
-        task2 = loop.create_task(self.test_async(SampleRate, ScanRate))
+        task2 = loop.create_task(self.test_async(SampleRate, ScanRate, self.acquired_points_queue, len(fullt)))
         final_task = asyncio.gather(task1, task2) 
         loop.run_until_complete(final_task)
         dt = time.time() - t0
@@ -372,13 +372,11 @@ class GamryDtaqEvents(object):
         # self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
-    async def test_async(self, SampleRate, ScanRate):
+    async def test_async(self, SampleRate, ScanRate, acquired_points_queue, length):
         processed = 0
-        while processed < 20:
-            #item = await self.acquired_points.get() #this will not work if there is another call to .get() which is emptying our acquire_points queue
+        while processed < length:
+            print(await acquired_points_queue.get())
             processed += 1
-            print("here")
-            print(SampleRate/ScanRate)
             await asyncio.sleep(SampleRate/ScanRate)
 
     # I AM NOT YET SURE IF THIS WILL BE HELPFUL TO AWAIT

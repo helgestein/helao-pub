@@ -330,13 +330,14 @@ class GamryDtaqEvents(object):
     def __init__(self, meas_type):
         "Takes gamry dtaq object with .cook() method, stores points"
         self.dtaq = "simulate"
-        self.acquired_points = asyncio.Queue() # STILL NEED TO IMPLEMENT AWAITING IT
+        self.acquired_points = []
+        self.acquired_points_queue = asyncio.Queue() 
         self.status = "idle"
         self.start_time = time.time()
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    def simulate(self, sigramp): #ASYNCABLE WITHIN THE WHILE LOOP
+    def simulate(self, sigramp, SampleRate, ScanRate): #ASYNCABLE WITHIN THE WHILE LOOP
         # set_status_aquire_points needs async sleep to work properly 
         # test_async does not need async sleep to work properly 
 
@@ -361,23 +362,24 @@ class GamryDtaqEvents(object):
         loop.run_until_complete(task0)
 
         t0 = time.time()
-        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj)) 
-        task2 = loop.create_task(self.test_async())
+        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate)) 
+        task2 = loop.create_task(self.test_async(SampleRate, ScanRate))
         final_task = asyncio.gather(task1, task2) 
         loop.run_until_complete(final_task)
         dt = time.time() - t0
         print(dt)
 
-        self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
+        # self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
-    async def test_async(self):
+    async def test_async(self, SampleRate, ScanRate):
         processed = 0
         while processed < 20:
             #item = await self.acquired_points.get() #this will not work if there is another call to .get() which is emptying our acquire_points queue
             processed += 1
             print("here")
-            await asyncio.sleep(0.5)
+            print(SampleRate/ScanRate)
+            await asyncio.sleep(SampleRate/ScanRate)
 
     # I AM NOT YET SURE IF THIS WILL BE HELPFUL TO AWAIT
     async def get_value_for_aquire_points(self, fullt, fullv, fullj):
@@ -394,12 +396,13 @@ class GamryDtaqEvents(object):
 
     async def write_to_aiofile(self, data): # acquire_points queue is converted to a string to be written
         # data = await data.get()
+        self.acquired_points.append(data)
         data = ''.join(str(e) for e in data)
         data = data.replace(']', ']\n')
         async with aiofiles.open('acquired_points', 'a') as f:
             await f.write(data)
 
-    async def set_status_aquire_points(self, fullt, fullv, fullj): # THIS CODE USE TO BE IN THE SIMULATE METHOD
+    async def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate): # THIS CODE USE TO BE IN THE SIMULATE METHOD
         
         # ----OLD CODE----
 
@@ -433,19 +436,17 @@ class GamryDtaqEvents(object):
             for t, v, j in zip(fullt_copy, fullv_copy, fullj_copy):
                 if t < (time.time() - self.start_time):
                     await self.write_to_aiofile([[t, v, 0.0, j]])
-                    await self.acquired_points.put([[t, v, 0.0, j]])
+                    await self.acquired_points_queue.put([[t, v, 0.0, j]])
                     fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data but fullt fullv fullj cannot be used after
                     fullv_copy = np.delete(fullv_copy, [0])
                     fullj_copy = np.delete(fullj_copy, [0])
             if(len(fullt_copy) == 1):
                 await self.write_to_aiofile([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
-                await self.acquired_points.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                await self.acquired_points_queue.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
                 fullt_copy = np.delete(fullt_copy, [0]) 
                 fullv_copy = np.delete(fullv_copy, [0])
                 fullj_copy = np.delete(fullj_copy, [0])
-            await asyncio.sleep(.5)
-        print(fullt)
-        print(fullt_copy)
+            await asyncio.sleep(SampleRate/ScanRate)
 
 
 class gamry:
@@ -478,7 +479,7 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    def measure(self, sigramp): #ASYNCABLE 
+    def measure(self, sigramp, SampleRate, ScanRate): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -487,7 +488,7 @@ class gamry:
         print("Pushing")
         # self.measurement_setup()
         self.data = collections.defaultdict(list)
-        self.dtaqsink.simulate(sigramp)
+        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate)
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
         #     sink_status = self.dtaqsink.status
@@ -527,7 +528,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup("sweep")
-        self.measure(sigramp)
+        self.measure(sigramp, SampleRate, ScanRate)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -575,7 +576,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup(gsetup="cv")
-        self.measure(sigramp)
+        self.measure(sigramp, SampleRate, ScanRate)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {

@@ -337,19 +337,11 @@ class GamryDtaqEvents(object):
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    def simulate(self, sigramp, SampleRate, ScanRate): #ASYNCABLE WITHIN THE WHILE LOOP
+    def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer): 
         # set_status_aquire_points needs async sleep to work properly 
         # test_async does not need async sleep to work properly 
 
-        loop = asyncio.get_event_loop() # this line might need to be moved to main later
-        # import asyncio (completed)
-        # make the method async (completed)
-        # initialize the loop with: loop = asyncio.get_event_loop() (completed)
-        # set tasks: task1 = whatever we want to do with our queue (completed)
-        # if there are multiple tasks gather them: final_task = asyncio.gather(task1, task2, task3) (completed)
-        # complete tasks: loop.run_until_complete(final_task) (completed)
-        # await data being added to the queue: await name_of_queueu.put(whatever we want to add)
-        # might need to await async sleep
+        loop = asyncio.get_event_loop() 
 
         if self.meas_type == "IGamryDtaqRcv":
             fullt, fullv, fullj = cvsim(sigramp, 0.45)
@@ -362,14 +354,14 @@ class GamryDtaqEvents(object):
         loop.run_until_complete(task0)
 
         t0 = time.time()
-        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate)) 
+        task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid)) 
         task2 = loop.create_task(self.test_async(SampleRate, ScanRate, self.acquired_points_queue, len(fullt)))
         final_task = asyncio.gather(task1, task2) 
         loop.run_until_complete(final_task)
         dt = time.time() - t0
         print(dt)
+        data_buffer[pid] = self.acquired_points
 
-        # self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
     async def test_async(self, SampleRate, ScanRate, acquired_points_queue, length):
@@ -393,38 +385,13 @@ class GamryDtaqEvents(object):
             await f.write(data)
 
     async def write_to_aiofile(self, data): # acquire_points queue is converted to a string to be written
-        # data = await data.get()
         self.acquired_points.append(data)
         data = ''.join(str(e) for e in data)
         data = data.replace(']', ']\n')
         async with aiofiles.open('acquired_points', 'a') as f:
             await f.write(data)
 
-    async def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate): # THIS CODE USE TO BE IN THE SIMULATE METHOD
-        
-        # ----OLD CODE----
-
-        # counter = 0
-        # while time.time() < self.stop_time:
-        #     print(fullt[counter])
-        #     print("there")
-        #     self.status = "measuring"
-        #     self.acquired_points = await self.get_value_for_aquire_points(fullt, fullv, fullj) 
-        #     await self.write_to_aiofile([ # only need to get the last t v j in the for loop with each while iteration
-        #         [t, v, 0.0, j]
-        #         for t, v, j in zip(fullt, fullv, fullj)
-        #         if t < (time.time() - self.start_time)
-        #     ])
-        #     # await self.acquired_points.put([ 
-        #     #     [t, v, 0.0, j]
-        #     #     for t, v, j in zip(fullt, fullv, fullj)
-        #     #     if t < (time.time() - self.start_time)
-        #     # ])
-        #     counter += 1
-        #     await asyncio.sleep(.5)
-
-        # ----OLD CODE----
-
+    async def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate, pid): # THIS CODE USE TO BE IN THE SIMULATE METHOD
         fullt_copy = np.copy(fullt)
         fullv_copy = np.copy(fullv)
         fullj_copy = np.copy(fullj)
@@ -435,7 +402,7 @@ class GamryDtaqEvents(object):
                 if t < (time.time() - self.start_time):
                     await self.write_to_aiofile([[t, v, 0.0, j]])
                     await self.acquired_points_queue.put([[t, v, 0.0, j]])
-                    fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data but fullt fullv fullj cannot be used after
+                    fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data 
                     fullv_copy = np.delete(fullv_copy, [0])
                     fullj_copy = np.delete(fullj_copy, [0])
             if(len(fullt_copy) == 1):
@@ -451,6 +418,7 @@ class gamry:
     def __init__(self): #MIGHT NEED TO INITIALIZE self.data AS AN ASYNC QUEUE
         self.pstat = {"connected": 0}
         self.temp = []
+        self.buffer = dict()
 
     def open_connection(self, force_err=False):
         # seet connection status to open
@@ -477,7 +445,21 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    def measure(self, sigramp, SampleRate, ScanRate): #ASYNCABLE 
+    def retrieve_pid(self, pid):
+        print(self.buffer.get(pid))
+        return self.buffer.get(pid)
+
+
+    def retrieve_buffer(self):
+        for key in self.buffer:
+            print("key:" + str(key))
+            print("value:" + str(self.buffer.get(key)))
+        return self.buffer
+
+    def clear_pid(self, pid):
+        self.buffer.pop(pid)
+
+    def measure(self, sigramp, SampleRate, ScanRate, pid): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -486,7 +468,13 @@ class gamry:
         print("Pushing")
         # self.measurement_setup()
         self.data = collections.defaultdict(list)
-        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate)
+        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer)
+
+        self.retrieve_pid(pid)
+        self.retrieve_buffer()
+        self.clear_pid(pid)
+        self.retrieve_buffer()
+
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
         #     sink_status = self.dtaqsink.status
@@ -526,7 +514,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup("sweep")
-        self.measure(sigramp, SampleRate, ScanRate)
+        self.measure(sigramp, SampleRate, ScanRate, time.time())
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -574,7 +562,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup(gsetup="cv")
-        self.measure(sigramp, SampleRate, ScanRate)
+        self.measure(sigramp, SampleRate, ScanRate, time.time())
         return {
             "measurement_type": "potential_ramp",
             "parameters": {

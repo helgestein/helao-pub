@@ -23,13 +23,13 @@ class return_class(BaseModel):
     data: dict = None
 
     def addRecord(ident,title,visibility,filed,meta = None): #filed is a json 
-        
+        requests.get("{}/kadi/addrecord".format(url)).json()
 
     def addCollection(identifier, title, visibility):
-        
+        requests.get("{}/kadi/addcollection".format(url)).json()
 
     def addRecordToCollection(identCollection,identRecord,visibility='public',record=None):
-        
+        requests.get("{}/kadi/addrecordtocollection".format(url)).json()
 
 
 if __name__ == "__main__":

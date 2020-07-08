@@ -1,8 +1,8 @@
 
 import sys
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
-from force_driver import MEGSV
+sys.path.append(r"..\config")
+sys.path.append(r"..\driver")
+from megsv_driver import MEGSV
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
@@ -10,8 +10,8 @@ from pydantic import BaseModel
 import json
 
 
-app = FastAPI(title="force driver", 
-            description= " this is a fancy force driver server",
+app = FastAPI(title="MEGSV driver", 
+            description= " this is a fancy MEGSV driver server",
             version= "1.0")
 
 
@@ -57,7 +57,7 @@ def release():
 
 
 if __name__ == "__main__":
-    m = MEGSV(config['force'])
-    uvicorn.run(app, host=config['servers']['forceServer']['host'], port=config['servers']['forceServer']['port'])
+    m = MEGSV(config['megsv'])
+    uvicorn.run(app, host=config['servers']['megsvServer']['host'], port=config['servers']['megsvServer']['port'])
     print("instantiated force sensor")
     

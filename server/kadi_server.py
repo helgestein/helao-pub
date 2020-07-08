@@ -5,7 +5,8 @@ import sys
 sys.path.append('../config')
 sys.path.append('../driver')
 from kadi_driver import kadi
-import config.mischbares_small
+from mischbares_small import config
+import uvicorn
 
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
     description="This is a very fancy datamanagement server",
@@ -24,6 +25,6 @@ def addRecordToCollection(identCollection,identRecord,visibility='public',record
     k.addRecord(identCollection,identRecord,visibility,record)
 
 if __name__ == '__main__':
-    k = kadi(config.mischbares_small.config['kadi'])
+    k = kadi(config['kadi'])
     uvicorn.run(app, host=config['servers']['kadiServer']['host'], 
                      port=config['servers']['kadiServer']['port'])

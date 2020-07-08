@@ -9,19 +9,19 @@ import time
 
 
 class MEGSV:
-    def __init__(self,port,buffer,dll):
-        self.port = port
-        self.buffer = buffer
+    def __init__(self,conf):
+        self.port = conf["port"]
+        self.buffer = conf["buffer_size"]
         self.ad = ctypes.c_double()
-        self.dll = ctypes.WinDLL(dll)
-        self.adv = (ctypes.c_double*buffer)()
+        self.dll = ctypes.WinDLL(conf["dll_address"]) 
+        self.adv = (ctypes.c_double*self.buffer)()
         self.nvals = ctypes.c_int()
     
     def activate(self):
         if self.dll.GSVactivate(self.port,self.buffer) == 0:
             print("Activation successful!")
         else:
-            print("Failed to activate connection. Perhaps you have the wrong port, the device is not plugged in, or the connection is already active.")
+            raise ConnectionError
     
 
     def read(self):
@@ -31,8 +31,7 @@ class MEGSV:
         if res == 0:
             return None
         if res == -1:
-            print("Error.")
-            return None
+            raise ConnectionError
 
     def readBuffer(self):
         res = self.dll.GSVreadMultiple(self.port,self.adv,self.buffer,ctypes.byref(self.nvals))
@@ -42,9 +41,7 @@ class MEGSV:
             print("No data in buffer.")
             return None
         if res == -1:
-            print("Error.")
-            return None
+            raise ConnectionError
     
     def release(self):
-        #Release the connection between the force probe and the computer.
         self.dll.GSVrelease(self.port,self.buffer)

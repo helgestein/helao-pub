@@ -5,8 +5,13 @@ import requests
 
 app = FastAPI(title="Pump action server V1",
     description="This is a very fancy pump action server",
-    version="1.0",)
+    version="1.0")
 
+class return_class(BaseModel):
+    measurement_type: str = None
+    parameters: dict = None
+    data: dict = None
+    
 @app.get("/pumping/formulation_succ/")
 def formulation_successive(comprel: list, pumps: list, speed: int, totalvol: int):
     #make sure the comprel makes sense

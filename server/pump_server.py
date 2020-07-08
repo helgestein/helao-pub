@@ -1,4 +1,3 @@
-import serial
 import time
 import uvicorn
 from fastapi import FastAPI

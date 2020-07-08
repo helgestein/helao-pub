@@ -47,7 +47,7 @@ def readBuffer():
     return retc
 
 
-@app.get("/force/disconnect")
+@app.on_event("shutdown")
 def release():
     m.release()
     retc = return_class(measurement_type= "force_sensor_command",

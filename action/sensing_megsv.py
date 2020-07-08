@@ -10,14 +10,14 @@ from pydantic import BaseModel
 import json
 import requests
 
-app = FastAPI(title="Force action server V1", 
-    description="This is a fancy force action server", 
+app = FastAPI(title="Force sensor action server V1", 
+    description="This is a fancy force sensor action server", 
     version="1.0")
 
 
 class return_class(BaseModel):
     measurement_type: str = None
-    parameters :dict = None
+    parameters: dict = None
     data: dict = None
 
 
@@ -25,23 +25,18 @@ class return_class(BaseModel):
 @app.get("/forceAction/read")
 def read():
     while True:
-        
         data = requests.get("{}/force/read".format(url)).json()
         if data['data']['value'] != None:
             break
     retc = return_class(measurement_type='movement_command', 
-                            parameters= {'command':'read_data'}, 
-                            data = {'data': data})
+                            parameters={'command':'read_data'}, 
+                            data={'data':data})
     return retc
 
 
 
-
-
-
 if __name__ == "__main__":
-    url = "http://{}:{}".format(config['servers']['forceServer']['host'], config['servers']['forceServer']['port'])
-    
-    uvicorn.run(app, host=config['servers']['forcActioneServer']['host'], port=config['servers']['forcActioneServer']['port'])
-    print("instantiated force action")
+    url = "http://{}:{}".format(config['servers']['megsvServer']['host'],config['servers']['megsvServer']['port'])
+    uvicorn.run(app,host=config['servers']['sensingServer']['host'],port=config['servers']['sensingServer']['port'])
+    print("instantiated force sensor action")
     

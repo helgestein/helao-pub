@@ -18,6 +18,7 @@ from numba import jit
 import time
 import asyncio
 import aiofiles
+import sys
 
 
 if __package__:
@@ -337,7 +338,7 @@ class GamryDtaqEvents(object):
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer): 
+    def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer, buffer_size, buffer_add, buffer_sub, get_buffer_size): 
         # set_status_aquire_points needs async sleep to work properly 
         # test_async does not need async sleep to work properly 
 
@@ -360,7 +361,16 @@ class GamryDtaqEvents(object):
         loop.run_until_complete(final_task)
         dt = time.time() - t0
         print(dt)
+
         data_buffer[pid] = self.acquired_points
+        buffer_add(sys.getsizeof(self.acquired_points))
+
+        if get_buffer_size() > 1_000:#5_000_000_000: #5gb
+            while get_buffer_size() > 1_000:#5_000_000_000:
+                sub = sys.getsizeof(data_buffer.pop(list(data_buffer.keys())[0]))
+                buffer_sub(sub)
+                # buffer_set(sum([sys.getsizeof(v) for k,v in data_buffer.items()]))
+            
 
         self.status = "idle"
 
@@ -415,10 +425,11 @@ class GamryDtaqEvents(object):
 
 
 class gamry:
-    def __init__(self): #MIGHT NEED TO INITIALIZE self.data AS AN ASYNC QUEUE
+    def __init__(self): 
         self.pstat = {"connected": 0}
         self.temp = []
         self.buffer = dict()
+        self.buffer_size = 0
 
     def open_connection(self, force_err=False):
         # seet connection status to open
@@ -445,22 +456,32 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    def retrieve_pid(self, pid):
+    async def retrieve_pid(self, pid):
         print(self.buffer.get(pid))
-        return self.buffer.get(pid)
+        asyncio.sleep(0)
 
-
-    def retrieve_buffer(self):
+    async def retrieve_buffer(self):
         for key in self.buffer:
             print("key:" + str(key))
             print("value:" + str(self.buffer.get(key)))
-        return self.buffer
+        asyncio.sleep(0)
 
-    def clear_pid(self, pid):
+    async def clear_pid(self, pid):
         self.buffer.pop(pid)
+        asyncio.sleep(0)
 
-    def measure(self, sigramp, SampleRate, ScanRate, pid): #ASYNCABLE 
+    def buffer_add(self, num):
+        self.buffer_size += num
+
+    def buffer_sub(self, num):
+        self.buffer_size -= num
+
+    def get_buffer_size(self):
+        return self.buffer_size
+
+    def measure(self, sigramp, SampleRate, ScanRate): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
+        pid = str(time.time())
         print("Opening Connection")
         ret = self.open_connection()
         print(ret)
@@ -468,12 +489,15 @@ class gamry:
         print("Pushing")
         # self.measurement_setup()
         self.data = collections.defaultdict(list)
-        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer)
+        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer, self.buffer_size, self.buffer_add, self.buffer_sub, self.get_buffer_size)
 
-        self.retrieve_pid(pid)
-        self.retrieve_buffer()
-        self.clear_pid(pid)
-        self.retrieve_buffer()
+        # loop = asyncio.get_event_loop() 
+        # task1 = loop.create_task(self.retrieve_pid(pid)) 
+        # task2 = loop.create_task(self.retrieve_buffer())
+        # task3 = loop.create_task(self.clear_pid(pid)) 
+        # task4 = loop.create_task(self.retrieve_buffer())
+        # final_task = asyncio.gather(task1, task2, task3, task4) 
+        # loop.run_until_complete(final_task)
 
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
@@ -514,7 +538,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup("sweep")
-        self.measure(sigramp, SampleRate, ScanRate, time.time())
+        self.measure(sigramp, SampleRate, ScanRate)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -562,7 +586,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup(gsetup="cv")
-        self.measure(sigramp, SampleRate, ScanRate, time.time())
+        self.measure(sigramp, SampleRate, ScanRate)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -580,7 +604,13 @@ class gamry:
 
 g = gamry()
 g.potential_ramp(-1,1,0.2,0.05)
+print(g.buffer_size)
+g.potential_ramp(-1,1,0.2,0.05)
+print(g.buffer_size)
 
 g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
+print(g.buffer_size)
+g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
+print(g.buffer_size)
 
 egen(0, 1.0, 1.0, 1.0, 0.2, 0.5, 0.05)

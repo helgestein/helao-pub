@@ -14,7 +14,7 @@ app = FastAPI(title="KaDI4Mat Interface Driver V1",
 
 @app.get("/kadi/addrecord")
 def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str):
-    k.addRecord(ident,title,visibility,filepath,meta)
+    k.addRecord(ident,title,visibility,filed,meta)
     
 
 @app.get("/kadi/addcollection")
@@ -22,7 +22,7 @@ def addCollection(identifier:str,title:str,visibility:str):
     k.addCollection(identifier, title, visibility)
 
 @app.get("/kadi/addrecordtocollection")
-def addRecordToCollection(identCollection:str,identRecord:str,visibility='public',record=None):
+def addRecordToCollection(identCollection:str,identRecord:str,visibility: str='public',record: str=None):
     k.addRecord(identCollection,identRecord,visibility,record)
 
 if __name__ == '__main__':

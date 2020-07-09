@@ -17,7 +17,7 @@ app = FastAPI(title="Kadi server V1",
     version="1.0")
 
 @app.get("/data/addrecord")
-def addRecord(ident: str,title: str,visibility: str,filed: str,meta:str= None): #filed is a json
+def addRecord(ident: str,title: str,visibility: str,filed: str,meta:dict= None): #filed is a json
     requests.get("{}/kadi/addrecord".format(url), params={'ident': ident,'title': title, 'visibility': visibility,
                                                          'filled':filed,'meta':meta}).json()
 

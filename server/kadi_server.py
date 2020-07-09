@@ -9,19 +9,20 @@ from mischbares_small import config
 import uvicorn
 
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
-    description="This is a very fancy datamanagement server",
+    description="This is a very fancy data management server",
     version="1.0",)
 
 @app.get("/kadi/addrecord")
-def addRecord(ident,title,visibility,filed,meta):
+def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str):
     k.addRecord(ident,title,visibility,filepath,meta)
+    
 
 @app.get("/kadi/addcollection")
-def addCollection(identifier, title, visibility):
+def addCollection(identifier:str,title:str,visibility:str):
     k.addCollection(identifier, title, visibility)
 
 @app.get("/kadi/addrecordtocollection")
-def addRecordToCollection(identCollection,identRecord,visibility='public',record=None):
+def addRecordToCollection(identCollection:str,identRecord:str,visibility='public',record=None):
     k.addRecord(identCollection,identRecord,visibility,record)
 
 if __name__ == '__main__':

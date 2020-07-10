@@ -15,7 +15,9 @@ class kadi():
         record = Record(identifier=ident, title=title, visibility=visibility)
         record.upload_string_to_file(string=json.dumps(filed),file_name='{}_{}.json'.format(ident,time.time_ns()))
         #add metadatum#
-        df = pd.io.json.json_normalize(meta, sep='_')
+        print(meta)
+        print(type(meta))
+        df = pd.json_normalize(json.loads(meta), sep='_')
         meta = df.to_dict(orient='records')[0]
         print(meta)
         print(type(meta))

@@ -10,15 +10,14 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,meta=None,visibility='private'): #filed is a json 
+    def addRecord(self,ident,title,filed,visibility='private',meta=None): #filed is a json 
         #create a record
+        #visibility must be 'public' or 'private'
         record = Record(identifier=ident, title=title, visibility=visibility)
         record.upload_string_to_file(string=json.dumps(filed),file_name='{}_{}.json'.format(ident,time.time_ns()))
         #add metadatum#
         df = pd.io.json.json_normalize(meta, sep='_')
         meta = df.to_dict(orient='records')[0]
-        print(meta)
-        print(type(meta))
         record.add_metadatum(metadatum=meta, force=True)
 
     def addCollection(self,identifier,title,visibility):

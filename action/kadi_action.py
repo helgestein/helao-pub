@@ -6,7 +6,7 @@ sys.path.append(r'../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel,validator
+from pydantic import BaseModel,validator,ValidationError
 import json
 import requests
 
@@ -14,22 +14,22 @@ class validator_class(BaseModel):
     ident: str
     title: str
     visibility: str
-    filed: str
-    meta: str
+    filed: str = ''
+    meta: str = ''
 
     @validator("visibility")
     def public_or_private(cls,v):
         if v != "public" and v != "private":
-            raise ValueError
+            raise ValidationError("visibility is not set to 'public' or 'private'")
         return v
 
     @validator("filed","meta")
     def is_serialized_dict(cls,v):
         try:
             if type(json.loads(v)) != dict and v != '':
-                raise ValueError
+                raise ValidationError('file or metadata cannot be loaded by json')
         except:
-            raise ValueError
+            raise ValidationError('file or metadata is not a serialized dict')
         return v
         
         
@@ -45,10 +45,12 @@ def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str= None): #fil
 
 @app.get("/data/addcollection")
 def addCollection(identifier:str,title:str,visibility:str):
+    val = validator_class(ident=identifier,title=title,visibility=visibility)
     requests.get("{}/kadi/addcollection".format(url),params={'identifier':identifier,'title':title,'visibility':visibility}).json()
 
 @app.get("/data/addrecordtocollection")
 def addRecordToCollection(identCollection:str,identRecord:str,visibility:str='public',record:str=None):
+    val = validator_class(ident=identCollection,title=identRecord,visibility=visibility)
     requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord,'visibility':visibility,'record':record}).json()
 
 

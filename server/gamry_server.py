@@ -9,6 +9,9 @@ calls to 'poti.*' are not device-specific. Currently inherits configuration from
 code, and hard-coded to use 'gamry' class (see "__main__").
 """
 
+import asyncio #ADDED
+import time #ADDED
+
 import os, sys
 
 if __package__:
@@ -116,6 +119,15 @@ def shutdown_event():
 
 if __name__ == "__main__":
     poti = gamry()
+
+    pid = str(time.time()) #ADDED
+    loop = asyncio.get_event_loop() #ADDED
+    task1 = loop.create_task(poti.potential_ramp(-1, 1, 0.2, 0.05, pid)) #ADDED
+    task2 = loop.create_task(poti.pull_recent_data_helper(0, pid)) #ADDED
+    final_task = asyncio.gather(task1, task2) #ADDED
+    loop.run_until_complete(final_task) #ADDED
+
+    poti.potential_ramp(-1,1,0.2,0.05) #ADDED
     # makes this runnable and debuggable in VScode
     # letters of the alphabet GAMRY => G6 A0 M12 R17 Y24
     uvicorn.run(app, host=FASTAPI_HOST, port=ECHEM_PORT)

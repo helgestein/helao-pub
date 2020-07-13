@@ -13,7 +13,7 @@ app = FastAPI(title="KaDI4Mat Interface Driver V1",
     version="1.0",)
 
 @app.get("/kadi/addrecord")
-def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str):
+def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str=''):
     k.addRecord(ident,title,visibility,filed,meta)
     
 @app.get("/kadi/addcollection")

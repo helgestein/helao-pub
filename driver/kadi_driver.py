@@ -10,20 +10,20 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,visibility='private',meta=None): #filed is a json 
+    def addRecord(self, ident, title, filed, visibility='private', meta=''): #filed is a json 
         #create a record
         #visibility must be 'public' or 'private'
-        #if not None, meta must be serialized dict
-        #I think that this probably works, but that there may still be some typing confusion. If filed is already a json, why do we need to upload it as json.dumps(filed)?
+        # if not '', meta must be serialized dict
+        # the value of the dictionary can be either 'list, number, string and dict' 
         record = Record(identifier=ident, title=title, visibility=visibility)
-        record.upload_string_to_file(string=json.dumps(filed),file_name='{}_{}.json'.format(ident,time.time_ns()))
+        record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
         #add metadatum#
-        if meta != None:
+        if meta != '':
             df = pandas.json_normalize(json.loads(meta), sep='_')
             meta = df.to_dict(orient='records')[0]
             record.add_metadatum(metadatum=meta, force=True)
 
-    def addCollection(self,identifier,title,visibility):
+    def addCollection(self, identifier, title, visibility):
         #create collection
         collection = Collection(identifier=ident,title=title,visibility=visibility)
 

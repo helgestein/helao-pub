@@ -6,10 +6,24 @@ sys.path.append(r'../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 import json
 import requests
 
+
+class UserModel(BaseModel):
+    name: str
+    username: str
+    password1: str
+    password2: str
+
+    @validator('name')
+    def public_or_private(cls, v):
+        if v != "public" or != "private":
+            raise ValueError('must be in the list')
+        return v
+
+    @validator() 
 
 
 app = FastAPI(title="Kadi server V1", 

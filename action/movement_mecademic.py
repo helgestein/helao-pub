@@ -10,23 +10,10 @@ from copy import copy
 import numpy as np
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 import json
 import requests
 
-
-class UserModel(BaseModel):
-    name: str
-    username: str
-    password1: str
-    password2: str
-
-    @validator('name')
-    def public_or_private(cls, v):
-        if v != "public" or != "private":
-            raise ValueError('must be in the list')
-        return v
-    
 
 # Add limit rejection
 # Add orientationhelp so we can load the same platemap for every plane and it takes care of it

@@ -6,18 +6,40 @@ sys.path.append(r'../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel,validator
 import json
 import requests
 
+class validator_class(BaseModel):
+    ident: str
+    title: str
+    visibility: str
+    filed: str
+    meta: str
 
+    @validator("visibility")
+    def public_or_private(cls,v):
+        if v != "public" and v != "private":
+            raise ValueError
+        return v
 
+    @validator("filed","meta")
+    def is_serialized_dict(cls,v):
+        try:
+            if type(json.loads(v)) != dict and v != '':
+                raise ValueError
+        except:
+            raise ValueError
+        return v
+        
+        
 app = FastAPI(title="Kadi server V1", 
-    description="This is a fancy kadi server", 
-    version="1.0")
+description="This is a fancy kadi server", 
+version="1.0")
 
 @app.get("/data/addrecord")
 def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str= None): #filed is a json
+    val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta=meta)
     requests.get("{}/kadi/addrecord".format(url), params={'ident': ident,'title': title, 'visibility': visibility,
                                                          'filled':filed,'meta':meta}).json()
 

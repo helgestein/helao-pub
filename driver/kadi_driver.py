@@ -23,7 +23,7 @@ class kadi():
             meta = df.to_dict(orient='records')[0]
             record.add_metadatum(metadatum=meta, force=True)
 
-    def addCollection(self,identifier,title,visibility):
+    def addCollection(self,ident,title,visibility):
         #create collection
         collection = Collection(identifier=ident,title=title,visibility=visibility)
 

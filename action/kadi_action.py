@@ -25,11 +25,7 @@ class validator_class(BaseModel):
 
     @validator("filed","meta")
     def is_serialized_dict(cls,v):
-        try:
-            if type(json.loads(v)) != dict and v != '':
-                raise ValidationError('file or metadata cannot be loaded by json')
-        except:
-            raise ValidationError('file or metadata is not a serialized dict')
+        assert type(json.loads(v)) == dict or v == ''
         return v
         
 app = FastAPI(title="Kadi server V1", 
@@ -37,18 +33,17 @@ description="This is a fancy kadi server",
 version="1.0")
 
 @app.get("/data/addrecord")
-def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str= None): #filed is a json
-    val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta=meta)
-    requests.get("{}/kadi/addrecord".format(url), params={'ident': ident,'title': title, 'visibility': visibility,
-                                                         'filled':filed,'meta':meta}).json()
+def addRecord(ident:str,title:str,filed:str,visibility:str='private',meta:str=None): #filed is a json
+    val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta = '' if meta == None else meta)
+    requests.get("{}/kadi/addrecord".format(url), params={'ident':ident,'title':title,'filed':filed,'visibility':visibility,'meta':meta}).json()
 
 @app.get("/data/addcollection")
-def addCollection(identifier:str,title:str,visibility:str):
+def addCollection(identifier:str,title:str,visibility:str='private'):
     val = validator_class(ident=identifier,title=title,visibility=visibility)
     requests.get("{}/kadi/addcollection".format(url),params={'identifier':identifier,'title':title,'visibility':visibility}).json()
 
 @app.get("/data/addrecordtocollection")
-def addRecordToCollection(identCollection:str,identRecord:str,visibility:str='public',record:str=None):
+def addRecordToCollection(identCollection:str,identRecord:str,visibility:str='private',record:str=None):
     val = validator_class(ident=identCollection,title=identRecord,visibility=visibility)
     requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord,'visibility':visibility,'record':record}).json()
 

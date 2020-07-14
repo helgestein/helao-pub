@@ -6,38 +6,7 @@ sys.path.append(r'../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
-<<<<<<< HEAD
 from pydantic import BaseModel, validator
-import json
-import requests
-
-
-<<<<<<< Updated upstream
-class UserModel(BaseModel):
-    name: str
-    username: str
-    password1: str
-    password2: str
-
-    @validator('name')
-    def public_or_private(cls, v):
-        if v != "public" or != "private":
-            raise ValueError('must be in the list')
-        return v
-
-    @validator() 
-
-
-=======
-    @validator("filed", "meta")
-    def is_serialized_dict(cls,v):
-        assert type(json.loads(v)) == dict
-        return v
-
-        
->>>>>>> Stashed changes
-=======
-from pydantic import BaseModel,validator,ValidationError
 import json
 import requests
 
@@ -63,24 +32,13 @@ class validator_class(BaseModel):
             raise ValidationError('file or metadata is not a serialized dict')
         return v
         
-        
->>>>>>> 2861bbc280089bf511dbaed093effd1c9e279f49
 app = FastAPI(title="Kadi server V1", 
 description="This is a fancy kadi server", 
 version="1.0")
 
 @app.get("/data/addrecord")
-<<<<<<< Updated upstream
 def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str= None): #filed is a json
-<<<<<<< HEAD
-=======
-def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str= ''): #filed is a json
     val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta=meta)
-
->>>>>>> Stashed changes
-=======
-    val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta=meta)
->>>>>>> 2861bbc280089bf511dbaed093effd1c9e279f49
     requests.get("{}/kadi/addrecord".format(url), params={'ident': ident,'title': title, 'visibility': visibility,
                                                          'filled':filed,'meta':meta}).json()
 

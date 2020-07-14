@@ -23,13 +23,17 @@ class kadi():
             meta = df.to_dict(orient='records')[0]
             record.add_metadatum(metadatum=meta, force=True)
 
+<<<<<<< Updated upstream
     def addCollection(self, identifier, title, visibility):
+=======
+    def addCollection(self, ident, title, visibility):
+>>>>>>> Stashed changes
         #create collection
         collection = Collection(identifier=ident,title=title,visibility=visibility)
 
-    def addRecordToCollection(self,identCollection,identRecord,visibility='public',record=None):
+    def addRecordToCollection(self,identCollection,identRecord,visibility='public',record_id=None):
         collection = Collection(identifier=identCollection, title='title', visibility=visibility)
-        if record == None:
-            record = Record(identifier=identRecord, title='title', visibility=visibility)
+        if record_id == None:
+            record_id = Record(identifier=identRecord, title='title', visibility=visibility).id
         #add record to collection
-        collection.add_record(record_id=record.id)
+        collection.add_record(record_id=record_id)

@@ -1,18 +1,24 @@
 import requests
-
-
-#dispense a formulation
-pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
-res = requests.get("{}/pumping/formulation".format(pumpurl), 
-                    params={comprel: [0.2,0.2,0.2,0.2,0.2], pumps: [0,1,2,3,4], speed: 1000, totalvol: 1000}).json()
-
-
-import requests
 import time
-#start all servers if not already done
+import sys 
+sys.path.append(r'.../action')
+sys.path.append(r'.../server')
+sys.path.append(r'.../config')
+from mischbares_small import config
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+import requests
 
-#example action_book
-sdc_std = ['movement/home','movement/waste','pumping/dispense','movement/drop','movement/home','movement/sample','echem/measure','pump/aspirate','movement/home']
+# In order to run the orchatrator which is at the highest level of Helao, all servers should be started. 
+
+#Action book 
+# still motor functions need to be added. 
+sdc_std = ['movement/matrixRotation','movement/moveToHome','movement/jogging','movement/alignSample', 'movement/alignReservoir', 
+           'movement/alignWaste', 'movement/alignment','movement/mvToSample', 'movement/mvToReservoir', 'movement/mvToWaste', 
+           'movement/moveUp', 'movement/removeDrop', 'pumping/formulation_succ','pumping/formulation', 'pumping/flushSerial',
+           'echem/measure','echem/ismeasuring', 'echem/potential', 'echem/current', 'echem/setcurrentrange', 'echem/appliedpotential', 
+           'echem/cellonoff', 'echem/retrieve', 'forceAction/read', 'data/addrecord', 'data/addcollection'] 
 
 
 #this orchestrator manages a list of experiments and expects 
@@ -24,12 +30,13 @@ res = requests.get("{}/pumping/formulation".format(pumpurl),
 
 experiment_list = []
 #this is a highly complex experiment spec
-experiment_spec = dict(position = dict(x=3,y=5,force=3),
-                       soe=['movement/home','movement/waste','pumping/dispense','movement/drop',
+experiment_spec = dict(
+                       soe=['movement/home','movement/waste','pumpingDispense_0','movement/drop',
                             'movement/home','movement/sample','echem/measure','pump/aspirate',
                             'movement/home','movement/waste','pumping/dispense_2','movement/drop',
                             'movement/home','movement/sample','echem/measure_2','pump/aspirate_2',
                             'analyze/maxcurr','plan/al','data/save'],
+  # in params , you should give the input values.
                        params = dict('home':None,
                                      'waste':dict(position={'x':0,'y':0}),
                                      'dispense':dict(formulation=[0.2,0.2,0.2,0.2,0.2],

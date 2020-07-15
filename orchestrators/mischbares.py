@@ -12,6 +12,7 @@ import json
 import uvicorn
 from typing import List
 from fastapi import FastAPI, Query
+import json
 
 #Action book 
 # still motor functions need to be added. 
@@ -24,13 +25,14 @@ sdc_std = ['movement/matrixRotation','movement/moveToHome','movement/jogging','m
 
 
 #This is a highly complex experiment spec
+  # in params , you should give the input values.
 experiment_spec = dict(
                        soe=['movement/moveToHome_0','movement/alignment_0','movement/mvToWaste_0','pumping/formulation_0',
                             'movement/removeDrop_0','movement/moveToHome_1','movement/mvToSample_0','forceAction/read_0',
                             'echem/measure_0','pump/formulation_1','movement/moveToHome_2','movement/mvToWaste_1',
                             'pumping/formulation_2','movement/removeDrop_1','movement/moveToHome_4','movement/mvToSample_1',
                             'echem/measure_1','pump/formulation_3','data/addrecord_0'], 
-  # in params , you should give the input values.
+
                        params = dict(moveToHome_0 = None,
                                      mvToWaste_0 = dict(position={'x':0.0,'y':0.0}),
                                      formulation_0 = dict(formulation= [0.2,0.2,0.2,0.2,0.2],
@@ -75,31 +77,44 @@ experiment_spec = dict(
                                     addrecord_0= dict(ident= 1,title= 'electrodeposition', filed= 'cu-No3',
                                                       visibility='private',meta=None))
 
-                                
-#this orchestrator manages a list of experiments and expects 
-#dispense a formulation
-pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
-res = requests.get("{}/pumping/formulation".format(pumpurl), 
-                    params={comprel: [0.2,0.2,0.2,0.2,0.2], pumps: [0,1,2,3,4], speed: 1000, totalvol: 1000}).json()
-
-
-experiment_list = []
-
-app = FastAPI()
-@app.get("/items/")
-def addToQueue(s: str):
-    d = json.load(s)
-    exp_list.append(d)
-    
-def execute(d)
-pop
-    for action_str in d['soe']:
-        action,fcnn = action_str.split('/')
-        request.get("/{}/{}".format(action,fcnn),
-                    params=d[fcnn.split['_'][0]])
 
         
-if name == 'main':
+experiment = json.dumps(experiment_spec)
+
+#### writing the orchastrator server
+app = FastAPI(title = "orchastrator", description = "A fancy complex server",version = 1.0)
+
+def addToQueue(experiment: str):
+    dict_input = json.load(experiment)
+    experiment_list.append(dict_input)
+    return experiment_list
+
+
+@app.get("/orchastrator/runAll")
+def execute(experiment_list: str):
+    for action_str in experiment_list[0]['soe']:
+        action, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
+        if action == 'movement':
+            requests.get("/{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],action, fnc),
+                        params=fnc.split('_')[0]).json
+        elif action == 'pumping':
+            requests.get("/{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],action, fnc),
+                        params=fnc.split('_')[0]).json
+        elif action == 'echem':
+            requests.get("/{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],action, fnc),
+                        params=fnc.split('_')[0]).json
+        elif action == 'forceAction':
+            requests.get("/{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],action, fnc),
+                        params=fnc.split('_')[0]).json
+        elif action == 'data':
+            requests.get("/{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],action, fnc),
+                        params=fnc.split('_')[0]).json
+        
+if __name__ == "__main__":
+    url = "http://{}:{}".format(config['servers']['orchestrator']['host'], config['servers']['orchestrator']['port']
+
+    main()
+    ":
     exp_list = []
     app 
     
@@ -109,7 +124,7 @@ if name == 'main':
 
 
 
-
+experiment_list = []
 
 
 while True:

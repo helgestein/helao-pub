@@ -10,7 +10,8 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          kadiServer = dict(host="127.0.0.1", port=13376),
                          dataServer = dict(host="127.0.0.1", port=13377), 
                          megsvServer = dict(host="127.0.0.1", port= 13378),
-                         sensingServer = dict(host="127.0.0.1", port= 13379))
+                         sensingServer = dict(host="127.0.0.1", port= 13379),
+                         orchestrator = dict(host= "127.0.0.1", port= 13380))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
             PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")

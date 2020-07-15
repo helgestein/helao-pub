@@ -6,15 +6,15 @@ sys.path.append(r'../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, ValidationError
 import json
 import requests
 
 class validator_class(BaseModel):
     ident: str
     title: str
-    visibility: str
     filed: str = ''
+    visibility: str = 'private'
     meta: str = ''
 
     @validator("visibility")
@@ -34,7 +34,7 @@ version="1.0")
 
 @app.get("/data/addrecord")
 def addRecord(ident:str,title:str,filed:str,visibility:str='private',meta:str=None): #filed is a json
-    val = validator_class(ident=ident,title=title,visibility=visibility,filed=filed,meta = '' if meta == None else meta)
+    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility) if meta == None else validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
     requests.get("{}/kadi/addrecord".format(url), params={'ident':ident,'title':title,'filed':filed,'visibility':visibility,'meta':meta}).json()
 
 @app.get("/data/addcollection")

@@ -10,7 +10,7 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,visibility,meta=None):
+    def addRecord(self,ident,title,filed,visibility='private',meta=None):
         #create a record
         #visibility must be 'public' or 'private'
         # if not '', meta must be serialized dict, filed will likely always be a serialized dict but does not need to be
@@ -23,11 +23,11 @@ class kadi():
             record.add_metadatum(metadatum=meta,force=True)
 
 
-    def addCollection(self,ident,title,visibility):
+    def addCollection(self,ident,title,visibility='private'):
         #create collection
         collection = Collection(identifier=ident,title=title,visibility=visibility)
 
-    def addRecordToCollection(self,identCollection,identRecord,visibility,record_id=None):
+    def addRecordToCollection(self,identCollection,identRecord,visibility='private',record_id=None):
         collection = Collection(identifier=identCollection, title='title',visibility=visibility)
         if record_id == None:
             record_id = Record(identifier=identRecord,title='title',visibility=visibility).id

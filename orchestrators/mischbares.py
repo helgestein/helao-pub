@@ -1,17 +1,24 @@
-
-
-#dispense a formulation
-pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
-res = requests.get("{}/pumping/formulation".format(pumpurl), 
-                    params={comprel: [0.2,0.2,0.2,0.2,0.2], pumps: [0,1,2,3,4], speed: 1000, totalvol: 1000}).json()
-
-
 import requests
 import time
-#start all servers if not already done
+import sys 
+sys.path.append(r'.../action')
+sys.path.append(r'.../server')
+sys.path.append(r'.../config')
+from mischbares_small import config
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+import requests
 
-#example action_book
-sdc_std = ['movement/home','movement/waste','pumping/dispense','movement/drop','movement/home','movement/sample','echem/measure','pump/aspirate','movement/home']
+# In order to run the orchatrator which is at the highest level of Helao, all servers should be started. 
+
+#Action book 
+# still motor functions need to be added. 
+sdc_std = ['movement/matrixRotation','movement/moveToHome','movement/jogging','movement/alignSample', 'movement/alignReservoir', 
+           'movement/alignWaste', 'movement/alignment','movement/mvToSample', 'movement/mvToReservoir', 'movement/mvToWaste', 
+           'movement/moveUp', 'movement/removeDrop', 'pumping/formulation_succ','pumping/formulation', 'pumping/flushSerial',
+           'echem/measure','echem/ismeasuring', 'echem/potential', 'echem/current', 'echem/setcurrentrange', 'echem/appliedpotential', 
+           'echem/cellonoff', 'echem/retrieve', 'forceAction/read', 'data/addrecord', 'data/addcollection'] 
 
 
 #this orchestrator manages a list of experiments and expects 

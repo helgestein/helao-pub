@@ -49,7 +49,7 @@ def allOn(time:int):
     return retc
 
 @app.get("/pump/read")
-def allOn():
+def read():
     ret = p.read()
     retc = return_class(**ret)
     return retc

@@ -10,17 +10,14 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,visibility='private',meta=None):
+    def addRecord(self,ident,title,filed,visibility='private',meta=''):
         #create a record
         #visibility must be 'public' or 'private'
         # if not '', meta must be serialized dict, filed will likely always be a serialized dict but does not need to be
         record = Record(identifier=ident,title=title,visibility=visibility)
         record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
-        #add metadatum#
-        if meta != None:
-            df = pandas.json_normalize(json.loads(meta),sep='_')
-            meta = df.to_dict(orient='records')[0]
-            record.add_metadatum(metadatum=meta,force=True)
+        #metadata is currently turned off because it is broken
+
 
 
     def addCollection(self,ident,title,visibility='private'):

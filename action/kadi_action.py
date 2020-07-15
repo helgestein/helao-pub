@@ -1,8 +1,8 @@
 #implement the action-server for kadi
 import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../config')
-sys.path.append(r'../server')
+sys.path.append('../driver')
+sys.path.append('../config')
+sys.path.append('../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
@@ -14,7 +14,7 @@ class validator_class(BaseModel):
     ident: str
     title: str
     filed: str = ''
-    visibility: str = 'private'
+    visibility: str
     meta: str = ''
 
     @validator("visibility")
@@ -33,24 +33,24 @@ description="This is a fancy kadi server",
 version="1.0")
 
 @app.get("/data/addrecord")
-def addRecord(ident:str,title:str,filed:str,visibility:str='private',meta:str=None): #filed is a json
-    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility) if meta == None else validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
-    requests.get("{}/kadi/addrecord".format(url), params={'ident':ident,'title':title,'filed':filed,'visibility':visibility,'meta':meta}).json()
+def addRecord(ident:str,title:str,filed:str,visibility:str='private',meta:str=''): #filed is a json
+    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
+    requests.get("{}/kadi/addrecord".format(url), params={'ident':ident,'title':title,'filed':filed,'visibility':visibility,'meta':meta})
 
 @app.get("/data/addcollection")
 def addCollection(identifier:str,title:str,visibility:str='private'):
     val = validator_class(ident=identifier,title=title,visibility=visibility)
-    requests.get("{}/kadi/addcollection".format(url),params={'identifier':identifier,'title':title,'visibility':visibility}).json()
+    requests.get("{}/kadi/addcollection".format(url),params={'identifier':identifier,'title':title,'visibility':visibility})
 
 @app.get("/data/addrecordtocollection")
 def addRecordToCollection(identCollection:str,identRecord:str,visibility:str='private',record:str=None):
     val = validator_class(ident=identCollection,title=identRecord,visibility=visibility)
-    requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord,'visibility':visibility,'record':record}).json()
+    requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord,'visibility':visibility,'record':record})
 
 
 if __name__ == "__main__":
     url = "http://{}:{}".format(config['servers']['kadiServer']['host'], config['servers']['kadiServer']['port'])
-    
+
     uvicorn.run(app, host=config['servers']['dataServer']['host'], port=config['servers']['dataServer']['port'])
     print("instantiated kadi action")
 

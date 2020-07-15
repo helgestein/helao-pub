@@ -1,4 +1,3 @@
-import requests
 
 
 #dispense a formulation

@@ -24,12 +24,13 @@ res = requests.get("{}/pumping/formulation".format(pumpurl),
 
 experiment_list = []
 #this is a highly complex experiment spec
-experiment_spec = dict(position = dict(x=3,y=5,force=3),
-                       soe=['movement/home','movement/waste','pumping/dispense','movement/drop',
+experiment_spec = dict(
+                       soe=['movement/home','movement/waste','pumpingDispense_0','movement/drop',
                             'movement/home','movement/sample','echem/measure','pump/aspirate',
                             'movement/home','movement/waste','pumping/dispense_2','movement/drop',
                             'movement/home','movement/sample','echem/measure_2','pump/aspirate_2',
                             'analyze/maxcurr','plan/al','data/save'],
+  # in params , you should give the input values.
                        params = dict('home':None,
                                      'waste':dict(position={'x':0,'y':0}),
                                      'dispense':dict(formulation=[0.2,0.2,0.2,0.2,0.2],

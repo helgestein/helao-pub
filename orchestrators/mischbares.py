@@ -1,10 +1,10 @@
 # In order to run the orchatrator which is at the highest level of Helao, all servers should be started. 
 import requests
+import sys
+sys.path.append(r'../config')
+sys.path.append(r'../action')
+sys.path.append(r'../server')
 import time
-import sys 
-sys.path.append(r'.../action')
-sys.path.append(r'.../server')
-sys.path.append(r'.../config')
 from mischbares_small import config
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -20,29 +20,31 @@ sdc_std = ['movement/matrixRotation','movement/moveToHome','movement/jogging','m
            'movement/alignWaste', 'movement/alignment','movement/mvToSample', 'movement/mvToReservoir', 'movement/mvToWaste', 
            'movement/moveUp', 'movement/removeDrop', 'pumping/formulation_succ','pumping/formulation', 'pumping/flushSerial',
            'echem/measure','echem/ismeasuring', 'echem/potential', 'echem/current', 'echem/setcurrentrange', 'echem/appliedpotential', 
-           'echem/cellonoff', 'echem/retrieve', 'forceAction/read', 'data/addrecord', 'data/addcollection'] 
+           'echem/cellonoff', 'echem/retrieve', 'forceAction/read',  'data/addrecord', 'data/addcollection' ] 
 
 
 
 #This is a highly complex experiment spec
   # in params , you should give the input values.
+  # 'forceAction/read_0','data/addrecord_0'
 experiment_spec = dict(
                        soe=['movement/moveToHome_0','movement/alignment_0','movement/mvToWaste_0','pumping/formulation_0',
-                            'movement/removeDrop_0','movement/moveToHome_1','movement/mvToSample_0','forceAction/read_0',
+                            'movement/removeDrop_0','movement/moveToHome_1','movement/mvToSample_0',
                             'echem/measure_0','pump/formulation_1','movement/moveToHome_2','movement/mvToWaste_1',
                             'pumping/formulation_2','movement/removeDrop_1','movement/moveToHome_4','movement/mvToSample_1',
-                            'echem/measure_1','pump/formulation_3','data/addrecord_0'], 
+                            'echem/measure_1','pump/formulation_3'], 
 
                        params = dict(moveToHome_0 = None,
                                      alignment_0 = None,
-                                     mvToWaste_0 = dict(position={'x':0.0,'y':0.0}),
+                                     mvToWaste_0 = dict(x= 0.0,y= 0.0),
                                      formulation_0 = dict(formulation= [0.2,0.2,0.2,0.2,0.2],
                                                      pumps= [0,1,2,3,4],
                                                      speed= 1000,
                                                      direction= -1,
                                                      stage= True,
                                                      totalVol= 2000),
-                                     removeDrop_0 = dict(y= (-20)),
+                                     removeDrop_0 = dict(y= -20),
+                                     moveToHome_1 = None,
                                      mvToSample_0 = dict(x= 20, y= 10),
                                      measure_0= dict(procedure= 'ca',
                                                     setpoints= dict(applypotential = {'Setpoint value': -0.5},
@@ -55,6 +57,7 @@ experiment_spec = dict(
                                                      direction=1,
                                                      stage=True,
                                                      totalVol=2000),
+                                    moveToHome_2 = None,
                                     mvToWaste_1 = dict(position= {'x':0.0,'y':0.0}),
                                     fomulation_2 = dict(formulation= [1],
                                                      pumps= [5],
@@ -63,6 +66,7 @@ experiment_spec = dict(
                                                      stage= True,
                                                      totalVol= 2000), 
                                     removeDrop_1 = dict(y = -20), 
+                                    moveToHome_3 = None,
                                     mvToSample_1 = dict(x= 18, y= 8), 
                                     measure_1= dict(procedure= 'ca',
                                                     setpoints= dict(applypotential = {'Setpoint value': -0.5},
@@ -75,10 +79,9 @@ experiment_spec = dict(
                                                      direction=1,
                                                      stage=True,
                                                      totalVol=2000),
-                                    addrecord_0= dict(ident= 1,title= 'electrodeposition', filed= 'cu-No3',
-                                                      visibility='private',meta=None))
+                                    ))
 
-
+#addrecord_0= dict(ident= 1,title= 'electrodeposition', filed= 'cu-No3', visibility='private',meta=None)
         
 experiment = json.dumps(experiment_spec)
 

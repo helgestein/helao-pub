@@ -1,7 +1,13 @@
+import sys
+sys.path.append(r'../driver')
+sys.path.append(r'../config')
+sys.path.append(r'../server')
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
+from mischbares_small import config
+
 
 app = FastAPI(title="Pump action server V1",
     description="This is a very fancy pump action server",

@@ -6,8 +6,11 @@ configuration dicts. The dicts point to the files that are being uploaded to the
 The actions cover measuring, setting the cell on or off asking the potential or current and if the potentiostat is measuring
 
 """
-
 import sys
+sys.path.append(r'../driver')
+sys.path.append(r'../config')
+sys.path.append(r'../server')
+from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel

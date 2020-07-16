@@ -8,6 +8,8 @@ from kadi_driver import kadi
 from mischbares_small import config
 import uvicorn
 
+#currently it seems like server needs to be restarted if there is an input error in any of your requests
+
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
     description="This is a very fancy data management server",
     version="1.0",)
@@ -16,7 +18,7 @@ class validator_class(BaseModel):
     ident: str
     title: str
     filed: str = ''
-    visibility: str = 'private'
+    visibility: str
     meta: str = ''
 
     @validator("visibility")
@@ -31,9 +33,9 @@ class validator_class(BaseModel):
         return v
 
 @app.get("/kadi/addrecord")
-def addRecord(ident:str,title:str,visibility:str,filed:str,meta:str=None):
-    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility) if meta == None else validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
-    k.addRecord(ident,title,visibility,filed,meta)
+def addRecord(ident:str,title:str,filed:str,visibility:str,meta:str=''):
+    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
+    k.addRecord(ident,title,filed,visibility,meta)
     
 @app.get("/kadi/addcollection")
 def addCollection(identifier:str,title:str,visibility:str='private'):

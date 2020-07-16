@@ -34,6 +34,7 @@ experiment_spec = dict(
                             'echem/measure_1','pump/formulation_3','data/addrecord_0'], 
 
                        params = dict(moveToHome_0 = None,
+                                     alignment_0 = None,
                                      mvToWaste_0 = dict(position={'x':0.0,'y':0.0}),
                                      formulation_0 = dict(formulation= [0.2,0.2,0.2,0.2,0.2],
                                                      pumps= [0,1,2,3,4],
@@ -82,60 +83,49 @@ experiment_spec = dict(
 experiment = json.dumps(experiment_spec)
 
 #### writing the orchastrator server
-app = FastAPI(title = "orchastrator", description = "A fancy complex server",version = 1.0)
+app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
 def addToQueue(experiment: str):
-    dict_input = json.load(experiment)
+    dict_input = json.loads(experiment)
     experiment_list.append(dict_input)
     return experiment_list
 
 
-@app.get("/orchastrator/runAll")
-def execute(experiment_list: str):
+@app.get("/orchestrator/runAll")
+def execute(experiment: str):
+    experiment_list = addToQueue(experiment)
     for action_str in experiment_list[0]['soe']:
-        action, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
-        if action == 'movement':
-            requests.get("/{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],action, fnc),
-                        params=fnc.split('_')[0]).json
-        elif action == 'pumping':
-            requests.get("/{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],action, fnc),
-                        params=fnc.split('_')[0]).json
-        elif action == 'echem':
-            requests.get("/{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],action, fnc),
-                        params=fnc.split('_')[0]).json
-        elif action == 'forceAction':
-            requests.get("/{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],action, fnc),
-                        params=fnc.split('_')[0]).json
-        elif action == 'data':
-            requests.get("/{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],action, fnc),
-                        params=fnc.split('_')[0]).json
+
+        server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
+        action = fnc.split('_')[0]
+
+        if server == 'movement':
+            requests.get("https//{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
+                        params= experiment_list[0]['params'][fnc]).json
+        elif server == 'pumping':
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
+                        params= experiment_list[0]['params'][fnc]).json
+        elif server == 'echem':
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
+                        params= experiment_list[0]['params'][fnc]).json
+        elif server == 'forceAction':
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
+                        params= experiment_list[0]['params'][fnc]).json
+        elif server == 'data':
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
+                        params= experiment_list[0]['params'][fnc]).json
         
 if __name__ == "__main__":
-    url = "http://{}:{}".format(config['servers']['orchestrator']['host'], config['servers']['orchestrator']['port']
-
-    main()
-    ":
-    exp_list = []
-    app 
-    
+    uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
+    print("orchestrator is instantiated. ")
+    experiment_list = []
     while True:
-        if len(exp_list)>0:
-            execute()
+        if experiment_list == []:
+            time.sleep(1)
+            print('There is nothing to do')
 
+        elif len(experiment_list) > 0:
+            execute(experiment_list)
 
-
-experiment_list = []
-
-
-while True:
-    if experiment_list == []:
-        print('nothing to do. Sleeping for a second')
-        time.sleep(1)
-    else:
-        #now we do something from the list
-        current_experiment = experiment_list.pop(0)
-        #select the actions to do and excecute them from the _s_equence _o_f _e_vents
-        for actionSelect in current_experiment['soe']:
-            server,action = actionSelect.split('/')
-             
+# We do not need the pop(0), because  we are iterating through a for loop
 

@@ -34,8 +34,8 @@ def set_trf(x: float, y: float, z: float, alpha: float, beta: float, gamma: floa
     m.set_tfr(x, y, z, alpha, beta, gamma)
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "set-trf"},
-        data={'data': "trf", "x": x, "y": y, "z": z, "alpha": alpha, "beta": beta, "gamma": gamma}
+        parameters={"command": "set-trf", "x": x, "y": y, "z": z, "alpha": alpha, "beta": beta, "gamma": gamma},
+        data={'data': "trf"}
         )
     return retc 
 
@@ -44,8 +44,8 @@ def mvposeplane(x: float, y: float):
     m.mvposeplane(x, y)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "mvposeplane"},
-            data={'data': "poses", "x": x, "y": y}
+            parameters={"command": "mvposeplane", "x": x, "y": y},
+            data={'data': "poses"}
             )
     return retc 
 
@@ -54,8 +54,8 @@ def DMoveJoints(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveJoints(a, b, c, d, e, f)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "DMoveJoints"},
-            data={'data': "joints" , "joint1": a, "joint2": b, "joint3": c, "joint4": d, "joint5": e, "joint6": f}
+            parameters={"command": "DMoveJoints","joint1": a, "joint2": b, "joint3": c, "joint4": d, "joint5": e, "joint6": f},
+            data={'data': "joints"}
         )
     return retc
 
@@ -64,8 +64,8 @@ def DMoveLin(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMoveLin(a, b, c, d, e, f)
     retc = return_class(
                 measurement_type="mecademic_command",
-                parameters={"command": "DMoveLin"},
-                data={'data': "axes" , "axis1": a, "axis2": b, "axis3": c, "axis4": d, "axis5": e, "axis6": f}
+                parameters={"command": "DMoveLin","axis1": a, "axis2": b, "axis3": c, "axis4": d, "axis5": e, "axis6": f},
+                data={'data': "axes" }
             )
     return retc
 
@@ -74,8 +74,8 @@ def DMovePose(a: float, b: float, c: float, d: float, e: float, f: float):
     m.DMovePose(a, b, c, d, e, f)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "DMovePose"},
-            data={'data': "poses", "pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f}
+            parameters={"command": "DMovePose","pos1": a, "pos2": b, "pos3": c, "pos4": d, "pos5": e, "pos6": f},
+            data={'data': "poses"}
         )
     return retc
 
@@ -84,8 +84,8 @@ def DQLinZ(z: int=20,nsteps: int=100):
     m.DQLinZ(z, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "DQLinZ"},
-            data={"z": z, "step_num": nsteps}
+            parameters={"command": "DQLinZ", "z": z, "step_num": nsteps},
+            data={'data': None}
             )
     return retc
 
@@ -94,8 +94,8 @@ def DQLinX(x: int=20, nsteps: int=100):
     m.DQLinX(x, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
-            parameters={"command": "DQLinX"},
-            data={"x": x, "step_num": nsteps}
+            parameters={"command": "DQLinX", "x": x, "step_num": nsteps},
+            data={'Data': None}
             )
     return retc
 
@@ -104,8 +104,8 @@ def DQLinY(y: int=20, nsteps: int=100):
     m.DQLinY(y, nsteps)
     retc = return_class(
         measurement_type="mecademic_command",
-        parameters={"command": "DQLinY"},
-        data={"y": y, "step_num": nsteps}
+        parameters={"command": "DQLinY", "y": y, "step_num": nsteps},
+        data={'data': None}
         )
     return retc
 

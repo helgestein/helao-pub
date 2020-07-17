@@ -13,7 +13,9 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          sensingServer = dict(host="127.0.0.1", port= 13379),
                          orchestrator = dict(host= "127.0.0.1", port= 13380),
                          motorServer = dict(host= "127.0.0.1", port= 13381),
-                         langServer = dict(host= "127.0.0.1", port= 13382))
+                         langServer = dict(host= "127.0.0.1", port= 13382),
+                         oceanServer = dict(host= "127.0.0.1", port= 13383),
+                         smallRamanServer = dict(host= "127.0.0.1", port= 13384))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
             PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")

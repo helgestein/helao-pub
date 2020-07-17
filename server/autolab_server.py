@@ -7,6 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+from typing import List
 
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
@@ -54,7 +55,7 @@ def setCurrentRange(crange: str):
     return retc
 
 @app.get("/potentiostat/setstability")
-def setStability(stability):
+def setStability(stability:str):
     a.setStability(stability)
     retc = return_class(measurement_type='potentiostat_autolab',
                         parameters= {'command':'setStability',
@@ -89,7 +90,7 @@ def CellOnOff(onoff:str):
     return retc
 
 @app.get("/potentiostat/measure")
-def performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
+def performMeasurement(procedure: str,setpoint_keys:List[str],setpoint_values:List[float],plot:str,onoffafter:str,safepath:str,filename:str):
     a.performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename)
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'measure',
@@ -99,7 +100,8 @@ def performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,s
     return retc
 
 @app.get("/potentiostat/retrieve")
-def retrieve(conf: dict):
+def retrieve(safepath:str,filename:str):
+    conf = dict(safepath=safepath,filename=filename)
     path = os.path.join(conf['safepath'],conf['filename'])
     with open(path.replace('.nox', '_data.json'), 'r') as f:
         ret = json.load(f)

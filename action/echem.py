@@ -27,7 +27,7 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/echem/measure/")
-def measure(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
+def measure(procedure:str,setpoint_keys:List[str],setpoint_values:List[float],plot:str,onoffafter:str,safepath:str,filename:str):
     """
     Measure a recipe and manipulate the parameters:
 
@@ -71,7 +71,7 @@ def current():
     return retc
 
 @app.get("/echem/setcurrentrange/")
-def setCurrentRange(crange):
+def setCurrentRange(crange:str):
     res = requests.get("{}/potentiostat/setcurrentrange".format(poturl),
                         params={'crange':crange}).json()
     retc = return_class(measurement_type='echem_setcurrentrange',
@@ -90,7 +90,7 @@ def appliedPotential():
     return retc
 
 @app.get("/echem/cellonoff/")
-def CellOnOff(onoff):
+def CellOnOff(onoff:str):
     res = requests.get("{}/potentiostat/cellonoff".format(poturl),
                         params={'onoff':onoff}).json()
     retc = return_class(measurement_type='echem_onoff',
@@ -100,8 +100,9 @@ def CellOnOff(onoff):
     return retc
 
 @app.get("/echem/retrieve")
-def retrieve(conf: dict):
-    res = requests.get("{}/potentiostat/cellonoff".format(poturl),
+def retrieve(safepath: str, filename: str):
+    conf = dict(safepath= safepath,filename = filename)
+    res = requests.get("{}/potentiostat/retrieve".format(poturl),
                         params=conf).json()
     retc = return_class(measurement_type='echem_retrieve',
                         parameters= {'command':'retrieve',

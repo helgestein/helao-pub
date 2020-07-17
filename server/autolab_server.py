@@ -89,11 +89,12 @@ def CellOnOff(onoff:str):
     return retc
 
 @app.get("/potentiostat/measure")
-def performMeasurement(conf: dict):
-    a.performMeasurement(conf)
+def performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
+    a.performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename)
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'measure',
-                                'parameters':conf},
+                                'parameters':dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
+                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)},
                     data = {'data':None})
     return retc
 

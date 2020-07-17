@@ -27,12 +27,14 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/echem/measure/")
-def measure(measure_conf: dict):
+def measure(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
     """
     Measure a recipe and manipulate the parameters:
 
     - **measure_conf**: is explained in the echemprocedures folder
     """
+    measure_conf = dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
+                        plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
     res = requests.get("{}/motor/query/moving".format(poturl), 
                         params=measure_conf).json()
     retc = return_class(measurement_type='echem_measure',

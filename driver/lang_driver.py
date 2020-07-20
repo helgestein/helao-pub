@@ -36,11 +36,11 @@ class langNet():
 
     def moveRelFar(self,dx,dy,dz):
         if dz > 0: #moving down -> z last
-            self.moveXY(dx,dy)
-            self.moveZ(dz)
+            self.moveRelXY(dx,dy)
+            self.moveRelZ(dz)
         if dz <= 0: # moving up -> z first
-            self.moveZ(dz)
-            self.moveXY(dx,dy)
+            self.moveRelZ(dz)
+            self.moveRelXY(dx,dy)
 
     def getPos(self):
         ans = l.LS.GetPos(0,0,0,0)
@@ -78,3 +78,6 @@ class langNet():
         zpos = np.linspace(zp,z,steps+1)
         for x,y,z in zip(xpos[1:],ypos[1:],zpos[1:]):
             self.LS.MoveAbs(0,x,y,z,wait)
+
+
+    def moveAbsFar(self, dx, dy, dz)

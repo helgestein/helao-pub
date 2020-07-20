@@ -80,4 +80,11 @@ class langNet():
             self.LS.MoveAbs(0,x,y,z,wait)
 
 
-    def moveAbsFar(self, dx, dy, dz)
+    def moveAbsFar(self, dx, dy, dz): 
+        if dz > 0: #moving down -> z last
+            self.moveAbsXY(dx,dy)
+            self.moveAbsZ(dz)
+        if dz <= 0: # moving up -> z first
+            self.moveAbsZ(dz)
+            self.moveAbsXY(dx,dy)
+

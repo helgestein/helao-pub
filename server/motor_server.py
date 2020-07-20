@@ -99,6 +99,17 @@ def moveAbsZ(z: float, wait:str=True):
     )
     return retc
 
+@app.get("/motor/moveAbsFar")
+def moveAbsFar(dx: float, dy: float, dz: float):
+    l.moveAbsFar(dx, dy, dz)
+    retc = return_class(
+    measurement_type="motor_command",
+    parameters={"command": "move_absolute_z", 'x': dx, 'y': dy, 'z': dz},
+    data={'data': None}
+    )
+    return retc
+
+
 
 
 if __name__ == "__main__":

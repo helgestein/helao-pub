@@ -20,50 +20,23 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/long/")
-
-
-
-
-
-
-
-
-
-
-@app.get("/motor/moveRelFar")
-def moveRelFar(dx: float, dy: float, dz: float):
-    l.langNet(dx, dy, dz)
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "move_relative", 'x': dx, 'y': dy, 'z':dz},
-    data={'data': None}
-    )
+@app.get("/long/moveRel")
+def moveRelFar( dx: float, dy: float, dz: float):
+    requests.get("{}/motor/moveRelFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
+    retc = return_class(measurement_type='Move_relative', parameters= {"dx": dx, "dy": dy, "dz": dz})
     return retc
 
 
-
-@app.get("/motor/getPose")
-def getPose():
-    data= l.getPose()
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "get_position"},
-    data={'data': data}
-    )
+@app.get("/long/moveAbs")
+def moveAbsFar( dx: float, dy: float, dz: float):
+    requests.get("{}/motor/moveAbsFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
+    retc = return_class(measurement_type='Move_absolut', parameters= {"dx": dx, "dy": dy, "dz": dz})
     return retc
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
 
-   url = "http://{}:{}".format(config['servers']['mecademicServer']['host'], config['servers']['mecademicServer']['port'])
-   uvicorn.run(app, host=config['servers']['movementServer']['host'], port=config['servers']['movementServer']['port'])
+   url = "http://{}:{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'])
+   uvicorn.run(app, host=config['servers']['langServer']['host'], port=config['servers']['langServer']['port'])
    print("instantiated longMotor")
     

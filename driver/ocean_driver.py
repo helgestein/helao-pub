@@ -8,7 +8,7 @@ from seabreeze.cseabreeze import SeaBreezeAPI
 class ocean:
     def __init__(self):
         self.api = SeaBreezeAPI()
-        #this is convoluted, but will prevent code from crashing if tried when no spectrometer connected
+        #this is convoluted, but will prevent code from crashing if initiated when no spectrometer connected
         a = self.api.list_devices()
         self.device = None if len(a) == 0 else a[0]
 

@@ -25,10 +25,9 @@ class return_class(BaseModel):
 def getData():
     wavelengthData = requests.get("{}/ocean/wavelengths".format(url)).json()
     intensityData = requests.get("{}/ocean/intensities".format(url)).json()
-    data = dict(wavelengths=wavelengthData,intensities=intensityData)
     retc = return_class(measurement_type='raman_measure', 
                             parameters={'command':'read_data'}, 
-                            data={'data':data})
+                            data={'wavelengths':wavelengthData,'intensity':intensityData})
     return retc
 
 

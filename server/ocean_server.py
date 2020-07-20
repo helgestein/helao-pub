@@ -24,7 +24,7 @@ def findDevice():
     device = o.findDevice()
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"command" : "find_device"},
-                        data = {"device" : device})
+                        data = {"device" : str(device)})
     return retc
 
 @app.get("/ocean/connect")
@@ -40,7 +40,7 @@ def getWavelengths():
     data = o.getWavelengths()
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"command" : "get_wavelengths"},
-                        data = {"data" : data})
+                        data = {"wavelengths" : data.tolist()})
     return retc
 
 @app.get("/ocean/intensities")
@@ -48,7 +48,7 @@ def getIntensities():
     data = o.getIntensities()
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"command" : "get_intensities"},
-                        data = {"data" : data})
+                        data = {"intensities" : data.tolist()})
     return retc
 
 @app.on_event("shutdown")

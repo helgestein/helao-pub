@@ -1,15 +1,15 @@
 """ A action server for electrochemistry
 
 the logic here is that you define recipes that are stored in files. This is a relatively specific implementation of Autolab Metrohm
-For this we pre define recipe files in the specific proreiatary xml language and then manipulate measurement parameters via
+For this we pre define recipe files in the specific proprietary xml language and then manipulate measurement parameters via
 configuration dicts. The dicts point to the files that are being uploaded to the potentiostat
 The actions cover measuring, setting the cell on or off asking the potential or current and if the potentiostat is measuring
 
 """
 import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../config')
-sys.path.append(r'../server')
+sys.path.append('../driver')
+sys.path.append('../config')
+sys.path.append('../server')
 from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
@@ -111,7 +111,7 @@ def retrieve(safepath: str, filename: str):
     return retc
 
 if __name__ == "__main__":
-    poturl = "http://{}:{}".format("127.0.0.1", "13375")
+    poturl = "http://{}:{}".format(config['servers']['autolabServer']['host'], config['servers']['autolabServer']['port'])
     print('initialized autolab starting the server')
     uvicorn.run(app, host=config['servers']['echemServer']['host'], 
                      port=config['servers']['echemServer']['port'])

@@ -1,8 +1,9 @@
 #this is the server
 import sys
-sys.path.append(r"./config")
+sys.path.append("../config")
+sys.path.append("../driver")
 from autolab_driver import Autolab
-import mischbares_small
+from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -121,6 +122,6 @@ def disconnect():
     return retc
 
 if __name__ == "__main__":
-    autolab_conf = mischbares_small.config['autolab']
-    a = Autolab(mischbares_small.config['autolab'])
+    autolab_conf = config['autolab']
+    a = Autolab(config['autolab'])
     uvicorn.run(app, host=config['servers']['autolabServer']['host'], port=config['servers']['autolabServer']['port'])

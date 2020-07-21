@@ -88,9 +88,9 @@ async def pot_potential_ramp_wrap(
     )
 
 
-@app.get("/potentiostat/get/eis")
-async def eis_(start_freq: float, end_freq: float, points: int, pot_offset: float = 0):
-    return return_class(**poti.eis(start_freq, end_freq, points, pot_offset))
+# @app.get("/potentiostat/get/eis")
+# async def eis_(start_freq: float, end_freq: float, points: int, pot_offset: float = 0):
+#     return return_class(**poti.eis(start_freq, end_freq, points, pot_offset))
 
 
 @app.get("/potentiostat/get/status")
@@ -102,10 +102,10 @@ def status_wrapper():
     )
 
 
-@app.get("/potentiostat/get/signal_arr")
-async def signal_array_(Cycles: int, SampleRate: float, arr: str):
-    arr = [float(i) for i in arr.split(",")]
-    return return_class(**poti.signal_array(Cycles, SampleRate, arr))
+# @app.get("/potentiostat/get/signal_arr")
+# async def signal_array_(Cycles: int, SampleRate: float, arr: str):
+#     arr = [float(i) for i in arr.split(",")]
+#     return return_class(**poti.signal_array(Cycles, SampleRate, arr))
 
 
 @app.on_event("shutdown")

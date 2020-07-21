@@ -1,6 +1,6 @@
 import sys
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
+sys.path.append(r'../config')
+sys.path.append(r'../driver')
 from lang_driver import langNet
 from mischbares_small import config
 import uvicorn

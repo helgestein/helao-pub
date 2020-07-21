@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 import json
+from typing import List
 
 app = FastAPI(title="Echem Action server V1",
     description="This is a very fancy echem action server",
@@ -35,8 +36,14 @@ def measure(procedure:str,setpoint_keys:List[str],setpoint_values:List[float],pl
     """
     measure_conf = dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
                         plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
+    
+    res = requests.get("{}/potentiostat/measure".format(poturl), 
+                        params=measure_conf).json()
+  
+    '''????
     res = requests.get("{}/motor/query/moving".format(poturl), 
                         params=measure_conf).json()
+    '''
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
                                     'parameters':measure_conf},

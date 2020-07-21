@@ -35,7 +35,7 @@ class pump():
 
     def setBlock(self, pump:int, time_block:float):
         #this sets a block
-        self.conf['pumpBlockings'][pump] = time_block
+        self.conf['pumpBlockings'][pump] = time.time()+time_block
         retc = dict(
             measurement_type="pump_command",
             parameters={"command": "block","time_block":time_block},
@@ -45,7 +45,8 @@ class pump():
     def allOn(self,time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
         time_block = time.time()+time_
-        _ = self.setBlock(pump,time_block)        
+        for i in range(14)
+            self.setBlock(i,time_block)        
         retc = dict(
             measurement_type="pump_command",
             parameters={"command": "allOn","time_block":time_block},
@@ -63,7 +64,7 @@ class pump():
         if not stage:
             self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
 
-            time_block = time.time()+volume/speed
+            time_block = time.time()+volume*60/(speed*4000)
             _ = self.setBlock(pump,time_block)
         else:
             time_block = 0
@@ -83,7 +84,7 @@ class pump():
                     "time_block": time_block,
                 },
             },
-            data={'serial_response':ans},
+            data={'serial_response': ans if read else None},
         )
         return retc
 
@@ -113,7 +114,7 @@ class pump():
         ans = []
         for i in range(100):
             a = self.ser.read(1000)
-            if not a == "":
+            if not a == b"":
                 ans.append(a)
             else:
                 break

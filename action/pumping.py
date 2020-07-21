@@ -44,7 +44,7 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
     return retc
 
 @app.get("/pumping/flushSerial/")
-def formulation():
+def flushSerial():
     res = requests.get("{}/pump/read".format(pumpurl)).json()
 
     retc = return_class(measurement_type='echem_measure',

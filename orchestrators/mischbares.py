@@ -62,7 +62,7 @@ experiment_spec = dict(
                                     fomulation_2 = dict(formulation= [1],
                                                      pumps= [5],
                                                      speed= 4000,
-                                                     direction= -1,
+                                                     direction= 1,
                                                      stage= True,
                                                      totalVol= 2000), 
                                     removeDrop_1 = dict(y = -20), 
@@ -90,6 +90,7 @@ app = FastAPI(title = "orchestrator", description = "A fancy complex server",ver
 
 def addToQueue(experiment: str):
     dict_input = json.loads(experiment)
+    experiment_list = []
     experiment_list.append(dict_input)
     return experiment_list
 
@@ -103,7 +104,7 @@ def execute(experiment: str):
         action = fnc.split('_')[0]
 
         if server == 'movement':
-            requests.get("https//{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
                         params= experiment_list[0]['params'][fnc]).json
         elif server == 'pumping':
             requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
@@ -121,7 +122,8 @@ def execute(experiment: str):
 if __name__ == "__main__":
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
     print("orchestrator is instantiated. ")
-    experiment_list = []
+    
+    '''
     while True:
         if experiment_list == []:
             time.sleep(1)
@@ -131,4 +133,4 @@ if __name__ == "__main__":
             execute(experiment_list)
 
 # We do not need the pop(0), because  we are iterating through a for loop
-
+'''

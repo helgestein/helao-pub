@@ -377,14 +377,6 @@ class GamryDtaqEvents(object):
         print(self.acquired_points)
         self.status = "idle"
 
-    # async def test_async(self, SampleRate, ScanRate, acquired_points_queue, length):
-    #     processed = 0
-    #     while processed < length:
-    #         print("appending")
-    #         self.acquired_points.append((await acquired_points_queue.get()))
-    #         processed += 1
-    #         await asyncio.sleep(SampleRate/ScanRate)
-
     async def clear_aiofile(self): # clears file
         data = ""
         async with aiofiles.open('acquired_points', 'w') as f:
@@ -429,6 +421,13 @@ class gamry:
         self.buffer = defaultdict(list)
         self.buffer_size = 0
         self.measuing = False
+        self.test_string = ""
+
+    async def test_async(self, s):
+         while True:
+            self.test_string = s
+            print(self.test_string)
+            await asyncio.sleep(1)
 
     def open_connection(self, force_err=False):
         # seet connection status to open

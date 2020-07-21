@@ -121,15 +121,20 @@ if __name__ == "__main__":
     poti = gamry()
 
     pid = str(time.time()) #ADDED
-    loop = asyncio.get_event_loop() #ADDED
-    task1 = loop.create_task(poti.potential_ramp(-1, 1, 0.2, 0.05, pid)) #ADDED
-    task2 = loop.create_task(poti.pull_recent_data_helper(0, pid)) #ADDED
-    final_task = asyncio.gather(task1, task2) #ADDED
-    loop.run_until_complete(final_task) #ADDED
+    # loop = asyncio.get_event_loop() #ADDED
+    # task2 = loop.create_task(poti.test_async("hello")) #ADDED
+    # final_task = asyncio.gather(task2) #ADDED
+    # loop.run_until_complete(final_task) #ADDED
 
-    poti.potential_ramp(-1,1,0.2,0.05) #ADDED
+    #poti.potential_ramp(-1,1,0.2,0.05, pid) #ADDED
     # makes this runnable and debuggable in VScode
     # letters of the alphabet GAMRY => G6 A0 M12 R17 Y24
     uvicorn.run(app, host=FASTAPI_HOST, port=ECHEM_PORT)
+
+
+
+
+
+
 
     # http://127.0.0.1:8003/potentiostat/get/potential_ramp?Vinit=0&Vfinal=0.2&ScanRate=0.01&SampleRate=0.01

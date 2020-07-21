@@ -420,14 +420,20 @@ class gamry:
         self.temp = []
         self.buffer = defaultdict(list)
         self.buffer_size = 0
-        self.measuing = False
+        self.measuring = False
         self.test_string = ""
 
     async def test_async(self, s):
-         while True:
+        self.measuring = True
+        for i in range(200):
             self.test_string = s
             print(self.test_string)
-            await asyncio.sleep(1)
+            await asyncio.sleep(.1)
+
+    async def get_measuring(self):
+        while True:
+            print(self.measuring)
+            await asyncio.sleep(5)
 
     def open_connection(self, force_err=False):
         # seet connection status to open

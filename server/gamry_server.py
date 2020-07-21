@@ -120,13 +120,13 @@ def shutdown_event():
 if __name__ == "__main__":
     poti = gamry()
 
-    pid = str(time.time()) #ADDED
+    # pid = str(time.time()) #ADDED
     # loop = asyncio.get_event_loop() #ADDED
+    # task1 = loop.create_task(poti.get_measuring()) #ADDED
     # task2 = loop.create_task(poti.test_async("hello")) #ADDED
-    # final_task = asyncio.gather(task2) #ADDED
+    # final_task = asyncio.gather(task1, task2) #ADDED
     # loop.run_until_complete(final_task) #ADDED
 
-    #poti.potential_ramp(-1,1,0.2,0.05, pid) #ADDED
     # makes this runnable and debuggable in VScode
     # letters of the alphabet GAMRY => G6 A0 M12 R17 Y24
     uvicorn.run(app, host=FASTAPI_HOST, port=ECHEM_PORT)

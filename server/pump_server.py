@@ -5,7 +5,7 @@ from pydantic import BaseModel
 import sys
 sys.path.append('../driver')
 sys.path.append('../config')
-import config.mischbares_small
+from mischbares_small import config
 from pump_driver import pump
 
 app = FastAPI(title="Pump server V1",

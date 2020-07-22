@@ -87,6 +87,10 @@ async def move_live(
 ):
     """Move a apecified {axis} by {x_mm} distance at {speed} using {mode} i.e. relative"""
     # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x
+
+    # value = motion.motor_move_live(x_mm, axis, speed, mode)
+    # return return_class(value)
+
     return StreamingResponse(
         motion.motor_move_live(x_mm, axis, speed, mode), media_type="text/plain"
     )

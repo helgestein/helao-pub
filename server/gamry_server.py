@@ -50,7 +50,8 @@ class return_class(BaseModel):
 async def pot_potential_ramp_wrap(
     Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
 ):
-    return return_class(**poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate))
+    value = await poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate)
+    return return_class(**value)
 
 
 @app.get("/potentiostat/get/potential_cycle")
@@ -94,11 +95,11 @@ async def pot_potential_ramp_wrap(
 
 
 @app.get("/potentiostat/get/status")
-def status_wrapper():
+async def status_wrapper():
     return return_class(
         measurement_type="status_query",
         parameters={"query": "potentiostat"},
-        data=[poti.status()],
+        data=[await poti.status()],
     )
 
 

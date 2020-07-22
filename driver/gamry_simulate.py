@@ -339,7 +339,7 @@ class GamryDtaqEvents(object):
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    async def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer, buffer_size, buffer_add, buffer_sub, get_buffer_size): 
+    def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer, buffer_size, buffer_add, buffer_sub, get_buffer_size): 
         # set_status_aquire_points needs async sleep to work properly 
         # test_async does not need async sleep to work properly 
 
@@ -352,12 +352,12 @@ class GamryDtaqEvents(object):
         self.start_time = time.time()
         self.stop_time = self.start_time + fullt[-1]
 
-        await self.clear_aiofile()
+        #self.clear_aiofile()
         # task0 = self.clear_aiofile()
         # loop.run_until_complete(task0)
 
         t0 = time.time()
-        await self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer)
+        self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer)
         # task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer)) 
         # task2 = loop.create_task(self.test_async(SampleRate, ScanRate, self.acquired_points_queue, len(fullt)))
         # final_task = asyncio.gather(task1, task2) 
@@ -389,29 +389,30 @@ class GamryDtaqEvents(object):
         async with aiofiles.open('acquired_points', 'a') as f:
             await f.write(data)
 
-    async def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer): # THIS CODE USE TO BE IN THE SIMULATE METHOD
+    def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer): # THIS CODE USE TO BE IN THE SIMULATE METHOD
         fullt_copy = np.copy(fullt)
         fullv_copy = np.copy(fullv)
         fullj_copy = np.copy(fullj)
         while time.time() < self.stop_time: 
-            print("there")
             self.status = "measuring" 
             for t, v, j in zip(fullt_copy, fullv_copy, fullj_copy):
                 if t < (time.time() - self.start_time):
                     data_buffer[pid].append([[t, v, 0.0, j]])
-                    await self.write_to_aiofile([[t, v, 0.0, j]])
-                    await self.acquired_points_queue.put([[t, v, 0.0, j]])
+                    #await self.write_to_aiofile([[t, v, 0.0, j]])
+                    #self.acquired_points_queue.put([[t, v, 0.0, j]])
+                    self.acquired_points.append([[t, v, 0.0, j]])
                     fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data 
                     fullv_copy = np.delete(fullv_copy, [0])
                     fullj_copy = np.delete(fullj_copy, [0])
             if(len(fullt_copy) == 1):
                 data_buffer[pid].append([[t, v, 0.0, j]])
-                await self.write_to_aiofile([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
-                await self.acquired_points_queue.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                #await self.write_to_aiofile([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                #self.acquired_points_queue.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                self.acquired_points.append([[t, v, 0.0, j]])
                 fullt_copy = np.delete(fullt_copy, [0]) 
                 fullv_copy = np.delete(fullv_copy, [0])
                 fullj_copy = np.delete(fullj_copy, [0])
-            await asyncio.sleep(SampleRate/ScanRate)
+            #await asyncio.sleep(SampleRate/ScanRate)
 
 
 class gamry:
@@ -422,6 +423,7 @@ class gamry:
         self.buffer_size = 0
         self.measuring = False
         self.test_string = ""
+        self.data = [];
 
     async def test_async(self, s):
         self.measuring = True
@@ -503,7 +505,7 @@ class gamry:
             await asyncio.sleep(.25)
 
 
-    async def measure(self, sigramp, SampleRate, ScanRate, pid): #ASYNCABLE 
+    def measure(self, sigramp, SampleRate, ScanRate, pid): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -513,7 +515,7 @@ class gamry:
         # self.measurement_setup()
         self.data = collections.defaultdict(list) #THIS LINE MAY NOT BE NEEDED
         self.measuring = True
-        await self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer, self.buffer_size, self.buffer_add, self.buffer_sub, self.get_buffer_size)
+        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer, self.buffer_size, self.buffer_add, self.buffer_sub, self.get_buffer_size)
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
         #     sink_status = self.dtaqsink.status
@@ -523,8 +525,9 @@ class gamry:
         self.measuring = False
         self.close_connection()
 
-    def status(self):
+    async def status(self):
         try:
+            await asyncio.sleep(0)
             return self.dtaqsink.status
         except:
             return "other"
@@ -535,7 +538,7 @@ class gamry:
         )
 
     async def potential_ramp(
-        self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float, pid: str
+        self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
     ):
         # setup the experiment specific signal ramp
         sigramp = {
@@ -553,19 +556,9 @@ class gamry:
             "daq": SampleRate,
         }
         # measure ... this will do the setup as well
+        await asyncio.sleep(10)
         self.measurement_setup("sweep")
-
-        await self.measure(sigramp, SampleRate, ScanRate, pid)
-        #start_index = 0
-        # pid = str(time.time())
-        #loop = asyncio.get_event_loop() 
-        # task1 = loop.create_task(self.measure(sigramp, SampleRate, ScanRate, pid))
-        # task2 = loop.create_task(self.pull_recent_data_helper(start_index, pid))
-        # final_task = asyncio.gather(task1, task2)
-        # loop.run_until_complete(final_task)
-        # self.measure(sigramp, SampleRate, ScanRate)
-
-
+        self.measure(sigramp, SampleRate, ScanRate, time.time())
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -576,6 +569,51 @@ class gamry:
             },
             "data": self.data,
         }
+
+    # def potential_ramp(
+    #     self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
+    # ):
+    #     # setup the experiment specific signal ramp
+    #     sigramp = {
+    #         "C": 1.0,  # initial conc of redox species
+    #         "D": 1e-5,  # redox diffusion coefficient
+    #         "etai": Vinit,  # initial overpotential
+    #         "etaf": Vfinal,  # final overpotential
+    #         "v": ScanRate,  # sweep rate
+    #         "n": 1.0,  # number of electrons transferred
+    #         "alpha": 0.5,  # charge-transfer coefficient
+    #         "k0": 1e-2,  # electrochemical rate constant
+    #         "kc": 1e-3,  # chemical rate constant
+    #         "T": 298.15,  # temperature
+    #         "cyc": 1,
+    #         "daq": SampleRate,
+    #     }
+    #     # measure ... this will do the setup as well
+    #     self.measurement_setup("sweep")
+
+    #     pid = time.time()
+
+    #     self.measure(sigramp, SampleRate, ScanRate, pid)
+    #     #start_index = 0
+    #     # pid = str(time.time())
+    #     #loop = asyncio.get_event_loop() 
+    #     # task1 = loop.create_task(self.measure(sigramp, SampleRate, ScanRate, pid))
+    #     # task2 = loop.create_task(self.pull_recent_data_helper(start_index, pid))
+    #     # final_task = asyncio.gather(task1, task2)
+    #     # loop.run_until_complete(final_task)
+    #     # self.measure(sigramp, SampleRate, ScanRate)
+
+
+    #     return {
+    #         "measurement_type": "potential_ramp",
+    #         "parameters": {
+    #             "Vinit": Vinit,
+    #             "Vfinal": Vfinal,
+    #             "ScanRate": ScanRate,
+    #             "SampleRate": SampleRate,
+    #         },
+    #         "data": self.data,
+    #     }
 
     def potential_cycle(
         self,

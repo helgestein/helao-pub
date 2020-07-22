@@ -34,6 +34,11 @@ class langNet():
             print("Disconnected")
         self.connected = False
 
+
+    def getPos(self):
+        ans = self.LS.GetPos(0,0,0,0)
+        return ans [1:-1]
+
     def moveRelFar(self,dx,dy,dz):
         if dz > 0: #moving down -> z last
             self.moveRelXY(dx,dy)
@@ -42,16 +47,17 @@ class langNet():
             self.moveRelZ(dz)
             self.moveRelXY(dx,dy)
 
-    def getPos(self):
-        ans = l.LS.GetPos(0,0,0,0)
-        return ans [1:-1]
-
     def moveRelZ(self,dz,wait=True):
         #calc how many steps:
         steps,rest = np.divmod(dz,self.mZ)
-        for i in range(int(abs(steps))):
-            self.LS.MoveRel(0,0,np.sign(dz)*self.mZ,0,wait)
-        self.LS.MoveRel(0,0,np.sign(dz)*rest,0,wait)
+        steps = int(abs(steps))+ 1
+        for i in range(steps):
+            #self.LS.MoveRel(0,0,np.sign(dz)*self.mZ,0,wait)
+            #print(self.LS.SetAccelSingleAxisTVRO(2, 0))
+            #self.LS.MoveRel(0,0,np.sign(dz)*rest,0,wait)
+            self.LS.MoveRel(0, 0, dz/steps, 0, wait)
+            print(self.LS.GetVel(0, 0, dz/steps, 0))
+            
 
     def moveRelXY(self,dx,dy,wait=True):
         #calc how many steps:
@@ -59,25 +65,29 @@ class langNet():
         steps = int(max(abs(stepdiv)))+1
         for i in range(steps):
             self.LS.MoveRel(dx/steps,dy/steps,0,0,wait)
+            print(self.LS.GetVel(dx/steps, dy/steps, 0, 0))
 
     def moveAbsXY(self,x,y,wait=True):
         #calc how many steps:
         xp,yp,zp = self.getPos()
         dx,dy = x-xp,y-yp
-        steps,rem = np.divmod(max([dx,dy]),min(self.mX,self.mY))
-        #z should not change!
-        xpos,ypos,zpos = np.linspace(xp,x,steps+1),np.linspace(yp,y,steps+1),np.linspace(zp,zp,steps+1)
-        for x,y,z in zip(xpos[1:],ypos[1:],zpos[1:]):
-            self.LS.MoveAbs(0,x,y,z,wait)
+        steps,rem = np.divmod(max([abs(dx),abs(dy)]),min(self.mX,self.mY))
+        steps = int(steps)
+        xpos,ypos,zpos = np.linspace(xp,x,steps+2),np.linspace(yp,y,steps+2),np.linspace(zp,zp,steps+2)
+        for xm,ym,zm in zip(xpos[1:],ypos[1:],zpos[1:]):
+            self.LS.MoveAbs(xm,ym,zm,0, wait)
+            print(self.LS.GetVel(xm, ym, zm, 0))
     
-    def moveAbsZ(self,z,wait=True):
-        #calc how many steps:
+    def moveAbsZ(self, z, wait=True):
+        self.LS = CClassLStep.LStep()
         xp,yp,zp = self.getPos()
         dz = z-zp
-        steps,rem = np.divmod(dz,self.mZ)
-        zpos = np.linspace(zp,z,steps+1)
-        for x,y,z in zip(xpos[1:],ypos[1:],zpos[1:]):
-            self.LS.MoveAbs(0,x,y,z,wait)
+        steps,rem = np.divmod(abs(dz),self.mZ)
+        steps = int(steps)
+        xpos, ypos, zpos =  np.linspace(xp,xp,steps+2), np.linspace(yp,yp,steps+2), np.linspace(zp,z,steps+2)
+        for xm,ym,zm in zip(xpos[1:],ypos[1:],zpos[1:]):
+            self.LS.MoveAbs(xm,ym,zm,0, wait)
+            print(self.LS.GetVel(xm, ym, zm, 0))
 
 
     def moveAbsFar(self, dx, dy, dz): 
@@ -88,3 +98,17 @@ class langNet():
             self.moveAbsZ(dz)
             self.moveAbsXY(dx,dy)
 
+    # get the maximum velocity 
+    def maxVel(XD=1000, YD=1000, ZD= 500, AD= 250): #motor speed or velocity in rpm for rotary motor in mm/s for linear motor
+        LS.GetMotorMaxVel(1000, 1000, 500, 250)
+
+'''
+# setting of maximum motor speed or velocity 
+LS.SetMotorMaxVel(1000, 1000, 500, 250) # the max speed is 4006
+LS.GetVel(20, 20 , 20 ,1) # read velocity values based of X, Y, Z, A
+LS.SetVel(X, Y, Z, A)
+# A -> Axis is calibrated and ready
+LS.GetStopAccel(XD, YD, ZD, AD) # the parameters show decceleration in m/S^2
+LS.SetAccelSingleAxisTVRO(2, 50.0) # means Z_axis is accelerated with 50 rp^2 # so we can set acceleration for a single TVRO axis by givving two parameters: Axis and Accel
+LS.SetAccel(X, Y, Z, A)
+'''

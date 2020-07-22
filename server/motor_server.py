@@ -109,6 +109,15 @@ def moveAbsFar(dx: float, dy: float, dz: float):
     )
     return retc
 
+@app.get("/motor/maxVel")
+def maxVel(XD: int=1000, YD: int=1000, ZD: int=500, AD: int=250):
+    l.maxVel(XD, YD, ZD, AD)    
+    retc = return_class(
+        measurement_type="motor_command",
+        parameters={"command": "move_absolute_z", 'x': dx, 'y': dy, 'z': dz},
+        data={'data': None}
+        )
+    return retc
 
 
 

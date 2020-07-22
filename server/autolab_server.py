@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 from typing import List
+import os
 
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
@@ -80,6 +81,7 @@ def abort():
                         parameters= {'command':'abort',
                                     'parameters':None},
                         data = {'abort':True})
+    return retc
 
 @app.get("/potentiostat/cellonoff")
 def CellOnOff(onoff:str):

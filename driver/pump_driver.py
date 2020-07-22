@@ -45,7 +45,7 @@ class pump():
     def allOn(self,time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
         time_block = time.time()+time_
-        for i in range(14)
+        for i in range(14):
             self.setBlock(i,time_block)        
         retc = dict(
             measurement_type="pump_command",

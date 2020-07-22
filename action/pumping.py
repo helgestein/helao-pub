@@ -1,7 +1,7 @@
 import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../config')
-sys.path.append(r'../server')
+sys.path.append('../driver')
+sys.path.append('../config')
+sys.path.append('../server')
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
         v = int(totalvol*c)
         s = int(speed*c)
         res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
-                            params={'pump':p,'volume':v,'speed':speed,
+                            params={'pump':p,'volume':v,'speed':s,
                                     'direction':1,'read':False,'stage':True}).json()
         retl.append(res)
     retl.append(requests.get("{}/pump/allOn".format(pumpurl), 
@@ -54,6 +54,6 @@ def flushSerial():
     return retc
 
 if __name__ == "__main__":
-    pumpurl = "http://{}:{}".format("127.0.0.1", "13370")
+    pumpurl = "http://{}:{}".format(config['servers']['pumpServer']['host'], config['servers']['pumpServer']['port'])
     uvicorn.run(app, host=config['servers']['pumpingServer']['host'], 
                      port=config['servers']['pumpingServer']['port'])

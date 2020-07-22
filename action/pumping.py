@@ -31,7 +31,7 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
         v = int(totalvol*c)
         s = int(speed*c)
         res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
-                            params={'pump':p,'volume':v,'speed':speed,
+                            params={'pump':p,'volume':v,'speed':s,
                                     'direction':1,'read':False,'stage':True}).json()
         retl.append(res)
     retl.append(requests.get("{}/pump/allOn".format(pumpurl), 

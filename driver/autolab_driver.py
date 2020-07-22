@@ -37,7 +37,7 @@ class Autolab:
 
     def ismeasuring(self):
         try:
-            return self.proc.IsMeasuring
+            return self.proc.IsMeasuring()
         except:
             # likely no procedure set
             return False
@@ -141,7 +141,7 @@ class Autolab:
             json.dump(self.data, f)
 
     def performMeasurement(self, procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
-        coonf = dict(procedure=procedure,setpoints={k:v for k,v in zip(setpoint_keys,setpoint_values)},
+        conf = dict(procedure=procedure,setpoints={k:v for k,v in zip(setpoint_keys,setpoint_values)},
                      plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
         #LOAD PROCEDURE
         self.loadProcedure(conf['procedure'])

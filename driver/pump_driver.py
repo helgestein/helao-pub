@@ -44,7 +44,6 @@ class pump():
 
     def allOn(self,time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
-        print('bits written')
         time_block = time.time()+time_
         for i in range(14):
             self.setBlock(i,time_block)        

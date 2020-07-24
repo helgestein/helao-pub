@@ -35,7 +35,7 @@ class pump():
 
     def setBlock(self, pump:int, time_block:float):
         #this sets a block
-        self.conf['pumpBlockings'][pump] = time.time()+time_block
+        self.conf['pumpBlockings'][pump] = time_block
         retc = dict(
             measurement_type="pump_command",
             parameters={"command": "block","time_block":time_block},
@@ -44,6 +44,7 @@ class pump():
 
     def allOn(self,time_:int):
         self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
+        print('bits written')
         time_block = time.time()+time_
         for i in range(14):
             self.setBlock(i,time_block)        

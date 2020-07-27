@@ -35,7 +35,7 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
                                     'direction':1,'read':False,'stage':True}).json()
         retl.append(res)
     retl.append(requests.get("{}/pump/allOn".format(pumpurl), 
-                    params={'time':totalvol*60/(speed*4000)}).json())
+                    params={'time':totalvol/speed}).json())
 
     retc = return_class(measurement_type='pumping',
                         parameters= {'command':'measure',

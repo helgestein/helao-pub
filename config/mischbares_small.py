@@ -31,7 +31,9 @@ config['movement'] = dict(
     x_limit_waste = 10, y_limit_waste = 10)
 
 ## Cofiguration of the pump
-config['pump'] = dict()
+config['pump'] = dict(port='COM1', baud=9600, timeout=1,
+                      pumpAddr={i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
+config['pump']['pumpAddr']['all'] = 20
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
@@ -91,6 +93,7 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}
 
+#Configuration of the force sensor
 config['megsv'] = dict(port = 4, 
                         buffer_size= 1000,
                         dll_address= r"..\dll\MEGSV.dll")

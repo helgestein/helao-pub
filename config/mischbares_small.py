@@ -8,7 +8,14 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          autolabServer = dict(host="127.0.0.1", port=13374),
                          echemServer = dict(host="127.0.0.1", port=13375),
                          kadiServer = dict(host="127.0.0.1", port=13376),
-                         dataServer = dict(host="127.0.0.1", port=13377))
+                         dataServer = dict(host="127.0.0.1", port=13377), 
+                         megsvServer = dict(host="127.0.0.1", port= 13378),
+                         sensingServer = dict(host="127.0.0.1", port= 13379),
+                         orchestrator = dict(host= "127.0.0.1", port= 13380),
+                         motorServer = dict(host= "127.0.0.1", port= 13381),
+                         langServer = dict(host= "127.0.0.1", port= 13382),
+                         oceanServer = dict(host= "127.0.0.1", port= 13383),
+                         smallRamanServer = dict(host= "127.0.0.1", port= 13384))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
             PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
@@ -24,7 +31,9 @@ config['movement'] = dict(
     x_limit_waste = 10, y_limit_waste = 10)
 
 ## Cofiguration of the pump
-config['pump'] = dict()
+config['pump'] = dict(port='COM1', baud=9600, timeout=1,
+                      pumpAddr={i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
+config['pump']['pumpAddr']['all'] = 20
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
@@ -83,3 +92,9 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}
+
+#Configuration of the force sensor
+config['megsv'] = dict(port = 4, 
+                        buffer_size= 1000,
+                        dll_address= r"..\dll\MEGSV.dll")
+

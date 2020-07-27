@@ -10,32 +10,23 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(ident,title,visibility,filed,meta = None):
+    def addRecord(self,ident,title,filed,visibility='private',meta=''):
         #create a record
-        record = Record(identifier=ident, title=title, visibility=visibility)
-        record.upload_string_to_file(string=json.dumps(filed),file_name='{}_{}.json'.format(ident,time.time_ns()))
-        #add metadatum
-        df = pd.io.json.json_normalize(d, sep='_')
-        meta_flat = df.to_dict(orient='records')[0]
-        record.add_metadatum(metadatum=meta_flat, force=True)
+        #visibility must be 'public' or 'private'
+        # if not '', meta must be serialized dict, filed will likely always be a serialized dict but does not need to be
+        record = Record(identifier=ident,title=title,visibility=visibility)
+        record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
+        #metadata is currently turned off because it is broken
 
-    def addCollection(identifier, title, visibility):
+
+
+    def addCollection(self,ident,title,visibility='private'):
         #create collection
-        collection = Collection(identifier=ident, title=title, visibility=visibility)
+        collection = Collection(identifier=ident,title=title,visibility=visibility)
 
-    def addRecordCollection(ident,title,visibility,filed,meta = None):
-        #create a record
-        record = Record(identifier=ident, title=title, visibility=visibility)
-        record.upload_string_to_file(string=json.dumps(filed),file_name='{}_{}.json'.format(ident,time.time_ns()))
-        #add metadatum
-        df = pd.io.json.json_normalize(d, sep='_')
-        meta_flat = df.to_dict(orient='records')[0]
-        record.add_metadatum(metadatum=meta_flat, force=True)
-
-
-    def addRecordToCollection(identCollection,identRecord,visibility='public',record=None):
-        collection = Collection(identifier=identCollection, title='title', visibility=visibility)
-        if record == None:
-            record = Record(identifier=identRecord, title='title', visibility=visibility)
+    def addRecordToCollection(self,identCollection,identRecord,visibility='private',record_id=None):
+        collection = Collection(identifier=identCollection, title='title',visibility=visibility)
+        if record_id == None:
+            record_id = Record(identifier=identRecord,title='title',visibility=visibility).id
         #add record to collection
-        collection.add_record(record_id=record.id)
+        collection.add_record(record_id=record_id)

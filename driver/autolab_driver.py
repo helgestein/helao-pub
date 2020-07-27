@@ -37,7 +37,7 @@ class Autolab:
 
     def ismeasuring(self):
         try:
-            return self.proc.IsMeasuring
+            return self.proc.IsMeasuring()
         except:
             # likely no procedure set
             return False
@@ -98,14 +98,14 @@ class Autolab:
             for param, value in params.items():
                 self.proc.Commands[comm].CommandParameters[param].Value = value
 
-    def whileMeasuring(self, type):
+    def whileMeasuring(self, type_):
         import time
         from copy import copy
         then = copy(time.monotonic())
         while self.proc.IsMeasuring:
             freq = 100  # not to cause an exception
             sleep(0.5)
-            if type == 'impedance':
+            if type_ == 'impedance':
                 try:
                     freq = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_Frequency()
                     hreal = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Real()
@@ -116,7 +116,7 @@ class Autolab:
                 except:
                     pass
                 sleep(0.5)
-            elif type == 'tCV':
+            elif type_ == 'tCV':
                 now = copy(time.monotonic())
                 print('_time:{}_potential:{}_current: {}'.format(now-then, self.potential(), self.current()))
                 sleep(0.1)
@@ -140,7 +140,9 @@ class Autolab:
         with open(path.replace('.nox', '_data.json'), 'w') as f:
             json.dump(self.data, f)
 
-    def performMeasurement(self, conf):
+    def performMeasurement(self, procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
+        conf = dict(procedure=procedure,setpoints={k:v for k,v in zip(setpoint_keys,setpoint_values)},
+                     plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
         #LOAD PROCEDURE
         self.loadProcedure(conf['procedure'])
         #SET SETPOINTS

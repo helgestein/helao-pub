@@ -1,12 +1,15 @@
 #this is the server
 import sys
-sys.path.append(r"./config")
+sys.path.append("../config")
+sys.path.append("../driver")
 from autolab_driver import Autolab
-import mischbares_small
+from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+from typing import List
+import os
 
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
@@ -54,7 +57,7 @@ def setCurrentRange(crange: str):
     return retc
 
 @app.get("/potentiostat/setstability")
-def setStability(stability):
+def setStability(stability:str):
     a.setStability(stability)
     retc = return_class(measurement_type='potentiostat_autolab',
                         parameters= {'command':'setStability',
@@ -78,6 +81,7 @@ def abort():
                         parameters= {'command':'abort',
                                     'parameters':None},
                         data = {'abort':True})
+    return retc
 
 @app.get("/potentiostat/cellonoff")
 def CellOnOff(onoff:str):
@@ -89,16 +93,18 @@ def CellOnOff(onoff:str):
     return retc
 
 @app.get("/potentiostat/measure")
-def performMeasurement(conf: dict):
-    a.performMeasurement(conf)
+def performMeasurement(procedure: str,setpoint_keys:List[str],setpoint_values:List[float],plot:str,onoffafter:str,safepath:str,filename:str):
+    a.performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename)
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'measure',
-                                'parameters':conf},
+                                'parameters':dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
+                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)},
                     data = {'data':None})
     return retc
 
 @app.get("/potentiostat/retrieve")
-def retrieve(conf: dict):
+def retrieve(safepath:str,filename:str):
+    conf = dict(safepath=safepath,filename=filename)
     path = os.path.join(conf['safepath'],conf['filename'])
     with open(path.replace('.nox', '_data.json'), 'r') as f:
         ret = json.load(f)
@@ -118,6 +124,6 @@ def disconnect():
     return retc
 
 if __name__ == "__main__":
-    autolab_conf = mischbares_small.config['autolab']
-    a = Autolab(mischbares_small.config['autolab'])
+    autolab_conf = config['autolab']
+    a = Autolab(config['autolab'])
     uvicorn.run(app, host=config['servers']['autolabServer']['host'], port=config['servers']['autolabServer']['port'])

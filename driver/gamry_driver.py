@@ -12,6 +12,7 @@ import os
 import collections
 import numpy as np
 import sys
+import asyncio
 
 if __package__:
     # can import directly in package mode
@@ -117,7 +118,12 @@ class gamry:
 
         self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
 
-    def measure(self, sigramp): 
+    async def asyncTest(self):
+        while True:
+            print("here")
+            await asyncio.sleep(.5)
+
+    async def measure(self, sigramp): 
         print("Opening Connection")
         ret = self.open_connection()
         self.pstat.SetIERange(8)
@@ -142,6 +148,8 @@ class gamry:
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
+            print("there")
+            await asyncio.sleep(.5) #CHANGE SLEEP TIME
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 
@@ -179,7 +187,7 @@ class gamry:
             "data": np.array(self.data).tolist(),
         }
 
-    def potential_ramp(
+    async def potential_ramp(
         self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
     ):
         # setup the experiment specific signal ramp
@@ -188,7 +196,7 @@ class gamry:
             self.pstat, Vinit, Vfinal, ScanRate, SampleRate, self.GamryCOM.PstatMode
         )
         # measure ... this will do the setup as well
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -200,7 +208,7 @@ class gamry:
             "data": self.data,
         }
 
-    def potential_cycle(
+    async def potential_cycle(
         self,
         Vinit: float,
         Vfinal: float,
@@ -241,7 +249,7 @@ class gamry:
             self.GamryCOM.PstatMode,
         )
         # measure ... this will do the setup as well
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -365,6 +373,16 @@ class gamry:
 
 
 # exaple:
+
+g = gamry()
+loop = asyncio.get_event_loop() 
+task1 = loop.create_task(g.potential_ramp(-1,1,0.4,0.05))
+task2 = loop.create_task(g.asyncTest())
+final_task = asyncio.gather(task1, task2) 
+loop.run_until_complete(final_task)
+#mdata = g.potential_ramp(-1,1,0.4,0.05)
+#marray = np.array(mdata['data'])
+
 """
 import numpy as np
 poti = gamry()

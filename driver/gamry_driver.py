@@ -13,6 +13,7 @@ import collections
 import numpy as np
 import sys
 import asyncio
+import time
 
 if __package__:
     # can import directly in package mode
@@ -49,10 +50,12 @@ def gamry_error_decoder(e):
 
 
 class GamryDtaqEvents(object):
-    def __init__(self, dtaq):
+    def __init__(self, dtaq, buff):
         self.dtaq = dtaq
         self.acquired_points = []
         self.status = "idle"
+        self.buffer = buff
+        self.buffer_size = 0
 
     def cook(self):
         count = 1
@@ -61,6 +64,8 @@ class GamryDtaqEvents(object):
             # The columns exposed by GamryDtaq.Cook vary by dtaq and are
             # documented in the Toolkit Reference Manual.
             self.acquired_points.extend(zip(*points))
+            self.buffer[time.time()] = self.acquired_points[-1]
+            self.buffer_size += sys.getsizeof(self.acquired_points[-1])
 
     def _IGamryDtaqEvents_OnDataAvailable(self, this):
         self.cook()
@@ -90,6 +95,8 @@ class gamry:
         except IndexError:
             print("No potentiostat is connected! Have you turned it on?")
         self.temp = []
+        self.buffer = dict()
+        self.buffer_size = 0
 
     def open_connection(self):
         # this just tries to open a connection with try/catch
@@ -116,7 +123,7 @@ class gamry:
         self.dtaqcpiv = client.CreateObject(g)
         self.dtaqcpiv.Init(self.pstat)
 
-        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
 
     async def asyncTest(self):
         while True:
@@ -148,7 +155,10 @@ class gamry:
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
-            print("there")
+            self.buffer_size = self.dtaqsink.buffer_size
+            if self.buffer_size > 1_000:#5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
+                while self.buffer_size > 1_000:#5_000_000_000:
+                    self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
             await asyncio.sleep(.5) #CHANGE SLEEP TIME
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
@@ -283,7 +293,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 
@@ -338,7 +348,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 

@@ -59,13 +59,16 @@ class GamryDtaqEvents(object):
 
     def cook(self):
         count = 1
+        f = open("data.txt", "a")
         while count > 0:
             count, points = self.dtaq.Cook(1000)
             # The columns exposed by GamryDtaq.Cook vary by dtaq and are
             # documented in the Toolkit Reference Manual.
             self.acquired_points.extend(zip(*points))
             self.buffer[time.time()] = self.acquired_points[-1]
+            f.write(str(self.acquired_points[-1])+"\n")
             self.buffer_size += sys.getsizeof(self.acquired_points[-1])
+        f.close()
 
     def _IGamryDtaqEvents_OnDataAvailable(self, this):
         self.cook()
@@ -125,10 +128,21 @@ class gamry:
 
         self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
 
-    async def asyncTest(self):
+    async def asyncTest(self): # ADDED to test async (not needed)
         while True:
             print("here")
             await asyncio.sleep(.5)
+
+    def get_buffer(self):
+        for key in self.buffer:
+            print("key:" + str(key))
+            print("value:" + str(self.buffer.get(key)))
+        return self.buffer
+
+    def get_buffer_from_index(self, i):
+        for index in range(len(list(self.buffer)) - i):
+            print("key:" + str(list(self.buffer.keys())[i + index]))
+            print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
 
     async def measure(self, sigramp): 
         print("Opening Connection")
@@ -150,16 +164,21 @@ class gamry:
         self.data = collections.defaultdict(list)
         client.PumpEvents(0.001)
         sink_status = self.dtaqsink.status
+        f = open("data.txt", "w")
+        f.write("")
+        f.close()
         while sink_status != "done":
             client.PumpEvents(0.001)
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
             self.buffer_size = self.dtaqsink.buffer_size
-            if self.buffer_size > 1_000:#5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
-                while self.buffer_size > 1_000:#5_000_000_000:
+            if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
+                while self.buffer_size > 5_000_000_000:
                     self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
             await asyncio.sleep(.5) #CHANGE SLEEP TIME
+        self.get_buffer_from_index(2)
+        self.get_buffer()
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 

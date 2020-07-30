@@ -28,3 +28,7 @@ class ocean:
 
     def getIntensities(self):
         return self.device.f.spectrometer.get_intensities()
+
+#display and data saving features will go here at some point.
+#I haven't yet decided quite how I want to implement them.
+#I was thinking I could use autolab as a model for saving data, but I am not happy with that.

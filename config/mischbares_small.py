@@ -93,8 +93,13 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}
 
-#Configuration of the force sensor
+#Configuration of the megsv force sensor
 config['megsv'] = dict(port = 4, 
                         buffer_size= 1000,
                         dll_address= r"..\dll\MEGSV.dll")
+
+#Configuration of the lang motor
+config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4', 
+                      dll = r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
+                      dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl")
 

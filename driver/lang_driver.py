@@ -86,6 +86,11 @@ class langNet():
         #    self.LS.MoveAbs(xm,ym,zp,0, wait)
         self.LS.MoveAbs(x,y,zp,0,wait)
     
+    #I know Helge is planning to add some features to the action soon
+    #With that in mind, I want to say here that calling this function will likely break those features.
+    #So don't call this function
+    #It will reset the origin for getPos to your current location for some reason
+    #I have no clue why, but no bueno
     def moveAbsZ(self, z, wait=True):
         #self.LS = CClassLStep.LStep()
         xp,yp,zp = self.getPos()

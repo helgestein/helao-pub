@@ -22,7 +22,7 @@ class return_class(BaseModel):
 
 
 @app.get("/oceanAction/read")
-def getData():
+def read():
     wavelengthData = requests.get("{}/ocean/wavelengths".format(url)).json()
     intensityData = requests.get("{}/ocean/intensities".format(url)).json()
     retc = return_class(measurement_type='raman_measure', 

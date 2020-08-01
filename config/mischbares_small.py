@@ -15,7 +15,9 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          motorServer = dict(host= "127.0.0.1", port= 13381),
                          langServer = dict(host= "127.0.0.1", port= 13382),
                          oceanServer = dict(host= "127.0.0.1", port= 13383),
-                         smallRamanServer = dict(host= "127.0.0.1", port= 13384))
+                         smallRamanServer = dict(host= "127.0.0.1", port= 13384),
+                         arcoptixServer = dict(host= "127.0.0.1", port= 13385),
+                         ftirServer = dict(host= "127.0.0.1", port= 13386))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
             PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
@@ -103,3 +105,5 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4',
                       dll = r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
                       dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl")
 
+#Configuration of the Arcoptix FTIR
+config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')

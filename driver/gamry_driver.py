@@ -13,6 +13,7 @@ import collections
 import numpy as np
 import sys
 import asyncio
+import aiofiles
 import time
 
 if __package__:
@@ -58,7 +59,6 @@ class GamryDtaqEvents(object):
         self.buffer_size = 0
 
     def cook(self):
-        f = open("data.txt", "a")
         count = 1
         while count > 0:
             count, points = self.dtaq.Cook(1000)
@@ -66,10 +66,7 @@ class GamryDtaqEvents(object):
             # documented in the Toolkit Reference Manual.
             self.acquired_points.extend(zip(*points))
             # self.buffer[time.time()] = self.acquired_points[-1]
-            f.write(str(self.acquired_points[-1])+"\n")
-
-            # self.buffer_size += sys.getsizeof(self.acquired_points[-1])
-        f.close()
+            # self.buffer_size += sys.getsizeof(self.acquired_points[-1]
 
     def _IGamryDtaqEvents_OnDataAvailable(self, this):
         self.cook()
@@ -133,7 +130,7 @@ class gamry:
     async def asyncTest(self): # ADDED to test async (not needed)
         while True:
             print("here")
-            await asyncio.sleep(.5)
+            await asyncio.sleep(.25)
 
     # def get_buffer(self):
     #     for key in self.buffer:
@@ -166,13 +163,24 @@ class gamry:
         self.data = collections.defaultdict(list)
         client.PumpEvents(0.001)
         sink_status = self.dtaqsink.status
-        f = open("data.txt", "w")
-        f.write("")
-        f.close()
+        # f = open("data.txt", "w")
+        # f.write("")
+        # f.close()
+        counter = 0
+        # f = open("data.txt", "a")
+
+        async with aiofiles.open('data', 'w') as f:
+            await f.write("")
+
         while sink_status != "done":
             client.PumpEvents(0.001)
-            await self.q.put(self.dtaqsink.acquired_points[-1])
-            print(self.q.put(self.dtaqsink.acquired_points[-1]))
+            while counter < len(self.dtaqsink.acquired_points):
+                await self.q.put(self.dtaqsink.acquired_points[counter])
+                async with aiofiles.open('data', 'a') as f:
+                    await f.write(str(self.dtaqsink.acquired_points[counter])+"\n")
+                counter += 1
+                print(counter)
+                await asyncio.sleep(.25) #CHANGE SLEEP TIME
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
@@ -180,7 +188,7 @@ class gamry:
             # if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
             #     while self.buffer_size > 5_000_000_000:
             #         self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
-            await asyncio.sleep(.5) #CHANGE SLEEP TIME
+        f.close()
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 

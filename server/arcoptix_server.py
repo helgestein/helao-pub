@@ -18,16 +18,9 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/arcoptix/connect")
-def connect(self):
-    data = str(a.connect())
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"command" : "connect"},
-                    data = {"device" : data})
-    return retc
 
 @app.get("/arcoptix/spectrum")
-def getSpectrum(self):
+def getSpectrum():
     data = a.getSpectrum()
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"command" : "get_spectrum"},
@@ -35,7 +28,7 @@ def getSpectrum(self):
     return retc
 
 @app.get("/arcoptix/wavelengths")
-def getWavelengths(self):
+def getWavelengths():
     data = a.getWavelengths()
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"command" : "get_wavelengths"},
@@ -43,7 +36,7 @@ def getWavelengths(self):
     return retc
 
 @app.get("/arcoptix/wavenumbers")
-def getWavenumbers(self):
+def getWavenumbers():
     data = a.getWavenumbers()
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"command" : "get_wavenumbers"},
@@ -51,7 +44,7 @@ def getWavenumbers(self):
     return retc
 
 @app.get("/arcoptix/read")
-def readSpectrum(self,av=1,):
+def readSpectrum(av:int=1):
     a.readSpectrum(av)
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"av" : av},
@@ -59,7 +52,7 @@ def readSpectrum(self,av=1,):
     return retc
 
 @app.get("/arcoptix/readTime")
-def readSpectrumTime(self,time):
+def readSpectrumTime(time:float):
     a.readSpectrumTime(time)
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"time" : time},

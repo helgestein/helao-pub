@@ -22,9 +22,10 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/ftir/read")
-def read(rtime=False,wavenumbers=True,av=1,time=None):
-    tstring = 'Time' if rtime else ''
-    requests.get("{}/arcoptix/read{}".format(url,tstring),params={'time':time} if rtime else {'av':av}).json()
+def read(rtime:bool=False,wavenumbers:bool=True,av:int=1,time:float=None):
+    readstring = 'Time' if rtime else ''
+    readparams = {'time':time} if rtime else {'av':av}
+    requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
     xformat = 'wavenumbers' if wavenumbers else 'wavelengths'
     spectrumx = requests.get("{}/arcoptix/{}".format(url,xformat)).json()
     spectrumy = requests.get("{}/arcoptix/spectrum".format(url)).json()

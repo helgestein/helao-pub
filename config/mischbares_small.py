@@ -106,4 +106,5 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4',
                       dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl")
 
 #Configuration of the Arcoptix FTIR
-config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
+#config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
+config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')

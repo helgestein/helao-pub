@@ -79,12 +79,36 @@ async def get():
     return HTMLResponse(html)
 
 
+# # async def test_async():
+# #     #temp = None
+# #     while True:
+# #         # if(poti.dtaqsink.acquired_points[-1] != temp):
+# #         #     temp = poti.dtaqsink.acquired_points[-1]
+# #         #     data = str(poti.dtaqsink.acquired_points[-1])
+# #         #     await websocket.send_text(f"Message text was: {data}")
+# #         print("here")
+# #         await websocket.send_text(f"here")
+# #         asyncio.sleep(1)
+
+async def tester():
+    while True:
+        print("ah")
+        await asyncio.sleep(1)
+
+poti = gamry()
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_messages(websocket: WebSocket):
+
     await websocket.accept()
     while True:
-        data = await websocket.receive_text()
+        data = str(await poti.q.get())
         await websocket.send_text(f"Message text was: {data}")
+        await asyncio.sleep(2)
+        # data = await poti.q.get() # await websocket.receive_text()
+        # await websocket.send_text(f"Message text was: {data}")
+
+
 
 
 
@@ -175,14 +199,14 @@ def shutdown_event():
 
 
 if __name__ == "__main__":
-    poti = gamry()
+    #poti = gamry()
 
-    # pid = str(time.time()) #ADDED
-    # loop = asyncio.get_event_loop() #ADDED
-    # task1 = loop.create_task(poti.get_measuring()) #ADDED
-    # task2 = loop.create_task(poti.test_async("hello")) #ADDED
-    # final_task = asyncio.gather(task1, task2) #ADDED
-    # loop.run_until_complete(final_task) #ADDED
+
+    # loop = asyncio.get_event_loop() 
+    # task1 = loop.create_task(poti.potential_ramp(-5, 5, 1, 0.1)) 
+    # #task2 = loop.create_task(tester()) 
+    # final_task = asyncio.gather(task1) 
+    # loop.run_until_complete(final_task)
 
     # makes this runnable and debuggable in VScode
     # letters of the alphabet GAMRY => G6 A0 M12 R17 Y24

@@ -50,24 +50,25 @@ def gamry_error_decoder(e):
 
 
 class GamryDtaqEvents(object):
-    def __init__(self, dtaq, buff):
+    def __init__(self, dtaq, q):
         self.dtaq = dtaq
         self.acquired_points = []
         self.status = "idle"
-        self.buffer = buff
+        # self.buffer = buff
         self.buffer_size = 0
 
     def cook(self):
-        count = 1
         f = open("data.txt", "a")
+        count = 1
         while count > 0:
             count, points = self.dtaq.Cook(1000)
             # The columns exposed by GamryDtaq.Cook vary by dtaq and are
             # documented in the Toolkit Reference Manual.
             self.acquired_points.extend(zip(*points))
-            self.buffer[time.time()] = self.acquired_points[-1]
+            # self.buffer[time.time()] = self.acquired_points[-1]
             f.write(str(self.acquired_points[-1])+"\n")
-            self.buffer_size += sys.getsizeof(self.acquired_points[-1])
+
+            # self.buffer_size += sys.getsizeof(self.acquired_points[-1])
         f.close()
 
     def _IGamryDtaqEvents_OnDataAvailable(self, this):
@@ -100,6 +101,7 @@ class gamry:
         self.temp = []
         self.buffer = dict()
         self.buffer_size = 0
+        self.q = asyncio.Queue()
 
     def open_connection(self):
         # this just tries to open a connection with try/catch
@@ -126,23 +128,23 @@ class gamry:
         self.dtaqcpiv = client.CreateObject(g)
         self.dtaqcpiv.Init(self.pstat)
 
-        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
+        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
     async def asyncTest(self): # ADDED to test async (not needed)
         while True:
             print("here")
             await asyncio.sleep(.5)
 
-    def get_buffer(self):
-        for key in self.buffer:
-            print("key:" + str(key))
-            print("value:" + str(self.buffer.get(key)))
-        return self.buffer
+    # def get_buffer(self):
+    #     for key in self.buffer:
+    #         print("key:" + str(key))
+    #         print("value:" + str(self.buffer.get(key)))
+    #     return self.buffer
 
-    def get_buffer_from_index(self, i):
-        for index in range(len(list(self.buffer)) - i):
-            print("key:" + str(list(self.buffer.keys())[i + index]))
-            print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
+    # def get_buffer_from_index(self, i):
+    #     for index in range(len(list(self.buffer)) - i):
+    #         print("key:" + str(list(self.buffer.keys())[i + index]))
+    #         print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
 
     async def measure(self, sigramp): 
         print("Opening Connection")
@@ -169,16 +171,16 @@ class gamry:
         f.close()
         while sink_status != "done":
             client.PumpEvents(0.001)
+            await self.q.put(self.dtaqsink.acquired_points[-1])
+            print(self.q.put(self.dtaqsink.acquired_points[-1]))
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
-            self.buffer_size = self.dtaqsink.buffer_size
-            if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
-                while self.buffer_size > 5_000_000_000:
-                    self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
+            # self.buffer_size = self.dtaqsink.buffer_size
+            # if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
+            #     while self.buffer_size > 5_000_000_000:
+            #         self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
             await asyncio.sleep(.5) #CHANGE SLEEP TIME
-        self.get_buffer_from_index(2)
-        self.get_buffer()
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 
@@ -312,7 +314,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 
@@ -367,7 +369,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.buffer)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 

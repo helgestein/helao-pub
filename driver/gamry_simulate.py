@@ -334,20 +334,26 @@ class GamryDtaqEvents(object):
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    def simulate(self, sigramp):
+    async def simulate(self, sigramp, q):
         if self.meas_type == "IGamryDtaqRcv":
             fullt, fullv, fullj = cvsim(sigramp, 0.45)
         else:
             fullt, fullv, fullj = lssim(sigramp, 0.45)
         self.start_time = time.time()
         self.stop_time = self.start_time + fullt[-1]
-        while time.time() < self.stop_time:
-            self.status = "measuring"
-            self.acquired_points = [
-                [t, v, 0.0, j]
-                for t, v, j in zip(fullt, fullv, fullj)
-                if t < (time.time() - self.start_time)
-            ]
+        self.status = "measuring"
+        for t, v, j in zip(fullt, fullv, fullj):
+            self.acquired_points.append([t, v, 0.0, j])
+            print([t, v, 0.0, j])
+            await q.put([t, v, 0.0, j])
+            await asyncio.sleep(2)
+        # while time.time() < self.stop_time:
+            # self.status = "measuring"
+            # self.acquired_points = [
+            #     [t, v, 0.0, j]
+            #     for t, v, j in zip(fullt, fullv, fullj)
+            #     if t < (time.time() - self.start_time)
+            # ]
         self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
         self.status = "idle"
 
@@ -356,6 +362,7 @@ class gamry:
     def __init__(self):
         self.pstat = {"connected": 0}
         self.temp = []
+        self.q = asyncio.Queue()
 
     def open_connection(self, force_err=False):
         # seet connection status to open
@@ -382,7 +389,7 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    def measure(self, sigramp):
+    async def measure(self, sigramp):
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -391,7 +398,7 @@ class gamry:
         print("Pushing")
         # self.measurement_setup()
         self.data = collections.defaultdict(list)
-        self.dtaqsink.simulate(sigramp)
+        await self.dtaqsink.simulate(sigramp, self.q)
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
         #     sink_status = self.dtaqsink.status
@@ -411,7 +418,7 @@ class gamry:
             self.data, open(os.path.join(setupd["temp_dump"], self.instance_id))
         )
 
-    def potential_ramp(
+    async def potential_ramp(
         self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
     ):
         # setup the experiment specific signal ramp
@@ -431,7 +438,7 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup("sweep")
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -495,14 +502,14 @@ class gamry:
         }
 
 
-g = gamry()
-mdata = g.potential_ramp(-1,1,0.4,0.05)
-marray = np.array(mdata['data'])
+#g = gamry()
+#mdata = g.potential_ramp(-1,1,0.4,0.05)
+#marray = np.array(mdata['data'])
 
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 # plt.plot(marray[:, 0], marray[:, 1])
-plt.plot(marray[:, 1], marray[:, 3])
+#plt.plot(marray[:, 1], marray[:, 3])
 #
 # g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
 #

@@ -40,7 +40,7 @@ def getWavelengths():
     data = o.getWavelengths()
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"command" : "get_wavelengths"},
-                        data = {"wavelengths" : data.tolist()})
+                        data = {"wavelengths" : data})
     return retc
 
 @app.get("/ocean/intensities")
@@ -48,7 +48,7 @@ def getIntensities():
     data = o.getIntensities()
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"command" : "get_intensities"},
-                        data = {"intensities" : data.tolist()})
+                        data = {"intensities" : data})
     return retc
 
 @app.on_event("shutdown")

@@ -24,7 +24,8 @@ class ocean:
         self.device.close()
 
     def getWavelengths(self):
-        return self.device.f.spectrometer.get_wavelengths()
+        return self.device.f.spectrometer.get_wavelengths().tolist()
 
     def getIntensities(self):
-        return self.device.f.spectrometer.get_intensities()
+        return self.device.f.spectrometer.get_intensities().tolist()
+.

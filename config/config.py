@@ -3,6 +3,8 @@
 Parameters may be overridden by instrument-specific configurations e.g. 'config_edep'
 """
 
+# import json
+
 GALIL_SETUPD = {
     "count_to_mm": {
         "A": 1.0 / 3154.787,
@@ -28,6 +30,22 @@ GAMRY_SETUPD = {
 FASTAPI_HOST = "127.0.0.1"
 MOTION_PORT = 8001
 ECHEM_PORT = 8003
+
+# miscellaneous = {
+#     "GALIL_SIMULATE": True,
+#     "FASTAPI_HOST": "127.0.0.1",
+#     "MOTION_PORT": 8001,
+#     "ECHEM_PORT": 8003
+# }
+
+# out_file = open("config.json", "w") 
+# json.dump(GALIL_SETUPD, out_file)  
+# out_file.close() 
+
+# out_file = open("config.json", "a") 
+# json.dump(GAMRY_SETUPD, out_file) 
+# json.dump(miscellaneous, out_file)   
+# out_file.close() 
 
 if __package__:
     from .config_edep import *  # this is the only place where the instrument-specif config is specified

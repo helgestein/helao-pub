@@ -9,6 +9,9 @@ calls to 'poti.*' are not device-specific. Currently inherits configuration from
 code, and hard-coded to use 'gamry' class (see "__main__").
 """
 
+import asyncio #ADDED
+import time #ADDED
+
 import os, sys
 
 if __package__:
@@ -47,7 +50,8 @@ class return_class(BaseModel):
 async def pot_potential_ramp_wrap(
     Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
 ):
-    return return_class(**poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate))
+    value = await poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate)
+    return return_class(**value)
 
 
 @app.get("/potentiostat/get/potential_cycle")
@@ -85,24 +89,24 @@ async def pot_potential_ramp_wrap(
     )
 
 
-@app.get("/potentiostat/get/eis")
-async def eis_(start_freq: float, end_freq: float, points: int, pot_offset: float = 0):
-    return return_class(**poti.eis(start_freq, end_freq, points, pot_offset))
+# @app.get("/potentiostat/get/eis")
+# async def eis_(start_freq: float, end_freq: float, points: int, pot_offset: float = 0):
+#     return return_class(**poti.eis(start_freq, end_freq, points, pot_offset))
 
 
 @app.get("/potentiostat/get/status")
-def status_wrapper():
+async def status_wrapper():
     return return_class(
         measurement_type="status_query",
         parameters={"query": "potentiostat"},
-        data=[poti.status()],
+        data=[await poti.status()],
     )
 
 
-@app.get("/potentiostat/get/signal_arr")
-async def signal_array_(Cycles: int, SampleRate: float, arr: str):
-    arr = [float(i) for i in arr.split(",")]
-    return return_class(**poti.signal_array(Cycles, SampleRate, arr))
+# @app.get("/potentiostat/get/signal_arr")
+# async def signal_array_(Cycles: int, SampleRate: float, arr: str):
+#     arr = [float(i) for i in arr.split(",")]
+#     return return_class(**poti.signal_array(Cycles, SampleRate, arr))
 
 
 @app.on_event("shutdown")
@@ -116,8 +120,22 @@ def shutdown_event():
 
 if __name__ == "__main__":
     poti = gamry()
+
+    # pid = str(time.time()) #ADDED
+    # loop = asyncio.get_event_loop() #ADDED
+    # task1 = loop.create_task(poti.get_measuring()) #ADDED
+    # task2 = loop.create_task(poti.test_async("hello")) #ADDED
+    # final_task = asyncio.gather(task1, task2) #ADDED
+    # loop.run_until_complete(final_task) #ADDED
+
     # makes this runnable and debuggable in VScode
     # letters of the alphabet GAMRY => G6 A0 M12 R17 Y24
     uvicorn.run(app, host=FASTAPI_HOST, port=ECHEM_PORT)
+
+
+
+
+
+
 
     # http://127.0.0.1:8003/potentiostat/get/potential_ramp?Vinit=0&Vfinal=0.2&ScanRate=0.01&SampleRate=0.01

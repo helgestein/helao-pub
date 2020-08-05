@@ -6,109 +6,97 @@ import serial
 import time
 
 class pump():
-    def __init__(self):
-            #there is
-            self.conf = dict(port='COM1', baud=9600, timeout=1,
-                        pumpAddr={i: i + 21 for i in range(14)},  # numbering is left to right top to bottom
-                        pumpBlockings={i: time.time() for i in range(14)},  # init the blockings with now
-                        )
-            self.conf['pumpAddr']['all'] = 20 #global address
-            #i set the serial connection here once
-            self.ser = serial.Serial(self.conf['port'], self.conf['baud'], timeout=self.conf['timeout'])
-
+    def __init__(self,conf):
+            self.pumpAddr = conf['pumpAddr']
+            self.pumpBlockings= {i: time.time() for i in range(14)}  # init the blockings with now
+            self.ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
+            self.refreshPrimings()
+                
     def isBlocked(self, pump: int):
         #this is nessesary since there is no serial command that says "pump is still pumping"
-        if self.conf['pumpBlockings'][pump] >= time.time():
-            retc = dict(
-                        measurement_type="pump_command",
-                        parameters={"command": "isBlocked","pump":pump},
-                        data={'status':True}
-                    )
-            return retc
+        if self.pumpBlockings[pump] >= time.time():
+            return True
         else:
-            retc = dict(
-                measurement_type="pump_command",
-                parameters={"command": "isBlocked"},
-                data={'status': False}
-            )
-            return retc
+            return False
 
     def setBlock(self, pump:int, time_block:float):
         #this sets a block
-        self.conf['pumpBlockings'][pump] = time.time()+time_block
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "block","time_block":time_block},
-        )
-        return retc
+        self.pumpBlockings[pump] = time_block
 
-    def allOn(self,time_:int):
-        self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr']['all']),'utf-8'))
-        time_block = time.time()+time_
-        for i in range(14):
-            self.setBlock(i,time_block)        
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "allOn","time_block":time_block},
-        )
-        return retc
+    #def allOn(self):
+    #    self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr['all']),'utf-8'))
+    #    timer = time.time()  
+    #    for i in range(14):
+    #        if self.pumpPrimings[i]['speed'] != 0:
+    #            time_block = timer+self.pumpPrimings[i]['volume']/self.pumpPrimings[i]['speed']
+    #            self.setBlock(i,time_block)
+    #    self.pumpPrimings = {i: {'speed': 0, 'volume': 0} for i in range(14)}
 
-    def dispenseVolume(self, pump:int ,volume:int ,speed:int, stage:bool,read=False,direction:int=1):
-        #pump is an index 0-13 incicating the pump channel
-        #volume is the volume in µL
-        #speed is a variable 0-1 going from 0µl/min to 4000µL/min
+    #def dispenseVolume(self, pump:int ,volume:int ,speed:int, stage:bool,read:bool=False,direction:int=1):
+        #pump is an index 0-13 indicating the pump channel
+        #volume is the volume in µL, 0 to 50000µL
+        #speed is a variable going from 20µl/min to 4000µL/min
+        #direction is 1 for normal and 0 for reverse
 
-        self.ser.write(bytes('{},PON,1234\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
-        self.ser.write(bytes('{},WFR,{},{}\r'.format(self.conf['pumpAddr'][pump],speed,direction),'utf-8'))
-        self.ser.write(bytes('{},WVO,{}\r'.format(self.conf['pumpAddr'][pump],volume),'utf-8'))
-        if not stage:
-            self.ser.write(bytes('{},WON,1\r'.format(self.conf['pumpAddr'][pump]),'utf-8'))
+    #    self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
+    #    self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
+    #    self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
+        
+    #    if not stage:
+    #        self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
 
-            time_block = time.time()+volume*60/(speed*4000)
-            _ = self.setBlock(pump,time_block)
-        else:
-            time_block = 0
-            _ = self.setBlock(pump,0)
-        if read:
-            ans = self.ser.read(1000)
+    #        time_block = time.time()+volume/speed
+    #        self.setBlock(pump,time_block)
+    #    else:
+    #        time_block = 0
+    #        self.setBlock(pump,0)
+    #        self.pumpPrimings[pump] = {'speed': speed, 'volume': volume}
+    #    if read:
+    #        ans = self.ser.read(1000)
+    #    return ans if read else None
 
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={
-                "command": "dispenseVolume",
-                "parameters": {
-                    "volume": volume,
-                    "speed": speed,
-                    "pump": pump,
-                    "direction": direction,
-                    "time_block": time_block,
-                },
-            },
-            data={'serial_response': ans if read else None},
-        )
-        return retc
+
+    def primePump(self,pump:int,volume:int,speed:int,direction:int=1,read:bool=False):
+        #pump is an index 0-13 indicating the pump channel
+        #volume is the volume in µL, 0 to 50000µL
+        #speed is a variable going from 20µl/min to 4000µL/min
+        #direction is 1 for normal and 0 for reverse
+        #self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8')) #everytime i call this line, the pump just replies that i didn't need to call it
+        self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
+        self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
+        self.pumpPrimings[pump] = {'direction': direction, 'speed': speed, 'volume': volume}
+        return self.read() if read else None
+
+    def runPump(self,pump:int):
+        self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
+        time_block = time.time()+self.pumpPrimings[pump]['volume']/self.pumpPrimings[pump]['speed']*1.1 #10% margin for safety
+        self.setBlock(pump,time_block)
+
+    def getPrimings(self):
+        return self.pumpPrimings
+
+    #for initialization and debugging
+    #i don't think this is actually working properly, 
+    #but it doesn't affect anything practical we are trying to do now
+    def refreshPrimings(self):
+        self.ser.read(1000)
+        self.pumpPrimings = {i: {'direction': None, 'speed': None, 'volume': None} for i in range(14)}
+        for i in range(14): #while loops shouldn't be a problem, just in case answer comes through garbled
+            self.ser.write(bytes('{},RFR,1\r','utf-8'.format(self.pumpAddr[i])))
+            out = self.ser.read(1000).split(b',')
+            self.pumpPrimings[i]['speed'],self.pumpPrimings[i]['direction'] = int(out[5]),int(str(out[6])[2]) if out[1] == b'RFR' and out[3] == b'HS' and out[4] == b'OK' else None
+            self.ser.write(bytes('{},RVO,1\r','utf-8'.format(self.pumpAddr[i])))
+            out = self.ser.read(1000).split(b',')
+            self.pumpPrimings[i]['volume'] = int(str(out[5])[2:-3]) if out[1] == b'RVO' and out[3] == b'HS' and out[4] == b'OK' else None
+            print('pump '+str(i)+' initialized')
 
     def stopPump(self, pump:int):
         #this stops a selected pump and returns the nessesary information the seed is recorded as zero and direction as -1
         #the reason for that is that i want to indicate that we manually stopped the pump
-        self.ser.write(bytes('{},WON,0\r'.format(self.conf['pumpAddr'][pump]), 'utf-8'))
+        self.ser.write(bytes('{},WON,0\r'.format(self.pumpAddr[pump]), 'utf-8'))
         time_block = time.time()
-        _ = self.setBlock(pump,time_block)
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={
-                "command": "stopPump",
-                "parameters": {
-                    "pump": pump,
-                    'speed': 0,
-                    'volume': 0,
-                    'direction': -1,
-                    "time_block": time_block,
-                },
-            },
-            data=None,
-        )
-        return retc
+        self.setBlock(pump,time_block)
+        return time_block
 
     def read(self):
         ans = []
@@ -118,20 +106,9 @@ class pump():
                 ans.append(a)
             else:
                 break
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "read"},
-            data={'data':ans}
-        )
-        return retc        
+        return ans        
 
     def shutdown(self):
         for i in range(14):
             self.stopPump(i)
         self.ser.close()
-        retc = dict(
-            measurement_type="pump_command",
-            parameters={"command": "shutdown"},
-            data={'data':'shutdown'}
-        )
-        return retc

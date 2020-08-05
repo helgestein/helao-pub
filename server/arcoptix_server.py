@@ -19,28 +19,21 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/arcoptix/spectrum")
-def getSpectrum():
-    data = a.getSpectrum()
+
+@app.get("/arcoptix/spectrumWavelengths")
+def getSpectrumWavelengths(filename:str):
+    data = a.getSpectrumWavelengths(filename)
     retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"command" : "get_spectrum"},
-                    data = {"intensities" : data})
+                    parameters = {"filename" : filename},
+                    data = data)
     return retc
 
-@app.get("/arcoptix/wavelengths")
-def getWavelengths():
-    data = a.getWavelengths()
+@app.get("/arcoptix/spectrumWavenumbers")
+def getSpectrumWavenumbers(filename:str):
+    data = a.getSpectrumWavenumbers(filename)
     retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"command" : "get_wavelengths"},
-                    data = {"wavelengths" : data})
-    return retc
-
-@app.get("/arcoptix/wavenumbers")
-def getWavenumbers():
-    data = a.getWavenumbers()
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"command" : "get_wavenumbers"},
-                    data = {"wavenumbers" : data})
+                    parameters = {"filename" : filename},
+                    data = data)
     return retc
 
 @app.get("/arcoptix/read")
@@ -57,6 +50,15 @@ def readSpectrumTime(time:float):
     retc = return_class(measurement_type = "arcoptix_ftir_command",
                     parameters = {"time" : time},
                     data = {"data" : None})
+    return retc
+
+
+@app.get("/arcoptix/loadFile")
+def loadFile(filename:str):
+    data = a.loadFile(filename)
+    retc = return_class(measurement_type = "arcoptix_ftir_command",
+                    parameters = {"filename" : filename},
+                    data = {"data" : data})
     return retc
 
 if __name__ == "__main__":

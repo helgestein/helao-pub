@@ -38,6 +38,7 @@ from driver.gamry_simulate import *
 from fastapi import Query
 from typing import List
 import asyncio
+import json
 
 app = FastAPI()
 
@@ -86,17 +87,6 @@ async def get():
     return HTMLResponse(html)
 
 
-# # async def test_async():
-# #     #temp = None
-# #     while True:
-# #         # if(poti.dtaqsink.acquired_points[-1] != temp):
-# #         #     temp = poti.dtaqsink.acquired_points[-1]
-# #         #     data = str(poti.dtaqsink.acquired_points[-1])
-# #         #     await websocket.send_text(f"Message text was: {data}")
-# #         print("here")
-# #         await websocket.send_text(f"here")
-# #         asyncio.sleep(1)
-
 async def tester():
     while True:
         print("ah")
@@ -106,22 +96,9 @@ async def tester():
 async def websocket_messages(websocket: WebSocket):
     await websocket.accept()
     while True:
-        data = str(await poti.q.get())
-        await websocket.send_text(f"Message text was: {data}")
-        # await asyncio.sleep(2)
-        # data = await websocket.receive_text()
-        # await websocket.send_text(f"Message text was: {data}")
-
-
-
-
-
-
-
-
-
-
-
+        data = await poti.q.get()
+        data = {k: [v] for k,v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
+        await websocket.send_text(json.dumps(data))
 
 
 class return_class(BaseModel):

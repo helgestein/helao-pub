@@ -346,7 +346,7 @@ class GamryDtaqEvents(object):
             self.acquired_points.append([t, v, 0.0, j])
             print([t, v, 0.0, j])
             await q.put([t, v, 0.0, j])
-            await asyncio.sleep(2)
+            await asyncio.sleep(fullt[1]-fullt[0])
         # while time.time() < self.stop_time:
             # self.status = "measuring"
             # self.acquired_points = [
@@ -362,7 +362,7 @@ class gamry:
     def __init__(self):
         self.pstat = {"connected": 0}
         self.temp = []
-        self.q = asyncio.Queue()
+        self.q = asyncio.Queue(loop=asyncio.get_event_loop())
 
     def open_connection(self, force_err=False):
         # seet connection status to open

@@ -37,8 +37,15 @@ from pydantic import BaseModel
 from driver.gamry_simulate import *
 from fastapi import Query
 from typing import List
+import asyncio
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+def startup_event():
+    global poti
+    poti = gamry()
 
 html = """
 <!DOCTYPE html>
@@ -55,7 +62,7 @@ html = """
         <ul id='messages'>
         </ul>
         <script>
-            var ws = new WebSocket("ws://localhost:8000/ws");
+            var ws = new WebSocket("ws://localhost:8003/ws");
             ws.onmessage = function(event) {
                 var messages = document.getElementById('messages')
                 var message = document.createElement('li')
@@ -95,17 +102,14 @@ async def tester():
         print("ah")
         await asyncio.sleep(1)
 
-poti = gamry()
-
 @app.websocket("/ws")
 async def websocket_messages(websocket: WebSocket):
-
     await websocket.accept()
     while True:
         data = str(await poti.q.get())
         await websocket.send_text(f"Message text was: {data}")
-        await asyncio.sleep(2)
-        # data = await poti.q.get() # await websocket.receive_text()
+        # await asyncio.sleep(2)
+        # data = await websocket.receive_text()
         # await websocket.send_text(f"Message text was: {data}")
 
 

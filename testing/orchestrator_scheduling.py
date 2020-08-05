@@ -1,4 +1,4 @@
-# In order to run the orchatrator which is at the highest level of Helao, all servers should be started. 
+# In order to run the orchestrator which is at the highest level of Helao, all servers should be started. 
 import requests
 import sys
 sys.path.append(r'../config')

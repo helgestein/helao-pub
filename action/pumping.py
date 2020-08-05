@@ -7,7 +7,13 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 from mischbares_small import config
+import time
 
+#issues:
+#rate-limiting step is serial read commands. i have serial timeout at .1 right now. .05 and lower do not work.
+#this means .1 second between each pump turning on in formulation
+
+#i think my pump primings are loaded incorrectly too, but that does not matter.
 
 app = FastAPI(title="Pump action server V1",
     description="This is a very fancy pump action server",
@@ -30,13 +36,14 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
         #adjusted 
         v = int(totalvol*c)
         s = int(speed*c)
-        res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
+        res = requests.get("{}/pump/primePump".format(pumpurl), 
                             params={'pump':p,'volume':v,'speed':s,
-                                    'direction':1,'read':False,'stage':True}).json()
+                                    'direction':1,'read':True}).json()
         retl.append(res)
-    retl.append(requests.get("{}/pump/allOn".format(pumpurl), 
-                    params={'time':totalvol/speed}).json())
-
+    for p in pumps:
+        res = requests.get("{}/pump/runPump".format(pumpurl),params={'pump':p}).json()
+        retl.append(res)
+    retl.append(flushSerial()) # need to call a read function regularly to flush things out or it crashes, they seem to slow it down
     retc = return_class(measurement_type='pumping',
                         parameters= {'command':'measure',
                                     'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol}},
@@ -45,13 +52,44 @@ def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
 
 @app.get("/pumping/flushSerial/")
 def flushSerial():
-    res = requests.get("{}/pump/read".format(pumpurl)).json()
-
-    retc = return_class(measurement_type='echem_measure',
-                        parameters= {'command':'measure',
-                                    'parameters':None},
+    try:
+        res = requests.get("{}/pump/read".format(pumpurl)).json()
+    except:
+        print('read error')
+    retc = return_class(measurement_type='pumping',
+                        parameters= {'command':'flushSerial','parameters':None},
                         data = {'data':res})
     return retc
+
+@app.get("/pumping/resetPrimings")
+def resetPrimings():
+    retl = []
+    for i in range(14):
+        res = requests.get("{}/pump/primePump".format(pumpurl),params={'pump':i,'volume':0,'speed':20,'read':True}).json()
+        retl.append(res)
+        print('pump '+str(i)+' reset')
+        time.sleep(.2) #if you try to send too many serial commands too fast something gets garbled.
+    retc = return_class(measurement_type='pumping',
+                        parameters= {'command':'resetPrimings','parameters':None},
+                        data = {'data':retl})
+    return retc
+
+@app.get("/pumping/getPrimings")
+def getPrimings():
+    res = requests.get("{}/pump/getPrimings".format(pumpurl)).json()
+    retc = return_class(measurement_type='pumping',
+                        parameters= {'command':'getPrimings','parameters':None},
+                        data = {'data':res})
+    return retc
+
+@app.get("/pumping/refreshPrimings")
+def refreshPrimings():
+    res = requests.get("{}/pump/refreshPrimings".format(pumpurl)).json()
+    retc = return_class(measurement_type='pumping',
+                        parameters= {'command':'refreshPrimings','parameters':None},
+                        data = {'data':res})
+    return retc
+
 
 if __name__ == "__main__":
     pumpurl = "http://{}:{}".format(config['servers']['pumpServer']['host'], config['servers']['pumpServer']['port'])

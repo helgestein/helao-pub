@@ -33,7 +33,7 @@ config['movement'] = dict(
     x_limit_waste = 10, y_limit_waste = 10)
 
 ## Cofiguration of the pump
-config['pump'] = dict(port='COM1', baud=9600, timeout=1,
+config['pump'] = dict(port='COM1', baud=9600, timeout=0.1,
                       pumpAddr={i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
 config['pump']['pumpAddr']['all'] = 20
 

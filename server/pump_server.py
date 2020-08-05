@@ -34,14 +34,14 @@ def setBlock(pump:int, time_block:float):
                         data=None)
     return retc
 
-@app.get("/pump/dispenseVolume")
-def dispenseVolume(pump:int ,volume:int ,speed:int ,stage:bool=False, read:bool=False, direction:int=1):
-    ret = p.dispenseVolume(pump, volume, speed, direction, read)
-    
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "dispenseVolume","parameters": {"volume": volume,"speed": speed,"pump": pump,"direction": direction,"time_block": time_block}},
-                        data={'serial_response': ret})
-        return retc
+#@app.get("/pump/dispenseVolume")
+#def dispenseVolume(pump:int ,volume:int ,speed:int ,stage:bool=False, read:bool=False, direction:int=1):
+#    ret = p.dispenseVolume(pump, volume, speed, stage, read, direction)
+#    
+#    retc = return_class(measurement_type="pump_command",
+#                        parameters={"command": "dispenseVolume","parameters": {"volume": volume,"speed": speed,"pump": pump,"direction": direction}},
+#                        data={'serial_response': ret})
+#    return retc
 
 @app.get("/pump/stopPump")
 def stopPump(pump:int):
@@ -51,11 +51,45 @@ def stopPump(pump:int):
                         data=None)
     return retc
 
-@app.get("/pump/allOn")
-def allOn():
-    ret = p.allOn(time)
-    retc = return_class(**ret)
+#@app.get("/pump/allOn")
+#def allOn():
+#    p.allOn()
+#    retc = return_class(measurement_type="pump_command",
+#                        parameters={"command": "allOn","parameters": {"pump_primings":p.pumpPrimings}},
+#                        data=None)
+#    return retc
+
+@app.get("/pump/primePump")
+def primePump(pump:int, volume:int, speed:int, direction:int=1, read:bool=False):
+    ret = p.primePump(pump, volume, speed, direction, read)
+    retc = return_class(measurement_type="pump_command",
+                        parameters={"command": "primePump","parameters": {"volume": volume,"speed": speed,"pump": pump,"direction": direction}},
+                        data={'serial_response': ret})
     return retc
+
+@app.get("/pump/runPump")
+def runPump(pump:int):
+    p.runPump(pump)
+    retc = return_class(measurement_type="pump_command",
+                        parameters={"command": "runPump","parameters": {"pump":pump}},
+                        data=None)
+    return retc
+
+@app.get("/pump/getPrimings")
+def getPrimings():
+    ret = p.getPrimings()
+    retc = return_class(measurement_type="pump_command",
+                        parameters={"command": "getPrimings"},
+                        data=ret)
+    return retc
+
+@app.get("/pump/refreshPrimings")
+def getPrimings():
+    p.refreshPrimings()
+    retc = return_class(measurement_type="pump_command",
+                        parameters={"command": "refreshPrimings"},
+                        data=p.pumpPrimings)
+    return retc    
 
 @app.get("/pump/read")
 def read():

@@ -9,9 +9,9 @@ class pump():
     def __init__(self,conf):
             self.pumpAddr = conf['pumpAddr']
             self.pumpBlockings= {i: time.time() for i in range(14)}  # init the blockings with now
-            self.pumpPrimings = {i: {'speed': 0, 'volume': 0} for i in range(14)}
-            self.ser = serial.Serial(port=conf['port'], baud=conf['baud'], timeout=conf['timeout'])
-
+            self.ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
+            self.refreshPrimings()
+                
     def isBlocked(self, pump: int):
         #this is nessesary since there is no serial command that says "pump is still pumping"
         if self.pumpBlockings[pump] >= time.time():
@@ -23,36 +23,72 @@ class pump():
         #this sets a block
         self.pumpBlockings[pump] = time_block
 
-    def allOn(self):
-        self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr['all']),'utf-8'))
-        time = time.time()  
-        for i in range(14):
-            if self.pumpPrimings[i]['speed'] != 0:
-                time_block = time+self.pumpPrimings[i]['volume']/self.pumpPrimings[i]['speed']
-                self.setBlock(i,time_block)
-        self.pumpPrimings = {i: {'speed': 0, 'volume': 0} for i in range(14)}
+    #def allOn(self):
+    #    self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr['all']),'utf-8'))
+    #    timer = time.time()  
+    #    for i in range(14):
+    #        if self.pumpPrimings[i]['speed'] != 0:
+    #            time_block = timer+self.pumpPrimings[i]['volume']/self.pumpPrimings[i]['speed']
+    #            self.setBlock(i,time_block)
+    #    self.pumpPrimings = {i: {'speed': 0, 'volume': 0} for i in range(14)}
 
-    def dispenseVolume(self, pump:int ,volume:int ,speed:int, stage:bool,read=False,direction:int=1):
-        #pump is an index 0-13 incicating the pump channel
-        #volume is the volume in µL
-        #speed is a variable 0-1 going from 0µl/min to 4000µL/min
+    #def dispenseVolume(self, pump:int ,volume:int ,speed:int, stage:bool,read:bool=False,direction:int=1):
+        #pump is an index 0-13 indicating the pump channel
+        #volume is the volume in µL, 0 to 50000µL
+        #speed is a variable going from 20µl/min to 4000µL/min
+        #direction is 1 for normal and 0 for reverse
 
-        self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
+    #    self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
+    #    self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
+    #    self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
+        
+    #    if not stage:
+    #        self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
+
+    #        time_block = time.time()+volume/speed
+    #        self.setBlock(pump,time_block)
+    #    else:
+    #        time_block = 0
+    #        self.setBlock(pump,0)
+    #        self.pumpPrimings[pump] = {'speed': speed, 'volume': volume}
+    #    if read:
+    #        ans = self.ser.read(1000)
+    #    return ans if read else None
+
+
+    def primePump(self,pump:int,volume:int,speed:int,direction:int=1,read:bool=False):
+        #pump is an index 0-13 indicating the pump channel
+        #volume is the volume in µL, 0 to 50000µL
+        #speed is a variable going from 20µl/min to 4000µL/min
+        #direction is 1 for normal and 0 for reverse
+        #self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8')) #everytime i call this line, the pump just replies that i didn't need to call it
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
-        
-        if not stage:
-            self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
+        self.pumpPrimings[pump] = {'direction': direction, 'speed': speed, 'volume': volume}
+        return self.read() if read else None
 
-            time_block = time.time()+volume/speed
-            self.setBlock(pump,time_block)
-        else:
-            time_block = 0
-            self.setBlock(pump,0)
-            self.pumpPrimings[i] = {'speed': speed, 'volume': volume}
-        if read:
-            ans = self.ser.read(1000)
-        return ans if read else None
+    def runPump(self,pump:int):
+        self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
+        time_block = time.time()+self.pumpPrimings[pump]['volume']/self.pumpPrimings[pump]['speed']*1.1 #10% margin for safety
+        self.setBlock(pump,time_block)
+
+    def getPrimings(self):
+        return self.pumpPrimings
+
+    #for initialization and debugging
+    #i don't think this is actually working properly, 
+    #but it doesn't affect anything practical we are trying to do now
+    def refreshPrimings(self):
+        self.ser.read(1000)
+        self.pumpPrimings = {i: {'direction': None, 'speed': None, 'volume': None} for i in range(14)}
+        for i in range(14): #while loops shouldn't be a problem, just in case answer comes through garbled
+            self.ser.write(bytes('{},RFR,1\r','utf-8'.format(self.pumpAddr[i])))
+            out = self.ser.read(1000).split(b',')
+            self.pumpPrimings[i]['speed'],self.pumpPrimings[i]['direction'] = int(out[5]),int(str(out[6])[2]) if out[1] == b'RFR' and out[3] == b'HS' and out[4] == b'OK' else None
+            self.ser.write(bytes('{},RVO,1\r','utf-8'.format(self.pumpAddr[i])))
+            out = self.ser.read(1000).split(b',')
+            self.pumpPrimings[i]['volume'] = int(str(out[5])[2:-3]) if out[1] == b'RVO' and out[3] == b'HS' and out[4] == b'OK' else None
+            print('pump '+str(i)+' initialized')
 
     def stopPump(self, pump:int):
         #this stops a selected pump and returns the nessesary information the seed is recorded as zero and direction as -1

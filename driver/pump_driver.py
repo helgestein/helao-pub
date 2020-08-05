@@ -77,6 +77,7 @@ class pump():
 
     #for initialization and debugging
     #i don't think this is actually working properly, 
+    #seems to read out for each pump whatever i write to pump 0
     #but it doesn't affect anything practical we are trying to do now
     def refreshPrimings(self):
         self.ser.read(1000)

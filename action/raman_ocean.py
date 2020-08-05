@@ -22,12 +22,19 @@ class return_class(BaseModel):
 
 
 @app.get("/oceanAction/read")
-def read():
-    wavelengthData = requests.get("{}/ocean/wavelengths".format(url)).json()
-    intensityData = requests.get("{}/ocean/intensities".format(url)).json()
+def read(filename):
+    data = requests.get("{}/ocean/readSpectrum".format(url),params={'filename':filename}).json()
     retc = return_class(measurement_type='raman_measure', 
-                            parameters={'command':'read_data'}, 
-                            data={'wavelengths':wavelengthData,'intensity':intensityData})
+                        parameters={'command':'read_data'}, 
+                        data=data)
+    return retc
+
+@app.get("/ftir/loadFile")
+def loadFile(filename:str):
+    data = requests.get("{}/ocean/loadFile".format(url),params={'filename':filename}).json()
+    retc = return_class(measurement_type='raman_measure', 
+                        parameters={'filename':filename}, 
+                        data=data)
     return retc
 
 

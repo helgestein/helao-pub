@@ -80,56 +80,10 @@ if __name__ == "__main__":
     # in params , you should give the input values.
     # 'forceAction/read_0','data/addrecord_0'
     A = dict(
-        soe=['movement/moveToHome_0','movement/alignment_0','movement/mvToWaste_0','pumping/formulation_0',
-        'movement/removeDrop_0','movement/moveToHome_1','movement/mvToSample_0',
-        'echem/measure_0','pump/formulation_1','movement/moveToHome_2','movement/mvToWaste_1',
-        'pumping/formulation_2','movement/removeDrop_1','movement/moveToHome_3','movement/mvToSample_1',
-        'echem/measure_1','pump/formulation_3'], 
+        soe=['movement/moveToHome_0', 'movement/moveUp_0', 'movement/moveUp_1'], 
         params = dict(  moveToHome_0 = None,
-                        alignment_0 = None,
-                        mvToWaste_0 = dict(x= 0.0,y= 0.0),
-                        formulation_0 = dict(formulation= [0.2,0.2,0.2,0.2,0.2],
-                                            pumps= [0,1,2,3,4],
-                                            speed= 1000,
-                                            direction= -1,
-                                            stage= True,
-                                            totalVol= 2000),
-                        removeDrop_0 = dict(y= -20),
-                        moveToHome_1 = None,
-                        mvToSample_0 = dict(x= 20, y= 10),
-                        measure_0= dict(procedure= 'ca',
-                                        setpoints= dict(applypotential = {'Setpoint value': -0.5},
-                                                        recordsignal= {'Duration': 300}),
-                                    plot= False,
-                                    onoffafter= 'off'),
-                        formulation_1 = dict(formulation=[1],
-                                            pumps=[5],
-                                            speed=4000,
-                                            direction=1,
-                                            stage=True,
-                                            totalVol=2000),
-                        moveToHome_2 = None,
-                        mvToWaste_1 = dict(position= {'x':0.0,'y':0.0}),
-                        formulation_2 = dict(formulation= [2],
-                                            pumps= [5],
-                                            speed= 4000,
-                                            direction= 1,
-                                            stage= True,
-                                            totalVol= 2000), 
-                        removeDrop_1 = dict(y = -20), 
-                        moveToHome_3 = None,
-                        mvToSample_1 = dict(x= 18, y= 8), 
-                        measure_1= dict(procedure= 'ca',
-                                        setpoints= dict(applypotential = {'Setpoint value': -0.5},
-                                                        recordsignal= {'Duration': 300}),
-                                        plot= False,
-                                        onoffafter= 'off'),
-                        formulation_3 = dict(formulation=[1],
-                                            pumps=[5],
-                                            speed=4000,
-                                            direction=1,
-                                            stage=True,
-                                            totalVol=2000)),
+                        moveUp_0 = dict(z= 50),
+                        moveUp_1 = dict(z= -60)),
         exp_name = 'A')
 
     B = dict(
@@ -188,7 +142,7 @@ if __name__ == "__main__":
     
 
 
-    global_experiment_list = [A,B]
+    global_experiment_list = [A]
     #addrecord_0= dict(ident= 1,title= 'electrodeposition', filed= 'cu-No3', visibility='private',meta=None)
         
     #experiment = json.dumps(experiment_spec)

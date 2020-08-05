@@ -59,7 +59,7 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                          'recordsignal': {'Duration': 10}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+           'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",  
            'filename': 'ca.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -108,3 +108,9 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4',
 #Configuration of the Arcoptix FTIR
 #config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
 config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
+
+
+
+#{'Setpoint value': 0.01},{'Duration': 10}
+#'applypotential','recordsignal'
+# C:\Users\Operator\Documents\auro-master\temp

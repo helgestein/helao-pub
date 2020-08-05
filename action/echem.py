@@ -40,10 +40,6 @@ def measure(procedure:str,setpoint_keys:List[str],setpoint_values:List[float],pl
     res = requests.get("{}/potentiostat/measure".format(poturl), 
                         params=measure_conf).json()
   
-    '''????
-    res = requests.get("{}/motor/query/moving".format(poturl), 
-                        params=measure_conf).json()
-    '''
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
                                     'parameters':measure_conf},

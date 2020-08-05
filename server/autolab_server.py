@@ -5,7 +5,7 @@ sys.path.append("../driver")
 from autolab_driver import Autolab
 from mischbares_small import config
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from pydantic import BaseModel
 import json
 from typing import List
@@ -19,6 +19,12 @@ class return_class(BaseModel):
     measurement_type: str = None
     parameters: dict = None
     data: dict = None
+
+class Item(BaseModel):
+    name: str
+
+class ItemList(BaseModel):
+    items: List[Item]
 
 @app.get("/potentiostat/ismeasuring")
 def ismeasuring():
@@ -93,12 +99,18 @@ def CellOnOff(onoff:str):
     return retc
 
 @app.get("/potentiostat/measure")
-def performMeasurement(procedure: str,setpoint_keys:List[str],setpoint_values:List[float],plot:str,onoffafter:str,safepath:str,filename:str):
-    a.performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename)
+def performMeasurement(procedure: str,setpoint_key:str ,setpoint_value:str ,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
+    print('{}, {}'.format(setpoint_key, setpoint_value))
+    setpoint_keys = list(eval(setpoint_key))
+    setpoint_values = list(eval(setpoint_value))
+    parseinstruction = [parseinstructions]
+    for q in [procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename, parseinstruction]:
+        print(q)
+    a.performMeasurement(procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename, parseinstruction)
     retc = return_class(measurement_type='potentiostat_autolab',
                     parameters= {'command':'measure',
                                 'parameters':dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
-                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)},
+                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction)},
                     data = {'data':None})
     return retc
 

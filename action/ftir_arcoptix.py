@@ -22,17 +22,25 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/ftir/read")
-def read(rtime:bool=False,wavenumbers:bool=True,av:int=1,time:float=None):
-    readstring = 'Time' if rtime else ''
-    readparams = {'time':time} if rtime else {'av':av}
+def read(filename:str,timeMode:bool=False,wavenumbers:bool=True,av:int=1,time:float=None):
+    readstring = 'Time' if timeMode else ''
+    readparams = {'time':time} if timeMode else {'av':av}
     requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
-    xformat = 'wavenumbers' if wavenumbers else 'wavelengths'
-    spectrumx = requests.get("{}/arcoptix/{}".format(url,xformat)).json()
-    spectrumy = requests.get("{}/arcoptix/spectrum".format(url)).json()
+    xformat = 'Wavenumbers' if wavenumbers else 'Wavelengths'
+    spectrum = requests.get("{}/arcoptix/spectrum{}".format(url,xformat),params={'filename':filename}).json()
     retc = return_class(measurement_type='ftir_measure', 
-                        parameters={'rtime':rtime,'wavenumbers':wavenumbers,'av':av,'time':time}, 
-                        data={xformat:spectrumx,'intensity':spectrumy})
+                        parameters={'timeMode':timeMode,'wavenumbers':wavenumbers,'av':av,'time':time,'filename':filename}, 
+                        data=spectrum)
     return retc
+
+@app.get("/ftir/loadFile")
+def loadFile(filename:str):
+    data = requests.get("{}/arcoptix/loadFile".format(url),params={'filename':filename}).json()
+    retc = return_class(measurement_type='ftir_measure', 
+                        parameters={'filename':filename}, 
+                        data=data)
+    return retc
+
 
 if __name__ == "__main__":
     url = "http://{}:{}".format(config['servers']['arcoptixServer']['host'],config['servers']['arcoptixServer']['port'])

@@ -1,4 +1,5 @@
 import clr
+import json
 
 #DLLTest.dll (64 bit version) and CyUSB.dll must be in the same directory as ARCsoft.ARCspectroMd.dll
 
@@ -8,21 +9,28 @@ class arcoptix:
         import ARCsoft.ARCspectroMd as arc
         self.interface = arc.ARCspectroMd.CreateApiInterface()
 
-    def getSpectrum(self):
-        return [float(i) for i in self.interface.Spectrum]
+    def getSpectrumWavelengths(self,filename:str):
+        data = {'wavelengths':[float(i) for i in self.interface.Wavelength],'intensities':[float(i) for i in self.interface.Spectrum]}
+        with open(filename,'w') as outfile: 
+            json.dump(data,outfile)
+        return data
 
-    def getWavelengths(self):
-        return [float(i) for i in self.interface.Wavelength]
+    def getSpectrumWavenumbers(self,filename:str):
+        data = {'wavenumbers':[float(i) for i in self.interface.Wavenumber],'intensities':[float(i) for i in self.interface.Spectrum]}
+        with open(filename,'w') as outfile: 
+            json.dump(data,outfile)
+        return data
 
-    def getWavenumbers(self):
-        return [float(i) for i in self.interface.Wavenumber]
-
-    def readSpectrum(self,av=1,):
+    def readSpectrum(self,av:int=1,):
         self.interface.ReadSpectrum(av,0)
 
-    def readSpectrumTime(self,time):
+    def readSpectrumTime(self,time:float):
         self.interface.ReadSpectrumTime(time,0)
 
+    def loadFile(self,filename:str):
+        with open(filename,'r') as infile:
+            data = json.load(infile)
+        return data
 
 
 

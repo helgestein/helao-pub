@@ -77,7 +77,11 @@ class pump():
 
     #for initialization and debugging
     #i don't think this is actually working properly, 
+    #seems to read out for each pump whatever i write to pump 0
     #but it doesn't affect anything practical we are trying to do now
+    #i will add that i can't see anything in my code that explains this.
+    #if i ever get the chance again, i would like to play some games with the pump serial commands
+    #to see if i can replicate the pattern with different combinations of read commands
     def refreshPrimings(self):
         self.ser.read(1000)
         self.pumpPrimings = {i: {'direction': None, 'speed': None, 'volume': None} for i in range(14)}

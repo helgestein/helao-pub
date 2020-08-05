@@ -37,7 +37,7 @@ class Autolab:
 
     def ismeasuring(self):
         try:
-            return self.proc.IsMeasuring()
+            return self.proc.IsMeasuring
         except:
             # likely no procedure set
             return False
@@ -158,3 +158,5 @@ class Autolab:
         json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
         self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
         self.parseNox(conf)
+
+

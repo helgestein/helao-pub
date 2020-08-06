@@ -23,7 +23,7 @@ async def loop(): # non-blocking coroutine, updates data source
         while True:
             new_data = await ws.recv()
             new_data=json.loads(new_data)
-            if(type(new_data) is float):
+            if(type(new_data) == float):
             	pass # float means it is the PID and if that has changed we want to clear the plot
             else:
             	doc.add_next_tick_callback(partial(update, new_data))
@@ -35,3 +35,7 @@ plot.line(x='t_s', y='Ewe_V', source=source)
 
 doc.add_root(plot) # add plot to document
 IOLoop.current().spawn_callback(loop) # add coro to IOLoop
+
+
+
+

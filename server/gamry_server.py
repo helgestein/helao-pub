@@ -98,8 +98,8 @@ async def websocket_messages(websocket: WebSocket):
     while True:
         data = await poti.q.get()
         data = {k: [v] for k,v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
+        await websocket.send_text(json.dumps(poti.time_stamp))
         await websocket.send_text(json.dumps(data))
-        await websocket.send_text(json.dumps(porti.time_stamp))
 
 
 class return_class(BaseModel):

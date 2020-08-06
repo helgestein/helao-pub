@@ -15,14 +15,14 @@ uri = "ws://localhost:8003/ws"
 # ws.connect(uri)
 
 def update(new_data):
-    new_data=json.loads(new_data)
     print(new_data)
     source.stream(new_data)
 
-async def loop():
+async def loop(): # non-blocking coroutine, updates data source
     async with websockets.connect(uri) as ws:
         while True:
             new_data = await ws.recv()
+            new_data=json.loads(new_data)
             doc.add_next_tick_callback(partial(update, new_data))
 
 source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
@@ -30,5 +30,5 @@ source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
 plot = figure(height=300)
 plot.line(x='t_s', y='Ewe_V', source=source)
 
-doc.add_root(plot)
-IOLoop.current().spawn_callback(loop)
+doc.add_root(plot) # add plot to document
+IOLoop.current().spawn_callback(loop) # add coro to IOLoop

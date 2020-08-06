@@ -363,6 +363,7 @@ class gamry:
         self.pstat = {"connected": 0}
         self.temp = []
         self.q = asyncio.Queue(loop=asyncio.get_event_loop())
+        self.time_stamp = time.time()
 
     def open_connection(self, force_err=False):
         # seet connection status to open
@@ -390,6 +391,7 @@ class gamry:
         self.dtaqsink = GamryDtaqEvents(g)
 
     async def measure(self, sigramp):
+        self.time_stamp = time.time()
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()

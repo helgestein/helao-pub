@@ -23,7 +23,10 @@ async def loop(): # non-blocking coroutine, updates data source
         while True:
             new_data = await ws.recv()
             new_data=json.loads(new_data)
-            doc.add_next_tick_callback(partial(update, new_data))
+            if(type(new_data) is float):
+            	pass # float means it is the PID and if that has changed we want to clear the plot
+            else:
+            	doc.add_next_tick_callback(partial(update, new_data))
 
 source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
 

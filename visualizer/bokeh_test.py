@@ -27,22 +27,23 @@ def update(new_data):
     print(new_data)
     source.stream(new_data)
 
-def remove_glyphs(figure, glyph_name_list):
-    renderers = figure.select(dict(type=GlyphRenderer))
-    for r in renderers:
-        if r.name in glyph_name_list:
-            col = r.glyph.y
-            r.data_source.data[col] = [np.nan] * len(r.data_source.data[col])
+# def remove_glyphs(figure, glyph_name_list):
+#     renderers = figure.select(dict(type=GlyphRenderer))
+#     for r in renderers:
+#         if r.name in glyph_name_list:
+#             col = r.glyph.y
+#             r.data_source.data[col] = [np.nan] * len(r.data_source.data[col])
 
 def remove_line(new_time_stamp):
     global time_stamp
     global source
-    # print("removing line")
-    # remove_glyphs(plot, [str(time_stamp)])
-    line = plot.select_one({'name': str(time_stamp)})
-    line.visible = False
+
+    source.data = {k: [] for k in source.data}
+
+    # line = plot.select_one({'name': str(time_stamp)})
+    # line.visible = False
     time_stamp = new_time_stamp
-    source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+    # source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
     plot.line(x='t_s', y='Ewe_V', source=source, name=str(time_stamp))
 
 async def loop(): # non-blocking coroutine, updates data source

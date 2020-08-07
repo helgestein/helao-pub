@@ -51,15 +51,32 @@ def remove_line(new_time_stamp):
     # source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
 
     plot = figure(height=300)
+    xstr = ''
     if(radio_button_group.active == 0):
-        plot.line(x='t_s', y='Ewe_V', source=source, name=str(time_stamp))
+        xstr = 't_s'
+        #plot.line(x='t_s', y='Ewe_V', source=source, name=str(time_stamp))
     elif(radio_button_group.active == 1):
-        plot.line(x='Ewe_V', y='Ewe_V', source=source, name=str(time_stamp))
+        xstr = 'Ewe_V'
+        #plot.line(x='Ewe_V', y='Ewe_V', source=source, name=str(time_stamp))
     elif(radio_button_group.active == 2):
-        plot.line(x='Ach_V', y='Ewe_V', source=source, name=str(time_stamp))
+        xstr = 'Ach_V'
+        #plot.line(x='Ach_V', y='Ewe_V', source=source, name=str(time_stamp))
     else:
-        plot.line(x='I_A', y='Ewe_V', source=source, name=str(time_stamp))
-    
+        xstr = 'I_A'
+        #plot.line(x='I_A', y='Ewe_V', source=source, name=str(time_stamp))
+    colors = ['red', 'blue', 'yellow', 'green']
+    color_count = 0
+    for i in checkbox_button_group.active:
+        if i == 0:
+            plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 1:
+            plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 2:
+            plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=source, name=str(time_stamp))
+        else:
+            plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=source, name=str(time_stamp))
+        color_count += 1
+
     doc.add_root(plot) # add plot to document
 
 

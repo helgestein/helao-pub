@@ -10,6 +10,9 @@ class pump():
             self.pumpAddr = conf['pumpAddr']
             self.pumpBlockings= {i: time.time() for i in range(14)}  # init the blockings with now
             self.ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
+            for i in range(14): #turn on all the pumps in case they are off
+                self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[i]),'utf-8'))
+                self.ser.read(1000)
             self.refreshPrimings()
                 
     def isBlocked(self, pump: int):

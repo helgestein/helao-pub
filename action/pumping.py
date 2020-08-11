@@ -8,7 +8,7 @@ from pydantic import BaseModel
 import requests
 from mischbares_small import config
 import time
-
+import json
 #issues:
 #rate-limiting step is serial read commands. i have serial timeout at .1 right now. .05 and lower do not work.
 #this means .1 second between each pump turning on in formulation
@@ -25,7 +25,9 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/pumping/formulation/")
-def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
+def formulation(comprel: str, pumps: str, speed: int, totalvol: int):
+    comprel = json.loads(comprel)
+    pumps = json.loads(pumps)
     #make sure the comprel makes sense
     comprel = [i/sum(comprel) for i in comprel]
     retl = []

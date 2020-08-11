@@ -97,7 +97,7 @@ def CellOnOff(onoff:str):
                                     'parameters':onoff},
                         data = {'onoff':onoff})
     return retc
-
+'''
 @app.get("/potentiostat/measure")
 def performMeasurement(procedure: str,setpoint_key:str ,setpoint_value:str ,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
     print('{}, {}'.format(setpoint_key, setpoint_value))
@@ -113,6 +113,23 @@ def performMeasurement(procedure: str,setpoint_key:str ,setpoint_value:str ,plot
                                                   plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction)},
                     data = {'data':None})
     return retc
+'''
+@app.get("/potentiostat/measure")
+def performMeasurement(procedure: str,setpointjson: str ,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
+    setpoints = eval(setpointjson)
+    #setpoint_keys = list(setpoints.keys())
+    #setpoint_values = [setpoints[k] for k in setpoint_keys]
+
+
+    parseinstruction = [parseinstructions]
+    a.performMeasurement(procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction)
+    retc = return_class(measurement_type='potentiostat_autolab',
+                    parameters= {'command':'measure',
+                                'parameters':dict(procedure=procedure,setpointjson= setpointjson,
+                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction)},
+                    data = {'data':None})
+    return retc
+
 
 @app.get("/potentiostat/retrieve")
 def retrieve(safepath:str,filename:str):

@@ -140,8 +140,8 @@ class Autolab:
         with open(path.replace('.nox', '_data.json'), 'w') as f:
             json.dump(self.data, f)
 
-    def performMeasurement(self, procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename, parseinstruction):
-        conf = dict(procedure=procedure,setpoints={k:v for k,v in zip(setpoint_keys,setpoint_values)},
+    def performMeasurement(self, procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction):
+        conf = dict(procedure=procedure,setpoints=setpoints,
                      plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename,parseinstructions=parseinstruction)
         #LOAD PROCEDURE
         self.loadProcedure(conf['procedure'])

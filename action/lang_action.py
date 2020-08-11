@@ -39,10 +39,22 @@ def moveAbsFar( dx: float, dy: float, dz: float):
     retc = return_class(measurement_type='Move_absolut', parameters= {"dx": dx, "dy": dy, "dz": dz})
     return retc
 
+@app.get("/motor/moveHome")
+def moveHome():
+    requests.get("{}/lang/moveToHome".format(url)).json()
+    retc = return_class(measurement_type='Move_Home')
+    return retc
+
+@app.get("/motor/moveWaste")
+def moveWaste():
+    requests.get("{}/lang/moveToWaste".format(url)).json()
+    retc = return_class(measurement_type='Move_Waste')
+    return retc
 
 if __name__ == "__main__":
 
-   url = "http://{}:{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'])
-   uvicorn.run(app, host=config['servers']['langServer']['host'], port=config['servers']['langServer']['port'])
+   url = "http://{}:{}".format(config['servers']['langServer']['host'], config['servers']['langServer']['port'])
+   print('Port of motor Server: {}'.format(config['servers']['motorServer']['port']))
+   uvicorn.run(app, host=config['servers']['motorServer']['host'], port=config['servers']['motorServer']['port'])
    print("instantiated lang motor")
     

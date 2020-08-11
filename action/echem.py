@@ -27,6 +27,7 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
+'''
 @app.get("/echem/measure/")
 def measure(procedure:str,setpoint_keys:str,setpoint_values:str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
     """
@@ -51,6 +52,32 @@ def measure(procedure:str,setpoint_keys:str,setpoint_values:str,plot:str,onoffaf
                                     'parameters':measure_conf},
                         data = {'data':res})
     return retc
+'''
+
+@app.get("/echem/measure/")
+def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
+    """
+    Measure a recipe and manipulate the parameters:
+
+    - **measure_conf**: is explained in the echemprocedures folder
+    """
+    measure_conf = dict(procedure=procedure,
+                        setpointjson=setpointjson,
+                        plot=plot,
+                        onoffafter=onoffafter,
+                        safepath=safepath,
+                        filename=filename,
+                        parseinstructions=parseinstructions)
+    
+    res = requests.get("{}/potentiostat/measure".format(poturl), 
+                        params=measure_conf).json()
+  
+    retc = return_class(measurement_type='echem_measure',
+                        parameters= {'command':'measure',
+                                    'parameters':measure_conf},
+                        data = {'data':res})
+    return retc
+
 
 @app.get("/echem/ismeasuring/")
 def ismeasuring():

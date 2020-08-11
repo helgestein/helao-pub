@@ -1,6 +1,7 @@
 # In order to run the orchestrator which is at the highest level of Helao, all servers should be started. 
 import requests
 import sys
+import os
 sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
@@ -17,12 +18,12 @@ import json
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
-@app.post("/addExperiment/")
+@app.post("/orchestrator/addExperiment")
 def sendMeasurement(experiment: str):
     add_experiments.append(experiment)
     return {"message": experiment}
 
-@app.post("/semiInfiniteLoop/")
+@app.post("/orchestrator/semiInfiniteLoop")
 async def semiInfiniteLoop():
     while True:
         #for reasons of changing list lens:
@@ -53,12 +54,12 @@ def infl():
         else:
             time.sleep(0.5)
 
-@app.post("/infiniteLoop/")
+@app.post("/orchestrator/infiniteLoop")
 def infiniteLoop(background_tasks: BackgroundTasks):
     background_tasks.add_task(infl)
     return {"message": 'bla'}
 
-@app.post("/emergencyStop/")
+@app.post("/orchestrator/emergencyStop")
 def infiniteLoop():
     emergencyStop = True
     return {"message": 'bla'}
@@ -66,26 +67,39 @@ def infiniteLoop():
 def doMeasurement(experiment: str):
     experiment = json.loads(experiment)
     print(experiment)
-    for action_str,params in zip(experiment['soe'],experiment['params']):
+    for action_str in experiment['soe']:
         if not emergencyStop:
+            #print(action_str)
             server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
+            #print(server)
+            #print(fnc)
             action = fnc.split('_')[0]
-
+            params = experiment['params'][fnc]
+            #print(action)
+            #print(params)
             if server == 'movement':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
-                                params= params).json
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
+                                params= params).json()
+            elif server == 'motor':
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server , action),
+                                params= params).json()
             elif server == 'pumping':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
-                            params= params).json
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
+                            params= params).json()
             elif server == 'echem':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
-                            params= params).json
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
+                            params= params).json()
             elif server == 'forceAction':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
-                            params= params).json
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
+                            params= params).json()
+                print(res)
             elif server == 'data':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
-                            params= params).json
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
+                            params= params).json()
+            substrate= experiment['meta']['substrate']
+            ma = experiment['meta']['ma']
+            with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
+                json.dump(res, f)
         else:
             print("Emergency stopped!")
             

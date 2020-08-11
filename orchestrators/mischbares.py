@@ -60,7 +60,7 @@ def infiniteLoop(background_tasks: BackgroundTasks):
     return {"message": 'bla'}
 
 @app.post("/orchestrator/emergencyStop")
-def infiniteLoop():
+def stopInfiniteLoop():
     emergencyStop = True
     return {"message": 'bla'}
 

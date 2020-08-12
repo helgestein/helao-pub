@@ -33,23 +33,24 @@ config['movement'] = dict(
     x_limit_waste = 10, y_limit_waste = 10)
 
 ## Cofiguration of the pump
-config['pump'] = dict(port='COM1', baud=9600, timeout=0.1,
-                      pumpAddr={i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
+config['pump'] = dict(port='COM2', baud=9600, timeout=0.1,
+                      pumpAddr={i: i + 21 for i in range(14)} ) # numbering is left to right top to bottom
+config['pump']['pumpAddr'].update({i:i for i in range(20,35)})
 config['pump']['pumpAddr']['all'] = 20
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
-                    procp = r"C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\echemprocedures",
+                    procp = r"C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\echemprocedures",
                     #hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
                     hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88007.xml",
                     micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
-                    proceuduresd = {'cp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CP.nox',
-                                    'ca': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CA.nox',
-                                    'cv': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\CV.nox',
-                                    'eis': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\EIS.nox',
-                                    'ocp': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OCP.nox',
-                                    'on': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\ON.nox',
-                                    'off': r'C:\Users\Operator\Documents\GitHub\hans\config\echemprocedures\OFF.nox'})
+                    proceuduresd = {'cp': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\CP.nox',      
+                                    'ca': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\CA.nox',
+                                    'cv': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\CV.nox',
+                                    'eis': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\EIS.nox',
+                                    'ocp': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\OCP.nox',
+                                    'on': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\ON.nox',
+                                    'off': r'C:\Users\SDC_1\Documents\deploy\helao-dev\config\echemprocedures\OFF.nox'})
 
 ## Configuration of the electrochemical experiments
 config['echem'] = dict(procedures=dict())
@@ -59,16 +60,23 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                          'recordsignal': {'Duration': 10}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+           'safepath': r"C:\Users\SDC_1\Documents\deploy\helao-dev\temp",
            'filename': 'ca.nox',
            'parseinstructions': ['recordsignal']}
+
+
+#{'Setpoint value': 0.01},{'Duration': 10}
+#'applypotential','recordsignal'
+# C:\Users\Operator\Documents\auro-master\temp
+# C:\Users\SDC_1\Documents\deploy\helao-dev\temp
+
 
 config['echem']['procedures']['cp'] = {'procedure': 'cp',
            'setpoints': {'applycurrent': {'Setpoint value': 10**-4},
                          'recordsignal': {'Duration': 10}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+           'safepath': r"C:\Users\SDC_1\Documents\deploy\helao-dev\temp",
            'filename': 'cp.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -83,7 +91,7 @@ config['echem']['procedures']['cv'] = {'procedure': 'cv',
                                       'ScanRate': 0.1}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+           'safepath': r"C:\Users\SDC_1\Documents\deploy\helao-dev\temp",
            'filename': 'cv.nox',
            'parseinstructions': ['CVLinearScanAdc164']}
 
@@ -91,20 +99,27 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
             'plot': 'impedance',
             'onoffafter': 'off',
-            'safepath': r"C:\Users\Operator\Documents\git\auro-master\temp",
+            'safepath': r"C:\Users\SDC_1\Documents\deploy\helao-dev\temp",
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}
 
-#Configuration of the megsv force sensor
-config['megsv'] = dict(port = 4, 
-                        buffer_size= 1000,
-                        dll_address= r"..\dll\MEGSV.dll")
 
 #Configuration of the lang motor
 config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4', 
                       dll = r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
-                      dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl")
+                      dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl", 
+                      safe_home_pos = [0, 0, 0], 
+                      safe_waste_pos = [60.0, 70.0, -6.1348])
 
 #Configuration of the Arcoptix FTIR
 #config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
 config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
+
+
+#Configuration of the megsv force sensor
+config['megsv'] = dict(port = 5, 
+                        buffer_size= 1000,
+                        dll_address= r"C:\Users\SDC_1\Desktop\megsv\megsv_x64\MEGSV.dll")
+
+config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data')
+

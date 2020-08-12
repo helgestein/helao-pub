@@ -109,11 +109,31 @@ def moveAbsFar(dx: float, dy: float, dz: float):
     )
     return retc
 
+@app.get("/lang/moveToHome")
+def moveToHome():
+    l.moveToHome()
+    retc = return_class(
+    measurement_type="motor_command",
+    parameters={"command": "moveToHome"},
+    data={'data': None}
+    )
+    return retc
+    
 
-
+@app.get("/lang/moveToWaste")
+def moveToHome():
+    l.moveToWaste()
+    retc = return_class(
+    measurement_type="motor_command",
+    parameters={"command": "moveToWaste"},
+    data={'data': None}
+    )
+    return retc
 
 if __name__ == "__main__":
-    l = langNet()
-    uvicorn.run(app, host=config['servers']['motorServer']['host'], port=config['servers']['motorServer']['port'])
+    l = langNet(config['lang'])
+    print('Port of lang Server: {}'.format(config['servers']['langServer']['port']))
+
+    uvicorn.run(app, host=config['servers']['langServer']['host'], port=config['servers']['langServer']['port'])
     print("instantiated motor")
     

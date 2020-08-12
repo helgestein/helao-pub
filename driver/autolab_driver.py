@@ -140,9 +140,9 @@ class Autolab:
         with open(path.replace('.nox', '_data.json'), 'w') as f:
             json.dump(self.data, f)
 
-    def performMeasurement(self, procedure,setpoint_keys,setpoint_values,plot,onoffafter,safepath,filename):
-        conf = dict(procedure=procedure,setpoints={k:v for k,v in zip(setpoint_keys,setpoint_values)},
-                     plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
+    def performMeasurement(self, procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction):
+        conf = dict(procedure=procedure,setpoints=setpoints,
+                     plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename,parseinstructions=parseinstruction)
         #LOAD PROCEDURE
         self.loadProcedure(conf['procedure'])
         #SET SETPOINTS
@@ -155,8 +155,8 @@ class Autolab:
         self.CellOnOff(conf['onoffafter'])
         #SAVE
         sleep(0.1) #give the potentiostat some time to stwich everything off and save the data
-        json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
         self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
+        json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
         self.parseNox(conf)
 
 

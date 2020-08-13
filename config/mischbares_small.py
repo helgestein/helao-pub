@@ -17,7 +17,9 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          oceanServer = dict(host= "127.0.0.1", port= 13383),
                          smallRamanServer = dict(host= "127.0.0.1", port= 13384),
                          arcoptixServer = dict(host= "127.0.0.1", port= 13385),
-                         ftirServer = dict(host= "127.0.0.1", port= 13386))
+                         ftirServer = dict(host= "127.0.0.1", port= 13386),
+                         owisServer = dict(host= "127.0.0.1", port= 13387),
+                         tableServer = dict(host= "127.0.0.1", port= 13388))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
             PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
@@ -118,8 +120,9 @@ config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDriv
 
 #Configuration of the megsv force sensor
 config['megsv'] = dict(port = 5, 
-                        buffer_size= 1000,
+                        buffer_size= 1,
                         dll_address= r"C:\Users\SDC_1\Desktop\megsv\megsv_x64\MEGSV.dll")
 
 config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data')
 
+config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1)])

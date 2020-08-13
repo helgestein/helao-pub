@@ -27,11 +27,11 @@ class pump():
         self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
         return self.read() if read else None
 
-    def runPump(self,pump:int,read:bool):
+    def runPump(self,pump:int,read:bool=False):
         self.ser.write(bytes('{},WON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
         return self.read() if read else None
 
-    def stopPump(self,pump:int,read:bool):
+    def stopPump(self,pump:int,read:bool=False):
         #this stops a selected pump and returns the nessesary information the seed is recorded as zero and direction as -1
         #the reason for that is that i want to indicate that we manually stopped the pump
         self.ser.write(bytes('{},WON,0\r'.format(self.pumpAddr[pump]), 'utf-8'))
@@ -41,15 +41,15 @@ class pump():
     def readPump(self,pump:int):
         self.read()
         ret = {'direction': None, 'speed': None, 'volume': None}
-        self.ser.write(bytes('{},RFR,1\r','utf-8'.format(self.pumpAddr[i])))
+        self.ser.write(bytes('{},RFR,1\r'.format(self.pumpAddr[pump]),'utf-8'))
         out = self.read(1000).split(b',')
         ret['speed'],ret['direction'] = int(out[5]),int(str(out[6])[2]) if out[1] == b'RFR' and out[3] == b'HS' and out[4] == b'OK' else None
-        self.ser.write(bytes('{},RVO,1\r','utf-8'.format(self.pumpAddr[i])))
+        self.ser.write(bytes('{},RVO,1\r'.format(self.pumpAddr[pump]),'utf-8'))
         out = self.read(1000).split(b',')
         ret['volume'] = int(str(out[5])[2:-3]) if out[1] == b'RVO' and out[3] == b'HS' and out[4] == b'OK' else None
         return ret
     
-    def pumpOff(self,pump:int,read:bool):
+    def pumpOff(self,pump:int,read:bool=False):
         self.ser.write(bytes('{},OFF,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
         return self.read() if read else None
 

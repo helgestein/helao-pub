@@ -4,7 +4,7 @@ sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
-from mischbares_small import config
+from config.mischbares_small import config
 import json
 from copy import copy
 
@@ -19,9 +19,9 @@ def pump_test(action, params):
     return res
 
 pump_test('formulation', params=dict(
-    comprel='[0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125]',
-    pumps= '[0, 1, 2, 4, 6, 7, 10, 12]',
-    speed= 8000, totalvol=2000))
+    comprel='[0.5]',
+    pumps= '[0]',
+    speed= 8000, totalvol=200, direction= 1))
 
 pump_test('flushSerial', None)
 pump_test('resetPrimings', None)

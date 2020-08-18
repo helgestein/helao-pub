@@ -32,6 +32,21 @@ def moveRelFar( dx: float, dy: float, dz: float):
     retc = return_class(measurement_type='Move_relative', parameters= {"dx": dx, "dy": dy, "dz": dz})
     return retc
 
+@app.get("/motor/moveDown")
+def moveDown(dz: float,steps: float,maxForce: float):
+    steps = int(steps)
+    for i in range(steps):
+        url_sens = url = "http://{}:{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'])
+        res = requests.get("{}/forceAction/read".format(url), params=None).json()
+        if not abs(res['data']['data']['data']['value'])>maxForce:
+            print('Max force not reached ...')
+            moveRelFar(dx= 0, dy=0, dz = dz)
+        else:
+            print('Max force reached!')
+
+        pos = getPos()
+    retc = return_class(measurement_type='Move_relative', parameters= {"dz": dz,"steps":steps,"maxForce":maxForce},data={'pos':pos})
+    return retc
 
 @app.get("/motor/moveAbs")
 def moveAbsFar( dx: float, dy: float, dz: float):
@@ -50,6 +65,20 @@ def moveWaste():
     requests.get("{}/lang/moveToWaste".format(url)).json()
     retc = return_class(measurement_type='Move_Waste')
     return retc
+
+@app.get("/motor/moveSample")
+def moveToSample():
+    requests.get("{}/lang/moveToSample".format(url)).json()
+    retc = return_class(measurement_type='Move_Sample')
+    return retc
+
+@app.get("/motor/RemoveDroplet")
+def removeDrop():
+    requests.get("{}/lang/removeDrop".format(url)).json()
+    retc = return_class(measurement_type='Remove_Droplet')
+    return retc
+
+
 
 if __name__ == "__main__":
 

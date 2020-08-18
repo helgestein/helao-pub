@@ -98,6 +98,16 @@ class langNet():
     def moveToWaste(self):
         self.moveAbsFar(config['lang']['safe_waste_pos'][0], config['lang']['safe_waste_pos'][1], config['lang']['safe_waste_pos'][2])
         self.getPos()
+    
+    def moveToSample(self):
+        self.moveAbsFar(config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1], config['lang']['safe_sample_pos'][2])
+        self.getPos()
+    
+    def removeDrop(self):
+        #self.moveRelFar()
+        self.moveRelFar(0, 0, config['lang']['remove_drop'][2])
+        self.moveAbsFar(config['lang']['remove_drop'][0], config['lang']['remove_drop'][1], config['lang']['remove_drop'][2])
+        self.getPos()
 
 '''
 # setting of maximum motor speed or velocity 

@@ -34,7 +34,8 @@ config['movement'] = dict(
 
 ## Cofiguration of the pump
 config['pump'] = dict(port='COM2', baud=9600, timeout=0.1,
-                      pumpAddr={i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
+                      pumpAddr={i: i + 21 for i in range(14)} ) # numbering is left to right top to bottom
+config['pump']['pumpAddr'].update({i:i for i in range(20,35)})
 config['pump']['pumpAddr']['all'] = 20
 
 ## Configuration of the potensiostat
@@ -107,8 +108,10 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
 config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4', 
                       dll = r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
                       dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl", 
-                      safe_home_pos = [0, 0, 0], 
-                      safe_waste_pos = [60.0, 70.0, -6.1348])
+                      safe_home_pos = [2.0, 35.0, 0.0], 
+                      safe_waste_pos = [40.0, 85.0, 0.0], # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
+                      safe_sample_pos = [73.0, 42.0, 13.0], 
+                      remove_drop= [53.5, 90.0, 7.5])
 
 #Configuration of the Arcoptix FTIR
 #config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')
@@ -117,7 +120,7 @@ config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDriv
 
 #Configuration of the megsv force sensor
 config['megsv'] = dict(port = 5, 
-                        buffer_size= 1000,
+                        buffer_size= 1,
                         dll_address= r"C:\Users\SDC_1\Desktop\megsv\megsv_x64\MEGSV.dll")
 
 config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data')

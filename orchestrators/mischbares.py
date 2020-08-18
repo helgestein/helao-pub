@@ -53,6 +53,8 @@ def infl():
                 doMeasurement(experiment_list.pop(0))
         else:
             time.sleep(0.5)
+        if emergencyStop:
+            break
 
 @app.post("/orchestrator/infiniteLoop")
 def infiniteLoop(background_tasks: BackgroundTasks):
@@ -60,7 +62,7 @@ def infiniteLoop(background_tasks: BackgroundTasks):
     return {"message": 'bla'}
 
 @app.post("/orchestrator/emergencyStop")
-def infiniteLoop():
+def stopInfiniteLoop():
     emergencyStop = True
     return {"message": 'bla'}
 
@@ -102,6 +104,11 @@ def doMeasurement(experiment: str):
                 json.dump(res, f)
         else:
             print("Emergency stopped!")
+    
+@app.on_event("shutdown")
+def disconnect():
+    emergencyStop = True
+    time.sleep(0.75)
             
 if __name__ == "__main__":
     emergencyStop = False

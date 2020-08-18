@@ -1,6 +1,6 @@
 import sys
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
+sys.path.append(r'../config')
+sys.path.append(r'../driver')
 from lang_driver import langNet
 from mischbares_small import config
 import uvicorn
@@ -18,7 +18,7 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/lang/connect")
+@app.get("/motor/connect")
 def connect():
     l.connect()
     retc = return_class(
@@ -28,7 +28,7 @@ def connect():
         )
     return retc 
 
-@app.get("/lang/disconnected")
+@app.get("/motor/disconnecte")
 def disconnect():
     l.disconnect()
     retc = return_class(
@@ -39,9 +39,9 @@ def disconnect():
     return retc 
 
 
-@app.get("/lang/moveRelFar")
+@app.get("/motor/moveRelFar")
 def moveRelFar(dx: float, dy: float, dz: float):
-    l.moveRelFar(dx, dy, dz)
+    l.langNet(dx, dy, dz)
     retc = return_class(
     measurement_type="motor_command",
     parameters={"command": "move_relative", 'x': dx, 'y': dy, 'z':dz},
@@ -49,9 +49,9 @@ def moveRelFar(dx: float, dy: float, dz: float):
     )
     return retc
 
-@app.get("/lang/getPos")
-def getPos():
-    data= l.getPos()
+@app.get("/motor/getPose")
+def getPose():
+    data= l.getPose()
     retc = return_class(
     measurement_type="motor_command",
     parameters={"command": "get_position"},
@@ -59,8 +59,8 @@ def getPos():
     )
     return retc
 
-@app.get("/lang/moveRelZ")
-def moveRelZ( dz: float, wait: bool=True):
+@app.get("/motor/moveRelZ")
+def moveRelZ( dz: float, wait: str=True):
     l.moveRelZ(dz, wait)
     retc = return_class(
     measurement_type="motor_command",
@@ -69,8 +69,8 @@ def moveRelZ( dz: float, wait: bool=True):
     )
     return retc
 
-@app.get("/lang/moveRelXY")
-def moveRelXY(dx: float, dy: float, wait: bool=True):
+@app.get("/motor/moveRelXY")
+def moveRelXY(dx: float, dy: float, wait: str=True):
     l.moveRelXY(dx, dy, wait)    
     retc = return_class(
     measurement_type="motor_command",
@@ -79,8 +79,8 @@ def moveRelXY(dx: float, dy: float, wait: bool=True):
     )
     return retc
 
-@app.get("/lang/moveAbsXY")
-def moveAbsXY(x: float, y: float, wait: bool=True):
+@app.get("/motor/moveAbsXY")
+def moveAbsXY(x: float, y: float, wait: str=True):
     l.moveAbsXY(x, y, wait)
     retc = return_class(
     measurement_type="motor_command",
@@ -89,8 +89,8 @@ def moveAbsXY(x: float, y: float, wait: bool=True):
     )
     return retc
  
-@app.get("/lang/moveAbsZ")
-def moveAbsZ(z: float, wait: bool=True):
+@app.get("/motor/moveAbsZ")
+def moveAbsZ(z: float, wait:str=True):
     l.moveAbsZ(z, wait)
     retc = return_class(
     measurement_type="motor_command",
@@ -99,7 +99,7 @@ def moveAbsZ(z: float, wait: bool=True):
     )
     return retc
 
-@app.get("/lang/moveAbsFar")
+@app.get("/motor/moveAbsFar")
 def moveAbsFar(dx: float, dy: float, dz: float):
     l.moveAbsFar(dx, dy, dz)
     retc = return_class(
@@ -109,64 +109,20 @@ def moveAbsFar(dx: float, dy: float, dz: float):
     )
     return retc
 
-@app.get("/lang/moveToHome")
-def moveToHome():
-    l.moveToHome()
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "moveToHome"},
-    data={'data': None}
-    )
-    return retc
-    
-
-@app.get("/lang/moveToWaste")
-def moveToWaste():
-    l.moveToWaste()
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "moveToWaste"},
-    data={'data': None}
-    )
-    return retc
-
-@app.get("/lang/moveToSample")
-def moveToSample():
-    l.moveToSample()
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "moveToWaste"},
-    data={'data': None}
-    )
-    return retc
-
-@app.get("/lang/removeDrop")
-def removeDrop():
-    l.removeDrop()
-    retc = return_class(
-    measurement_type="motor_command",
-    parameters={"command": "RemoveDrop"},
-    data={'data': None}
-    )
-    return retc
-
-
-@app.on_event("shutdown")
-def disconnect():
-    l.moveToHome()
-    l.disconnect()
+@app.get("/motor/maxVel")
+def maxVel(XD: int=1000, YD: int=1000, ZD: int=500, AD: int=250):
+    l.maxVel(XD, YD, ZD, AD)    
     retc = return_class(
         measurement_type="motor_command",
-        parameters={"command": "motor_is_disconnected"},
-        data={'status': True}
+        parameters={"command": "move_absolute_z", 'x': dx, 'y': dy, 'z': dz},
+        data={'data': None}
         )
-    return retc 
+    return retc
+
 
 
 if __name__ == "__main__":
     l = langNet(config['lang'])
-    print('Port of lang Server: {}'.format(config['servers']['langServer']['port']))
-
-    uvicorn.run(app, host=config['servers']['langServer']['host'], port=config['servers']['langServer']['port'])
+    uvicorn.run(app, host=config['servers']['motorServer']['host'], port=config['servers']['motorServer']['port'])
     print("instantiated motor")
     

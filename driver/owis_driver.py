@@ -1,37 +1,52 @@
-#minimum and maximum positions are -466256 and 490711?
-#or maybe 0 and 958234?
-#still figuring out reference stuff
-#we could put all the motors onto the same reference point
-#i don't know how to reset to default
-#trying to decide to what degree we should explicitly configure things
+#I have decided to init things with REF{i}=6
+#thus, range of valid counts is between <0 and <960,000
+#I have been told one count is 0.0001mm, which I have roughly confirmed experimentally.
 
 import serial
-#this code is written assuming we will connect two usb ports to a single computer
-#i think a master-slave connection with a single serial to the computer would be better
-#but we do not have the correct cord to connect two controllers to each other
+import time
 
-#I view this as an incredibly rough draft,
-#because I do not feel that central decisions about how to implement it have been made
-#almost entirely untested code
+#this machine has a documented dll which we have in our possession,
+#but which i have chosen not to use, as it doesn't offer much over the serial commands,
+#and is a bit more complicated. something to bear in mind, though.
 class owis:
     def __init__(self,conf):
+#this code is written assuming we will connect two usb ports to a single computer
+#with two different ps10 controllers
+#i think a master-slave connection between two ps10's with a single serial
+#to the computer would be better, but i have been told this requires terminating connectors 
+#on the unused in and out ports of the ps10's, which we do not have
         self.sers = []
         for ser in conf['serials']:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))
         for i in range(len(self.sers)):
             self.activate(i)
+            time.sleep(.1)
             self.configure(i)
 
-    #activate nth motor, starting from 0
-    def activate(self,motor=0):
-        self.sers[motor].write(bytes('INIT1\r','utf-8'))
+    #I am trying to be clever and program all these functions so that
+    #one does not need to reference which motor if there is only a single motor
 
-    def configure(self,motor=0):
+    #activate nth motor, where n begins incrementing from 0
+    #get it out of an error state if it is in one
+    def activate(self,motor:int=0,err:bool=False):
+        self.sers[motor].write(bytes('INIT1\r','utf-8'))
+        if err:
+            time.sleep(.1)
+            self.sers[motor].write(bytes('EFREE1\r','utf-8'))
+
+    def configure(self,motor:int=0):
         self.sers[motor].write(bytes('REF1=6\r','utf-8'))
 
     #motor has default so that you can avoid specifying in cases where there is only a single motor
-    def moveAbs(self,count,motor=0):
+    #absol=true for absolute movement, false for relative
+    def move(self,count:int,motor:int=0,absol=True):
+        if absol:
+            self.sers[motor].write(bytes("ABSOL1\r",'utf-8'))
+        else: 
+            self.sers[motor].write(bytes("RELAT1\r",'utf-8'))
+        time.sleep(.1)
         self.sers[motor].write(bytes("PSET1={}\r".format(count),'utf-8'))
+        time.sleep(.1)
         self.sers[motor].write(bytes("PGO1\r",'utf-8'))
 
     def getPos(self):

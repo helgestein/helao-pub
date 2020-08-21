@@ -18,29 +18,29 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/owis/activate")
-def activate(motor):
+def activate(motor:int=0,err:bool=False):
     o.activate(motor)
     retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "configure", "parameters": {"motor": motor}},
+                        parameters={ "command": "activate", "parameters": {"motor": motor, "err": err}},
                         data= {"status": "activated"})
     return retc
     
     
 
 @app.get("/owis/configure")
-def configure(motor=0):
+def configure(motor:int=0):
     o.configure(motor)
     retc = return_class(measurement_type= "owis_motor_command",
                         parameters={ "command": "configure", "parameters": {"motor": motor}},
                         data= {"status": "configured"})
     return retc
 
-@app.get("/owis/moveAbs")
-def moveAbs(count,motor=0):
-    o.moveAbs(count,motor)
+@app.get("/owis/move")
+def move(count:int,motor:int=0,absol:bool=True):
+    o.move(count,motor,absol)
     retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "configure", 
-                        "parameters": {"count": count, "motor": motor}},
+                        parameters={ "command": "move", 
+                        "parameters": {"count": count, "motor": motor, "absol": absol}},
                         data= None)
     return retc
 

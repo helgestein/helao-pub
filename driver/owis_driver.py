@@ -8,6 +8,9 @@ import time
 #this machine has a documented dll which we have in our possession,
 #but which i have chosen not to use, as it doesn't offer much over the serial commands,
 #and is a bit more complicated. something to bear in mind, though.
+
+#time.sleep's are in here because only the first command is sent if you try to send a bunch at once
+#probably this is something using the dll would also fix
 class owis:
     def __init__(self,conf):
 #this code is written assuming we will connect two usb ports to a single computer
@@ -18,10 +21,12 @@ class owis:
         self.sers = []
         for ser in conf['serials']:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))
+            time.sleep(.1)
         for i in range(len(self.sers)):
             self.activate(i)
             time.sleep(.1)
             self.configure(i)
+            time.sleep(.1)
 
     #I am trying to be clever and program all these functions so that
     #one does not need to reference which motor if there is only a single motor
@@ -54,6 +59,7 @@ class owis:
         for ser in self.sers:
             ser.write(bytes("?CNT1\r",'utf-8'))
             out = ser.read(1000)
+            time.sleep(.1)
             ret.append(int(str(out)[2:-3]))
         return None if len(ret)==0 else ret[0] if len(ret)==1 else ret
 

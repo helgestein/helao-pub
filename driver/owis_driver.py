@@ -33,18 +33,25 @@ class owis:
 
     #activate nth motor, where n begins incrementing from 0
     #get it out of an error state if it is in one
-    def activate(self,motor:int=0,err:bool=False):
+    def activate(self,motor:int=0):
+        time.sleep(.1)
         self.sers[motor].write(bytes('INIT1\r','utf-8'))
-        if err:
+        time.sleep(.1)
+        self.sers[motor].write(bytes("?ASTAT\r",'utf-8'))
+        out = self.sers[motor].read(1000)
+        if str(out)[2] == "L":
             time.sleep(.1)
             self.sers[motor].write(bytes('EFREE1\r','utf-8'))
 
     def configure(self,motor:int=0):
+        time.sleep(.1)
         self.sers[motor].write(bytes('REF1=6\r','utf-8'))
+        self.isMoving(motor)
 
     #motor has default so that you can avoid specifying in cases where there is only a single motor
     #absol=true for absolute movement, false for relative
     def move(self,count:int,motor:int=0,absol=True):
+        time.sleep(.1)
         if absol:
             self.sers[motor].write(bytes("ABSOL1\r",'utf-8'))
         else: 
@@ -53,8 +60,19 @@ class owis:
         self.sers[motor].write(bytes("PSET1={}\r".format(count),'utf-8'))
         time.sleep(.1)
         self.sers[motor].write(bytes("PGO1\r",'utf-8'))
+        self.isMoving(motor)
+
+    def isMoving(self,motor:int=0):
+        moving = True
+        while moving:
+            time.sleep(.1)
+            self.sers[motor].write(bytes("?ASTAT\r",'utf-8'))
+            out = self.sers[motor].read(1000)
+            if  str(out)[2] not in  ["T","V","P"]:
+                moving = False
 
     def getPos(self):
+        time.sleep(.1)
         ret = []
         for ser in self.sers:
             ser.write(bytes("?CNT1\r",'utf-8'))

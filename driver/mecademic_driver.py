@@ -23,7 +23,7 @@ class Mecademic:
         self.api_robot.Home()
         # If the robot is not properly activated attempt a self repair
         if not msg == 'Motors activated.':
-            print('Noproperly activated trying self repair')
+            print('Improperly activated trying self repair')
             self.auto_repair()
 
     def auto_repair(self):
@@ -55,17 +55,23 @@ class Mecademic:
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.05)
         self.api_robot.MoveJoints(a,b,c,d,e,f)
+        while self.checkrobot()['EOB'] != 1:
+            time.sleep(0.05)
 
     def DMoveLin(self, a, b, c, d, e, f):
         print('DO NOT USE THIS FUNCTION! USE DMOVEPOSE INSTEAD THIS IS DANGEROUS!')
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.05)
         self.api_robot.MoveLin(a, b, c, d, e, f)
+        while self.checkrobot()['EOB'] != 1:
+            time.sleep(0.05)
 
     def DMovePose(self, a, b, c, d, e, f):
         while self.checkrobot()['EOB'] != 1:
             time.sleep(0.01)
         self.api_robot.MovePose(a, b, c, d, e, f)
+        while self.checkrobot()['EOB'] != 1:
+            time.sleep(0.01)
 
     def DQLinZ(self,z=20,nsteps=100):
         pose = self.DGetPose()

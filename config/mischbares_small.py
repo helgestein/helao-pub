@@ -127,4 +127,4 @@ config['megsv'] = dict(port = 5,
 
 config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data')
 
-config['owis'] = dict(serials=[dict(port='COM3', baud=9600, timeout=0.1),dict(port='COM4', baud=9600, timeout=0.1)])
+config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM6', baud=9600, timeout=0.1)])

@@ -18,10 +18,10 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/owis/activate")
-def activate(motor:int=0,err:bool=False):
+def activate(motor:int=0):
     o.activate(motor)
     retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "activate", "parameters": {"motor": motor, "err": err}},
+                        parameters={ "command": "activate", "parameters": {"motor": motor}},
                         data= {"status": "activated"})
     return retc
     

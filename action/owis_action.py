@@ -18,10 +18,10 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/table/activate")
-def activate(motor:int=0,err:bool=False):
-    res = requests.get("{}/owis/activate".format(url),params={"motor":motor,"err":err}).json()
+def activate(motor:int=0):
+    res = requests.get("{}/owis/activate".format(url),params={"motor":motor}).json()
     retc = return_class(measurement_type='owis',
-                        parameters= {'command':'activate','parameters':{"motor": motor, "err": err}},
+                        parameters= {'command':'activate','parameters':{"motor": motor}},
                         data = {'data':res})
     return retc
 
@@ -37,7 +37,7 @@ def configure(motor:int=0):
 #move. units of loc are mm. if configured properly, valid inputs roughly between 0mm and 96mm
 #aiming to write this so that loc can be either a float (when there is only a single motor) or a list of floats
 @app.get("/table/move")
-def move(loc,absol):
+def move(loc,absol:bool=True):
     if type(loc) == float or type(loc) == int:
         res = requests.get("{}/owis/move".format(url),params={"count":int(loc*10000),"motor":0,"absol":absol}).json()
     else:

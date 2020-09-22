@@ -1,29 +1,30 @@
-from bokeh.models import ColumnDataSource
-from bokeh.plotting import figure, curdoc
-from functools import partial
-from tornado.ioloop import IOLoop
-from bokeh.models import CheckboxButtonGroup
-from bokeh.models import RadioButtonGroup
-from bokeh.models.widgets import Paragraph
-import asyncio
+
+import os
+import sys
 import websockets
 import json
 import collections
+from functools import partial
+from importlib import import_module
 
-from bokeh.plotting import show
-from bokeh.io import output_notebook
-from bokeh.models import Range1d, ColumnDataSource, Title, ColumnDataSource, DataTable, DateFormatter, TableColumn
-from bokeh.models.renderers import GlyphRenderer
+from bokeh.models import ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup
+from bokeh.models import Title, DataTable, TableColumn
+from bokeh.models.widgets import Paragraph
+from bokeh.plotting import figure, curdoc
+from tornado.ioloop import IOLoop
+from munch import munchify
 
-import numpy as np
-
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+confPrefix = sys.argv[1]
+servKey = sys.argv[2]
+config = import_module(f"{confPrefix}").config
+C = munchify(config)["servers"]
+O = C[servKey]
+S = C[O.params.ws_host]
 
 doc = curdoc()
-
-uri = "ws://localhost:8003/ws"
-# ws = websockets()
-# ws.connect(uri)
-
+uri = f"ws://{S.host}:{S.port}/ws"
 time_stamp = 0
 pids = collections.deque(10*[0], 10)
 

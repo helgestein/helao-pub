@@ -18,27 +18,6 @@ import time
 import asyncio
 
 
-if __package__:
-    # can import directly in package mode
-    print("importing config vars from package path")
-else:
-    # interactive kernel mode requires path manipulation
-    cwd = os.getcwd()
-    pwd = os.path.dirname(cwd)
-    if os.path.basename(pwd) == "helao-dev":
-        sys.path.insert(0, pwd)
-    if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
-        print("importing config vars from sys.path")
-    else:
-        raise ModuleNotFoundError(
-            "unable to find config vars, current working directory is {}".format(cwd)
-        )
-
-from config.config import *
-
-setupd = GAMRY_SETUPD
-
-
 # potential signal generator
 def egen(vi, v0, v1, vf, vrate, ncycles, daq):
     segi0 = lambda t: vi + t * vrate if vi < v0 else vi - t * vrate
@@ -359,7 +338,8 @@ class GamryDtaqEvents(object):
 
 
 class gamry:
-    def __init__(self):
+    def __init__(self, config_dict):
+        self.config_dict = config_dict
         self.pstat = {"connected": 0}
         self.temp = []
         self.q = asyncio.Queue(loop=asyncio.get_event_loop())
@@ -417,7 +397,7 @@ class gamry:
 
     def dump_data(self):
         pickle.dump(
-            self.data, open(os.path.join(setupd["temp_dump"], self.instance_id))
+            self.data, open(os.path.join(self.config_dict["temp_dump"], self.instance_id))
         )
 
     async def potential_ramp(
@@ -452,7 +432,7 @@ class gamry:
             "data": self.data,
         }
 
-    def potential_cycle(
+    async def potential_cycle(
         self,
         Vinit: float,
         Vfinal: float,
@@ -488,9 +468,9 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup(gsetup="cv")
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
-            "measurement_type": "potential_ramp",
+            "measurement_type": "potential_cycle",
             "parameters": {
                 "Vinit": Vinit,
                 "Vapex1": Vapex1,

@@ -9,33 +9,35 @@ calls to 'motion.*' are not device-specific. Currently inherits configuration fr
 driver code, and hard-coded to use 'galil' class (see "__main__").
 """
 
-import os, sys
-
-if __package__:
-    # can import directly in package mode
-    print("importing config vars from package path")
-else:
-    # interactive kernel mode requires path manipulation
-    cwd = os.getcwd()
-    pwd = os.path.dirname(cwd)
-    print(pwd)
-    if os.path.basename(pwd) == "helao-dev":
-        sys.path.insert(0, pwd)
-    if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
-        print("importing config vars from sys.path")
-    else:
-        raise ModuleNotFoundError("unable to find config vars, current working directory is {}".format(cwd))
-
-from enum import Enum
+import os
+import sys
 import time
-from fastapi import FastAPI
+from enum import Enum
+from importlib import import_module
+
+
 import uvicorn
-# from galil_driver import *
-from driver.galil_simulate import *
+from fastapi import FastAPI
 from pydantic import BaseModel
+from munch import munchify
+
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+from galil_simulate import *
+confPrefix = sys.argv[1]
+servKey = sys.argv[2]
+config = import_module(f"{confPrefix}").config
+C = munchify(config)["servers"]
+S = C[servKey]
 
 app = FastAPI()
 
+
+@app.on_event("startup")
+def startup_event():
+    global motion
+    motion = galil(S.params)
 
 class return_class(BaseModel):
     measurement_type: str = None
@@ -49,7 +51,7 @@ class move_modes(str, Enum):
     absolute = "absolute"
 
 
-@app.get("/motor/set/move")
+@app.get(f"/{servKey}/move")
 def move(
     x_mm: float,
     axis: str,
@@ -81,7 +83,7 @@ def move(
 from starlette.responses import StreamingResponse
 
 
-@app.get("/motor/set/move_live")
+@app.get(f"/{servKey}/move_live")
 async def move_live(
     x_mm: float, axis: str, speed: int = None, mode: move_modes = "relative"
 ):
@@ -96,7 +98,7 @@ async def move_live(
     )
 
 
-@app.get("/motor/set/disconnect")
+@app.get(f"/{servKey}/disconnect")
 def disconnect():
     retc = return_class(
         measurement_type="motion_command",
@@ -106,7 +108,7 @@ def disconnect():
     return retc
 
 
-@app.get("/motor/query/positions")
+@app.get(f"/{servKey}/query_positions")
 def query_positions():
     # http://127.0.0.1:8001/motor/query/positions
     retc = return_class(
@@ -117,7 +119,7 @@ def query_positions():
     return retc
 
 
-@app.get("/motor/query/position")
+@app.get(f"/{servKey}/query_position")
 def query_position(axis: str):
     # http://127.0.0.1:8001/motor/query/position?axis=x
     retc = return_class(
@@ -128,7 +130,7 @@ def query_position(axis: str):
     return retc
 
 
-@app.get("/motor/query/moving")
+@app.get(f"/{servKey}/query_moving")
 def query_position(axis: str):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
     retc = return_class(
@@ -139,7 +141,7 @@ def query_position(axis: str):
     return retc
 
 
-@app.get("/motor/set/off")
+@app.get(f"/{servKey}/off")
 def axis_off(axis: str):
     # http://127.0.0.1:8001/motor/set/off?axis=x
     retc = return_class(
@@ -150,7 +152,7 @@ def axis_off(axis: str):
     return retc
 
 
-@app.get("/motor/set/on")
+@app.get(f"/{servKey}/on")
 def axis_on(axis: str):
     # http://127.0.0.1:8001/motor/set/on?axis=x
     retc = return_class(
@@ -161,94 +163,13 @@ def axis_on(axis: str):
     return retc
 
 
-@app.get("/motor/set/stop")
+@app.get(f"/{servKey}/stop")
 def stop():
     # http://127.0.0.1:8001/motor/set/stop
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "stop"},
         data=motion.motor_stop(),
-    )
-    return retc
-
-
-@app.get("/io/query/analog_in")
-def analog_in(port: int):
-    # http://127.0.0.1:8001/io/query/analog_in?port=0
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "analog_in"},
-        data=motion.read_analog_in(port),
-    )
-    return retc
-
-
-@app.get("/io/query/digital_in")
-def digital_in(port: int):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "digital_in"},
-        data=motion.read_digital_in(port),
-    )
-    return retc
-
-
-@app.get("/io/query/digital_out")
-def read_digital_out(port: int):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "digital_out_query"},
-        data=motion.read_digital_out(port),
-    )
-    return retc
-
-
-@app.get("/io/set/digital_out_on")
-def read_digital_out(port: int):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "digital_out_query"},
-        data=motion.digital_out_on(port),
-    )
-    return retc
-
-
-@app.get("/io/set/digital_out_off")
-def read_digital_out(port: int):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "digital_out_query"},
-        data=motion.digital_out_off(port),
-    )
-    return retc
-
-
-@app.get("/io/set/analog_out")
-def set_analog_out(handle: int, module: int, bitnum: int, value: float):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "analog_out_set"},
-        data=motion.set_analog_out(handle, module, bitnum, value),
-    )
-    return retc
-
-
-@app.get("/io/set/inf_digi_cycles")
-def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.0):
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "analog_out_set"},
-        data=motion.infinite_digital_cycles(time_off, time_on, port, init_time),
-    )
-    return retc
-
-
-@app.get("/io/set/break_inf_digi_cycles")
-def break_inf_cycles():
-    retc = return_class(
-        measurement_type="io_command",
-        parameters={"command": "analog_out_set"},
-        data=motion.break_infinite_digital_cycles(),
     )
     return retc
 
@@ -264,7 +185,4 @@ def shutdown():
 
 
 if __name__ == "__main__":
-    # makes this runnable and debuggable in VScode
-    # letters of the alphabet GALIL => G6 A0 L11 I8 L11
-    motion = galil()
-    uvicorn.run(app, host=FASTAPI_HOST, port=MOTION_PORT)
+    uvicorn.run(app, host=S.host, port=S.port)

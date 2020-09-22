@@ -122,7 +122,7 @@ def maxVel(XD: int=1000, YD: int=1000, ZD: int=500, AD: int=250):
 
 
 if __name__ == "__main__":
-    l = langNet()
+    l = langNet(config['lang'])
     uvicorn.run(app, host=config['servers']['motorServer']['host'], port=config['servers']['motorServer']['port'])
     print("instantiated motor")
     

@@ -1,31 +1,39 @@
 import sys
 import clr
 import time
-import numpy as np
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net")
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
+sys.path.append('../config')
  # this does not exit
+from mischbares_small import config
 # r"C:\Users\SDC_1\Documents\git\pyLang\API\LStepAPI"
 #ls2 = clr.AddReference('CClassLStep')
-ls = clr.AddReference('CClassLStep64') #CClassStep
-import CClassLStep
+#ls = clr.AddReference('CClassLStep64') #CClassStep
+#import CClassLStep
+
 
 
 class langNet():
-    def __init__(self):
-        self.connect()
-        self.mX = 20 #4
-        self.mY = 20 #20
-        self.mZ = 20 #4
+    def __init__(self,config):
+        self.port = config['port']
+        self.dllpath = config['dll']
+        self.dllconfigpath = config['dllconfig']
+        clr.AddReference(self.dllpath)
+        import CClassLStep
+        self.LS = CClassLStep.LStep() #.LSX_CreateLSID(0) -> this is actually wrong
         self.connected = False
+        self.connect()
+        #self.mX = 20 #4
+        #self.mY = 20 #20
+        #self.mZ = 20 #4
+        self.LS.SetVel(config['vx'],config['vy'],config['vz'],0)
 
     def connect(self):
-        self.LS = CClassLStep.LStep() #.LSX_CreateLSID(0) -> this is actually wrong
-        res = self.LS.ConnectSimpleW(11, "COM4", 115200, True)
+        res = self.LS.ConnectSimpleW(11, self.port, 115200, True)
         if res == 0:
             print("Connected")
-        self.LS.LoadConfigW(r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl")
+        self.LS.LoadConfigW(self.dllconfigpath)
         self.connected = True
 
     def disconnect(self):
@@ -48,59 +56,58 @@ class langNet():
             self.moveRelXY(dx,dy)
 
     def moveRelZ(self,dz,wait=True):
-        #calc how many steps:
-        steps,rest = np.divmod(dz,self.mZ)
-        steps = int(abs(steps))+ 1
-        for i in range(steps):
-            #self.LS.MoveRel(0,0,np.sign(dz)*self.mZ,0,wait)
-            #print(self.LS.SetAccelSingleAxisTVRO(2, 0))
-            #self.LS.MoveRel(0,0,np.sign(dz)*rest,0,wait)
-            self.LS.MoveRel(0, 0, dz/steps, 0, wait)
-            print(self.LS.GetVel(0, 0, dz/steps, 0))
+        self.LS.MoveRel(0,0,dz,0,wait)
             
 
     def moveRelXY(self,dx,dy,wait=True):
-        #calc how many steps:
-        stepdiv, rests = np.divmod([dx,dy],[self.mY,self.mX])
-        steps = int(max(abs(stepdiv)))+1
-        for i in range(steps):
-            self.LS.MoveRel(dx/steps,dy/steps,0,0,wait)
-            print(self.LS.GetVel(dx/steps, dy/steps, 0, 0))
+        self.LS.MoveRel(dx,dy,0,0,wait)
 
     def moveAbsXY(self,x,y,wait=True):
-        #calc how many steps:
         xp,yp,zp = self.getPos()
-        dx,dy = x-xp,y-yp
-        steps,rem = np.divmod(max([abs(dx),abs(dy)]),min(self.mX,self.mY))
-        steps = int(steps)
-        xpos,ypos,zpos = np.linspace(xp,x,steps+2),np.linspace(yp,y,steps+2),np.linspace(zp,zp,steps+2)
-        for xm,ym,zm in zip(xpos[1:],ypos[1:],zpos[1:]):
-            self.LS.MoveAbs(xm,ym,zm,0, wait)
-            print(self.LS.GetVel(xm, ym, zm, 0))
+        self.LS.MoveAbs(x,y,zp,0,wait)
     
     def moveAbsZ(self, z, wait=True):
-        self.LS = CClassLStep.LStep()
+        raise hell
         xp,yp,zp = self.getPos()
-        dz = z-zp
-        steps,rem = np.divmod(abs(dz),self.mZ)
-        steps = int(steps)
-        xpos, ypos, zpos =  np.linspace(xp,xp,steps+2), np.linspace(yp,yp,steps+2), np.linspace(zp,z,steps+2)
-        for xm,ym,zm in zip(xpos[1:],ypos[1:],zpos[1:]):
-            self.LS.MoveAbs(xm,ym,zm,0, wait)
-            print(self.LS.GetVel(xm, ym, zm, 0))
+        self.LS.MoveAbs(xp,yp,z,0,wait)
 
 
     def moveAbsFar(self, dx, dy, dz): 
         if dz > 0: #moving down -> z last
             self.moveAbsXY(dx,dy)
-            self.moveAbsZ(dz)
+            self.moveAbsZ2(dz)
         if dz <= 0: # moving up -> z first
-            self.moveAbsZ(dz)
+            self.moveAbsZ2(dz)
             self.moveAbsXY(dx,dy)
 
-    # get the maximum velocity 
-    def maxVel(XD=1000, YD=1000, ZD= 500, AD= 250): #motor speed or velocity in rpm for rotary motor in mm/s for linear motor
-        LS.GetMotorMaxVel(1000, 1000, 500, 250)
+
+    #def getMaxVel(self,XD= 1000, YD= 1000, ZD= 500, AD= 250): #motor speed or velocity in rpm for rotary motor in mm/s for linear motor
+    #    return self.LS.GetVel(1000, 1000, 500, 250)[1:4]
+
+    def setMaxVel(self,xvel,yvel,zvel):
+        self.LS.SetVel(xvel,yvel,zvel,0)
+
+
+    def moveAbsZ2(self,z,wait=True):
+        self.moveRelZ(z-self.getPos()[2],wait)
+
+    def moveToHome(self):
+        self.moveAbsFar(config['lang']['safe_home_pos'][0], config['lang']['safe_home_pos'][1], config['lang']['safe_home_pos'][2])
+        self.getPos()
+    
+    def moveToWaste(self):
+        self.moveAbsFar(config['lang']['safe_waste_pos'][0], config['lang']['safe_waste_pos'][1], config['lang']['safe_waste_pos'][2])
+        self.getPos()
+    
+    def moveToSample(self):
+        self.moveAbsFar(config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1], config['lang']['safe_sample_pos'][2])
+        self.getPos()
+    
+    def removeDrop(self):
+        #self.moveRelFar()
+        self.moveRelFar(0, 0, config['lang']['remove_drop'][2])
+        self.moveAbsFar(config['lang']['remove_drop'][0], config['lang']['remove_drop'][1], config['lang']['remove_drop'][2])
+        self.getPos()
 
 '''
 # setting of maximum motor speed or velocity 

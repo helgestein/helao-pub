@@ -16,6 +16,7 @@ class MEGSV:
         self.dll = ctypes.WinDLL(conf["dll_address"]) 
         self.adv = (ctypes.c_double*self.buffer)()
         self.nvals = ctypes.c_int()
+        self.activate()
     
     def activate(self):
         if self.dll.GSVactivate(self.port,self.buffer) == 0:

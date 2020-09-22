@@ -20,35 +20,64 @@ from typing import List
 
 app = FastAPI(title="Echem Action server V1",
     description="This is a very fancy echem action server",
-    version="1.0",)
+    version="1.0")
 
 class return_class(BaseModel):
     measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
+'''
 @app.get("/echem/measure/")
-def measure(procedure:str,setpoint_keys:List[str],setpoint_values:List[float],plot:str,onoffafter:str,safepath:str,filename:str):
+def measure(procedure:str,setpoint_keys:str,setpoint_values:str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
     """
     Measure a recipe and manipulate the parameters:
 
     - **measure_conf**: is explained in the echemprocedures folder
     """
-    measure_conf = dict(procedure=procedure,setpoint_keys=setpoint_keys,setpoint_values=setpoint_values,
-                        plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename)
+    measure_conf = dict(procedure=procedure,
+                        setpoint_key=setpoint_keys,
+                        setpoint_value=setpoint_values,
+                        plot=plot,
+                        onoffafter=onoffafter,
+                        safepath=safepath,
+                        filename=filename,
+                        parseinstructions=parseinstructions)
     
     res = requests.get("{}/potentiostat/measure".format(poturl), 
                         params=measure_conf).json()
   
-    '''????
-    res = requests.get("{}/motor/query/moving".format(poturl), 
-                        params=measure_conf).json()
-    '''
     retc = return_class(measurement_type='echem_measure',
                         parameters= {'command':'measure',
                                     'parameters':measure_conf},
                         data = {'data':res})
     return retc
+'''
+
+@app.get("/echem/measure/")
+def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
+    """
+    Measure a recipe and manipulate the parameters:
+
+    - **measure_conf**: is explained in the echemprocedures folder
+    """
+    measure_conf = dict(procedure=procedure,
+                        setpointjson=setpointjson,
+                        plot=plot,
+                        onoffafter=onoffafter,
+                        safepath=safepath,
+                        filename=filename,
+                        parseinstructions=parseinstructions)
+    
+    res = requests.get("{}/potentiostat/measure".format(poturl), 
+                        params=measure_conf).json()
+  
+    retc = return_class(measurement_type='echem_measure',
+                        parameters= {'command':'measure',
+                                    'parameters':measure_conf},
+                        data = {'data':res})
+    return retc
+
 
 @app.get("/echem/ismeasuring/")
 def ismeasuring():
@@ -120,5 +149,4 @@ def retrieve(safepath: str, filename: str):
 if __name__ == "__main__":
     poturl = "http://{}:{}".format(config['servers']['autolabServer']['host'], config['servers']['autolabServer']['port'])
     print('initialized autolab starting the server')
-    uvicorn.run(app, host=config['servers']['echemServer']['host'], 
-                     port=config['servers']['echemServer']['port'])
+    uvicorn.run(app, host=config['servers']['echemServer']['host'], port=config['servers']['echemServer']['port'])

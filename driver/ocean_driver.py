@@ -1,5 +1,6 @@
 import numpy
 from seabreeze.cseabreeze import SeaBreezeAPI
+import json
 
 #there are more features that the device has which we could implement
 #try calling self.device.features to see a dictionary of them
@@ -23,8 +24,13 @@ class ocean:
     def close(self):
         self.device.close()
 
-    def getWavelengths(self):
-        return self.device.f.spectrometer.get_wavelengths()
+    def readSpectrum(self,filename:str):
+        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':self.device.f.spectrometer.get_intensities().tolist()}
+        with open(filename,'w') as outfile: 
+            json.dump(data,outfile)
+        return data
 
-    def getIntensities(self):
-        return self.device.f.spectrometer.get_intensities()
+    def loadFile(self,filename:str):
+        with open(filename,'r') as infile:
+            data = json.load(infile)
+        return data

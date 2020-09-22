@@ -24,7 +24,7 @@ class return_class(BaseModel):
 
 @app.get("/forceAction/read")
 def read():
-#read a force measurement from the buffer. if there is no measurement in the buffer, it will wait for one to arrive.
+    #read a force measurement from the buffer. if there is no measurement in the buffer, it will wait for one to arrive.
     while True:
         data = requests.get("{}/force/read".format(url)).json()
         if data['data']['value'] != None:

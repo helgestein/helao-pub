@@ -35,20 +35,20 @@ def open():
                         data = {"status" : "activated"})
     return retc
 
-@app.get("/ocean/wavelengths")
-def getWavelengths():
-    data = o.getWavelengths()
+@app.get("/ocean/readSpectrum")
+def readSpectrum(filename:str):
+    data = o.readSpectrum(filename)
     retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"command" : "get_wavelengths"},
-                        data = {"wavelengths" : data.tolist()})
+                        parameters = {"filename" : filename},
+                        data = data)
     return retc
 
-@app.get("/ocean/intensities")
-def getIntensities():
-    data = o.getIntensities()
+@app.get("/ocean/loadFile")
+def loadFile(filename:str):
+    data = o.loadFile(filename)
     retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"command" : "get_intensities"},
-                        data = {"intensities" : data.tolist()})
+                    parameters = {"filename" : filename},
+                    data = {"data" : data})
     return retc
 
 @app.on_event("shutdown")

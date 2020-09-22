@@ -7,7 +7,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 from mischbares_small import config
+import time
+import json
 
+#I was thinking of rewriting formulation to use an allOn command again, and to manually turn off all pumps at start and/or finish to ensure allOn only calls primed pumps.
+#did not test this approach, and does not seem worth the effort to test, as what we are doing works fine now.
 
 app = FastAPI(title="Pump action server V1",
     description="This is a very fancy pump action server",
@@ -19,39 +23,38 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/pumping/formulation/")
-def formulation(comprel: list, pumps: list, speed: int, totalvol: int):
+def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: int = 1):
+    comprel = json.loads(comprel)
+    pumps = json.loads(pumps)
     #make sure the comprel makes sense
     comprel = [i/sum(comprel) for i in comprel]
     retl = []
     for c,p in zip(comprel,pumps):
-        #someone check this logic ...
-        #we pump at different speeds for formulation in the droplet coming out
-        #to make all pumps stop at roughly the same time the volume per pump is also
-        #adjusted 
         v = int(totalvol*c)
         s = int(speed*c)
-        res = requests.get("{}/pump/dispenseVolume".format(pumpurl), 
+        res = requests.get("{}/pump/primePump".format(pumpurl), 
                             params={'pump':p,'volume':v,'speed':s,
-                                    'direction':1,'read':False,'stage':True}).json()
+                                    'direction': direction,'read':True}).json()
         retl.append(res)
-    retl.append(requests.get("{}/pump/allOn".format(pumpurl), 
-                    params={'time':totalvol/speed}).json())
-
+    for p in pumps:
+        requests.get("{}/pump/runPump".format(pumpurl),params={'pump':p}).json()
+    retl.append(flushSerial()) #it is good to keep the buffer clean
     retc = return_class(measurement_type='pumping',
                         parameters= {'command':'measure',
                                     'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol}},
                         data = {'data':retl})
+    time.sleep(60*totalvol/speed)
     return retc
 
 @app.get("/pumping/flushSerial/")
 def flushSerial():
     res = requests.get("{}/pump/read".format(pumpurl)).json()
-
-    retc = return_class(measurement_type='echem_measure',
-                        parameters= {'command':'measure',
-                                    'parameters':None},
+    retc = return_class(measurement_type='pumping',
+                        parameters= {'command':'flushSerial','parameters':None},
                         data = {'data':res})
     return retc
+
+
 
 if __name__ == "__main__":
     pumpurl = "http://{}:{}".format(config['servers']['pumpServer']['host'], config['servers']['pumpServer']['port'])

@@ -12,6 +12,9 @@ import os
 import collections
 import numpy as np
 import sys
+import asyncio
+import aiofiles
+import time
 
 if __package__:
     # can import directly in package mode
@@ -48,10 +51,12 @@ def gamry_error_decoder(e):
 
 
 class GamryDtaqEvents(object):
-    def __init__(self, dtaq):
+    def __init__(self, dtaq, q):
         self.dtaq = dtaq
         self.acquired_points = []
         self.status = "idle"
+        # self.buffer = buff
+        self.buffer_size = 0
 
     def cook(self):
         count = 1
@@ -60,6 +65,8 @@ class GamryDtaqEvents(object):
             # The columns exposed by GamryDtaq.Cook vary by dtaq and are
             # documented in the Toolkit Reference Manual.
             self.acquired_points.extend(zip(*points))
+            # self.buffer[time.time()] = self.acquired_points[-1]
+            # self.buffer_size += sys.getsizeof(self.acquired_points[-1]
 
     def _IGamryDtaqEvents_OnDataAvailable(self, this):
         self.cook()
@@ -89,6 +96,9 @@ class gamry:
         except IndexError:
             print("No potentiostat is connected! Have you turned it on?")
         self.temp = []
+        self.buffer = dict()
+        self.buffer_size = 0
+        self.q = asyncio.Queue()
 
     def open_connection(self):
         # this just tries to open a connection with try/catch
@@ -115,9 +125,25 @@ class gamry:
         self.dtaqcpiv = client.CreateObject(g)
         self.dtaqcpiv.Init(self.pstat)
 
-        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
-    def measure(self, sigramp): 
+    async def asyncTest(self): # ADDED to test async (not needed)
+        while True:
+            print("here")
+            await asyncio.sleep(.25)
+
+    # def get_buffer(self):
+    #     for key in self.buffer:
+    #         print("key:" + str(key))
+    #         print("value:" + str(self.buffer.get(key)))
+    #     return self.buffer
+
+    # def get_buffer_from_index(self, i):
+    #     for index in range(len(list(self.buffer)) - i):
+    #         print("key:" + str(list(self.buffer.keys())[i + index]))
+    #         print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
+
+    async def measure(self, sigramp): 
         print("Opening Connection")
         ret = self.open_connection()
         self.pstat.SetIERange(8)
@@ -137,11 +163,32 @@ class gamry:
         self.data = collections.defaultdict(list)
         client.PumpEvents(0.001)
         sink_status = self.dtaqsink.status
+        # f = open("data.txt", "w")
+        # f.write("")
+        # f.close()
+        counter = 0
+        # f = open("data.txt", "a")
+
+        async with aiofiles.open('data', 'w') as f:
+            await f.write("")
+
         while sink_status != "done":
             client.PumpEvents(0.001)
+            while counter < len(self.dtaqsink.acquired_points):
+                await self.q.put(self.dtaqsink.acquired_points[counter])
+                async with aiofiles.open('data', 'a') as f:
+                    await f.write(str(self.dtaqsink.acquired_points[counter])+"\n")
+                counter += 1
+                print(counter)
+                await asyncio.sleep(.25) #CHANGE SLEEP TIME
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
+            # self.buffer_size = self.dtaqsink.buffer_size
+            # if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
+            #     while self.buffer_size > 5_000_000_000:
+            #         self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
+        f.close()
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 
@@ -179,7 +226,7 @@ class gamry:
             "data": np.array(self.data).tolist(),
         }
 
-    def potential_ramp(
+    async def potential_ramp(
         self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
     ):
         # setup the experiment specific signal ramp
@@ -188,7 +235,7 @@ class gamry:
             self.pstat, Vinit, Vfinal, ScanRate, SampleRate, self.GamryCOM.PstatMode
         )
         # measure ... this will do the setup as well
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -200,7 +247,7 @@ class gamry:
             "data": self.data,
         }
 
-    def potential_cycle(
+    async def potential_cycle(
         self,
         Vinit: float,
         Vfinal: float,
@@ -241,7 +288,7 @@ class gamry:
             self.GamryCOM.PstatMode,
         )
         # measure ... this will do the setup as well
-        self.measure(sigramp)
+        await self.measure(sigramp)
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -275,7 +322,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 
@@ -330,7 +377,7 @@ class gamry:
             if not is_on:
                 self.pstat.SetCell(self.GamryCOM.CellOn)
                 is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv)
+            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
             connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
 
@@ -365,6 +412,16 @@ class gamry:
 
 
 # exaple:
+
+g = gamry()
+loop = asyncio.get_event_loop() 
+task1 = loop.create_task(g.potential_ramp(-1,1,0.4,0.05))
+task2 = loop.create_task(g.asyncTest())
+final_task = asyncio.gather(task1, task2) 
+loop.run_until_complete(final_task)
+#mdata = g.potential_ramp(-1,1,0.4,0.05)
+#marray = np.array(mdata['data'])
+
 """
 import numpy as np
 poti = gamry()

@@ -62,6 +62,9 @@ class owis:
         self.sers[motor].write(bytes("PGO1\r",'utf-8'))
         self.isMoving(motor)
 
+    #holds priority while motor is moving.
+    #was thinking of modifying it to just return true while motor is moving, 
+    #and then handle priority in the action, but this works for now.
     def isMoving(self,motor:int=0):
         moving = True
         while moving:

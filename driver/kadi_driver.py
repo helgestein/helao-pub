@@ -10,23 +10,27 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,visibility='private',meta=''):
+    def addRecord(self,ident,title,filed,meta,visibility='private'):
         #create a record
         #visibility must be 'public' or 'private'
-        # if not '', meta must be serialized dict, filed will likely always be a serialized dict but does not need to be
-        record = Record(identifier=ident,title=title,visibility=visibility)
+        #meta must be serialized dict
+        record = Record(identifier=ident,title=title,visibility=visibility,create=True)
         record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
-        #metadata is currently turned off because it is broken
-
-
+        record.add_metadata(json.loads(meta),True)
 
     def addCollection(self,ident,title,visibility='private'):
         #create collection
-        collection = Collection(identifier=ident,title=title,visibility=visibility)
+        collection = Collection(identifier=ident,title=title,visibility=visibility,create=True)
 
-    def addRecordToCollection(self,identCollection,identRecord,visibility='private',record_id=None):
-        collection = Collection(identifier=identCollection, title='title',visibility=visibility)
-        if record_id == None:
-            record_id = Record(identifier=identRecord,title='title',visibility=visibility).id
-        #add record to collection
-        collection.add_record(record_id=record_id)
+    def addRecordToCollection(self,identCollection,identRecord):
+        collection = Collection(identifier=identCollection)
+        collection.add_record(record_id=Record(identifier=identRecord).id)
+
+    def linkRecordToGroup(self,identGroup,identRecord):
+        record = Record(identifier=identRecord)
+        record.add_group(identGroup)
+
+    def linkCollectionToGroup(self,identGroup,identCollection):
+        collection = Collection(identifier=identCollection)
+        collection.add_group(identGroup)
+

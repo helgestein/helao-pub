@@ -22,7 +22,7 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          tableServer = dict(host= "127.0.0.1", port= 13388))
 
 config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
-            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e")
+            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e",group='12')
 
 config['movement'] = dict(
     safe_sample_joints = [-56.0, 30.0, 40.0, 5.0, -72.0, 0.0],

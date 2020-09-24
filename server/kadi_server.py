@@ -16,10 +16,10 @@ app = FastAPI(title="KaDI4Mat Interface Driver V1",
 
 class validator_class(BaseModel):
     ident: str
-    title: str
+    title: str = ""
     filed: str = '""'
     meta: str = '""'
-    visibility: str
+    visibility: str = "private"
 
     @validator("visibility")
     def public_or_private(cls,v):
@@ -44,9 +44,6 @@ class validator_class(BaseModel):
 
 @app.get("/kadi/addrecord")
 def addRecord(ident:str,title:str,filed:str,meta:str,visibility:str='private'):
-    print(meta)
-    print(type(meta))
-    print(json.loads(meta))
     val = validator_class(ident=ident,title=title,filed=filed,meta=meta,visibility=visibility)
     k.addRecord(ident,title,filed,meta,visibility)
     
@@ -58,17 +55,30 @@ def addCollection(identifier:str,title:str,visibility:str='private'):
 @app.get("/kadi/addrecordtocollection")
 def addRecordToCollection(identCollection:str,identRecord:str):
     val = validator_class(ident=identCollection,title=identRecord)
-    k.addRecord(identCollection,identRecord)
+    k.addRecordToCollection(identCollection,identRecord)
 
 @app.get("/kadi/linkrecordtogroup")
-def linkRecordToGroup(self,identGroup,identRecord):
+def linkRecordToGroup(identGroup:str,identRecord:str):
     val = validator_class(ident=identGroup,title=identRecord)
     k.linkRecordToGroup(identGroup,identRecord)
 
 @app.get("/kadi/linkcollectiontogroup")
-def linkCollectionToGroup(self,identGroup,identCollection):
+def linkCollectionToGroup(identGroup:str,identCollection:str):
     val = validator_class(ident=identGroup,title=identCollection)
     k.linkCollectionToGroup(identGroup,identCollection)
+
+@app.get("/kadi/recordexists")
+def recordExists(ident:str):
+    #determine whether a record with the given identifier exists
+    val = validator_class(ident=ident)
+    return k.recordExists(ident)
+
+@app.get("/kadi/addfiletorecord")
+def addFileToRecord(identRecord:str,filed:str):
+    #if file is a filepath, upload from that path, if file is a json, upload directly
+    val = validator_class(ident=identRecord,title=filed)
+    k.addFileToRecord(identRecord,filed)
+
 
 if __name__ == '__main__':
     k = kadi(config['kadi'])

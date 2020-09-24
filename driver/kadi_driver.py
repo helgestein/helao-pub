@@ -34,3 +34,19 @@ class kadi():
         collection = Collection(identifier=identCollection)
         collection.add_group(identGroup)
 
+    def recordExists(self,ident):
+        #determine whether a record with the given identifier exists
+        try:
+            record = Record(identifier=ident)
+        except:
+            return False
+        return True
+
+    def addFileToRecord(self,identRecord,filed):
+        #if file is a filepath, upload from that path, if file is a json, upload directly
+        record = Record(identifier=identRecord)
+        try: 
+            json.loads(filed)
+            record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(identRecord,time.time_ns()))
+        except:
+            record.upload_file(file_path=filed)

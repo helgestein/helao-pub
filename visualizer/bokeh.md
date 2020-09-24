@@ -1,0 +1,2 @@
+- start bokeh demo server via: `bokeh serve bokeh_test.py`
+- default address is http://localhost:5006/bokeh_test

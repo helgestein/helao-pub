@@ -136,7 +136,6 @@ def makeRecordFromFile(filename,filepath,visibility='private'):
     addRecord(ident,title,filed,meta,visibility)
     paths = findFilepath(data)
     for i,j in zip(paths[0],paths[1]):
-        i = r"D:\temp"
         addFileToRecord(ident,os.path.join(i,j))
     
 

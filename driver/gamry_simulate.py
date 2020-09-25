@@ -1,3 +1,4 @@
+
 """ A device class for the Gamry USB potentiostat, used by a FastAPI server instance.
 
 The 'gamry' device class simulates potentiostat measurement functions provided by the
@@ -16,6 +17,30 @@ import sys
 from numba import jit
 import time
 import asyncio
+import aiofiles
+import sys
+from collections import defaultdict 
+
+
+if __package__:
+    # can import directly in package mode
+    print("importing config vars from package path")
+else:
+    # interactive kernel mode requires path manipulation
+    cwd = os.getcwd()
+    pwd = os.path.dirname(cwd)
+    if os.path.basename(pwd) == "helao-dev":
+        sys.path.insert(0, pwd)
+    if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
+        print("importing config vars from sys.path")
+    else:
+        raise ModuleNotFoundError(
+            "unable to find config vars, current working directory is {}".format(cwd)
+        )
+
+from config.config import *
+
+setupd = GAMRY_SETUPD
 
 
 # potential signal generator
@@ -308,42 +333,109 @@ class GamryDtaqEvents(object):
         "Takes gamry dtaq object with .cook() method, stores points"
         self.dtaq = "simulate"
         self.acquired_points = []
+        self.acquired_points_queue = asyncio.Queue() 
         self.status = "idle"
         self.start_time = time.time()
         self.stop_time = time.time()
         self.meas_type = meas_type
 
-    async def simulate(self, sigramp, q):
+    def simulate(self, sigramp, SampleRate, ScanRate, pid, data_buffer, buffer_size, buffer_add, buffer_sub, get_buffer_size): 
+        # set_status_aquire_points needs async sleep to work properly 
+        # test_async does not need async sleep to work properly 
+
+        # loop = asyncio.get_event_loop() 
+
         if self.meas_type == "IGamryDtaqRcv":
             fullt, fullv, fullj = cvsim(sigramp, 0.45)
         else:
             fullt, fullv, fullj = lssim(sigramp, 0.45)
         self.start_time = time.time()
         self.stop_time = self.start_time + fullt[-1]
-        self.status = "measuring"
-        for t, v, j in zip(fullt, fullv, fullj):
-            self.acquired_points.append([t, v, 0.0, j])
-            print([t, v, 0.0, j])
-            await q.put([t, v, 0.0, j])
-            await asyncio.sleep(fullt[1]-fullt[0])
-        # while time.time() < self.stop_time:
-            # self.status = "measuring"
-            # self.acquired_points = [
-            #     [t, v, 0.0, j]
-            #     for t, v, j in zip(fullt, fullv, fullj)
-            #     if t < (time.time() - self.start_time)
-            # ]
-        self.acquired_points = [[t, v, 0.0, j] for t, v, j in zip(fullt, fullv, fullj)]
+
+        #self.clear_aiofile()
+        # task0 = self.clear_aiofile()
+        # loop.run_until_complete(task0)
+
+        t0 = time.time()
+        self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer)
+        # task1 = loop.create_task(self.set_status_aquire_points(fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer)) 
+        # task2 = loop.create_task(self.test_async(SampleRate, ScanRate, self.acquired_points_queue, len(fullt)))
+        # final_task = asyncio.gather(task1, task2) 
+        # loop.run_until_complete(final_task)
+        dt = time.time() - t0
+        print(dt)
+
+        # data_buffer[pid] = self.acquired_points
+        buffer_add(sys.getsizeof(self.acquired_points))
+
+        if get_buffer_size() > 5_000_000_000: #5gb
+            while get_buffer_size() > 5_000_000_000:
+                sub = sys.getsizeof(data_buffer.pop(list(data_buffer.keys())[0]))
+                buffer_sub(sub)
+                # buffer_set(sum([sys.getsizeof(v) for k,v in data_buffer.items()]))
+            
+        print(self.acquired_points)
         self.status = "idle"
+
+    async def clear_aiofile(self): # clears file
+        data = ""
+        async with aiofiles.open('acquired_points', 'w') as f:
+            await f.write(data)
+
+    async def write_to_aiofile(self, data): # acquire_points queue is converted to a string to be written
+        # self.acquired_points.append(data)
+        data = ''.join(str(e) for e in data)
+        data = data.replace(']', ']\n')
+        async with aiofiles.open('acquired_points', 'a') as f:
+            await f.write(data)
+
+    def set_status_aquire_points(self, fullt, fullv, fullj, SampleRate, ScanRate, pid, data_buffer): # THIS CODE USE TO BE IN THE SIMULATE METHOD
+        fullt_copy = np.copy(fullt)
+        fullv_copy = np.copy(fullv)
+        fullj_copy = np.copy(fullj)
+        while time.time() < self.stop_time: 
+            self.status = "measuring" 
+            for t, v, j in zip(fullt_copy, fullv_copy, fullj_copy):
+                if t < (time.time() - self.start_time):
+                    data_buffer[pid].append([[t, v, 0.0, j]])
+                    #await self.write_to_aiofile([[t, v, 0.0, j]])
+                    #self.acquired_points_queue.put([[t, v, 0.0, j]])
+                    self.acquired_points.append([[t, v, 0.0, j]])
+                    fullt_copy = np.delete(fullt_copy, [0]) # by deleting the elements we do not get repeat data 
+                    fullv_copy = np.delete(fullv_copy, [0])
+                    fullj_copy = np.delete(fullj_copy, [0])
+            if(len(fullt_copy) == 1):
+                data_buffer[pid].append([[t, v, 0.0, j]])
+                #await self.write_to_aiofile([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                #self.acquired_points_queue.put([[fullt_copy[0], fullv_copy[0], 0.0, fullj_copy[0]]])
+                self.acquired_points.append([[t, v, 0.0, j]])
+                fullt_copy = np.delete(fullt_copy, [0]) 
+                fullv_copy = np.delete(fullv_copy, [0])
+                fullj_copy = np.delete(fullj_copy, [0])
+            #await asyncio.sleep(SampleRate/ScanRate)
 
 
 class gamry:
-    def __init__(self, config_dict):
-        self.config_dict = config_dict
+    def __init__(self): 
         self.pstat = {"connected": 0}
         self.temp = []
-        self.q = asyncio.Queue(loop=asyncio.get_event_loop())
-        self.time_stamp = time.time()
+        self.buffer = defaultdict(list)
+        self.buffer_size = 0
+        self.measuring = False
+        self.test_string = ""
+        self.data = [];
+
+    async def test_async(self, s):
+        self.measuring = True
+        for i in range(200):
+            self.test_string = s
+            print(self.test_string)
+            await asyncio.sleep(.1)
+
+    async def get_measuring(self):
+        while True:
+            print(self.measuring)
+            await asyncio.sleep(5)
 
     def open_connection(self, force_err=False):
         # seet connection status to open
@@ -370,8 +462,50 @@ class gamry:
             g = "IGamryDtaqRcv"
         self.dtaqsink = GamryDtaqEvents(g)
 
-    async def measure(self, sigramp):
-        self.time_stamp = time.time()
+    async def retrieve_pid(self, pid):
+        print(self.buffer.get(pid))
+        asyncio.sleep(0)
+
+    async def retrieve_buffer(self):
+        for key in self.buffer:
+            print("key:" + str(key))
+            print("value:" + str(self.buffer.get(key)))
+        asyncio.sleep(0)
+
+    async def clear_pid(self, pid):
+        self.buffer.pop(pid)
+        asyncio.sleep(0)
+
+    def buffer_add(self, num):
+        self.buffer_size += num
+
+    def buffer_sub(self, num):
+        self.buffer_size -= num
+
+    def get_buffer_size(self):
+        return self.buffer_size
+
+    async def pull_recent_data(self, start_index, pid):
+        recent_data = []
+        counter = 0
+        # for k,v in self.buffer.items():
+        for i in range(len(self.buffer[pid])):
+            if counter >= start_index:
+                recent_data.append(self.buffer[pid][i])
+            counter += 1
+        print(counter)
+        return (recent_data, counter) #return the counter to reset the new start index incase pull_recent_data is called again
+
+
+    async def pull_recent_data_helper(self, start_index, pid): #this will get moved to the orchestrator when ready
+        while self.measuring:
+            recently_pulled = await self.pull_recent_data(start_index, pid)
+            start_index = recently_pulled[1]
+            print(recently_pulled[0])
+            await asyncio.sleep(.25)
+
+
+    def measure(self, sigramp, SampleRate, ScanRate, pid): #ASYNCABLE 
         # starts measurement, init signal ramp and acquire data; loops until sink_status == "done"
         print("Opening Connection")
         ret = self.open_connection()
@@ -379,25 +513,28 @@ class gamry:
         # push the signal ramp over
         print("Pushing")
         # self.measurement_setup()
-        self.data = collections.defaultdict(list)
-        await self.dtaqsink.simulate(sigramp, self.q)
+        self.data = collections.defaultdict(list) #THIS LINE MAY NOT BE NEEDED
+        self.measuring = True
+        self.dtaqsink.simulate(sigramp, SampleRate, ScanRate, pid, self.buffer, self.buffer_size, self.buffer_add, self.buffer_sub, self.get_buffer_size)
         # sink_status = self.dtaqsink.status
         # while sink_status != "idle":
         #     sink_status = self.dtaqsink.status
         #     dtaqarr = self.dtaqsink.acquired_points
         #     self.data = dtaqarr # keep updating self.data
-        self.data = self.dtaqsink.acquired_points
+        self.data = self.dtaqsink.acquired_points #THIS LINE MAY NOT BE NEEDED
+        self.measuring = False
         self.close_connection()
 
-    def status(self):
+    async def status(self):
         try:
+            await asyncio.sleep(0)
             return self.dtaqsink.status
         except:
             return "other"
 
     def dump_data(self):
         pickle.dump(
-            self.data, open(os.path.join(self.config_dict["temp_dump"], self.instance_id))
+            self.data, open(os.path.join(setupd["temp_dump"], self.instance_id))
         )
 
     async def potential_ramp(
@@ -419,8 +556,9 @@ class gamry:
             "daq": SampleRate,
         }
         # measure ... this will do the setup as well
+        await asyncio.sleep(10)
         self.measurement_setup("sweep")
-        await self.measure(sigramp)
+        self.measure(sigramp, SampleRate, ScanRate, time.time())
         return {
             "measurement_type": "potential_ramp",
             "parameters": {
@@ -432,7 +570,52 @@ class gamry:
             "data": self.data,
         }
 
-    async def potential_cycle(
+    # def potential_ramp(
+    #     self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
+    # ):
+    #     # setup the experiment specific signal ramp
+    #     sigramp = {
+    #         "C": 1.0,  # initial conc of redox species
+    #         "D": 1e-5,  # redox diffusion coefficient
+    #         "etai": Vinit,  # initial overpotential
+    #         "etaf": Vfinal,  # final overpotential
+    #         "v": ScanRate,  # sweep rate
+    #         "n": 1.0,  # number of electrons transferred
+    #         "alpha": 0.5,  # charge-transfer coefficient
+    #         "k0": 1e-2,  # electrochemical rate constant
+    #         "kc": 1e-3,  # chemical rate constant
+    #         "T": 298.15,  # temperature
+    #         "cyc": 1,
+    #         "daq": SampleRate,
+    #     }
+    #     # measure ... this will do the setup as well
+    #     self.measurement_setup("sweep")
+
+    #     pid = time.time()
+
+    #     self.measure(sigramp, SampleRate, ScanRate, pid)
+    #     #start_index = 0
+    #     # pid = str(time.time())
+    #     #loop = asyncio.get_event_loop() 
+    #     # task1 = loop.create_task(self.measure(sigramp, SampleRate, ScanRate, pid))
+    #     # task2 = loop.create_task(self.pull_recent_data_helper(start_index, pid))
+    #     # final_task = asyncio.gather(task1, task2)
+    #     # loop.run_until_complete(final_task)
+    #     # self.measure(sigramp, SampleRate, ScanRate)
+
+
+    #     return {
+    #         "measurement_type": "potential_ramp",
+    #         "parameters": {
+    #             "Vinit": Vinit,
+    #             "Vfinal": Vfinal,
+    #             "ScanRate": ScanRate,
+    #             "SampleRate": SampleRate,
+    #         },
+    #         "data": self.data,
+    #     }
+
+    def potential_cycle(
         self,
         Vinit: float,
         Vfinal: float,
@@ -468,9 +651,17 @@ class gamry:
         }
         # measure ... this will do the setup as well
         self.measurement_setup(gsetup="cv")
-        await self.measure(sigramp)
+
+        start_index = 0
+        pid = str(time.time())
+        loop = asyncio.get_event_loop() 
+        task1 = loop.create_task(self.measure(sigramp, SampleRate, ScanRate, pid))
+        task2 = loop.create_task(self.pull_recent_data_helper(start_index, pid))
+        final_task = asyncio.gather(task1, task2)
+        loop.run_until_complete(final_task)
+        # self.measure(sigramp, SampleRate, ScanRate)
         return {
-            "measurement_type": "potential_cycle",
+            "measurement_type": "potential_ramp",
             "parameters": {
                 "Vinit": Vinit,
                 "Vapex1": Vapex1,
@@ -483,16 +674,9 @@ class gamry:
             "data": self.data,
         }
 
+g = gamry()
+# g.potential_ramp(-1,1,0.2,0.05)
 
-#g = gamry()
-#mdata = g.potential_ramp(-1,1,0.4,0.05)
-#marray = np.array(mdata['data'])
-
-
-#import matplotlib.pyplot as plt
-# plt.plot(marray[:, 0], marray[:, 1])
-#plt.plot(marray[:, 1], marray[:, 3])
-#
 # g.potential_cycle(-1, -1, 1, 1, 0.2, 1, 0.05, "galvanostatic")
-#
-# egen(0, 1.0, 1.0, 1.0, 0.2, 0.5, 0.05)
+
+egen(0, 1.0, 1.0, 1.0, 0.2, 0.5, 0.05)

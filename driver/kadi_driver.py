@@ -10,43 +10,23 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,meta,visibility='private'):
+    def addRecord(self,ident,title,filed,visibility='private',meta=''):
         #create a record
         #visibility must be 'public' or 'private'
-        #meta must be serialized dict
-        record = Record(identifier=ident,title=title,visibility=visibility,create=True)
+        # if not '', meta must be serialized dict, filed will likely always be a serialized dict but does not need to be
+        record = Record(identifier=ident,title=title,visibility=visibility)
         record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
-        record.add_metadata(json.loads(meta),True)
+        #metadata is currently turned off because it is broken
+
+
 
     def addCollection(self,ident,title,visibility='private'):
         #create collection
-        collection = Collection(identifier=ident,title=title,visibility=visibility,create=True)
+        collection = Collection(identifier=ident,title=title,visibility=visibility)
 
-    def addRecordToCollection(self,identCollection,identRecord):
-        collection = Collection(identifier=identCollection)
-        collection.add_record(record_id=Record(identifier=identRecord).id)
-
-    def linkRecordToGroup(self,identGroup,identRecord):
-        record = Record(identifier=identRecord)
-        record.add_group(identGroup)
-
-    def linkCollectionToGroup(self,identGroup,identCollection):
-        collection = Collection(identifier=identCollection)
-        collection.add_group(identGroup)
-
-    def recordExists(self,ident):
-        #determine whether a record with the given identifier exists
-        try:
-            record = Record(identifier=ident)
-        except:
-            return False
-        return True
-
-    def addFileToRecord(self,identRecord,filed):
-        #if file is a filepath, upload from that path, if file is a json, upload directly
-        record = Record(identifier=identRecord)
-        try: 
-            json.loads(filed)
-            record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(identRecord,time.time_ns()))
-        except:
-            record.upload_file(file_path=filed)
+    def addRecordToCollection(self,identCollection,identRecord,visibility='private',record_id=None):
+        collection = Collection(identifier=identCollection, title='title',visibility=visibility)
+        if record_id == None:
+            record_id = Record(identifier=identRecord,title='title',visibility=visibility).id
+        #add record to collection
+        collection.add_record(record_id=record_id)

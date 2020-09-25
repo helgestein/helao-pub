@@ -4,7 +4,7 @@ sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
-from mischbares_small import config
+from config.mischbares_small import config
 import json
 from copy import copy
 

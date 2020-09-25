@@ -74,7 +74,8 @@ def recordExists(ident:str):
 
 @app.get("/data/reformatmetadata")
 def reformatMetadata(metadata:dict):
-    #take a json-ed metadata dictionary as input, and convert it into a forman amenable to kadi.
+    #take a metadata dictionary as input, and convert it into a format amenable to kadi.
+    #also omit what we will grab with extractData
     newmeta = []
     for key,val in metadata.items():
         if (key != 'data' or type(val) == dict and 'data' in val):
@@ -86,6 +87,7 @@ def reformatMetadata(metadata:dict):
 
 @app.get("/data/extractdata")
 def extractData(metadata:dict):
+    #pull out whatever is under the lowest key called "data" in a nested set of dictionaries and lists of dictionaries
     if 'data' in metadata:
         if type(metadata['data']) == dict:
             return extractData(metadata['data'])
@@ -96,6 +98,7 @@ def extractData(metadata:dict):
 
 @app.get("/data/findfilepath")
 def findFilepath(metadata:dict):
+    #search dictionary for filepaths
     safepaths = []
     filenames = []
     for key,val in metadata.items():
@@ -113,6 +116,7 @@ def findFilepath(metadata:dict):
             safepaths.append(val)
         if key == "filename":
             filenames.append(val)
+    #filter duplicates
     csafepaths = []
     cfilenames = []
     for i,j in zip(safepaths,filenames):

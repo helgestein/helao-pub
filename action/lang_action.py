@@ -36,11 +36,13 @@ def moveRelFar( dx: float, dy: float, dz: float):
 def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
     steps = int(steps)
     #threshold = 0.5
+    force_value = []
     for i in range(steps):
         url_sens = url = "http://{}:{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'])
         res = requests.get("{}/forceAction/read".format(url), params=None).json()
+        force_value.append(res)
         if dz > threshold:
-            if abs(res['data']['data']['data']['value']) > maxForce: 
+            if abs(res['data']['data']['data']['value']) > maxForce:
                 print('Max force reached!')
 
             #requests.get("{}/lang/stopMove".format(url)).json()
@@ -56,7 +58,7 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
                 print('Max force reached!')
 
         pos = getPos()
-    retc = return_class(measurement_type='Move_relative', parameters= {"dz": dz,"steps":steps,"maxForce":maxForce},data={'pos':pos})
+    retc = return_class(measurement_type='Move_relative', parameters= {"dz": dz,"steps":steps,"maxForce":maxForce},data={'pos':pos, 'force_value': force_value})
     return retc
 
 @app.get("/motor/moveAbs")

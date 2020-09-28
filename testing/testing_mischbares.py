@@ -10,6 +10,7 @@ import time
 from config.mischbares_small import config
 import json
 from copy import copy
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -62,6 +63,7 @@ for j in range(216):
                             moveRel_0= dict(dx=0, dy=0, dz=-20), 
                             moveWaste_1= None),
                         meta=dict(ma=1 , substrate=j))
+
     elif 71 < j < 144:
         run_sequence= dict(soe=['motor/moveWaste_0', 'pumping/formulation_0', 'motor/RemoveDroplet_0', 'motor/moveAbs_0','motor/moveSample_0', 
                             'motor/moveAbs_1','motor/moveDown_0',
@@ -106,7 +108,20 @@ for j in range(216):
                             moveRel_0= dict(dx=0, dy=0, dz=-20),
                             moveWaste_1= None),
                             meta=dict(ma=1 , substrate=j))
-                    
+
+    add_collection = ["data/addCollection_0"]
+    add_collection_params = dict(addCollection_0= dict(identifier="test_demo", title="checkup"))
+    i = 0
+    for filename in os.listdir(r"C:\Users\Fuzhi\Documents\GitHub\helao-dev\temp"):
+        ident = filename.split("_")[0]
+        add_collection.append("data/makeRecordFromFile_{}".format(i))
+        add_collection_params.update({"makeRecordFromFile_{}".format(i): dict(filename= filename, filepath=r"C:\Users\Fuzhi\Documents\GitHub\helao-dev\temp")})
+        add_collection.append("data/addRecordToCollection_{}".format(i))
+        add_collection_params.update({"addRecordToCollection_{}".format(i): dict(identCollection= "electrodeposition data", identRecord=ident)})
+        i += 1
+        run_sequence['soe'] += add_collection
+        run_sequence['params'].update(add_collection_params)
+
     # all_seq.append(copy(run_sequence))
     test_fnc(run_sequence)
 
@@ -137,7 +152,7 @@ lang_sequence= dict(soe=['motor/getPos_0', 'motor/moveRel_0', 'motor/moveAbs_0',
                          'motor/moveHome_0','motor/moveWaste_0', 'motor/getPos_1', 'motor/moveDown_0'], 
                     params= dict(getPos_0 = None, moveRel_0= dict(dx=-10, dy=-10, dz=50),
                                 moveAbs_0= dict(dx=0, dy=0, dz=0), moveHome_0= None,
-                                moveWaste_0= None, getPos_1= None, moveDown_0= dict(dz=1, steps=10, maxForce=0.1),
+                                moveWaste_0= None, getPos_1= None, moveDown_0= dict(dz=1, steps=10, maxForce=0.1)),
                     meta=dict(ma=1 , substrate=1))
 
 test_fnc(lang_sequence)
@@ -205,8 +220,8 @@ pump_sequence = dict(soe= ['pumping/formulation_0', 'pumping/flushSerial_0','pum
                             'pumping/getPrimings_0','pumping/refreshPrimings_0'],
                       params= dict(formulation_0= dict(comprel='[0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125]',
                                                         pumps= '[0, 1, 2, 4, 6, 7, 10, 12]',speed= 8000, totalvol=2000),
-                                                        flushSerial_0=None, resetPrimings_0= None, getPrimings_0= None, refreshPrimings_0=None),
-                      meta=dict(ma=2 , substrate=1))
+                                    flushSerial_0=None, resetPrimings_0= None, getPrimings_0= None, refreshPrimings_0=None),
+                      meta= dict(ma=2 , substrate=1))
 
 test_fnc(pump_sequence)
 
@@ -226,8 +241,6 @@ dry_run_sequence_1= dict(soe=['motor/moveHome_0', 'motor/getPos_0', 'motor/moveA
                         filename="ca.nox",
                         parseinstructions="recordsignal"), moveWaste_0= None, moveHome_1= None),
                 meta=dict(ma=1 , substrate=1))
-                    measure_0= dict(procedure="ca", setpointjson="",
-d = 
 dry_run_sequence_2= dict(soe=['motor/moveHome_0', 'motor/getPos_0', 'motor/moveAbs_0', 
                     'pumping/formulation_0', 'forceAction/read_0', 'motor/getPos_1',
                     'motor/moveDown_0', 'echem/measure_0', 'motor/moveWaste_0', 'motor/moveHome_1'],
@@ -235,8 +248,7 @@ dry_run_sequence_2= dict(soe=['motor/moveHome_0', 'motor/getPos_0', 'motor/moveA
                     formulation_0= dict(comprel='[0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125]',
                     pumps= '[0, 1, 2, 4, 6, 7, 10, 12]',speed= 8000, totalvol=2000), read_0= None, 
                     getPos_1= None, moveDown_0= dict(dz=2, steps=20, maxForce=0.1), 
-                    measure_0= dict(procedure="ca", setpointjson= json.dumps({'applypotential': {'Setpoint value': pot[j]}, 'recordsignal': {'Duration': 10}})
-                    "{'applypotential': {'Setpoint value': 0.01}, 'recordsignal': {'Duration': 10}}",
+                    measure_0= dict(procedure="ca", setpointjson= json.dumps({'applypotential': {'Setpoint value': pot[j]}, 'recordsignal': {'Duration': 10}}),
                         plot="tCV",
                         onoffafter="off",
                         safepath="C:/Users/SDC_1/Documents/deploy/helao-dev/temp",

@@ -102,6 +102,7 @@ def doMeasurement(experiment: str):
             ma = experiment['meta']['ma']
             with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
                 json.dump(res, f)
+
         else:
             print("Emergency stopped!")
     

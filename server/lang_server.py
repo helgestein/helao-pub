@@ -150,6 +150,15 @@ def removeDrop():
     )
     return retc
 
+@app.get("/lang/stopMove")
+def stopMove():
+    l.stopMove()
+    retc = return_class(
+    measurement_type="motor_command",
+    parameters={"command": "RemoveDrop"},
+    data={'data': None}
+    )
+    return retc
 
 @app.on_event("shutdown")
 def disconnect():

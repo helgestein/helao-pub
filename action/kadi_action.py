@@ -128,15 +128,18 @@ def findFilepath(metadata:dict):
 
 @app.get("/data/makerecordfromfile")
 def makeRecordFromFile(filename,filepath,visibility='private'):
-    data = json.load(open(os.path.join(filepath,filename),'r'))
-    filed = json.dumps(extractData(data))
-    meta = json.dumps(reformatMetadata(data))
-    ident = filename.split("_")[0]
-    title = filename[:-5]
-    addRecord(ident,title,filed,meta,visibility)
-    paths = findFilepath(data)
-    for i,j in zip(paths[0],paths[1]):
-        addFileToRecord(ident,os.path.join(i,j))
+    if not ka.recordExists(ident):
+        data = json.load(open(os.path.join(filepath,filename),'r'))
+        filed = json.dumps(extractData(data))
+        meta = json.dumps(reformatMetadata(data))
+        ident = filename.split("_")[0]
+        title = filename[:-5]
+        addRecord(ident,title,filed,meta,visibility)
+        paths = findFilepath(data)
+        for i,j in zip(paths[0],paths[1]):
+            addFileToRecord(ident,os.path.join(i,j))
+    else:
+        print("record already exists")
     
 
 

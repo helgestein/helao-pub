@@ -28,11 +28,11 @@ class kadi():
 
     def linkRecordToGroup(self,identGroup,identRecord):
         record = Record(identifier=identRecord)
-        record.add_group(identGroup)
+        record.add_group_role(identGroup,"editor")
 
     def linkCollectionToGroup(self,identGroup,identCollection):
         collection = Collection(identifier=identCollection)
-        collection.add_group(identGroup)
+        collection.add_group_role(identGroup,"editor")
 
     def recordExists(self,ident):
         #determine whether a record with the given identifier exists

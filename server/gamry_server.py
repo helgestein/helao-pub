@@ -30,7 +30,8 @@ C = munchify(config)["servers"]
 S = C[servKey]
 
 
-app = FastAPI()
+app = FastAPI(title=servKey,
+              description="Gamry instrument/action server", version=1.0)
 
 
 class return_class(BaseModel):
@@ -93,11 +94,11 @@ async def pot_potential_cycle_wrap(
 
 
 @app.get(f"/{servKey}/status")
-async def status_wrapper():
+def status_wrapper():
     return return_class(
         measurement_type="status_query",
         parameters={"query": "potentiostat"},
-        data=[await poti.status()],
+        data=[poti.status()],
     )
 
 
@@ -107,12 +108,20 @@ async def status_wrapper():
 #     return return_class(**poti.signal_array(Cycles, SampleRate, arr))
 
 
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = [
+        {'path': route.path, 'name': route.name}
+        for route in app.routes
+    ]
+    return url_list
+
+
 @app.on_event("shutdown")
 def shutdown_event():
     # this gets called when the server is shut down or reloaded to ensure a clean
     # disconnect ... just restart or terminate the server
     poti.close_connection()
-    loop.close()
     return {"shutdown"}
 
 

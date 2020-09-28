@@ -1,7 +1,7 @@
 """
 helao.py is a full-stack launcher for initializing API servers
 
-launch via 'python helao.py {config_prefix} {server_key}'
+launch via 'python helao.py {config_prefix}'
 
 where config_prefix specifies the config/{config_prefix}.py 
 contains parameters for a jointly-managed group of servers and 
@@ -37,12 +37,19 @@ from importlib import import_module
 
 from munch import munchify
 
+helao_root = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(helao_root, 'config'))
+confPrefix = sys.argv[1]
+config = import_module(f"{confPrefix}").config
+conf = munchify(config)
 
 class Pidd:
     def __init__(self, pidFile, retries=3):
         self.PROC_NAMES = ["python.exe", "python"]
         self.pidFile = pidFile
         self.RETRIES = retries
+        self.reqKeys = ("host", "port", "group")
+        self.codeKeys = ("fast", "bokeh")
         self.d = {}
         try:
             self.load_global()
@@ -98,6 +105,7 @@ class Pidd:
             f"Could not find running bokeh server at {host}:{port}")
 
     def kill_server(self, k):
+        self.load_global() # reload in case any servers were appended
         if k not in self.d.keys():
             print(f"Server '{k}' not found in pid dict.")
             return True
@@ -142,20 +150,20 @@ class Pidd:
             os.remove(self.pidFile)
 
 
-def validateConfig(confDict):
+def validateConfig(PIDD, confDict):
     if len(confDict["servers"].keys()) != len(set(confDict["servers"].keys())):
         print("Server keys are not unique.")
         return False
-    reqKeys = ("host", "port", "group", "py")
     if "servers" not in confDict.keys():
         print(f"'servers' key not defined in config dictionary.")
         return False
     for server in confDict["servers"].keys():
         serverDict = confDict["servers"][server]
-        hasKeys = [k in serverDict.keys() for k in reqKeys]
+        hasKeys = [k in serverDict.keys() for k in PIDD.reqKeys]
+        hasCode = [k for k in serverDict.keys() if k in PIDD.codeKeys]
         if not all(hasKeys):
             print(
-                f"{server} config is missing {[k for k,b in zip(reqKeys, hasKeys) if b]}.")
+                f"{server} config is missing {[k for k,b in zip(PIDD.reqKeys, hasKeys) if b]}.")
             return False
         if not isinstance(serverDict["host"], str):
             print(f"{server} server 'host' is not a string")
@@ -166,14 +174,19 @@ def validateConfig(confDict):
         if not isinstance(serverDict["group"], str):
             print(f"{server} server 'group' is not a string")
             return False
-        if not isinstance(serverDict["py"], str):
-            print(f"{server} server 'py' is not a string")
-            return False
-        relPath = os.path.join(serverDict["group"], serverDict["py"]+".py")
-        if not os.path.exists(os.path.join(os.getcwd(), relPath)):
-            print(
-                f"{server} server code {serverDict['group']}/{serverDict['py']+'.py'} does not exist.")
-            return False
+        if hasCode:
+            if len(hasCode)!=1:
+                print(
+                    f"{server} cannot have more than one code key {PIDD.codeKeys}")
+                return False
+            if not isinstance(serverDict[hasCode[0]], str):
+                print(f"{server} server '{hasCode[0]}' is not a string")
+                return False
+            launchPath = os.path.join(serverDict["group"], serverDict[hasCode[0]]+".py")
+            if not os.path.exists(os.path.join(os.getcwd(), launchPath)):
+                print(
+                    f"{server} server code {serverDict['group']}/{serverDict[hasCode[0]]+'.py'} does not exist.")
+                return False
     serverAddrs = [
         f"{d['host']}:{d['port']}" for d in confDict["servers"].values()]
     if len(serverAddrs) != len(set(serverAddrs)):
@@ -207,18 +220,13 @@ def wait_key():
     return result
 
 
-helao_root = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(helao_root, 'config'))
+def launcher(confPrefix, confDict):
 
-# API server launch priority (matches folders in root helao-dev/)
-LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer"]
-
-if __name__ == "__main__":
-    confPrefix = sys.argv[1]
-    config = import_module(f"{confPrefix}").config
-    conf = munchify(config)
+    # API server launch priority (matches folders in root helao-dev/)
+    LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer"]
+    
     pidd = Pidd(f"pids_{confPrefix}.pck")
-    if not validateConfig(config):
+    if not validateConfig(pidd, confDict):
         raise Exception(f"Configuration for '{confPrefix}' is invalid.")
     else:
         print(f"Configuration for '{confPrefix}' is valid.")
@@ -226,7 +234,7 @@ if __name__ == "__main__":
     active = pidd.list_active()
     activeKHP = [(k, h, p) for k, h, p, _ in active]
     activeHP = [(h, p) for k, h, p, _ in active]
-    allGroup = {k: {sk: sv for sk, sv in config['servers'].items(
+    allGroup = {k: {sk: sv for sk, sv in confDict['servers'].items(
     ) if sv['group'] == k} for k in LAUNCH_ORDER}
     A = munchify(allGroup)
     for group in LAUNCH_ORDER:
@@ -234,15 +242,20 @@ if __name__ == "__main__":
             G = A[group]
             for server in G:
                 S = G[server]
-                servPy = S.py
+                codeKey = [k for k in S.keys() if k in pidd.codeKeys]
+                if codeKey:
+                    codeKey = codeKey[0]
+                    servPy = S[codeKey]
+                else:
+                    servPy = None
                 servHost = S.host
                 servPort = S.port
                 servKHP = (server, servHost, servPort)
                 servHP = (servHost, servPort)
                 # if 'py' key is None, assume remotely started or monitored by a separate process
-                if S.py is None:
+                if servPy is None:
                     print(
-                        f"{server} 'py' key has value None and will not be managed.")
+                        f"{server} does not specify one of ({pidd.codeKeys}) so process not be managed.")
                 elif servKHP in activeKHP:
                     print(
                         f"{server} already running with pid [{active[activeKHP.index(servKHP)][3]}]")
@@ -252,11 +265,12 @@ if __name__ == "__main__":
                 else:
                     print(
                         f"Launching {server} at {servHost}:{servPort} using {group}/{servPy}.py")
-                    if group != "visualizer":
-                        cmd = ["python", f"{group}/{servPy}.py", confPrefix, server]
+                    if codeKey == "fast":
+                        cmd = [
+                            "python", f"{group}/{servPy}.py", confPrefix, server]
                         p = subprocess.Popen(cmd)
                         ppid = p.pid
-                    else:
+                    elif codeKey == "bokeh":
                         cmd = ["bokeh", "serve", f"--allow-websocket-origin={servHost}:{servPort}",
                                "--address", servHost, "--port", f"{servPort}", f"{group}/{servPy}.py",
                                "--args", confPrefix, server]
@@ -270,8 +284,15 @@ if __name__ == "__main__":
                             print(
                                 "Unable to manage bokeh process. See bokeh output for correct PID.")
                             ppid = p.pid
+                    else:
+                        print(f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py")
+                        continue
                     pidd.store_pid(server, servHost, servPort, ppid)
+    return pidd
 
+
+if __name__ == "__main__":
+    pidd = launcher(confPrefix, config)
     result = None
     while result not in [b'\x18', b'\x04']:
         print("CTRL-x to terminate process group. CTRL-d to disconnect.")

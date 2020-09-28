@@ -31,7 +31,8 @@ config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
 
-app = FastAPI()
+app = FastAPI(title=servKey,
+              description="Galil motion instrument/action server", version=1.0)
 
 
 @app.on_event("startup")
@@ -172,6 +173,15 @@ def stop():
         data=motion.motor_stop(),
     )
     return retc
+
+
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = [
+        {'path': route.path, 'name': route.name}
+        for route in app.routes
+    ]
+    return url_list
 
 
 @app.on_event("shutdown")

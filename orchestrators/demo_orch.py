@@ -22,7 +22,7 @@ C = munchify(config)["servers"]
 O = C[servKey]
 
 app = FastAPI(title=servKey,
-              description="A generic orchestrator", version=1.0)
+              description="Helao world demo orchestrator", version=1.0)
 
 
 @app.post(f"/{servKey}/addExperiment")
@@ -100,6 +100,15 @@ def doMeasurement(experiment: str):
                 json.dump(res, f)
         else:
             print("Emergency stopped!")
+
+
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = [
+        {'path': route.path, 'name': route.name}
+        for route in app.routes
+    ]
+    return url_list
 
 
 @app.on_event("shutdown")

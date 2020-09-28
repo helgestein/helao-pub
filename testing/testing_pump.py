@@ -21,7 +21,7 @@ def pump_test(action, params):
 pump_test('formulation', params=dict(
     comprel='[0.5]',
     pumps= '[0]',
-    speed= 400, totalvol=20, direction= 1))
+    speed= 8000, totalvol=200, direction= 1))
 
 pump_test('flushSerial', None)
 pump_test('resetPrimings', None)

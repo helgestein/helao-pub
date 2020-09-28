@@ -24,7 +24,7 @@ test_fnc('moveRel', dict(dx=-10, dy=-10, dz=-10))
 test_fnc('moveAbs', dict(dx=2, dy=0, dz=0))
 test_fnc('moveWaste', None)
 test_fnc('moveHome', None)
-test_fnc('moveDown', dict(dz=0.493, steps=40, maxForce=0.04, threshold= 0.5)) #23.5
+test_fnc('moveDown', dict(dz=0.25, steps=10, maxForce=0.05))
 test_fnc('moveSample', None)
 test_fnc('RemoveDroplet', None)
 

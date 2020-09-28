@@ -4,9 +4,7 @@ import time
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net")
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
-
+sys.path.append('../config')
  # this does not exit
 from mischbares_small import config
 # r"C:\Users\SDC_1\Documents\git\pyLang\API\LStepAPI"
@@ -107,12 +105,9 @@ class langNet():
     
     def removeDrop(self):
         #self.moveRelFar()
-        self.moveRelFar(0, 0, config['lang']['remove_drop'][2]) # because referene will start from 2 
+        self.moveRelFar(0, 0, config['lang']['remove_drop'][2])
         self.moveAbsFar(config['lang']['remove_drop'][0], config['lang']['remove_drop'][1], config['lang']['remove_drop'][2])
         self.getPos()
-
-    def stopMove():
-        self.LS.StopAxes()
 
 '''
 # setting of maximum motor speed or velocity 

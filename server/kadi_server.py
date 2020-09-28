@@ -16,10 +16,10 @@ app = FastAPI(title="KaDI4Mat Interface Driver V1",
 
 class validator_class(BaseModel):
     ident: str
-    title: str
-    filed: str = ''
-    visibility: str
-    meta: str = ''
+    title: str = ""
+    filed: str = '""'
+    meta: str = '""'
+    visibility: str = "private"
 
     @validator("visibility")
     def public_or_private(cls,v):
@@ -27,15 +27,25 @@ class validator_class(BaseModel):
             raise ValidationError("visibility is not set to 'public' or 'private'")
         return v
 
-    @validator("filed","meta")
-    def is_serialized_dict(cls,v):
-        assert type(json.loads(v)) == dict or v == ''
+    @validator("filed")
+    def is_json(cls,v):
+        try:
+            json.loads(v)
+        except:
+            raise ValidationError("data is not a json")
+        return v
+
+    @validator("meta")
+    def is_list_of_serialized_dicts(cls,v):
+        if v != '""':
+            for i in json.loads(v):
+                assert type(i) == dict
         return v
 
 @app.get("/kadi/addrecord")
-def addRecord(ident:str,title:str,filed:str,visibility:str,meta:str=''):
-    val = validator_class(ident=ident,title=title,filed=filed,visibility=visibility,meta=meta)
-    k.addRecord(ident,title,filed,visibility,meta)
+def addRecord(ident:str,title:str,filed:str,meta:str,visibility:str='private'):
+    val = validator_class(ident=ident,title=title,filed=filed,meta=meta,visibility=visibility)
+    k.addRecord(ident,title,filed,meta,visibility)
     
 @app.get("/kadi/addcollection")
 def addCollection(identifier:str,title:str,visibility:str='private'):
@@ -43,9 +53,32 @@ def addCollection(identifier:str,title:str,visibility:str='private'):
     k.addCollection(identifier,title,visibility)
 
 @app.get("/kadi/addrecordtocollection")
-def addRecordToCollection(identCollection:str,identRecord:str,visibility:str='public',record:str=None):
-    val = validator_class(ident=identCollection,title=identRecord,visibility=visibility)
-    k.addRecord(identCollection,identRecord,visibility,record)
+def addRecordToCollection(identCollection:str,identRecord:str):
+    val = validator_class(ident=identCollection,title=identRecord)
+    k.addRecordToCollection(identCollection,identRecord)
+
+@app.get("/kadi/linkrecordtogroup")
+def linkRecordToGroup(identGroup:str,identRecord:str):
+    val = validator_class(ident=identGroup,title=identRecord)
+    k.linkRecordToGroup(identGroup,identRecord)
+
+@app.get("/kadi/linkcollectiontogroup")
+def linkCollectionToGroup(identGroup:str,identCollection:str):
+    val = validator_class(ident=identGroup,title=identCollection)
+    k.linkCollectionToGroup(identGroup,identCollection)
+
+@app.get("/kadi/recordexists")
+def recordExists(ident:str):
+    #determine whether a record with the given identifier exists
+    val = validator_class(ident=ident)
+    return k.recordExists(ident)
+
+@app.get("/kadi/addfiletorecord")
+def addFileToRecord(identRecord:str,filed:str):
+    #if file is a filepath, upload from that path, if file is a json, upload directly
+    val = validator_class(ident=identRecord,title=filed)
+    k.addFileToRecord(identRecord,filed)
+
 
 if __name__ == '__main__':
     k = kadi(config['kadi'])

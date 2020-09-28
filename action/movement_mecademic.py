@@ -270,6 +270,12 @@ def mvrailabs(pos):
 def mvrailrel(dist):
     pass
 
+@app.get("/movement/bringRaman")
+def bring_raman():
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9997,"b":36.4794,"c":-31.4562,"d":0.0,"e":58.4774,"f":120.0028}).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    return retc
+
 
 if __name__ == "__main__":
 

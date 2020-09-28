@@ -1,1 +1,0 @@
-{"procedure": "ca", "setpoints": {"applypotential": {"Setpoint value": 0.9014084507042254}, "recordsignal": {"Duration": 120}}, "plot": "tCV", "onoffafter": "off", "safepath": "C:/Users/SDC_1/Documents/deploy/helao-dev/temp", "filename": "ca_32.nox", "parseinstructions": ["recordsignal"]}

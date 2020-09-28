@@ -1,1 +1,0 @@
-{"procedure": "cp", "setpoints": {"applycurrent": {"Setpoint value": 0.006619718309859154}, "recordsignal": {"Duration": 120}}, "plot": "tCV", "onoffafter": "off", "safepath": "C:/Users/SDC_1/Documents/deploy/helao-dev/temp", "filename": "cp_59.nox", "parseinstructions": ["recordsignal"]}

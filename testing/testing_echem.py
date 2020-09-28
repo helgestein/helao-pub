@@ -33,5 +33,8 @@ echem_test('measure', params=dict(procedure="ca", setpointjson="{'applypotential
                         filename="ca.nox",
                         parseinstructions="recordsignal"))
 
-#echem_test('retrieve', params=??)
+
+
+
+echem_test('retrieve', params=??)
 

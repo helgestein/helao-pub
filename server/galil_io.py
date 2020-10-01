@@ -18,6 +18,7 @@ from importlib import import_module
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_flat_params
 from pydantic import BaseModel
 from munch import munchify
 
@@ -31,7 +32,8 @@ config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
 
-app = FastAPI()
+app = FastAPI(title=servKey,
+              description="Galil I/O instrument/action server", version=1.0)
 
 
 @app.on_event("startup")
@@ -46,7 +48,7 @@ class return_class(BaseModel):
 
 
 @app.get(f"/{servKey}/query_analog_in")
-def analog_in(port: int):
+def read_analog_in(port: int):
     # http://127.0.0.1:8001/io/query/analog_in?port=0
     retc = return_class(
         measurement_type="io_command",
@@ -57,7 +59,7 @@ def analog_in(port: int):
 
 
 @app.get(f"/{servKey}/query_digital_in")
-def digital_in(port: int):
+def read_digital_in(port: int):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_in"},
@@ -77,7 +79,7 @@ def read_digital_out(port: int):
 
 
 @app.get(f"/{servKey}/digital_out_on")
-def read_digital_out(port: int):
+def set_digital_out_on(port: int):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_out_query"},
@@ -87,7 +89,7 @@ def read_digital_out(port: int):
 
 
 @app.get(f"/{servKey}/digital_out_off")
-def read_digital_out(port: int):
+def set_digital_out_off(port: int):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_out_query"},
@@ -124,6 +126,29 @@ def break_inf_cycles():
         data=motion.break_infinite_digital_cycles(),
     )
     return retc
+
+
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = []
+    for route in app.routes:
+        routeD = {'path': route.path,
+                  'name': route.name
+                  }
+        if 'dependant' in dir(route):
+            flatParams = get_flat_params(route.dependant)
+            paramD = {par.name: {
+                'outer_type': str(par.outer_type_).split("'")[1],
+                'type': str(par.type_).split("'")[1],
+                'required': par.required,
+                'shape': par.shape,
+                'default': par.default
+            } for par in flatParams}
+            routeD['params'] = paramD
+        else:
+            routeD['params'] = []
+        url_list.append(routeD)
+    return url_list
 
 
 @app.on_event("shutdown")

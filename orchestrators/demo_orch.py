@@ -9,8 +9,7 @@ from importlib import import_module
 
 import uvicorn
 from fastapi import FastAPI, BackgroundTasks
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
+from fastapi.openapi.utils import get_flat_params
 from munch import munchify
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -22,16 +21,16 @@ C = munchify(config)["servers"]
 O = C[servKey]
 
 app = FastAPI(title=servKey,
-              description="A generic orchestrator", version=1.0)
+              description="Helao world demo orchestrator", version=1.0)
 
 
-@app.post(f"/{servKey}/addExperiment")
+@app.get(f"/{servKey}/addExperiment")
 def sendMeasurement(experiment: str):
     add_experiments.append(experiment)
     return {"message": experiment}
 
 
-@app.post(f"/{servKey}/semiInfiniteLoop")
+@app.get(f"/{servKey}/semiInfiniteLoop")
 async def semiInfiniteLoop():
     while True:
         #for reasons of changing list lens:
@@ -66,13 +65,13 @@ def infl():
             break
 
 
-@app.post(f"/{servKey}/infiniteLoop")
+@app.get(f"/{servKey}/infiniteLoop")
 def infiniteLoop(background_tasks: BackgroundTasks):
     background_tasks.add_task(infl)
     return {"message": 'bla'}
 
 
-@app.post(f"/{servKey}/emergencyStop")
+@app.get(f"/{servKey}/emergencyStop")
 def stopInfiniteLoop():
     emergencyStop = True
     return {"message": 'bla'}
@@ -100,6 +99,29 @@ def doMeasurement(experiment: str):
                 json.dump(res, f)
         else:
             print("Emergency stopped!")
+
+
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = []
+    for route in app.routes:
+        routeD = {'path': route.path,
+                  'name': route.name
+                  }
+        if 'dependant' in dir(route):
+            flatParams = get_flat_params(route.dependant)
+            paramD = {par.name: {
+                'outer_type': str(par.outer_type_).split("'")[1],
+                'type': str(par.type_).split("'")[1],
+                'required': par.required,
+                'shape': par.shape,
+                'default': par.default
+            } for par in flatParams}
+            routeD['params'] = paramD
+        else:
+            routeD['params'] = []
+        url_list.append(routeD)
+    return url_list
 
 
 @app.on_event("shutdown")

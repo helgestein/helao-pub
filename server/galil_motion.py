@@ -18,6 +18,7 @@ from importlib import import_module
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.openapi.utils import get_flat_params
 from pydantic import BaseModel
 from munch import munchify
 
@@ -31,7 +32,8 @@ config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
 
-app = FastAPI()
+app = FastAPI(title=servKey,
+              description="Galil motion instrument/action server", version=1.0)
 
 
 @app.on_event("startup")
@@ -172,6 +174,29 @@ def stop():
         data=motion.motor_stop(),
     )
     return retc
+
+
+@app.get('/endpoints')
+def get_all_urls():
+    url_list = []
+    for route in app.routes:
+        routeD = {'path': route.path,
+                  'name': route.name
+                  }
+        if 'dependant' in dir(route):
+            flatParams = get_flat_params(route.dependant)
+            paramD = {par.name: {
+                'outer_type': str(par.outer_type_).split("'")[1],
+                'type': str(par.type_).split("'")[1],
+                'required': par.required,
+                'shape': par.shape,
+                'default': par.default
+            } for par in flatParams}
+            routeD['params'] = paramD
+        else:
+            routeD['params'] = []
+        url_list.append(routeD)
+    return url_list
 
 
 @app.on_event("shutdown")

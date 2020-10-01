@@ -12,6 +12,7 @@ class ocean:
         #this is convoluted, but will prevent code from crashing if initiated when no spectrometer connected
         a = self.api.list_devices()
         self.device = None if len(a) == 0 else a[0]
+        self.open()
 
     def findDevice(self):
         a = self.api.list_devices()

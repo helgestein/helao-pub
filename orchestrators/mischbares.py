@@ -98,6 +98,12 @@ def doMeasurement(experiment: str):
             elif server == 'data':
                 res = requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
                             params= params).json()
+            elif server == 'table':
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server, action),
+                            params= params).json()
+            elif server == 'oceanAction':
+                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server, action),
+                            params= params).json()
             substrate= experiment['meta']['substrate']
             ma = experiment['meta']['ma']
             with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:

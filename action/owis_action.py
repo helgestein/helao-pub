@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 from mischbares_small import config
+import json
 
 app = FastAPI(title="Owis action server V1",
     description="This is a very fancy Owis motor server",
@@ -38,6 +39,7 @@ def configure(motor:int=0):
 #aiming to write this so that loc can be either a float (when there is only a single motor) or a list of floats
 @app.get("/table/move")
 def move(loc,absol:bool=True):
+    loc = json.loads(loc)
     if type(loc) == float or type(loc) == int:
         res = requests.get("{}/owis/move".format(url),params={"count":int(loc*10000),"motor":0,"absol":absol}).json()
     else:

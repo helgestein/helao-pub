@@ -56,7 +56,7 @@ class Pidd:
         except IOError:
             print(f"'{pidFile}' does not exist, writing empty global dict.")
             self.write_global()
-        except Exception as e:
+        except Exception:
             print(f"Error loading '{pidFile}', writing empty global dict.")
             self.write_global()
 

@@ -47,6 +47,7 @@ version="1.0")
 def addRecord(ident:str,title:str,filed:str,meta:str,visibility:str='private'): #filed is a json
     val = validator_class(ident=ident,title=title,filed=filed,meta=meta,visibility=visibility)
     requests.get("{}/kadi/addrecord".format(url), params={'ident':ident,'title':title,'filed':filed,'meta':meta,'visibility':visibility})
+    requests.get("{}/kadi/linkrecordtogroup".format(url), params={'identGroup':config['kadi']['group'],'identRecord':ident})
 
 @app.get("/data/addcollection")
 def addCollection(identifier:str,title:str,visibility:str='private'):
@@ -128,12 +129,12 @@ def findFilepath(metadata:dict):
 
 @app.get("/data/makerecordfromfile")
 def makeRecordFromFile(filename,filepath,visibility='private'):
-    if not ka.recordExists(ident):
-        data = json.load(open(os.path.join(filepath,filename),'r'))
-        filed = json.dumps(extractData(data))
-        meta = json.dumps(reformatMetadata(data))
-        ident = filename.split("_")[0]
-        title = filename[:-5]
+    data = json.load(open(os.path.join(filepath,filename),'r'))
+    filed = json.dumps(extractData(data))
+    meta = json.dumps(reformatMetadata(data))
+    ident = filename.split("_")[0]
+    title = filename[:-5]
+    if not recordExists(ident):
         addRecord(ident,title,filed,meta,visibility)
         paths = findFilepath(data)
         for i,j in zip(paths[0],paths[1]):

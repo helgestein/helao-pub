@@ -122,7 +122,7 @@ def moveToHome():
 
 @app.get("/lang/moveToWaste")
 def moveToWaste(x: float, y: float, z: float):
-    l.moveToWaste()
+    l.moveToWaste(x, y, z)
     retc = return_class(
     measurement_type="motor_command",
     parameters={"command": "moveToWaste"},
@@ -132,7 +132,7 @@ def moveToWaste(x: float, y: float, z: float):
 
 @app.get("/lang/moveToSample")
 def moveToSample(x: float, y: float, z: float):
-    l.moveToSample()
+    l.moveToSample(x, y, z)
     retc = return_class(
     measurement_type="motor_command",
     parameters={"command": "moveToWaste"},
@@ -142,7 +142,7 @@ def moveToSample(x: float, y: float, z: float):
 
 @app.get("/lang/removeDrop")
 def removeDrop(x: float, y: float, z: float):
-    l.removeDrop()
+    l.removeDrop(x, y, z)
     retc = return_class(
     measurement_type="motor_command",
     parameters={"command": "RemoveDrop"},
@@ -161,7 +161,7 @@ def stopMove():
     return retc
 
 @app.on_event("shutdown")
-def disconnect():
+def shutDown():
     l.moveToHome()
     l.disconnect()
     retc = return_class(

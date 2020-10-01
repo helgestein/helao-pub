@@ -112,7 +112,7 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM4',
                       dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl", 
                       safe_home_pos = [0.0, 0.0, 0.0], 
                       safe_waste_pos = [30.0, 100.0, 0.0], # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
-                      safe_sample_pos = [73.0, 42.0, 13.0], 
+                      safe_sample_pos = [5.0, 10.0, 0.0], 
                       remove_drop= [30.0, 80.0, 1.3])
 
 #Configuration of the Arcoptix FTIR

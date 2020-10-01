@@ -16,16 +16,17 @@ def test_fnc(action, params):
         config['servers']['motorServer']['host'], 
         config['servers']['motorServer']['port'],server , action),
         params= params).json()
+    print(r)
 
 
 test_fnc('getPos', None)
 test_fnc('moveRel', dict(dx=-10, dy=-10, dz=-10))
 test_fnc('moveAbs', dict(dx=2, dy=0, dz=0))
-test_fnc('moveWaste', None)
+test_fnc('moveWaste', dict(x=0, y=0, z=0))
 test_fnc('moveHome', None)
-test_fnc('moveDown', dict(dz=0.493, steps=40, maxForce=0.04, threshold= 0.5)) #23.5
-test_fnc('moveSample', None)
-test_fnc('RemoveDroplet', None)
+test_fnc('moveDown', dict(dz=0.248, steps=20, maxForce=0.04, threshold= 0.250)) #maximum length that you can go down is 5 
+test_fnc('moveSample', dict(x=0, y=0, z=0))
+test_fnc('RemoveDroplet', dict(x=0, y=0, z=0))
 
 
 import numpy as np

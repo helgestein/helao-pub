@@ -112,10 +112,10 @@ for j in range(216):
     add_collection = ["data/addCollection_0"]
     add_collection_params = dict(addCollection_0= dict(identifier="test_demo", title="checkup"))
     i = 0
-    for filename in os.listdir(r"C:\Users\Fuzhi\Documents\GitHub\helao-dev\temp"):
+    for filename in os.listdir(r"C:\Users\SDC_1\Documents\data"):
         ident = filename.split("_")[0]
         add_collection.append("data/makeRecordFromFile_{}".format(i))
-        add_collection_params.update({"makeRecordFromFile_{}".format(i): dict(filename= filename, filepath=r"C:\Users\Fuzhi\Documents\GitHub\helao-dev\temp")})
+        add_collection_params.update({"makeRecordFromFile_{}".format(i): dict(filename= filename, filepath=r"C:\Users\SDC_1\Documents\data")})
         add_collection.append("data/addRecordToCollection_{}".format(i))
         add_collection_params.update({"addRecordToCollection_{}".format(i): dict(identCollection= "electrodeposition data", identRecord=ident)})
         i += 1

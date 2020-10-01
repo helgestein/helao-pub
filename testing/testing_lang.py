@@ -18,7 +18,6 @@ def test_fnc(action, params):
         params= params).json()
 
 
-
 test_fnc('getPos', None)
 test_fnc('moveRel', dict(dx=-10, dy=-10, dz=-10))
 test_fnc('moveAbs', dict(dx=2, dy=0, dz=0))

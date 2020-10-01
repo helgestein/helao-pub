@@ -69,7 +69,7 @@ class langNet():
         self.LS.MoveAbs(x,y,zp,0,wait)
     
     def moveAbsZ(self, z, wait=True):
-        raise hell
+        #raise do not use this function 
         xp,yp,zp = self.getPos()
         self.LS.MoveAbs(xp,yp,z,0,wait)
 
@@ -97,21 +97,21 @@ class langNet():
         self.moveAbsFar(config['lang']['safe_home_pos'][0], config['lang']['safe_home_pos'][1], config['lang']['safe_home_pos'][2])
         self.getPos()
     
-    def moveToWaste(self):
-        self.moveAbsFar(config['lang']['safe_waste_pos'][0], config['lang']['safe_waste_pos'][1], config['lang']['safe_waste_pos'][2])
+    def moveToWaste(self, x, y, z): #these three coordinates define the home position. This helps us to align the positions based on the reference point 
+        self.moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['safe_waste_pos'][2])
         self.getPos()
     
-    def moveToSample(self):
-        self.moveAbsFar(config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1], config['lang']['safe_sample_pos'][2])
+    def moveToSample(self, x, y, z):
+        self.moveAbsFar(x + config['lang']['safe_sample_pos'][0], y + config['lang']['safe_sample_pos'][1], z + config['lang']['safe_sample_pos'][2])
         self.getPos()
     
-    def removeDrop(self):
+    def removeDrop(self, x, y, z):
         #self.moveRelFar()
-        self.moveRelFar(0, 0, config['lang']['remove_drop'][2]) # because referene will start from 2 
-        self.moveAbsFar(config['lang']['remove_drop'][0], config['lang']['remove_drop'][1], config['lang']['remove_drop'][2])
+        self.moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['remove_drop'][2]) # because referene will start from 2 
+        self.moveAbsFar(x + config['lang']['remove_drop'][0], y + config['lang']['remove_drop'][1], z + config['lang']['remove_drop'][2])
         self.getPos()
 
-    def stopMove():
+    def stopMove(self):
         self.LS.StopAxes()
 
 '''

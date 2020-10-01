@@ -121,7 +121,7 @@ def moveToHome():
     
 
 @app.get("/lang/moveToWaste")
-def moveToWaste():
+def moveToWaste(x: float, y: float, z: float):
     l.moveToWaste()
     retc = return_class(
     measurement_type="motor_command",
@@ -131,7 +131,7 @@ def moveToWaste():
     return retc
 
 @app.get("/lang/moveToSample")
-def moveToSample():
+def moveToSample(x: float, y: float, z: float):
     l.moveToSample()
     retc = return_class(
     measurement_type="motor_command",
@@ -141,7 +141,7 @@ def moveToSample():
     return retc
 
 @app.get("/lang/removeDrop")
-def removeDrop():
+def removeDrop(x: float, y: float, z: float):
     l.removeDrop()
     retc = return_class(
     measurement_type="motor_command",

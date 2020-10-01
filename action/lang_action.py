@@ -2,7 +2,7 @@ import sys
 sys.path.append(r'../config')
 sys.path.append(r'../driver')
 sys.path.append(r'../server')
-from mischbares_small import config
+from mischbares_small.config import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -62,7 +62,7 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
     return retc
 
 @app.get("/motor/moveAbs")
-def moveAbsFar( dx: float, dy: float, dz: float):
+def moveAbsFar(dx: float, dy: float, dz: float):
     requests.get("{}/lang/moveAbsFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
     retc = return_class(measurement_type='Move_absolut', parameters= {"dx": dx, "dy": dy, "dz": dz})
     return retc
@@ -74,19 +74,19 @@ def moveHome():
     return retc
 
 @app.get("/motor/moveWaste")
-def moveWaste():
+def moveWaste(x: float, y: float, z: float):
     requests.get("{}/lang/moveToWaste".format(url)).json()
     retc = return_class(measurement_type='Move_Waste')
     return retc
 
 @app.get("/motor/moveSample")
-def moveToSample():
+def moveToSample(x: float, y: float, z: float):
     requests.get("{}/lang/moveToSample".format(url)).json()
     retc = return_class(measurement_type='Move_Sample')
     return retc
 
 @app.get("/motor/RemoveDroplet")
-def removeDrop():
+def removeDrop(x: float, y: float, z: float):
     requests.get("{}/lang/removeDrop".format(url)).json()
     retc = return_class(measurement_type='Remove_Droplet')
     return retc

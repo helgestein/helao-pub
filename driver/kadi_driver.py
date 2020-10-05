@@ -4,6 +4,7 @@ from kadi_apy.lib.collections import Collection
 import json
 import time
 import pandas
+import os
 
 class kadi():
     def __init__(self,conf):
@@ -23,8 +24,8 @@ class kadi():
         collection = Collection(identifier=ident,title=title,visibility=visibility,create=True)
 
     def addRecordToCollection(self,identCollection,identRecord):
-        collection = Collection(identifier=identCollection)
-        collection.add_record(record_id=Record(identifier=identRecord).id)
+        record = Record(identifier=identRecord)
+        record.add_collection_link(Collection(identifier=identCollection).id)
 
     def linkRecordToGroup(self,identGroup,identRecord):
         record = Record(identifier=identRecord)
@@ -50,3 +51,21 @@ class kadi():
             record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(identRecord,time.time_ns()))
         except:
             record.upload_file(file_path=filed)
+
+    def downloadFilesFromRecord(self,ident,filepath):
+        #download all files from record
+        record = Record(identifier=ident)
+        response = record.get_filelist(per_page=100).json()
+        for i in range(response['_pagination']['total_pages']):
+            page = response = record.get_filelist(page=i,per_page=100).json()
+            for item in page['items']:
+                record.download_file(item['id'],os.path.join(filepath,item['name']))
+
+    def downloadFilesFromCollection(self,ident,filepath):
+        #download all files from all records in collection
+        collection = Collection(identifier=ident)
+        response = collection.get_records(per_page=100).json()
+        for i in range(response['_pagination']['total_pages']):
+            page = collection.get_records(page=i,per_page=100).json()
+            for item in page['items']:
+                self.downloadFilesFromRecord(item['identifier'],filepath)

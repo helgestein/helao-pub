@@ -60,6 +60,7 @@ def addCollection(identifier:str,title:str,visibility:str='private'):
 def addRecordToCollection(identCollection:str,identRecord:str):
     val = validator_class(ident=identCollection,title=identRecord)
     requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord})
+    requests.get("{}/kadi/linkrecordtogroup".format(url),params={'identGroup':config['kadi']['group'],'identRecord':identRecord})
 
 @app.get("/data/addfiletorecord")
 def addFileToRecord(identRecord:str,filed:str):
@@ -77,6 +78,7 @@ def recordExists(ident:str):
 def reformatMetadata(metadata:dict):
     #take a metadata dictionary as input, and convert it into a format amenable to kadi.
     #also omit what we will grab with extractData
+    #obsoleted by the fact that records will now comprise multiple actions
     newmeta = []
     for key,val in metadata.items():
         if (key != 'data' or type(val) == dict and 'data' in val):
@@ -89,6 +91,7 @@ def reformatMetadata(metadata:dict):
 @app.get("/data/extractdata")
 def extractData(metadata:dict):
     #pull out whatever is under the lowest key called "data" in a nested set of dictionaries and lists of dictionaries
+    #obsoleted by the fact that records will now comprise multiple actions
     if 'data' in metadata:
         if type(metadata['data']) == dict:
             return extractData(metadata['data'])
@@ -100,6 +103,7 @@ def extractData(metadata:dict):
 @app.get("/data/findfilepath")
 def findFilepath(metadata:dict):
     #search dictionary for filepaths
+    #obsoleted by the fact that records will now comprise multiple actions
     safepaths = []
     filenames = []
     for key,val in metadata.items():
@@ -129,6 +133,7 @@ def findFilepath(metadata:dict):
 
 @app.get("/data/makerecordfromfile")
 def makeRecordFromFile(filename,filepath,visibility='private'):
+    #obsoleted by the fact that records will now comprise multiple actions
     data = json.load(open(os.path.join(filepath,filename),'r'))
     filed = json.dumps(extractData(data))
     meta = json.dumps(reformatMetadata(data))
@@ -141,6 +146,16 @@ def makeRecordFromFile(filename,filepath,visibility='private'):
             addFileToRecord(ident,os.path.join(i,j))
     else:
         print("record already exists")
+
+@app.get("/data/downloadfilesfromrecord")
+def downloadFilesFromRecord(ident,filepath):
+    #download all files from record
+    requests.get("{}/kadi/downloadfilesfromrecord".format(url),params={'ident':ident,'filepath':filepath})
+
+@app.get("/data/downloadfilesfromcollection")
+def downloadFilesFromCollection(ident,filepath):
+    #download all files from all records in collection
+    requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filepath})
     
 
 

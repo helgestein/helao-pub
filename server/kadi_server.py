@@ -79,6 +79,15 @@ def addFileToRecord(identRecord:str,filed:str):
     val = validator_class(ident=identRecord,title=filed)
     k.addFileToRecord(identRecord,filed)
 
+@app.get("/kadi/downloadfilesfromrecord")
+def downloadFilesFromRecord(ident,filepath):
+    #download all files from record
+    k.downloadFilesFromRecord(ident,filepath)
+
+@app.get("/kadi/downloadfilesfromcollection")
+def downloadFilesFromCollection(ident,filepath):
+    #download all files from all records in collection
+    k.downloadFilesFromCollection(ident,filepath)
 
 if __name__ == '__main__':
     k = kadi(config['kadi'])

@@ -19,7 +19,7 @@ C = conf.servers[orchKey]
 url = f"http://{C.host}:{C.port}"
 
 #start the infinite loop
-res = requests.get(f"{url}/{orchKey}/infiniteLoop").json()
+res = requests.post(f"{url}/{orchKey}/infiniteLoop").json()
 
 # move 10.0 mm relative on axis 'x'
 act0 = dict(soe=['motor/move'], 
@@ -29,7 +29,7 @@ act0 = dict(soe=['motor/move'],
                     mode="relative"
                     )
         )
-res0 = requests.get(f"{url}/{orchKey}/addExperiment",
+res0 = requests.post(f"{url}/{orchKey}/addExperiment",
                     params={'experiment': json.dumps(act0)}).json()
 print(res0)
 
@@ -40,7 +40,7 @@ act1 = dict(soe=['motor/move'],
                     mode="relative"
                     )
         )
-res1 = requests.get(f"{url}/{orchKey}/addExperiment",
+res1 = requests.post(f"{url}/{orchKey}/addExperiment",
                     params={'experiment': json.dumps(act1)}).json()
 print(res1)
 
@@ -56,7 +56,7 @@ act2 = dict(soe=['potentiostat/potential_cycle'],
                         control_mode="galvanostatic"
                         )
             )
-res2 = requests.get(f"{url}/{orchKey}/addExperiment",
+res2 = requests.post(f"{url}/{orchKey}/addExperiment",
                     params={'experiment': json.dumps(act2)}).json()
 print(res2)
 
@@ -71,6 +71,6 @@ act3 = dict(soe=['potentiostat/potential_cycle'],
                         control_mode="galvanostatic"
                         )
             )
-res3 = requests.get(f"{url}/{orchKey}/addExperiment",
+res3 = requests.post(f"{url}/{orchKey}/addExperiment",
                     params={'experiment': json.dumps(act3)}).json()
 print(act3)

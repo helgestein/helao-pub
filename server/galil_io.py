@@ -47,7 +47,7 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get(f"/{servKey}/query_analog_in")
+@app.post(f"/{servKey}/query_analog_in")
 def read_analog_in(port: int):
     # http://127.0.0.1:8001/io/query/analog_in?port=0
     retc = return_class(
@@ -58,7 +58,7 @@ def read_analog_in(port: int):
     return retc
 
 
-@app.get(f"/{servKey}/query_digital_in")
+@app.post(f"/{servKey}/query_digital_in")
 def read_digital_in(port: int):
     retc = return_class(
         measurement_type="io_command",
@@ -68,7 +68,7 @@ def read_digital_in(port: int):
     return retc
 
 
-@app.get(f"/{servKey}/query_digital_out")
+@app.post(f"/{servKey}/query_digital_out")
 def read_digital_out(port: int):
     retc = return_class(
         measurement_type="io_command",
@@ -78,7 +78,7 @@ def read_digital_out(port: int):
     return retc
 
 
-@app.get(f"/{servKey}/digital_out_on")
+@app.post(f"/{servKey}/digital_out_on")
 def set_digital_out_on(port: int):
     retc = return_class(
         measurement_type="io_command",
@@ -88,7 +88,7 @@ def set_digital_out_on(port: int):
     return retc
 
 
-@app.get(f"/{servKey}/digital_out_off")
+@app.post(f"/{servKey}/digital_out_off")
 def set_digital_out_off(port: int):
     retc = return_class(
         measurement_type="io_command",
@@ -98,7 +98,7 @@ def set_digital_out_off(port: int):
     return retc
 
 
-@app.get(f"/{servKey}/analog_out")
+@app.post(f"/{servKey}/analog_out")
 def set_analog_out(handle: int, module: int, bitnum: int, value: float):
     retc = return_class(
         measurement_type="io_command",
@@ -108,7 +108,7 @@ def set_analog_out(handle: int, module: int, bitnum: int, value: float):
     return retc
 
 
-@app.get(f"/{servKey}/inf_digi_cycles")
+@app.post(f"/{servKey}/inf_digi_cycles")
 def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.0):
     retc = return_class(
         measurement_type="io_command",
@@ -118,7 +118,7 @@ def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.
     return retc
 
 
-@app.get(f"/{servKey}/break_inf_digi_cycles")
+@app.post(f"/{servKey}/break_inf_digi_cycles")
 def break_inf_cycles():
     retc = return_class(
         measurement_type="io_command",
@@ -128,7 +128,7 @@ def break_inf_cycles():
     return retc
 
 
-@app.get('/endpoints')
+@app.post('/endpoints')
 def get_all_urls():
     url_list = []
     for route in app.routes:

@@ -57,7 +57,7 @@ async def websocket_messages(websocket: WebSocket):
         await websocket.send_text(json.dumps(data))
 
 
-@app.get(f"/{servKey}/potential_ramp")
+@app.post(f"/{servKey}/potential_ramp")
 async def pot_potential_ramp_wrap(
     Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
 ):
@@ -65,7 +65,7 @@ async def pot_potential_ramp_wrap(
     return return_class(**value)
 
 
-@app.get(f"/{servKey}/potential_cycle")
+@app.post(f"/{servKey}/potential_cycle")
 async def pot_potential_cycle_wrap(
     Vinit: float,
     Vfinal: float,
@@ -89,12 +89,12 @@ async def pot_potential_cycle_wrap(
     return return_class(**value)
 
 
-# @app.get(f"/{servKey}/get/eis")
+# @app.post(f"/{servKey}/get/eis")
 # async def eis_(start_freq: float, end_freq: float, points: int, pot_offset: float = 0):
 #     return return_class(**poti.eis(start_freq, end_freq, points, pot_offset))
 
 
-@app.get(f"/{servKey}/status")
+@app.post(f"/{servKey}/status")
 def status_wrapper():
     return return_class(
         measurement_type="status_query",
@@ -103,13 +103,13 @@ def status_wrapper():
     )
 
 
-# @app.get(f"/{servKey}/get/signal_arr")
+# @app.post(f"/{servKey}/get/signal_arr")
 # async def signal_array_(Cycles: int, SampleRate: float, arr: str):
 #     arr = [float(i) for i in arr.split(",")]
 #     return return_class(**poti.signal_array(Cycles, SampleRate, arr))
 
 
-@app.get('/endpoints')
+@app.post('/endpoints')
 def get_all_urls():
     url_list = []
     for route in app.routes:

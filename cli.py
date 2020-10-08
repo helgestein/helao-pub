@@ -53,7 +53,7 @@ def load_config(confPrefix):
             codeKey = [k for k in S.keys() if k == "fast"]
             if codeKey:
                 codeKey = codeKey[0]
-                endpoints = requests.get(
+                endpoints = requests.post(
                     f"http://{S.host}:{S.port}/endpoints").json()
                 filterends = [
                     x for x in endpoints if x['name'] not in IGNORE_ENDS]

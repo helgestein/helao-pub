@@ -12,12 +12,19 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.openapi.utils import get_flat_params
 from munch import munchify
 
+# not packaging as module for now, so detect source code's root directory from CLI execution
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# append config folder to path to allow dynamic config imports
 sys.path.append(os.path.join(helao_root, 'config'))
+# grab config file prefix (e.g. "world" for world.py) from CLI argument
 confPrefix = sys.argv[1]
+# grab server key from CLI argument, this is a unique name for the server instance
 servKey = sys.argv[2]
+# import config dictionary
 config = import_module(f"{confPrefix}").config
+# shorthand object-style access to config dictionary
 C = munchify(config)["servers"]
+# config dict for visualization server
 O = C[servKey]
 
 app = FastAPI(title=servKey,

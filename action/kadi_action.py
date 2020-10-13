@@ -107,7 +107,7 @@ def findFilepath(metadata:dict):
         
 
 @app.get("/data/makerecordfromfile")
-def makeRecordFromFile(filename,filepath,visibility='private'):
+def makeRecordFromFile(filename:str,filepath:str,visibility:str='private'):
     #obsoleted by the fact that records will now comprise multiple actions
     data = json.load(open(os.path.join(filepath,filename),'r'))
     filed = json.dumps(extractData(data))
@@ -125,12 +125,12 @@ def makeRecordFromFile(filename,filepath,visibility='private'):
         print("record already exists")
 
 @app.get("/data/downloadfilesfromrecord")
-def downloadFilesFromRecord(ident,filepath):
+def downloadFilesFromRecord(ident:str,filepath:str):
     #download all files from record
     requests.get("{}/kadi/downloadfilesfromrecord".format(url),params={'ident':ident,'filepath':filepath})
 
 @app.get("/data/downloadfilesfromcollection")
-def downloadFilesFromCollection(ident,filepath):
+def downloadFilesFromCollection(ident:str,filepath:str):
     #download all files from all records in collection
     requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filepath})
     
@@ -139,7 +139,7 @@ def isFileInRecord(ident:str,filename:str):
     return requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filename}).json()
 
 @app.get("/data/assimilatefile")
-def assimilateFile(filename,filepath):
+def assimilateFile(filename:str,filepath:str):
 #assimilate file into our kadi system, defined such that each measurement area is a record and each substrate is a collection
     substrate,ma = filename.split("_")[1:3]
     recordname = substrate+"_"+ma

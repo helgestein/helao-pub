@@ -11,13 +11,10 @@ class kadi():
         KadiAPI.token = conf['PAT']
         KadiAPI.host = conf['host']
 
-    def addRecord(self,ident,title,filed,meta,visibility='private'):
+    def addRecord(self,ident,title,visibility='private'):
         #create a record
         #visibility must be 'public' or 'private'
-        #meta must be serialized dict
         record = Record(identifier=ident,title=title,visibility=visibility,create=True)
-        record.upload_string_to_file(string=filed,file_name='{}_{}.json'.format(ident,time.time_ns()))
-        record.add_metadata(json.loads(meta),True)
 
     def addCollection(self,ident,title,visibility='private'):
         #create collection
@@ -43,6 +40,14 @@ class kadi():
             return False
         return True
 
+    def collectionExists(self,ident):
+        #determine whether a collection with the given identifier exists
+        try:
+            collection = Collection(identifier=ident)
+        except:
+            return False
+        return True
+
     def addFileToRecord(self,identRecord,filed):
         #if file is a filepath, upload from that path, if file is a json, upload directly
         record = Record(identifier=identRecord)
@@ -52,12 +57,16 @@ class kadi():
         except:
             record.upload_file(file_path=filed)
 
+    def addMetadataToRecord(self,identRecord,meta):
+        record = Record(identifier=identRecord)
+        record.add_metadata(json.loads(meta),True)
+
     def downloadFilesFromRecord(self,ident,filepath):
         #download all files from record
         record = Record(identifier=ident)
         response = record.get_filelist(per_page=100).json()
         for i in range(response['_pagination']['total_pages']):
-            page = response = record.get_filelist(page=i,per_page=100).json()
+            page = record.get_filelist(page=i,per_page=100).json()
             for item in page['items']:
                 record.download_file(item['id'],os.path.join(filepath,item['name']))
 
@@ -69,3 +78,13 @@ class kadi():
             page = collection.get_records(page=i,per_page=100).json()
             for item in page['items']:
                 self.downloadFilesFromRecord(item['identifier'],filepath)
+
+    def isFileInRecord(self,ident,filename):
+        record = Record(identifier=ident)
+        response = record.get_filelist(per_page=100).json()
+        for i in range(response['_pagination']['total_pages']):
+            page = record.get_filelist(page=i,per_page=100).json()
+            for item in page['items']:
+                if item['name'] == filename:
+                    return True
+        return False

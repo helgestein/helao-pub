@@ -24,7 +24,6 @@ def addCollection(identifier:str,title:str,visibility:str='private'):
     requests.get("{}/kadi/addcollection".format(url),params={'identifier':identifier,'title':title,'visibility':visibility})
     requests.get("{}/kadi/linkcollectiontogroup".format(url),params={'identGroup':config['kadi']['group'],'identCollection':identifier})
 
-
 @app.get("/data/addrecordtocollection")
 def addRecordToCollection(identCollection:str,identRecord:str):
     requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord})
@@ -78,7 +77,6 @@ def extractData(metadata:dict):
 @app.get("/data/findfilepath")
 def findFilepath(metadata:dict):
     #search dictionary for filepaths
-    #obsoleted by the fact that records will now comprise multiple actions
     safepaths = []
     filenames = []
     for key,val in metadata.items():

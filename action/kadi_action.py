@@ -134,7 +134,7 @@ def downloadFilesFromCollection(ident:str,filepath:str):
     
 @app.get("/data/isfileinrecord")
 def isFileInRecord(ident:str,filename:str):
-    return requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filename}).json()
+    return requests.get("{}/kadi/isfileinrecord".format(url),params={'ident':ident,'filename':filename}).json()
 
 @app.get("/data/assimilatefile")
 def assimilateFile(filename:str,filepath:str):

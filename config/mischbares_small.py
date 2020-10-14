@@ -125,6 +125,6 @@ config['megsv'] = dict(port = 5,
                         buffer_size= 1,
                         dll_address= r"C:\Users\SDC_1\Desktop\megsv\megsv_x64\MEGSV.dll")
 
-config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data')
+config['orchestrator'] = dict(path=r'C:\Users\Operator\Documents\data')
 
 config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM6', baud=9600, timeout=0.1)])

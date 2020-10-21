@@ -42,10 +42,10 @@ class pump():
         self.read()
         ret = {'direction': None, 'speed': None, 'volume': None}
         self.ser.write(bytes('{},RFR,1\r'.format(self.pumpAddr[pump]),'utf-8'))
-        out = self.read(1000).split(b',')
+        out = self.ser.read(1000).split(b',')
         ret['speed'],ret['direction'] = int(out[5]),int(str(out[6])[2]) if out[1] == b'RFR' and out[3] == b'HS' and out[4] == b'OK' else None
         self.ser.write(bytes('{},RVO,1\r'.format(self.pumpAddr[pump]),'utf-8'))
-        out = self.read(1000).split(b',')
+        out = self.ser.read(1000).split(b',')
         ret['volume'] = int(str(out[5])[2:-3]) if out[1] == b'RVO' and out[3] == b'HS' and out[4] == b'OK' else None
         return ret
     

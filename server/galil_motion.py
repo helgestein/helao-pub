@@ -53,7 +53,7 @@ class move_modes(str, Enum):
     absolute = "absolute"
 
 
-@app.get(f"/{servKey}/move")
+@app.post(f"/{servKey}/move")
 def move(
     x_mm: float,
     axis: str,
@@ -85,7 +85,7 @@ def move(
 from starlette.responses import StreamingResponse
 
 
-@app.get(f"/{servKey}/move_live")
+@app.post(f"/{servKey}/move_live")
 async def move_live(
     x_mm: float, axis: str, speed: int = None, mode: move_modes = "relative"
 ):
@@ -100,7 +100,7 @@ async def move_live(
     )
 
 
-@app.get(f"/{servKey}/disconnect")
+@app.post(f"/{servKey}/disconnect")
 def disconnect():
     retc = return_class(
         measurement_type="motion_command",
@@ -110,7 +110,7 @@ def disconnect():
     return retc
 
 
-@app.get(f"/{servKey}/query_positions")
+@app.post(f"/{servKey}/query_positions")
 def query_positions():
     # http://127.0.0.1:8001/motor/query/positions
     retc = return_class(
@@ -121,7 +121,7 @@ def query_positions():
     return retc
 
 
-@app.get(f"/{servKey}/query_position")
+@app.post(f"/{servKey}/query_position")
 def query_position(axis: str):
     # http://127.0.0.1:8001/motor/query/position?axis=x
     retc = return_class(
@@ -132,7 +132,7 @@ def query_position(axis: str):
     return retc
 
 
-@app.get(f"/{servKey}/query_moving")
+@app.post(f"/{servKey}/query_moving")
 def query_position(axis: str):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
     retc = return_class(
@@ -143,7 +143,7 @@ def query_position(axis: str):
     return retc
 
 
-@app.get(f"/{servKey}/off")
+@app.post(f"/{servKey}/off")
 def axis_off(axis: str):
     # http://127.0.0.1:8001/motor/set/off?axis=x
     retc = return_class(
@@ -154,7 +154,7 @@ def axis_off(axis: str):
     return retc
 
 
-@app.get(f"/{servKey}/on")
+@app.post(f"/{servKey}/on")
 def axis_on(axis: str):
     # http://127.0.0.1:8001/motor/set/on?axis=x
     retc = return_class(
@@ -165,7 +165,7 @@ def axis_on(axis: str):
     return retc
 
 
-@app.get(f"/{servKey}/stop")
+@app.post(f"/{servKey}/stop")
 def stop():
     # http://127.0.0.1:8001/motor/set/stop
     retc = return_class(
@@ -176,7 +176,7 @@ def stop():
     return retc
 
 
-@app.get('/endpoints')
+@app.post('/endpoints')
 def get_all_urls():
     url_list = []
     for route in app.routes:

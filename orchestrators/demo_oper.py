@@ -10,13 +10,9 @@ from importlib import import_module
 
 from munch import munchify
 
-# not packaging as module for now, so detect source code's root directory from CLI execution
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-# append config folder to path to allow dynamic config imports
 sys.path.append(os.path.join(helao_root, 'config'))
-# hard-code import config in "world.py"
 config = import_module("world").config
-# shorthand object-style access to config dictionary
 conf = munchify(config)
 orchKey = 'orchestrator'
 C = conf.servers[orchKey]

@@ -268,13 +268,13 @@ def launcher(confPrefix, confDict):
                     if codeKey == "fast":
                         cmd = [
                             "python", f"{group}/{servPy}.py", confPrefix, server]
-                        p = subprocess.Popen(cmd, cwd=helao_root)
+                        p = subprocess.Popen(cmd)
                         ppid = p.pid
                     elif codeKey == "bokeh":
                         cmd = ["bokeh", "serve", f"--allow-websocket-origin={servHost}:{servPort}",
                                "--address", servHost, "--port", f"{servPort}", f"{group}/{servPy}.py",
                                "--args", confPrefix, server]
-                        p = subprocess.Popen(cmd, cwd=helao_root)
+                        p = subprocess.Popen(cmd)
                         try:
                             time.sleep(3)
                             ppid = pidd.find_bokeh(servHost, servPort)

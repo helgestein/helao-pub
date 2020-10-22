@@ -1,8 +1,4 @@
-# HELAO-dev repository
-Helao is deploys Hierachical Experimental Laboratory Orchestration
-
-
-## getting started
+# getting started
 
 ## environment setup
 - install miniconda[https://docs.conda.io/en/latest/miniconda.html], python 3 only

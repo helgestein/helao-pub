@@ -41,7 +41,7 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
     retl.append(flushSerial()) #it is good to keep the buffer clean
     retc = return_class(measurement_type='pumping',
                         parameters= {'command':'measure',
-                                    'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol,'direction':direction}},
+                                    'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol}},
                         data = {'data':retl})
     time.sleep(60*totalvol/speed)
     return retc

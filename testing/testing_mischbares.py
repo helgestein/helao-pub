@@ -108,7 +108,7 @@ for j in range(216):
                             moveRel_0= dict(dx=0, dy=0, dz=-20),
                             moveWaste_1= None),
                             meta=dict(ma=1 , substrate=j))
-
+'''
     add_collection = ["data/addCollection_0"]
     add_collection_params = dict(addCollection_0= dict(identifier="test_demo", title="checkup"))
     i = 0
@@ -121,7 +121,7 @@ for j in range(216):
         i += 1
         run_sequence['soe'] += add_collection
         run_sequence['params'].update(add_collection_params)
-
+'''
     # all_seq.append(copy(run_sequence))
     test_fnc(run_sequence)
 

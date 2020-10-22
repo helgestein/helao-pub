@@ -12,25 +12,37 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.openapi.utils import get_flat_params
 from munch import munchify
 
+# not packaging as module for now, so detect source code's root directory from CLI execution
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# append config folder to path to allow dynamic config imports
 sys.path.append(os.path.join(helao_root, 'config'))
+# grab config file prefix (e.g. "world" for world.py) from CLI argument
 confPrefix = sys.argv[1]
+# grab server key from CLI argument, this is a unique name for the server instance
 servKey = sys.argv[2]
+# import config dictionary
 config = import_module(f"{confPrefix}").config
+# shorthand object-style access to config dictionary
 C = munchify(config)["servers"]
+# config dict for visualization server
 O = C[servKey]
 
 app = FastAPI(title=servKey,
               description="Helao world demo orchestrator", version=1.0)
 
 
-@app.get(f"/{servKey}/addExperiment")
+@app.on_event("startup")
+def startup_event():
+    global blockd
+    blockd = {}
+
+@app.post(f"/{servKey}/addExperiment")
 def sendMeasurement(experiment: str):
     add_experiments.append(experiment)
     return {"message": experiment}
 
 
-@app.get(f"/{servKey}/semiInfiniteLoop")
+@app.post(f"/{servKey}/semiInfiniteLoop")
 async def semiInfiniteLoop():
     while True:
         #for reasons of changing list lens:
@@ -65,13 +77,13 @@ def infl():
             break
 
 
-@app.get(f"/{servKey}/infiniteLoop")
+@app.post(f"/{servKey}/infiniteLoop")
 def infiniteLoop(background_tasks: BackgroundTasks):
     background_tasks.add_task(infl)
     return {"message": 'bla'}
 
 
-@app.get(f"/{servKey}/emergencyStop")
+@app.post(f"/{servKey}/emergencyStop")
 def stopInfiniteLoop():
     emergencyStop = True
     return {"message": 'bla'}
@@ -92,7 +104,7 @@ def doMeasurement(experiment: str):
             #print(action)
             #print(params)
             S = C[server]
-            res = requests.get(f"http://{S.host}:{S.port}/{server}/{action}", params=params).json()
+            res = requests.post(f"http://{S.host}:{S.port}/{server}/{action}", params=params).json()
             # substrate = experiment['meta']['substrate']
             # ma = experiment['meta']['ma']
             with open(os.path.join(O.path, f'{time.time_ns()}_{server}_{action}.json'), 'w') as f:
@@ -101,7 +113,7 @@ def doMeasurement(experiment: str):
             print("Emergency stopped!")
 
 
-@app.get('/endpoints')
+@app.post('/endpoints')
 def get_all_urls():
     url_list = []
     for route in app.routes:

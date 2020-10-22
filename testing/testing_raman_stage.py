@@ -12,7 +12,7 @@ from fastapi import FastAPI,BackgroundTasks
 import requests
 
 #check if home, check if stage is aligned, check optimal probe height, for each sample:[move sample into position, move probe to optimal measuring point, measure, move probe to home
-
+#0,80 is where we are at now for the origin i think?
 grid = [(i,j) for i in range(0,100,10) for j in range(0,100,10)]
 
 

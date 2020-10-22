@@ -27,7 +27,6 @@ def addCollection(identifier:str,title:str,visibility:str='private'):
 @app.get("/data/addrecordtocollection")
 def addRecordToCollection(identCollection:str,identRecord:str):
     requests.get("{}/kadi/addrecordtocollection".format(url),params={'identCollection':identCollection,'identRecord':identRecord})
-    requests.get("{}/kadi/linkrecordtogroup".format(url),params={'identGroup':config['kadi']['group'],'identRecord':identRecord})
 
 @app.get("/data/addfiletorecord")
 def addFileToRecord(identRecord:str,filed:str):
@@ -143,9 +142,9 @@ def assimilateFile(filename:str,filepath:str):
     recordname = substrate+"_"+ma
     collectionname = "substrate_"+substrate
     if not collectionExists(collectionname):
-        addCollection(collectionname,collectionname,"private")
+        addCollection(collectionname,collectionname,"public")
     if not recordExists(recordname):
-        addRecord(recordname,recordname,"private")
+        addRecord(recordname,recordname,"public")
         addRecordToCollection(collectionname,recordname)
     if not isFileInRecord(recordname,filename):
         addFileToRecord(recordname,os.path.join(filepath,filename))

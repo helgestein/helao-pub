@@ -270,17 +270,50 @@ def mvrailabs(pos):
 def mvrailrel(dist):
     pass
 
-@app.get("/movement/bringRaman")
-def bring_raman():
+@app.get("/movement/safeRaman")
+def safe_raman():
+    #probe height calibrated using stainless steel PIKEM coin cell spacer of .5mm thickness. 
+    #probe is placed in current printed holder with groove in probe head just above front edge of holder.
+    #probe is not perfectly perpendicular to surface, and discrepancy of probe height between sides is something on the order of 10th's of millimeters
+    #some slight effort was made to choose a height at which the spacer could fit under the edge of the probe at about 180° of the cylinder, but this is very inexact
+    #these are the joints then, at which we assume the raman probe is .5mm above sample in current calibration: [-89.9993, 31.1584, -1.9319, 0.0, 34.2737, 120.0039]
+    #thus, in these joints we assume we are 20mm above sample table: [-89.9993, 29.9845, -9.0722, 0.0, 42.5878, 120.0038]
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9993,"b":29.9845,"c":-9.0722,"d":0.0,"e":42.5878,"f":120.0038}).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    return retc
+
+@app.get("/movement/measuringRaman")
+def measuring_raman(t):
+    #t is substrate thickness
+    #first check if in safe position
+    safe_raman()
+    #math here assumes you are 20mm above table, and want to move to 5mm above sample for optimal raman measurement
+    data = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":t-15}).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    return retc
+
+@app.get("/movement/safeFTIR")
+def safe_FTIR():
+    #(5.7103, 1.7055, 55.8257, 6.7592, -57.7119, -2.8806) for .5mm above stage for FTIR
+    #(5.7103, -3.6963, 51.0918, 7.7078, -48.4622, -4.4683) for 20mm above stage??? something weird happened
+    data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9994,"b":30.1113,"c":-7.5789,"d":0.0,"e":40.9681,"f":120.0034}).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    return retc
+
+@app.get("/movement/measuringFTIR")
+def measuring_FTIR(t,d):
+    #t is substrate thickness, d is probe displacement from sample
     data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9994,"b":30.1113,"c":-7.5789,"d":0.0,"e":40.9681,"f":120.0034}).json()
     retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
     return retc
 
 
+
+
 if __name__ == "__main__":
 
     url = "http://{}:{}".format(config['servers']['mecademicServer']['host'], config['servers']['mecademicServer']['port'])
-    zeroj = [-90, 0, 0, 0, 0, 120]
+    zeroj = config['movement']['zeroj']
     #move_to_home()
     #these point wil be added after the alignements 
     safe_points = {'safe_sample_corner': None , 'safe_sample_joint': None, 

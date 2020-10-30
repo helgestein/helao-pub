@@ -80,7 +80,7 @@ def DMovePose(a: float, b: float, c: float, d: float, e: float, f: float):
     return retc
 
 @app.get("/mecademic/dqLinZ")
-def DQLinZ(z: int=20,nsteps: int=100):
+def DQLinZ(z: float=20,nsteps: int=100):
     m.DQLinZ(z, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
@@ -90,7 +90,7 @@ def DQLinZ(z: int=20,nsteps: int=100):
     return retc
 
 @app.get("/mecademic/dqLinX")
-def DQLinX(x: int=20, nsteps: int=100):
+def DQLinX(x: float=20, nsteps: int=100):
     m.DQLinX(x, nsteps)
     retc = return_class(
             measurement_type="mecademic_command",
@@ -100,7 +100,7 @@ def DQLinX(x: int=20, nsteps: int=100):
     return retc
 
 @app.get("/mecademic/dqLinY")
-def DQLinY(y: int=20, nsteps: int=100):
+def DQLinY(y: float=20, nsteps: int=100):
     m.DQLinY(y, nsteps)
     retc = return_class(
         measurement_type="mecademic_command",

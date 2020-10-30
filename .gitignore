@@ -5,4 +5,3 @@ __pycache__/*
 *.DS_Store
 settings.json
 config/mischbares_small.py
-action/movement_mecademic.py

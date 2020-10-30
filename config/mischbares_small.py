@@ -34,7 +34,8 @@ config['movement'] = dict(
     sample_rotation = 0.0, reservoir_rotation = 0.0, waste_rotation = 0.0,
     x_limit_sample = 75, y_limit_sample = 75,
     x_limit_reservoir = 75, y_limit_reservoir = 75,
-    x_limit_waste = 10, y_limit_waste = 10)
+    x_limit_waste = 10, y_limit_waste = 10,
+    zeroj = [-90, 0, 0, 0, 0, 120])
 
 ## Cofiguration of the pump tower
 config['pump'] = dict(port='COM2', baud=9600, timeout=0.1,

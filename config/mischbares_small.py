@@ -115,9 +115,9 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM3',
                       dll = r"C:\Users\LaborRatte23-2\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
                       dllconfig = r"C:\Users\LaborRatte23-2\Documents\git\pyLang\config.LSControl", 
                       safe_home_pos = [0.0, 0.0, 0.0], 
-                      safe_waste_pos = [100.0, 30.0, 0.0], # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
-                      safe_sample_pos = [10.0, 5.0, 0.0], 
-                      remove_drop= [30.0, 80.0, 1.3])
+                      safe_waste_pos = [30.0, 100.0, 0.0], # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
+                      safe_sample_pos = [5.0, 10.0, 0.0],
+                      remove_drop= [30.0, 80.0, 2.4])
 
 #Configuration of the Arcoptix FTIR
 #config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')

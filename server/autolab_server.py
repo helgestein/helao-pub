@@ -80,6 +80,16 @@ def appliedPotential():
                         data = {'appliedpotential':ret})
     return retc
 
+@app.websocket("/ws")
+async def websocket_messages(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await a.q.get()
+        data = {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
+        await websocket.send_text(json.dumps(poti.time_stamp))
+        await websocket.send_text(json.dumps(data))
+
+
 @app.get("/potentiostat/abort")
 def abort():
     ret = a.abort()

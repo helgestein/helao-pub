@@ -3,9 +3,12 @@ import sys
 import clr
 from time import sleep
 import json
+import asyncio
 
 class Autolab:
     def __init__(self,autolab_conf):
+        #init a Queue for the visualizer
+        self.q = asyncio.Queue(loop=asyncio.get_event_loop())
         self.basep = autolab_conf["basep"]
         sys.path.append(self.basep)
         self.procp = autolab_conf["procp"]
@@ -113,12 +116,17 @@ class Autolab:
                     phase = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Phase()
                     modulus = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Modulus()
                     print('_freq:{}_real:{}_imag:{}_phase:{}_modulus:{}'.format(freq, hreal, imag, phase, modulus))
+                    await q.put([t, hreal, 0.0, imag])
                 except:
                     pass
                 sleep(0.5)
             elif type_ == 'tCV':
                 now = copy(time.monotonic())
-                print('_time:{}_potential:{}_current: {}'.format(now-then, self.potential(), self.current()))
+                t = now-then
+                j = self.current()
+                v = self.potential()
+                print('_time:{}_potential:{}_current: {}'.format(t,j,v))
+                await q.put([t, v, 0.0, j])
                 sleep(0.1)
 
     def CellOnOff(self, onoff):
@@ -158,5 +166,3 @@ class Autolab:
         self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
         json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
         self.parseNox(conf)
-
-

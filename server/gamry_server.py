@@ -23,7 +23,8 @@ from munch import munchify
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
-from gamry_simulate import gamry
+# from gamry_simulate import gamry
+from gamry_driver import gamry
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
@@ -64,6 +65,19 @@ async def pot_potential_ramp_wrap(
     value = await poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate)
     return return_class(**value)
 
+@app.post(f"/{servKey}/potential_chrono_amp")
+async def pot_chrono_amp_wrap(
+    Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float 
+):
+    value = await poti.chrono_amp(Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate)
+    return return_class(**value)
+
+@app.post(f"/{servKey}/potential_chrono_pot")
+async def pot_chrono_pot_wrap(
+    Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float 
+):
+    value = await poti.chrono_pot(Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate)
+    return return_class(**value)
 
 @app.post(f"/{servKey}/potential_cycle")
 async def pot_potential_cycle_wrap(

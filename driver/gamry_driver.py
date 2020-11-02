@@ -16,23 +16,11 @@ import asyncio
 import aiofiles
 import time
 
-if __package__:
-    # can import directly in package mode
-    print("importing config vars from package path")
-else:
-    # interactive kernel mode requires path manipulation
-    cwd = os.getcwd()
-    pwd = os.path.dirname(cwd)
-    if os.path.basename(pwd) == "helao-dev":
-        sys.path.insert(0, pwd)
-    if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
-        print("importing config vars from sys.path")
-    else:
-        raise ModuleNotFoundError("unable to find config vars, current working directory is {}".format(cwd))
-
-from config.config import *
-
-setupd = GAMRY_SETUPD
+config_dict = {
+    "path_to_gamrycom": r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe",
+    "temp_dump": r"C:\Users\hte\Documents\lab_automation\temp",
+}
+#setupd = GAMRY_SETUPD
 
 
 # definition of error handling things from gamry
@@ -82,8 +70,9 @@ class gamry:
     # since the gamry connection uses one class and it can be switched on or off with handoff and everythong
     # I decided to put the gamry in a class ... this puts the logic into this class and not like in the motion server
     # where the logic is spread across the functions. TODO: Decide which way to implement this and streamline everywhere
-    def __init__(self):
-        self.GamryCOM = client.GetModule(setupd["path_to_gamrycom"])
+    def __init__(self, config_dict):
+        self.config_dict = config_dict
+        self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
 
         self.devices = client.CreateObject("GamryCOM.GamryDeviceList")
         # print(devices.EnumSections())
@@ -121,12 +110,19 @@ class gamry:
         if gsetup == "sweep":
             g = "GamryCOM.GamryDtaqCpiv"
         if gsetup == "cv":
-            g = "IGamryDtaqRcv"
+            g = "GamryCOM.GamryDtaqRcv"
+        if gsetup == "CA" or gsetup == "CP":
+            g = "GamryCOM.GamryDtaqChrono"
         self.dtaqcpiv = client.CreateObject(g)
-        self.dtaqcpiv.Init(self.pstat)
-
+        if gsetup == "sweep" or gsetup == "cv":
+            self.dtaqcpiv.Init(self.pstat)
+        if gsetup == "CA":
+            self.dtaqcpiv.Init(self.pstat, self.GamryCOM.ChronoAmp)
+        if gsetup == "CP":
+            self.dtaqcpiv.Init(self.pstat, self.GamryCOM.ChronoPot)
         self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
 
+        
     async def asyncTest(self): # ADDED to test async (not needed)
         while True:
             print("here")
@@ -143,18 +139,27 @@ class gamry:
     #         print("key:" + str(list(self.buffer.keys())[i + index]))
     #         print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
 
-    async def measure(self, sigramp): 
+    async def measure(self, sigramp, gsetup=None): 
         print("Opening Connection")
         ret = self.open_connection()
-        self.pstat.SetIERange(8)
-
+        #self.pstat.SetIERange(10)
+        self.pstat.SetIERangeMode(1)
+        if gsetup=='CP':
+            self.pstat.SetCtrlMode(0)
+        else:
+            self.pstat.SetCtrlMode(1)
+        print(self.pstat.CtrlMode())
+        print(self.pstat.IERange())
         print(ret)
         # push the signal ramp over
         print("Pushing")
         self.pstat.SetSignal(sigramp)
 
         self.pstat.SetCell(self.GamryCOM.CellOn)
-        self.measurement_setup()
+        if gsetup==None:
+            self.measurement_setup()
+        else:
+            self.measurement_setup(gsetup) #TODO: good to add gsetup?
         self.connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
         try:
             self.dtaqcpiv.Run(True)
@@ -179,8 +184,10 @@ class gamry:
                 async with aiofiles.open('data', 'a') as f:
                     await f.write(str(self.dtaqsink.acquired_points[counter])+"\n")
                 counter += 1
-                print(counter)
-                await asyncio.sleep(.25) #CHANGE SLEEP TIME
+# =============================================================================
+#                 print(counter)
+#                 await asyncio.sleep(.25) #CHANGE SLEEP TIME
+# =============================================================================
             sink_status = self.dtaqsink.status
             dtaqarr = self.dtaqsink.acquired_points
             self.data = dtaqarr
@@ -198,9 +205,9 @@ class gamry:
         except:
             return "other"
 
-    def dump_data(self): 
+    def dump_data(self):
         pickle.dump(
-            self.data, open(os.path.join(setupd["temp_dump"], self.instance_id))
+            self.data, open(os.path.join(self.config_dict["temp_dump"], self.instance_id))
         )
 
     def signal_array(self, Cycles: int, SampleRate: float, arr):
@@ -243,6 +250,60 @@ class gamry:
                 "Vfinal": Vfinal,
                 "ScanRate": ScanRate,
                 "SampleRate": SampleRate,
+            },
+            "data": self.data,
+        }
+
+#driver for CA tests
+#TODO: need to test this methid
+    async def chrono_amp(
+        self, Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float
+    ):
+        # setup the experiment specific signal ramp
+        sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+        sigramp.Init(
+            self.pstat, Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate, self.GamryCOM.PstatMode
+        )
+        # measure ... this will do the setup as well
+        gsetup='CA'
+        await self.measure(sigramp, gsetup)
+        return {
+            "measurement_type": "chrono_amp",
+            "parameters": {
+                "Vinit": Vinit,
+                "Tinit": Tinit,
+                "Vstep1": Vstep1,
+                "Tstep1": Tstep1,
+                "Vstep2": Vstep2,
+                "Tstep2": Tstep2,
+                "SampleRate": SampleRate
+            },
+            "data": self.data,
+        }
+
+#driver for CP tests
+#TODO: need to test this methid
+    async def chrono_pot(
+        self, Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float
+    ):
+        # setup the experiment specific signal ramp
+        sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+        sigramp.Init(
+            self.pstat, Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate, self.GamryCOM.GstatMode
+        )
+        # measure ... this will do the setup as well
+        gsetup='CP'
+        await self.measure(sigramp, gsetup)
+        return {
+            "measurement_type": "chrono_pot",
+            "parameters": {
+                "Iinit": Iinit,
+                "Tinit": Tinit,
+                "Istep1": Istep1,
+                "Tstep1": Tstep1,
+                "Istep2": Istep2,
+                "Tstep2": Tstep2,
+                "SampleRate": SampleRate
             },
             "data": self.data,
         }
@@ -411,14 +472,67 @@ class gamry:
         }
 
 
-# exaple:
+# =============================================================================
+# if __name__ == "__main__":
+# =============================================================================
 
-g = gamry()
-loop = asyncio.get_event_loop() 
-task1 = loop.create_task(g.potential_ramp(-1,1,0.4,0.05))
-task2 = loop.create_task(g.asyncTest())
-final_task = asyncio.gather(task1, task2) 
-loop.run_until_complete(final_task)
+# potential ramp exaple:
+# g = gamry(config_dict)
+# loop = asyncio.get_event_loop() 
+# task1 = loop.create_task(g.potential_ramp(-0.2,-0.6,0.1,1))
+#task2 = loop.create_task(g.asyncTest())
+#final_task = asyncio.gather(task1, task2) 
+# final_task = asyncio.gather(task1)
+# result = loop.run_until_complete(final_task)
+# print(result)
+# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
+# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
+# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
+# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
+
+
+# CA exaple:
+# =============================================================================
+# g = gamry()
+# loop = asyncio.get_event_loop() 
+# task1 = loop.create_task(g.chrono_amp(-1.8,1,-1.8,3, -1.8,3,1 ))
+# #task2 = loop.create_task(g.asyncTest())
+# #final_task = asyncio.gather(task1, task2) 
+# final_task = asyncio.gather(task1)
+# result = loop.run_until_complete(final_task)
+# print(result)
+# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
+# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
+# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
+# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
+# 
+# =============================================================================
+
+# =============================================================================
+# # CP exaple:
+# g = gamry()
+# loop = asyncio.get_event_loop() 
+# task1 = loop.create_task(g.chrono_pot(-0.00006,1,-0.00006,3, -0.00006,3,1 ))
+# #task2 = loop.create_task(g.asyncTest())
+# #final_task = asyncio.gather(task1, task2) 
+# final_task = asyncio.gather(task1)
+# result = loop.run_until_complete(final_task)
+# print(result)
+# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
+# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
+# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
+# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
+# =============================================================================
+# =============================================================================
+# print('t', result[1])
+# print('t', result[2])
+# print('t', result[3])
+# =============================================================================
+
+
+
+
+
 #mdata = g.potential_ramp(-1,1,0.4,0.05)
 #marray = np.array(mdata['data'])
 

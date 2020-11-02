@@ -64,7 +64,8 @@ config["servers"] = dict(
         group="server",
         fast="gamry_server",
         params=dict(
-            temp_dump="."
+            temp_dump=".",
+            path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
         )
     ),
     orchestrator=dict(

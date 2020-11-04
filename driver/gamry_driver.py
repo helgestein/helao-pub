@@ -16,11 +16,13 @@ import asyncio
 import aiofiles
 import time
 
-config_dict = {
-    "path_to_gamrycom": r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe",
-    "temp_dump": r"C:\Users\hte\Documents\lab_automation\temp",
-}
-#setupd = GAMRY_SETUPD
+# =============================================================================
+# # for testing driver only:
+# config_dict = {
+#     "path_to_gamrycom": r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe",
+#     "temp_dump": r"C:\Users\hte\Documents\lab_automation\temp",
+# }
+# =============================================================================
 
 
 # definition of error handling things from gamry
@@ -255,7 +257,6 @@ class gamry:
         }
 
 #driver for CA tests
-#TODO: need to test this methid
     async def chrono_amp(
         self, Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float
     ):
@@ -282,7 +283,6 @@ class gamry:
         }
 
 #driver for CP tests
-#TODO: need to test this methid
     async def chrono_pot(
         self, Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float
     ):

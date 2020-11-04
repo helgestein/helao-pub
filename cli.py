@@ -150,7 +150,7 @@ def parse_input(string, cmdDict, confDict, pidd):
             paramDict = json.loads(pars)
             if command in cmdDict[server].keys():
                 S = munchify(confDict["servers"][server])
-                resp = requests.get(
+                resp = requests.post(
                     cmdDict[server][command]['path'], params=paramDict).json()
                 print(Style.RESET_ALL)
                 pprint(resp)

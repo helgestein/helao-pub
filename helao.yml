@@ -6,6 +6,7 @@ dependencies:
   - pip:
     - clr
   - aiofiles
+  - aiohttp
   - autopep8
   - blas
   - bokeh

@@ -288,6 +288,7 @@ def launcher(confPrefix, confDict):
                         print(f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py")
                         continue
                     pidd.store_pid(server, servHost, servPort, ppid)
+        time.sleep(2)
     return pidd
 
 

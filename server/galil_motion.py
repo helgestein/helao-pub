@@ -15,9 +15,8 @@ import time
 from enum import Enum
 from importlib import import_module
 
-
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
 from pydantic import BaseModel
 from munch import munchify
@@ -26,6 +25,7 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 from galil_simulate import galil
+from core import StatusHandler
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
@@ -36,10 +36,34 @@ app = FastAPI(title=servKey,
               description="Galil motion instrument/action server", version=1.0)
 
 
+class return_status(BaseModel):
+    measurement_type: str
+    parameters: dict
+    status: dict
+
 @app.on_event("startup")
 def startup_event():
     global motion
     motion = galil(S.params)
+    global stat
+    stat = StatusHandler()
+    
+
+@app.websocket(f"/{servKey}/ws_status")
+async def websocket_status(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await stat.q.get()
+        await websocket.send_text(json.dumps(data))
+        
+
+@app.post(f"/{servKey}/get_status")
+def status_wrapper():
+    return return_status(
+        measurement_type="get_status",
+        parameters={},
+        status=stat.dict,
+    )
 
 class return_class(BaseModel):
     measurement_type: str = None

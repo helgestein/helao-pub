@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import json
 from typing import List
 import os
-
+import time
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
     version="1.0",)
@@ -86,7 +86,7 @@ async def websocket_messages(websocket: WebSocket):
     while True:
         data = await a.q.get()
         data = {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
-        await websocket.send_text(json.dumps(poti.time_stamp))
+        await websocket.send_text(json.dumps(time.time.now()))
         await websocket.send_text(json.dumps(data))
 
 

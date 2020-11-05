@@ -116,7 +116,7 @@ class Autolab:
                     phase = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Phase()
                     modulus = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Modulus()
                     print('_freq:{}_real:{}_imag:{}_phase:{}_modulus:{}'.format(freq, hreal, imag, phase, modulus))
-                    await q.put([t, hreal, 0.0, imag])
+                    await self.q.put([t, hreal, 0.0, imag])
                 except:
                     pass
                 sleep(0.5)
@@ -126,7 +126,7 @@ class Autolab:
                 j = self.current()
                 v = self.potential()
                 print('_time:{}_potential:{}_current: {}'.format(t,j,v))
-                await q.put([t, v, 0.0, j])
+                await self.q.put([t, v, 0.0, j])
                 sleep(0.1)
 
     def CellOnOff(self, onoff):

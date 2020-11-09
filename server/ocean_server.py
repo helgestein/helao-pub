@@ -41,11 +41,11 @@ def open():
     return retc
 
 @app.get("/ocean/readSpectrum")
-async def readSpectrum(filename:str):
-    data = o.readSpectrum(filename)
-    await q.put(json.dumps(data))
+async def readSpectrum(t:int,filename:str):
+    data = o.readSpectrum(t,filename)
+    await q.put(data)
     retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"filename" : filename},
+                        parameters = {"filename" : filename, "t" : t},
                         data = data)
     return retc
 

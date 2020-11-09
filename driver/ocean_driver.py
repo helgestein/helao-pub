@@ -1,6 +1,6 @@
 from seabreeze.cseabreeze import SeaBreezeAPI
 import json
-
+import time
 #there are more features that the device has which we could implement
 #try calling self.device.features to see a dictionary of them
 #i think this is enough for now, however
@@ -24,11 +24,18 @@ class ocean:
     def close(self):
         self.device.close()
 
-    def readSpectrum(self,filename:str):
-        i = self.device.f.spectrometer.get_intensities().tolist()
-        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':i}
+    #can integrate for between 8ms and 1600s
+    #t is integration time in µs
+    #maximum intensity is 200000
+    def readSpectrum(self,t:int,filename:str):
+        self.device.f.spectrometer.set_integration_time_micros(8000)
+        self.device.f.spectrometer.get_intensities()
+        #first two lines should clear buffer so that spectrometer doesn't pull any data collected before this function was called
+        self.device.f.spectrometer.set_integration_time_micros(t)
+        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':self.device.f.spectrometer.get_intensities().tolist()}
         with open(filename,'w') as outfile: 
             json.dump(data,outfile)
+        #time.sleep(t/1000000)
         return data
 
     def loadFile(self,filename:str):

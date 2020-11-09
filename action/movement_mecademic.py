@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
-
+import time
 
 # Add limit rejection
 # Add orientationhelp so we can load the same platemap for every plane and it takes care of it
@@ -43,7 +43,7 @@ def matrix_rotation(theta: float):
 @app.get("/movement/moveToHome")
 def move_to_home():
     # this moves the robot safely to home which is defined as all joints are at 0
-    paramd = {lett:val for lett,val in zip("abcdef",zeroj)}
+    paramd = {lett:val for lett,val in zip("abcdef",config['movement']['zeroj'])}
     requests.get("{}/mecademic/dMoveJoints".format(url), params=paramd).json()
     retc = return_class(measurement_type='movement_command', parameters= {'command':'move_to_home'})
     return retc
@@ -279,18 +279,47 @@ def safe_raman():
     #these are the joints then, at which we assume the raman probe is .5mm above sample in current calibration: [-89.9993, 31.1584, -1.9319, 0.0, 34.2737, 120.0039]
     #thus, in these joints we assume we are 20mm above sample table: [-89.9993, 29.9845, -9.0722, 0.0, 42.5878, 120.0038]
     data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9993,"b":29.9845,"c":-9.0722,"d":0.0,"e":42.5878,"f":120.0038}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'safe_raman'}, data = {'data': data})
     return retc
 
 @app.get("/movement/measuringRaman")
-def measuring_raman(t):
-    #t is substrate thickness
+def measuring_raman(z:float,h:float):
+    #h is substrate thickness
+    #z is height above substrate to measure at
     #first check if in safe position
     safe_raman()
     #math here assumes you are 20mm above table, and want to move to 5mm above sample for optimal raman measurement
-    data = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":t-15}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    data = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z+h-20}).json()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'measuring_raman','parameters':{'h':h,'z':z}}, data = {'data': data})
     return retc
+
+@app.get("/movement/calibrateRaman")
+def calibrate_raman(h:float,t:int):
+    #h is substrate thickness
+    #t is integration time in µs
+    data,best = [],{}
+    #test integral of spectrum at this list of heights above substrate, to figure out where you get best signal
+    zs = [i/10 for i in range(20,81)]
+    safe_raman()
+    zc = 20-h
+    for z in zs:
+        zcall = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z-zc}).json()
+        rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':"raman_calibration_"+str(time.time())}).json()
+        zc = z
+        tot = sum(rcall['data']['intensities'])
+        data.append(dict(movement=zcall,read=rcall,z=z,int=tot))
+        if best == {} or tot > best['int']:
+            best = dict(z=z,int=tot)
+    safe_raman()
+    retc = return_class(measurement_type='movement_command', parameters= {'command':'calibrate_raman','parameters':{'h':h,'t':t}}, data = {'trials': data,'best': best})
+    return retc
+
+#used for calibration. for a given height z above substrate of thickness h, 
+#move to height z and return integral over raman intensity with integration time t
+@app.get("/movement/zvi")
+def zvi(z:float,h:float,t:int,):
+    pass
+
 
 @app.get("/movement/safeFTIR")
 def safe_FTIR():

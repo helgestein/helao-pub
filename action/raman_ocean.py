@@ -22,14 +22,14 @@ class return_class(BaseModel):
 
 
 @app.get("/oceanAction/read")
-def read(filename):
-    data = requests.get("{}/ocean/readSpectrum".format(url),params={'filename':filename}).json()
+def read(t:int,filename:str):
+    data = requests.get("{}/ocean/readSpectrum".format(url),params={'t':t,'filename':filename}).json()
     retc = return_class(measurement_type='raman_measure', 
-                        parameters={'command':'read_data'}, 
+                        parameters={"filename":filename,"t":t}, 
                         data=data)
     return retc
 
-@app.get("/ftir/loadFile")
+@app.get("/oceanAction/loadFile")
 def loadFile(filename:str):
     data = requests.get("{}/ocean/loadFile".format(url),params={'filename':filename}).json()
     retc = return_class(measurement_type='raman_measure', 

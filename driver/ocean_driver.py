@@ -1,4 +1,3 @@
-import numpy
 from seabreeze.cseabreeze import SeaBreezeAPI
 import json
 
@@ -26,7 +25,8 @@ class ocean:
         self.device.close()
 
     def readSpectrum(self,filename:str):
-        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':self.device.f.spectrometer.get_intensities().tolist()}
+        i = self.device.f.spectrometer.get_intensities().tolist()
+        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':i}
         with open(filename,'w') as outfile: 
             json.dump(data,outfile)
         return data

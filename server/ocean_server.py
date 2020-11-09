@@ -4,20 +4,25 @@ sys.path.append(r"..\driver")
 from ocean_driver import ocean
 from mischbares_small import config
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel
 import json
-
+import asyncio
 
 app = FastAPI(title="ocean driver", 
             description= " this is a fancy ocean optics raman spectrometer driver server",
             version= "1.0")
 
-
 class return_class(BaseModel):
     measurement_type: str = None
     parameters: dict = None
     data: dict = None
+
+@app.on_event("startup")
+def startup_event():
+    global o,q
+    o = ocean()
+    q = asyncio.Queue()
 
 @app.get("/ocean/find")
 def findDevice():
@@ -36,8 +41,9 @@ def open():
     return retc
 
 @app.get("/ocean/readSpectrum")
-def readSpectrum(filename:str):
+async def readSpectrum(filename:str):
     data = o.readSpectrum(filename)
+    await q.put(json.dumps(data))
     retc = return_class(measurement_type = "ocean_raman_command",
                         parameters = {"filename" : filename},
                         data = data)
@@ -60,7 +66,14 @@ def close(self):
     return retc
 
 
+@app.websocket("/ws")
+async def websocket_messages(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await q.get()
+        await websocket.send_text(json.dumps(data))
+
+
 if __name__ == "__main__":
-    o = ocean()
     uvicorn.run(app, host=config['servers']['oceanServer']['host'], port=config['servers']['oceanServer']['port'])
     print("instantiated raman spectrometer")

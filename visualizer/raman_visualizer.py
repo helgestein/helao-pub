@@ -14,6 +14,7 @@ from bokeh.models import ColumnDataSource, CheckboxButtonGroup, RadioButtonGroup
 from bokeh.models import Title, DataTable, TableColumn
 from bokeh.models.widgets import Paragraph
 from bokeh.plotting import figure, curdoc
+from bokeh.colors import HSL,Color
 from tornado.ioloop import IOLoop
 
 
@@ -23,39 +24,44 @@ uri = f"ws://{S['host']}:{S['port']}/ws"
 
 
 def update_plot(newdata):
-    print("i made it into update")
     global source
-    global plot
-    doc.remove_root(plot)
-    source = newdata
+    global plot1,plot2
+    doc.remove_root(plot1)
+    doc.remove_root(plot2)
+    source.append(newdata)
 
-    plot = figure(title="raman", height=300)
-    plot.title.align = "center"
-    plot.title.text_font_size = "24px"
-    plot.add_layout(Title(text="Raman", align="center"), "left")
-    plot.line(x="wavelengths", y='intensities', source=source, name="raman")    
-
+    plot1 = figure(title="newest data", height=300)
+    plot1.title.align = "center"
+    plot1.title.text_font_size = "24px"
+    plot1.add_layout(Title(text="newest data", align="center"), "left")
+    plot1.line(x="wavelengths", y='intensities', source=source[-1])    
+    plot2 = figure(title="all data", height=300)
+    plot2.title.align = "center"
+    plot2.title.text_font_size = "24px"
+    plot2.add_layout(Title(text="all data", align="center"), "left")
+    l = len(source)
+    colors = [HSL(round(360*i/(l-1)) if l != 1 else 180,1,.5).to_rgb() for i in range(l)]
+    for i in range(l):
+                plot2.line(x="wavelengths", y='intensities', source=source[i],line_color=colors[i]) 
     
-    doc.add_root(plot) # add plot to document
-
+    doc.add_root(plot1) # add plot to document
+    doc.add_root(plot2)
 
 async def loop(): # non-blocking coroutine, updates data source
-    print("i made it into loop")
     while True:
         async with websockets.connect(uri) as ws:
             while True:
-                print("hey everyone")
                 new_data = await ws.recv()
                 new_data=json.loads(new_data)
                 doc.add_next_tick_callback(partial(update_plot, new_data))
 
-source = ColumnDataSource(data=dict(wavelengths=[], intensities=[]))
+source = []
 
-plot = figure(title="Title", height=300)
-line1 = plot.line(x='wavelengths', y='intensities', source=source, name="raman")
+plot1 = figure(title="newest data", height=300)
+plot2 = figure(title="all data", height=300)
 
-
-doc.add_root(plot) # add plot to document
+doc.add_root(plot1) # add plot to document
+doc.add_root(plot2)
 
 IOLoop.current().spawn_callback(loop) # add coro to IOLoop
 

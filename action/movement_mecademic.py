@@ -294,17 +294,17 @@ def measuring_raman(z:float,h:float):
     return retc
 
 @app.get("/movement/calibrateRaman")
-def calibrate_raman(h:float,t:int):
+def calibrate_raman(zs:str,h:float,t:int,safepath:str):
     #h is substrate thickness
     #t is integration time in µs
     data,best = [],{}
     #test integral of spectrum at this list of heights above substrate, to figure out where you get best signal
-    zs = [i/10 for i in range(20,81)]
+    zs = json.loads(zs)
     safe_raman()
     zc = 20-h
     for z in zs:
         zcall = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z-zc}).json()
-        rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':"raman_calibration_"+str(time.time())}).json()
+        rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':safepath+"/raman_calibration_"+str(time.time())}).json()
         zc = z
         tot = sum(rcall['data']['intensities'])
         data.append(dict(movement=zcall,read=rcall,z=z,int=tot))

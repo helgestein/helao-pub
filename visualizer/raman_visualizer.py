@@ -40,7 +40,7 @@ def update_plot(newdata):
     plot2.title.text_font_size = "24px"
     plot2.add_layout(Title(text="all data", align="center"), "left")
     l = len(source)
-    colors = [HSL(round(360*i/(l-1)) if l != 1 else 180,1,.5).to_rgb() for i in range(l)]
+    colors = [HSL(round(240*i/(l-1)) if l != 1 else 180,1,.5).to_rgb() for i in range(l)]
     for i in range(l):
                 plot2.line(x="wavelengths", y='intensities', source=source[i],line_color=colors[i]) 
     

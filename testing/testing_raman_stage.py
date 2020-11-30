@@ -29,8 +29,8 @@ grid = [[46.6+i[1],79.4-i[0]] for i in grid]
 
 if __name__ == "__main__":
     print(str(grid))
-    task = "map"
-    h = 1
+    task = "test_calibration2"
+    h = 2
     t = 10000000
     zs = json.dumps([i/5 for i in range(10,41)])
     x1 = [74.1,74.4]
@@ -56,7 +56,7 @@ if __name__ == "__main__":
         for loc in grid:
             oa.move(json.dumps(loc))
             mm.measuring_raman(z(loc),h)
-            ro.read(t,"C:/Users/Operator/Documents/temp/test_raman_"+time.time())
+            ro.read(t,"C:/Users/Operator/Documents/temp/test_raman_"+time.time().replace('.','_'))
             mm.safe_raman()
     if task == "make":
         soe = []
@@ -96,48 +96,75 @@ if __name__ == "__main__":
         mm.move_to_home()
         oa.configure(0)
         oa.configure(1)
-        oa.move(json.dumps(x1))
+        x1,x2,x3 = [35,10],[35,40],[5,40]
+        grid = [[i,j] for i in range(5,36) for j in range(10,41)]
+        conv = lambda x: [46.6+x[1],79.4-x[0]]
+        grid = map(conv,grid)
+        zs = json.dumps([i/10 for i in range(20,41)])
+        oa.move(json.dumps(conv(x1)))
         z1 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
-        oa.move(json.dumps(x2))
+        oa.move(json.dumps(conv(x2)))
         z2 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
-        oa.move(json.dumps(x3))
+        oa.move(json.dumps(conv(x3)))
         z3 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
         z = lambda x: z2-(z2-z1)/(x2[1]-x1[1])*(x2[1]-x[1])-(z2-z3)/(x2[0]-x3[0])*(x2[0]-x[0])
         mm.safe_raman()
         print([z1,z2,z3])
+        data = [[z1,z2,z3]]
         for loc in grid:
             oa.move(json.dumps(loc))
-            zc = mm.calibrate_raman(h,t,safepath).data['best']['z']
+            zc = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
             print({'zc':zc,'z':z(loc)})
+            data.append([loc,{'zc':zc,'z':z(loc)}])
             mm.safe_raman()
+        with open(r"C:\Users\Operator\Desktop\Zcal.json",'w') as outfile:
+            json.dump(data,outfile)
     if task == "map":
         mm.move_to_home()
         oa.configure(0)
         oa.configure(1)
-        oa.move(json.dumps(x1))
-        z1 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
-        oa.move(json.dumps(x2))
-        z2 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
-        oa.move(json.dumps(x3))
-        z3 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
+        z1,z2,z3 = 5.4,5.0,5.4
         z = lambda x: z2-(z2-z1)/(x2[1]-x1[1])*(x2[1]-x[1])-(z2-z3)/(x2[0]-x3[0])*(x2[0]-x[0])
         mm.safe_raman()
         print([z1,z2,z3])
         X = []
-        grid = [[i/10,j/10] for i in range(566,746,5) for j in range(744,89,-5)]
+        grid = [[i/10,j/10] for i in range(650,701) for j in range(600,701)]
         for loc in grid:
             oa.move(json.dumps(loc))
             print([loc,z(loc)])
             mm.measuring_raman(z(loc),h)
-            X.append(ro.read(t,"C:/Users/Operator/Documents/temp/test_raman_"+str(time.time())).data['data']['intensities'])
+            X.append(ro.read(t,"C:/Users/Operator/Documents/temp/test_raman_"+str(time.time()).replace('.','_')).data['data']['intensities'])
             mm.safe_raman()
+        with open(r"C:\Users\Operator\Desktop\Xgridmini.json",'w') as outfile:
+            json.dump([[grid[i], X[i]] for i in range(len(grid))],outfile)
         X = numpy.transpose(numpy.asarray(X))
-        json.dump([[grid[i], X[i]] for i in range(len(grid))],"C:/Users/Operator/Desktop/Xgrid.json")
         model = NMF(n_components=3,init='random',solver='mu',beta_loss='kullback-leibler')
         W = model.fit_transform(X)
         H = model.components_
         columns = numpy.transpose(H)
-        output = [[grid[i], columns[i]] for i in range(len(grid))]
-        json.dump(output,"C:/Users/Operator/Desktop/Hgrid.json")
-
+        output = [[grid[i], columns[i].tolist()] for i in range(len(grid))]
+        with open(r"C:\Users\Operator\Desktop\Hgridmini.json",'w') as outfile:
+            json.dump(output,outfile)
+        with open(r"C:\Users\Operator\Desktop\Wgridmini.json",'w') as outfile:
+            json.dump(W.tolist(),outfile)
+    if task == "test_calibration2":
+        mm.move_to_home()
+        oa.configure(0)
+        oa.configure(1)
+        x1,x2,x3 = [35,10],[35,40],[5,40]
+        grid = [[i,j] for i in range(5,36) for j in range(10,41)]
+        conv = lambda x: [46.6+x[1],79.4-x[0]]
+        grid = map(conv,grid)
+        hs = [2,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5]
+        for h in hs:
+            zs = json.dumps([i/10 for i in range(20,81)])
+            oa.move(json.dumps(conv(x1)))
+            z1 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
+            oa.move(json.dumps(conv(x2)))
+            z2 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
+            oa.move(json.dumps(conv(x3)))
+            z3 = mm.calibrate_raman(zs,h,t,safepath).data['best']['z']
+            z = lambda x: z2-(z2-z1)/(x2[1]-x1[1])*(x2[1]-x[1])-(z2-z3)/(x2[0]-x3[0])*(x2[0]-x[0])
+            mm.safe_raman()
+            print({'h':h,'zs':[z1,z2,z3]})
 

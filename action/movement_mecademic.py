@@ -304,7 +304,7 @@ def calibrate_raman(zs:str,h:float,t:int,safepath:str):
     zc = 20-h
     for z in zs:
         zcall = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z-zc}).json()
-        rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':safepath+"/raman_calibration_"+str(time.time())}).json()
+        rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':safepath+"/raman_calibration_"+str(time.time()).replace('.','_')}).json()
         zc = z
         tot = sum(rcall['data']['intensities'])
         data.append(dict(movement=zcall,read=rcall,z=z,int=tot))

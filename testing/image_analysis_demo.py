@@ -19,9 +19,9 @@ def find_peaks(A,r):
     n = len(A)
     m = len(A[0])
     for i in range(n):
+        j=0
         while j < m:
-            j=0
-            sublist[A[i][m-2*r-1-j:m-j]]
+            sublist = A[i][m-2*r-1-j:m-j]
             peak = numpy.argmax(sublist)
             if peak > r:
                 j += 2*r + 1 - peak
@@ -30,6 +30,13 @@ def find_peaks(A,r):
                 j += r + 1
             else:
                 j += r - peak
+    B = numpy.transpose(A)
+    peaks = []
+    for peak in xpeaks:
+        sublist = B[peak[1]][peak[0]-r:peak[0]+r+1]
+        if numpy.argmax(sublist) == r:
+            peaks.append(peak)
+    return peaks
 
 
 if __name__ == "__main__":
@@ -44,6 +51,8 @@ if __name__ == "__main__":
     t0 = time.time()
     scalegrid = [[[i*d,j*d],autocorrelation(i,j,hmatrix)] for i in range(dy) for j in range(dx)]
     print('runtime in seconds: '+str(time.time()-t0))
+    scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dx,dy)
+    find_peaks(scalematrix,5)
 
     with open('C:/Users/Operator/Desktop/scalegrid.json','w') as outfile:
         json.dump(scalegrid,outfile)

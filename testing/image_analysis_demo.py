@@ -21,19 +21,27 @@ def find_peaks(A,r):
     for i in range(n):
         j=0
         while j < m:
-            sublist = A[i][m-2*r-1-j:m-j]
+            start,end = [m-2*r-1-j,m-j]
+            if start < 0 and end >= 0:
+                sublist = numpy.append(A[i][start:],A[i][:end])
+            else:
+                sublist = A[i][start:end]
             peak = numpy.argmax(sublist)
             if peak > r:
                 j += 2*r + 1 - peak
             elif peak == r:
-                xpeaks.append([i,m-j-r-1%m])
+                xpeaks.append([i,(m-j-r-1)%m])
                 j += r + 1
             else:
                 j += r - peak
     B = numpy.transpose(A)
     peaks = []
-    for peak in xpeaks:
-        sublist = B[peak[1]][peak[0]-r:peak[0]+r+1]
+    for peak in xpeaks:            
+        start,end = [peak[0]-r,peak[0]+r+1]
+        if start < 0 and end >= 0:
+            sublist = numpy.append(B[peak[1]][start:],B[peak[1]][:end])
+        else:
+            sublist = B[peak[1]][start:end]
         if numpy.argmax(sublist) == r:
             peaks.append(peak)
     return peaks
@@ -48,14 +56,18 @@ if __name__ == "__main__":
     dx,dy = (numpy.array(hgrid[-1][0]) - numpy.array(hgrid[0][0]))/d + 1
     dx,dy = int(dx),int(dy)
     hmatrix = numpy.transpose(numpy.reshape(numpy.array([i[1] for i in hgrid]),(dx,dy,3)),(1,0,2))
-    t0 = time.time()
-    scalegrid = [[[i*d,j*d],autocorrelation(i,j,hmatrix)] for i in range(dy) for j in range(dx)]
-    print('runtime in seconds: '+str(time.time()-t0))
-    scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dx,dy)
-    find_peaks(scalematrix,5)
+    #t0 = time.time()
+    #scalegrid = [[[i*d,j*d],autocorrelation(i,j,hmatrix)] for i in range(dy) for j in range(dx)]
+    #print('runtime in seconds: '+str(time.time()-t0))
+    
+    #with open('C:/Users/Operator/Desktop/scalegrid.json','w') as outfile:
+    #    json.dump(scalegrid,outfile)
 
-    with open('C:/Users/Operator/Desktop/scalegrid.json','w') as outfile:
-        json.dump(scalegrid,outfile)
+    with open('C:/Users/Operator/Desktop/scalegrid.json','r') as infile:
+        scalegrid = json.load(infile)
+    
+    scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dy,dx)
+    print(find_peaks(scalematrix,5))
     
 
 

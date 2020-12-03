@@ -1,6 +1,8 @@
 import numpy
 import json
 import time
+import copy
+import math
 
 product = lambda x,y: numpy.dot(x/numpy.amax(x),y/numpy.amax(y))
 
@@ -12,6 +14,13 @@ def autocorrelation(i,j,A):
         for l in range(len(A[0])):
             tot += product(A[k][l],B[k][l])
     return tot
+
+def norm(x,y,n,m):
+    d0 = abs(x[0]-y[0])
+    d0 = min(d0,n-d0)
+    d1 = abs(x[1]-y[1])
+    d1 = min(d1,m-d1)
+    return math.sqrt(d0**2+d1**2)
 
 def find_peaks(A,r):
     #r is radius around center point to check. i think i will default to 5
@@ -38,12 +47,28 @@ def find_peaks(A,r):
     peaks = []
     for peak in xpeaks:            
         start,end = [peak[0]-r,peak[0]+r+1]
+        if end > n:
+            start,end = start-n,end-n
         if start < 0 and end >= 0:
             sublist = numpy.append(B[peak[1]][start:],B[peak[1]][:end])
         else:
             sublist = B[peak[1]][start:end]
         if numpy.argmax(sublist) == r:
             peaks.append(peak)
+    i = 0
+    while i < len(peaks)-1:
+        j = i+1
+        while j in range(i+1,len(peaks)):
+            if norm(peaks[i],peaks[j],n,m) <= r:
+                inti,intj = A[peaks[i][0]][peaks[i][1]],A[peaks[j][0]][peaks[j][1]]
+                if inti > intj:
+                    peaks = numpy.delete(peaks,j,axis=0)
+                    j -= 1
+                if inti < intj:
+                    peaks = numpy.delete(peaks,i,axis=0)
+                    i,j = i-1,len(peaks)
+            j += 1
+        i += 1
     return peaks
 
 

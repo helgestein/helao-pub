@@ -3,8 +3,9 @@ import json
 import time
 import copy
 import math
+import scipy
 
-product = lambda x,y: numpy.dot(x/numpy.amax(x),y/numpy.amax(y))
+product = lambda x,y: numpy.dot(x/numpy.amax(x),y/numpy.amax(y)) if x.tolist() != numpy.zeros(len(x)).tolist() and y.tolist() != numpy.zeros(len(y)).tolist() else 0
 
 def autocorrelation(i,j,A):
     tot = 0
@@ -71,6 +72,30 @@ def find_peaks(A,r):
         i += 1
     return peaks
 
+def correlation(i,j,A,B):
+    tot = 0
+    points = len(B)*len(B[0])
+    print('correlating '+str(i)+' '+str(j))
+    for k in range(len(B)):
+        for l in range(len(B[0])):
+            if k+i >= 0 and k+i < len(A) and l+j >= 0 and l+j < len(A[0]):
+                tot += product(A[k+i][l+j],B[k][l])
+            else:
+                points -= 1
+    print([tot,points])
+    return tot/points if points != 0 else 0
+
+def circlematrix(d,h,l,c):
+    #d is circle diameter
+    #h is square matrix size
+    #l is length of color vector
+    #c is index of circle color in color vector, so range is 0 to l-1
+    if h < d or h-d%2 == 1:
+        raise ValueError
+    circle = numpy.array([[[1 if k == c and j >= (h-d)/2 and j < (h+d)/2 and i >= (h-d)/2 and i < (h+d)/2 else 0 for k in range(l)] for j in range(h)] for i in range(h)])
+    return circle
+
+
 
 if __name__ == "__main__":
     
@@ -80,20 +105,27 @@ if __name__ == "__main__":
     d = .1
     dx,dy = (numpy.array(hgrid[-1][0]) - numpy.array(hgrid[0][0]))/d + 1
     dx,dy = int(dx),int(dy)
-    hmatrix = numpy.transpose(numpy.reshape(numpy.array([i[1] for i in hgrid]),(dx,dy,3)),(1,0,2))
-    #t0 = time.time()
+    #hmatrix = numpy.transpose(numpy.reshape(numpy.array([i[1] for i in hgrid]),(dx,dy,3)),(1,0,2))
+    t0 = time.time()
     #scalegrid = [[[i*d,j*d],autocorrelation(i,j,hmatrix)] for i in range(dy) for j in range(dx)]
     #print('runtime in seconds: '+str(time.time()-t0))
     
     #with open('C:/Users/Operator/Desktop/scalegrid.json','w') as outfile:
     #    json.dump(scalegrid,outfile)
 
-    with open('C:/Users/Operator/Desktop/scalegrid.json','r') as infile:
-        scalegrid = json.load(infile)
+    #with open('C:/Users/Operator/Desktop/scalegrid.json','r') as infile:
+    #    scalegrid = json.load(infile)
     
-    scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dy,dx)
-    print(find_peaks(scalematrix,5))
+    #scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dy,dx)
+    #print(find_peaks(scalematrix,5))
     
+    #circle = circlematrix(11,15,3,2)
+    #circleconvgrid = [[[(i+(len(circle)-1)/2)*d,(j+(len(circle)-1)/2)*d],correlation(i,j,hmatrix,circle)] for i in range(-len(circle),dy+len(circle)) for j in range(-len(circle),dx+len(circle))]
+    #print('runtime in seconds: '+str(time.time()-t0))
+    #with open('C:/Users/Operator/Desktop/circleconvgrid.json','w') as outfile:
+    #    json.dump(circleconvgrid,outfile)
 
+    with open('C:/Users/Operator/Desktop/circleconvgrid.json','r') as infile:
+        circleconvgrid = json.load(infile)
 
-
+    

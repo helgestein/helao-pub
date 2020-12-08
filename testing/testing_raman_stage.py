@@ -29,7 +29,7 @@ grid = [[46.6+i[1],79.4-i[0]] for i in grid]
 
 if __name__ == "__main__":
     print(str(grid))
-    task = "test_calibration2"
+    task = "make_map"
     h = 2
     t = 10000000
     zs = json.dumps([i/5 for i in range(10,41)])
@@ -167,4 +167,36 @@ if __name__ == "__main__":
             z = lambda x: z2-(z2-z1)/(x2[1]-x1[1])*(x2[1]-x[1])-(z2-z3)/(x2[0]-x3[0])*(x2[0]-x[0])
             mm.safe_raman()
             print({'h':h,'zs':[z1,z2,z3]})
+
+    if task == "make_map":
+        soe = []
+        params = {}
+        soe.append("movement/moveToHome_0")
+        params.update({"moveToHome_0":None})
+        soe.append("table/configure_0")
+        params.update({"configure_0":dict(motor=0)})
+        soe.append("table/configure_1")
+        params.update({"configure_1":dict(motor=1)})
+        experiment = dict(soe=soe,params=params,meta=dict(substrate="2",ma="none"))
+        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
+        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
+        i = 0
+        #[45,20] to [55,25]
+        grid = [[i/10,j/10] for i in range(450,501) for j in range(200,251)]
+        conv = lambda x: [46.6+x[1],79.4-x[0]]
+        grid = map(conv,grid)
+        for loc in grid:
+            soe = []
+            params = {}
+            soe.append("table/move_{}".format(i))
+            params.update({"move_{}".format(i):dict(loc=json.dumps(loc))})
+            soe.append("movement/measuringRaman_{}".format(i))
+            params.update({"measuringRaman_{}".format(i):dict(z=5,h=1)})
+            soe.append("oceanAction/read_{}".format(i))
+            params.update({"read_{}".format(i):dict(t=10000000,filename="C:/Users/Operator/Documents/temp/substrate_2_"+str(i))})
+            soe.append("movement/safeRaman_{}".format(i+1))
+            params.update({"safeRaman_{}".format(i+1):None})
+            i += 1
+            experiment = dict(soe=soe,params=params,meta=dict(substrate="2",ma=str(round(loc[0]*10)*100)+'-'+str(round(loc[1]*10)*100)))
+            requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
 

@@ -96,6 +96,14 @@ def circlematrix(d,h,l,c):
     return circle
 
 
+def backgroundcirclematrix(d,h,l):
+    #d is circle diameter
+    #h is square matrix size
+    #l is length of color vector
+    if h < d or h-d%2 == 1:
+        raise ValueError
+    circle = numpy.array([[[-1 if k == 1 and j >= (h-d)/2 and j < (h+d)/2 and i >= (h-d)/2 and i < (h+d)/2 else 0 for k in range(l)] for j in range(h)] for i in range(h)])
+    return circle
 
 if __name__ == "__main__":
     
@@ -128,4 +136,3 @@ if __name__ == "__main__":
     with open('C:/Users/Operator/Desktop/circleconvgrid.json','r') as infile:
         circleconvgrid = json.load(infile)
 
-    

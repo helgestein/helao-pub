@@ -3,7 +3,6 @@ import json
 import time
 import copy
 import math
-import scipy
 
 product = lambda x,y: numpy.dot(x/numpy.amax(x),y/numpy.amax(y)) if x.tolist() != numpy.zeros(len(x)).tolist() and y.tolist() != numpy.zeros(len(y)).tolist() else 0
 
@@ -23,7 +22,7 @@ def norm(x,y,n,m):
     d1 = min(d1,m-d1)
     return math.sqrt(d0**2+d1**2)
 
-def find_peaks(A,r):
+def find_peaks_wrap(A,r):
     #r is radius around center point to check. i think i will default to 5
     xpeaks = []
     n = len(A)
@@ -95,19 +94,60 @@ def circlematrix(d,h,l,c):
     circle = numpy.array([[[1 if k == c and j >= (h-d)/2 and j < (h+d)/2 and i >= (h-d)/2 and i < (h+d)/2 else 0 for k in range(l)] for j in range(h)] for i in range(h)])
     return circle
 
+def find_peaks(A,r):
+    xpeaks = []
+    n = len(A)
+    m = len(A[0])
+    for i in range(n):
+        j = 0
+        while j < m-2*r:
+            sublist = A[i][j:j+2*r+1]
+            peak = numpy.argmax(sublist)
+            if peak + j < r and sublist[peak] >= numpy.amax(A[i][:2*r+1]) or peak == r:
+                xpeaks.append([i,peak+j])
+                j += peak + 1
+            elif peak > r:
+                j += peak - r
+            else:
+                j += peak + 1
+    B = numpy.transpose(A)
+    peaks = []
+    for peak in xpeaks: 
+        sublist = B[peak[1]][max(0,peak[0]-r):min(n,peak[0]+r+1)]
+        if numpy.argmax(sublist) == r:
+            peaks.append(peak)
+    i = 0
+    while i < len(peaks)-1:
+        j = i+1
+        inti = A[peaks[i][0]][peaks[i][1]]
+        if inti == 0:
+            peaks = numpy.delete(peaks,i,axis=0)
+            i,j = i-1,len(peaks)
+        while j < len(peaks):
+            intj = A[peaks[j][0]][peaks[j][1]]
+            if intj == 0:
+                peaks = numpy.delete(peaks,j,axis=0)
+                j -= 1
+            if math.sqrt((peaks[i][0]-peaks[j][0])**2+(peaks[i][1]-peaks[j][1])**2) < r:
+                if inti > intj:
+                    peaks = numpy.delete(peaks,j,axis=0)
+                    j -= 1
+                if inti < intj:
+                    peaks = numpy.delete(peaks,i,axis=0)
+                    i,j = i-1,len(peaks)
+                if inti == 0 and intj == 0:
+                    peaks = numpy.delete(peaks,j,axis=0)
+                    peaks = numpy.delete(peaks,i,axis=0)
+                    i,j = i-1,len(peaks)
+            j += 1
+        i += 1
+    return peaks
 
-def backgroundcirclematrix(d,h,l):
-    #d is circle diameter
-    #h is square matrix size
-    #l is length of color vector
-    if h < d or h-d%2 == 1:
-        raise ValueError
-    circle = numpy.array([[[-1 if k == 1 and j >= (h-d)/2 and j < (h+d)/2 and i >= (h-d)/2 and i < (h+d)/2 else 0 for k in range(l)] for j in range(h)] for i in range(h)])
-    return circle
+
 
 if __name__ == "__main__":
     
-    with open('C:/Users/Operator/Desktop/Hgridmini.json','r') as infile:
+    with open('C:/Users/jkflowers/Downloads/Hgridmini.json','r') as infile:
         hgrid = json.load(infile)
     
     d = .1
@@ -125,7 +165,7 @@ if __name__ == "__main__":
     #    scalegrid = json.load(infile)
     
     #scalematrix = numpy.array([i[1] for i in scalegrid]).reshape(dy,dx)
-    #print(find_peaks(scalematrix,5))
+    #print(find_peaks_wrap(scalematrix,5))
     
     #circle = circlematrix(11,15,3,2)
     #circleconvgrid = [[[(i+(len(circle)-1)/2)*d,(j+(len(circle)-1)/2)*d],correlation(i,j,hmatrix,circle)] for i in range(-len(circle),dy+len(circle)) for j in range(-len(circle),dx+len(circle))]
@@ -133,6 +173,15 @@ if __name__ == "__main__":
     #with open('C:/Users/Operator/Desktop/circleconvgrid.json','w') as outfile:
     #    json.dump(circleconvgrid,outfile)
 
-    with open('C:/Users/Operator/Desktop/circleconvgrid.json','r') as infile:
+    with open('C:/Users/jkflowers/Downloads/circleconvgrid.json','r') as infile:
         circleconvgrid = json.load(infile)
+
+    circleconvmatrix = numpy.array([i[1] for i in circleconvgrid]).reshape(dy+30,dx+30)
+    points = find_peaks(circleconvmatrix,5)
+    print(points)
+    pointsgrid = [[i-15,j-15] for i,j in points]
+    print(pointsgrid)
+
+
+
 

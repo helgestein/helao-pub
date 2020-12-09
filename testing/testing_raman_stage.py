@@ -182,9 +182,12 @@ if __name__ == "__main__":
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
         i = 0
         #[45,20] to [55,25]
-        grid = [[i/10,j/10] for i in range(450,501) for j in range(200,251)]
-        conv = lambda x: [46.6+x[1],79.4-x[0]]
-        grid = map(conv,grid)
+        #grid = [[i/10,j/10] for i in range(450,501) for j in range(200,251)]
+        #conv = lambda x: [46.6+x[1],79.4-x[0]]
+        #grid = map(conv,grid)
+        with open('C:/Users/Operator/Desktop/Hgrid.json','r') as infile:
+            data = json.load(infile)
+        grid = [i[0] for i in data]
         for loc in grid:
             soe = []
             params = {}

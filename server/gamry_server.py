@@ -39,8 +39,9 @@ from munch import munchify
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
+sys.path.append(os.path.join(helao_root, 'core'))
 from gamry_simulate import gamry
-from core import StatusHandler
+from classes import StatusHandler
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config

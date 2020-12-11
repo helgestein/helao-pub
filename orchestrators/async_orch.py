@@ -18,7 +18,9 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 # append config folder to path to allow dynamic config imports
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
-from core import OrchHandler
+sys.path.append(os.path.join(helao_root, 'core'))
+from classes import OrchHandler, Decision, Action
+
 # grab config file prefix (e.g. "world" for world.py) from CLI argument
 confPrefix = sys.argv[1]
 # grab server key from CLI argument, this is a unique name for the server instance
@@ -30,36 +32,25 @@ C = munchify(config)["servers"]
 # config dict for visualization server
 O = C[servKey]
 
-"""
-TODO: every action/instrument server gets /ws_data and /ws_status websockets, /get_status endpoint, /abort endpoint
-TODO: action/isntrument server has coroutine which listens for /abort
-TODO: gamry abort will end measurement, galil_motion will stop motors, galil_io will turn off outputs
-TODO: orchestrator also gets /status websocket, /get_status endpoint, /abort endpoint
-TODO: orchestrator has coroutine which listens for /abort
-TODO: orchestrator has 1) list of decisions to process; 2) queue of actions for a given decision
-TODO: orchestrator /abort will terminate queue and pause list execution
-TODO: orchestrator assigns decision provenance to all actions in queue; action servers receive provenance and save metadata
-TODO: orchestrator has coroutine that listens to all FastAPI action servers and updates global state dict "STATES"
+# import action generators from action library
+sys.path.append(os.path.join(helao_root, 'library'))
+for actlib in config['action_libraries']:
+    actlibd = import_module(actlib).__dict__
+    globals().update({func: actlibd[func] for func in actlibd['actualizers']})
+        
 
-TODO: queue dispatcher
-0. OrchServ has an asyncio queue for receiving status messages from / ws / endpoint ActServ
-1. check ORCH status for blocking flag
-2. if blocking, await ORCH queue
-"""
+# # TESTING
+# import os, sys, json, requests, asyncio, websockets
+# from importlib import import_module
+# from munch import munchify
 
+# sys.path.append(os.path.join(os.getcwd(), 'config'))
+# config = import_module("world").config
+# C = munchify(config)["servers"]
+# fastServers = [k for k in C.keys() if "fast" in C[k].keys() and C[k]["group"]!="orchestrators"]
+# STATES = {S: requests.post(f"http://{C[S].host}:{C[S].port}/{S}/get_status").json() for S in fastServers}
 
-# TESTING
-import os, sys, json, requests, asyncio, websockets
-from importlib import import_module
-from munch import munchify
-
-sys.path.append(os.path.join(os.getcwd(), 'config'))
-config = import_module("world").config
-C = munchify(config)["servers"]
-fastServers = [k for k in C.keys() if "fast" in C[k].keys() and C[k]["group"]!="orchestrators"]
-STATES = {S: requests.post(f"http://{C[S].host}:{C[S].port}/{S}/get_status").json() for S in fastServers}
-
-# END TESTING
+# # END TESTING
 
 
 app = FastAPI(title=servKey,
@@ -111,7 +102,7 @@ async def start_process():
 @app.post(f"/{servKey}/stop")
 def stop_process():
     if orch.status != 'idle':
-        orch.update('stopping')
+        orch.raise_stop()
     else:
         print('orchestrator is not running')
     return {}
@@ -119,103 +110,80 @@ def stop_process():
 @app.post(f"/{servKey}/skip")
 def skip_decision():
     if orch.status != 'idle':
-        orch.update('skipping')
+        orch.raise_skip()
     else:
-        print('orchestrator is not running')
+        print('orchestrator not running, clearing action queue')
+        orch.actions.clear()
     return {}
 
 @app.post(f"{servKey}/clear_queue")
 def clear_decisions():
+    print('clearing action queue')
+    orch.actions.clear()
     return {}
 
 
 # async_dispatcher executes an action, the action tuple 
-async def async_dispatcher(action_tup):
-    provenance, (server, action, params, preempt, block) = action_tup
-    S = C[server]
+async def async_dispatcher(A: Action):
+    S = C[A.server]
+    if A.block or not orch.actions: # block final action in action queue
+        orch.block()
     async with aiohttp.ClientSession() as session:
-        async with session.post(f"http://{S.host}:{S.port}/{server}/{action}", params=params) as resp:
+        async with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
             response = await resp.text()
+    if A.block or not orch.actions:
+        orch.unblock()
     return response
 
-
-# async def run_dispatch_loop():
-#     # if action list is empty but decisions are pending, populate actions
-#     if orch.decisions and not orch.actions:
-#         decision_id, act_gen = orch.decisions.popleft()
-#         orch.procid = decision_id
-#         orch.actions = deque(act_gen(decision_id))
-#     # resume actions
-#     while orch.actions or orch.status!='idle': # clause for resuming paused action list
-#         # execute actions sequentially, if blocking action wait for block to clear
-#         if orch.status=='stopping':
-#             print('stopped')
-#             orch.update('idle')
-#         elif orch.status=='skipping':
-#             if orch.decisions:
-#                 decision_id, act_gen = orch.decisions.popleft()
-#                 orch.actions = deque(act_gen(decision_id))
-#                 orch.procid = decision_id
-#                 orch.status.update('running')
-#             else:
-#                 orch.actions.clear()
-#                 orch.update('idle')
-#         elif orch.status=='running':
-#             current_act = orch.actions.popleft()
-#             block, preempt = current_act[4:6] # see async_dispatcher for unpacking
-#             if preempt:
-#                 while any([orch.STATES[k]['status'] != 'idle' for k in orch.STATES.keys()]):
-#                     _ = await orch.dataq.get() # just used to monitor orch.STATES update
-#                     orch.dataq.task_done()
-#             if block or not orch.actions: # final action, treat as blocking
-#                 orch.blocked = True
-#                 await async_dispatcher(current_act)
-#                 orch.blocked = False
-#             else:
-#                 asyncio.create_task(async_dispatcher(current_act))
-#             # action list now empty, get new decision
-#             if orch.decisions and not orch.actions:
-#                 decision_id, act_gen = orch.decisions.popleft()
-#                 orch.procid = decision_id
-#                 orch.actions = deque(act_gen(decision_id))
-#             # elif not orch.decisions and not orch.actions:  # generate new decisions
-#     orch.update('idle')
-#     return True
     
 async def run_dispatch_loop():
     while orch.status != 'idle' and (orch.actions or orch.decisions):  # clause for resuming paused action list
         if not orch.actions:
-            decision_id, act_gen = orch.decisions.popleft()
-            orch.procid = decision_id
-            orch.actions = deque(act_gen(decision_id))
+            D = orch.decisions.popleft()
+            orch.procid = D.uid
+            orch.actions = deque(D.actualizer(D))
         else:
             if orch.status == 'stopping':
+                print('stop issued: waiting for action servers to idle')
                 while any([orch.STATES[k]['status'] != 'idle' for k in orch.STATES.keys()]):
                     _ = await orch.dataq.get()  # just used to monitor orch.STATES update
                     orch.dataq.task_done()
                 print('stopped')
-                orch.update('idle')
+                orch.set_idle()
             elif orch.status == 'skipping':
-                print('skipped')
+                print('skipping to next decision')
                 orch.actions.clear()
+                orch.set_run()
             elif orch.status == 'running':
-                current_act = orch.actions.popleft()
+                # check current blocking status
+                while orch.is_blocked:
+                    _ = await orch.dataq.get()
+                    orch.dataq.task_done()
+                A = orch.actions.popleft()
                 # see async_dispatcher for unpacking
-                block, preempt = current_act[4:6]
-                if preempt:
+                if A.preempt:
                     while any([orch.STATES[k]['status'] != 'idle' for k in orch.STATES.keys()]):
-                        _ = await orch.dataq.get()  # just used to monitor orch.STATES update
+                        _ = await orch.dataq.get()
                         orch.dataq.task_done()
-                if block or not orch.actions:  # final action, treat as blocking
-                    orch.blocked = True
-                    await async_dispatcher(current_act)
-                    orch.blocked = False
-                else:
-                    asyncio.create_task(async_dispatcher(current_act))
+                asyncio.create_task(async_dispatcher(A))
                 # TODO: dynamic generate new decisions
                 # if not orch.decisions and not orch.actions
+    print('decision queue is empty')
     orch.update('idle')
     return True
+
+
+
+
+@app.post('/append_decision')
+def append_decision():
+    return ''
+@app.post('/prepend_decision')
+def prepend_decision():
+    return ''
+@app.post('/list_decisions')
+def list_decisions():
+    return ''
 
 
 @app.post('/endpoints')

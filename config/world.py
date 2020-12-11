@@ -1,5 +1,9 @@
 config = dict()
 
+# action library provides generator functions which produce action
+# lists from input decision_id grouping
+config["action_libraries"] = ["lisa_sdc_demo"]
+
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
     motor=dict(
@@ -72,7 +76,7 @@ config["servers"] = dict(
         host="127.0.0.1",
         port=8010,
         group="orchestrators",
-        fast="demo_orch",
+        fast="async_orch",
         path="."
     ),
     potentiostat_vis=dict(

@@ -14,11 +14,16 @@ from classes import Action, Decision
 
 actualizers = ['oer_screen']
 
+
+def dummy_acts():
+    action_list = ['a', 'bunch', 'of', 'actions']
+    return action_list
+
 # map platemap x,y to stage x,y
-def calxmove(decisionObj:Decision):
+def calmove(decisionObj:Decision):
     paramd = {}
     # read motor calibration
-    # 
+    # read platemap
     return(paramd)
 
 ocv_pars = {}

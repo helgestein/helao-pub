@@ -126,12 +126,12 @@ def clear_decisions():
 # async_dispatcher executes an action, the action tuple 
 async def async_dispatcher(A: Action):
     S = C[A.server]
-    if A.block or not orch.actions: # block final action in action queue
+    if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
         orch.block()
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
             response = await resp.text()
-    if A.block or not orch.actions:
+    if A.block or not orch.actions: # after action is complete, unblock orchestrator
         orch.unblock()
     return response
 

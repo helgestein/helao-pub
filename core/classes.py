@@ -28,7 +28,6 @@ class StatusHandler:
             _ = await self.q.get()
             self.q.task_done()
         await self.q.put(self.dict)
-        print('update issued')
 
     async def set_run(self):
         self.is_running = True

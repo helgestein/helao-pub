@@ -11,6 +11,7 @@ config["servers"] = dict(
         port=8001,
         group="server",
         fast="galil_motion",
+        simulate=True, # choose between simulator(default) or real device
         params=dict(
             count_to_mm=dict(
                 A=1.0/3154.787,
@@ -39,6 +40,7 @@ config["servers"] = dict(
         port=8002,
         group="server",
         fast="galil_io",
+        simulate=True, # choose between simulator(default) or real device
         params=dict(
             count_to_mm=dict(
                 A=1.0/3154.787,
@@ -67,8 +69,9 @@ config["servers"] = dict(
         port=8003,
         group="server",
         fast="gamry_server",
+        simulate=True, # choose between simulator(default) or real device
         params=dict(
-            temp_dump=".",
+            temp_dump=".\temp",
             path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
         )
     ),

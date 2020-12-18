@@ -28,16 +28,17 @@ class StatusHandler:
             _ = await self.q.get()
             self.q.task_done()
         await self.q.put(self.dict)
+        print('update issued')
 
-    def set_run(self):
+    async def set_run(self):
         self.is_running = True
         self.is_idle = False
-        self.update('running')
+        await self.update('running')
 
-    def set_idle(self):
+    async def set_idle(self):
         self.is_idle = True
         self.is_running = False
-        self.update('idle')
+        await self.update('idle')
 
 
 class OrchHandler:
@@ -91,7 +92,7 @@ class OrchHandler:
         self.fastSockets = {
             S: f"ws://{self.C[S].host}:{self.C[S].port}/{S}/ws_status" for S in self.fastServers}
         while True:
-            await asyncio.wait([self.handle_socket(uri, k) for k, uri in self.fastSockets])
+            await asyncio.wait([self.handle_socket(uri, k) for k, uri in self.fastSockets.items()])
 
     def block(self):
         self.is_blocked = True
@@ -99,15 +100,15 @@ class OrchHandler:
     def unblock(self):
         self.is_blocked = False
 
-    def set_run(self):
+    async def set_run(self):
         self.is_running = True
         self.is_idle = False
-        self.update('running')
+        await self.update('running')
 
-    def set_idle(self):
+    async def set_idle(self):
         self.is_idle = True
         self.is_running = False
-        self.update('idle')
+        await self.update('idle')
 
     def raise_skip(self):
         self.update('skipping')

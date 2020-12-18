@@ -14,6 +14,7 @@ import sys
 import time
 from enum import Enum
 from importlib import import_module
+import json
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -79,7 +80,7 @@ class move_modes(str, Enum):
 
 
 @app.post(f"/{servKey}/move")
-def move(
+async def move(
     x_mm: float,
     axis: str,
     speed: int = None,
@@ -90,6 +91,7 @@ def move(
     # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x
 
     # stopping is currently not working ... calling two motors at the same time will stop one motion
+    await stat.set_run()
     retc = return_class(
         measurement_type="motion_command",
         parameters={
@@ -104,6 +106,7 @@ def move(
         },
         data=motion.motor_move(x_mm, axis, speed, mode),
     )
+    await stat.set_idle()
     return retc
 
 

@@ -6,60 +6,86 @@ action tuples take the form:
 
 server_key must be a FastAPI action server defined in config
 """
+from classes import Action, Decision
 import os
 import sys
 lib_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(lib_root)), 'core'))
-from classes import Action, Decision
+sys.path.append(os.path.join(os.path.dirname(
+    os.path.dirname(lib_root)), 'core'))
 
-actualizers = ['oer_screen']
+actualizers = ['oer_screen', 'dummy_act']
 
 
-def dummy_acts():
+def dummy_act():
+    action_list = dummy_act2()
+    return action_list
+
+
+def dummy_act2():
     action_list = ['a', 'bunch', 'of', 'actions']
     return action_list
 
 # map platemap x,y to stage x,y
-def calmove(decisionObj:Decision):
+
+
+def calmove(decisionObj: Decision):
     paramd = {}
     # read motor calibration
     # read platemap
     return(paramd)
 
-ocv_pars = {}
-ca_pars = {}
-cv_pars = {}
-cp_pars = {}
+
+move_x = {"x_mm": 10.0,
+          "axis": "x",
+        #   "speed": None,
+          "mode": "relative"
+          }
+move_y = {"x_mm": 10.0,
+          "axis": "y",
+        #   "speed": None,
+          "mode": "relative"
+}
+cv0_pars = {"Vinit": -0.5,
+            "Vfinal": -0.5,
+            "Vapex1": 0.5,
+            "Vapex2": 0.5,
+            "ScanRate": 0.1,
+            "Cycles": 1,
+            "SampleRate": 0.004,
+            "control_mode": "galvanostatic"}
+cv1_pars = {"Vinit": 0,
+            "Vfinal": 0,
+            "Vapex1": 1.0,
+            "Vapex2": -1.0,
+            "ScanRate": 0.2,
+            "Cycles": 1,
+            "SampleRate": 0.05,
+            "control_mode": "galvanostatic"}
 
 # action set for OER screening
-def oer_screen(decisionObj:Decision):
+
+
+def oer_screen(decisionObj: Decision):
     action_list = []
     # move x
-    action_list.append(A(decision=decisionObj,
+    action_list.append(Action(decision=decisionObj,
                          server_key="motor",
                          action="move",
-                         action_pars=calmove(decisionObj),
+                         action_pars=move_x,
                          preempt=False,
                          block=False))
     # move y
-    action_list.append(A(decision=decisionObj,
+    action_list.append(Action(decision=decisionObj,
                          server_key="motor",
                          action="move",
-                         action_pars=calmove(decisionObj),
+                         action_pars=move_y,
                          preempt=False,
                          block=False))
-    # OCV technique:
+    # CV techniques:
     #   in general, need to preempt (wait for idle) and block during
     #   potentiostat measurements
-    action_list.append(A(decisionObj, "potentiostat", "OCV",
-                       ocv_pars, True, True))
-    # CA technique:
-    action_list.append(A(decisionObj, "potentiostat", "CA",
-                       ca_pars, True, True))
-    # CV technique:
-    action_list.append(A(decisionObj, "potentiostat", "CV",
-                       cv_pars, True, True))
-    # CP technique:
-    action_list.append(A(decisionObj, "potentiostat", "CP",
-                       cp_pars, True, True))
+    action_list.append(Action(decisionObj, "potentiostat", "CV",
+                       cv0_pars, True, True))
+    action_list.append(Action(decisionObj, "potentiostat", "CV",
+                       cv1_pars, True, True))
     return action_list

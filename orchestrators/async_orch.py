@@ -62,8 +62,11 @@ async def startup_event():
     global orch
     orch = OrchHandler(C)
     asyncio.create_task(orch.monitor_states())
-    
-    
+    orch.decisions.append(Decision(uid='0001', plate_id=1234, sample_no=9, actualizer=oer_screen))
+    orch.decisions.append(Decision(uid='0002', plate_id=1234, sample_no=12, actualizer=oer_screen))
+    orch.decisions.append(Decision(uid='0003', plate_id=1234, sample_no=15, actualizer=oer_screen))
+    print(len(orch.decisions))
+
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
     await websocket.accept()
@@ -122,6 +125,11 @@ def clear_decisions():
     orch.actions.clear()
     return {}
 
+@app.post(f"{servKey}/reset_demo")
+def reset_demo():
+    orch.decisions.append(Decision(uid='0001', plate_id=1234, sample_no=9, actualizer=oer_screen))
+    orch.decisions.append(Decision(uid='0002', plate_id=1234, sample_no=12, actualizer=oer_screen))
+    orch.decisions.append(Decision(uid='0003', plate_id=1234, sample_no=15, actualizer=oer_screen))
 
 # async_dispatcher executes an action, the action tuple 
 async def async_dispatcher(A: Action):
@@ -137,6 +145,8 @@ async def async_dispatcher(A: Action):
 
     
 async def run_dispatch_loop():
+    if orch.status == 'idle':
+        await orch.set_run()
     while orch.status != 'idle' and (orch.actions or orch.decisions):  # clause for resuming paused action list
         if not orch.actions:
             D = orch.decisions.popleft()
@@ -156,6 +166,7 @@ async def run_dispatch_loop():
                 orch.set_run()
             elif orch.status == 'running':
                 # check current blocking status
+                print('waiting for orchestrator to unblock')
                 while orch.is_blocked:
                     _ = await orch.dataq.get()
                     orch.dataq.task_done()
@@ -166,10 +177,10 @@ async def run_dispatch_loop():
                         _ = await orch.dataq.get()
                         orch.dataq.task_done()
                 asyncio.create_task(async_dispatcher(A))
-                # TODO: dynamic generate new decisions
+                # TODO: dynamic generate new decisions by signaling operator
                 # if not orch.decisions and not orch.actions
     print('decision queue is empty')
-    orch.update('idle')
+    await orch.set_idle()
     return True
 
 

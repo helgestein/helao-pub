@@ -112,9 +112,9 @@ def status_wrapper():
 async def pot_potential_ramp_wrap(
     Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
 ):
-    await stat.update('busy', 'myprov')
+    await stat.set_run()
     value = await poti.potential_ramp(Vinit, Vfinal, ScanRate, SampleRate)
-    await stat.update('idle', 'myprov')
+    await stat.set_idle()
     return return_class(**value)
 
 
@@ -129,7 +129,7 @@ async def pot_potential_cycle_wrap(
     SampleRate: float,
     control_mode: str,
 ):
-    await stat.update('busy', 'myprov')
+    await stat.set_run()
     value = await poti.potential_cycle(
         Vinit,
         Vfinal,
@@ -140,7 +140,7 @@ async def pot_potential_cycle_wrap(
         SampleRate,
         control_mode,
     )
-    await stat.update('idle', 'myprov')
+    await stat.set_idle()
     return return_class(**value)
 
 

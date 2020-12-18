@@ -32,7 +32,7 @@ O = C[servKey]
 S = C[O.params.ws_host]
 
 doc = curdoc()
-uri = f"ws://{S.host}:{S.port}/ws"
+uri = f"ws://{S.host}:{S.port}/{O.params.ws_host}/ws_data"
 time_stamp = 0
 pids = collections.deque(10*[0], 10)
 

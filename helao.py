@@ -238,6 +238,7 @@ def launcher(confPrefix, confDict):
     ) if sv['group'] == k} for k in LAUNCH_ORDER}
     A = munchify(allGroup)
     for group in LAUNCH_ORDER:
+        print(f"Launching {group} group.")
         if group in A:
             G = A[group]
             for server in G:
@@ -288,7 +289,8 @@ def launcher(confPrefix, confDict):
                         print(f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py")
                         continue
                     pidd.store_pid(server, servHost, servPort, ppid)
-        time.sleep(2)
+        if group!=LAUNCH_ORDER[-1]:
+            time.sleep(5)
     return pidd
 
 

@@ -29,15 +29,15 @@ class StatusHandler:
             self.q.task_done()
         await self.q.put(self.dict)
 
-    def set_run(self):
+    async def set_run(self):
         self.is_running = True
         self.is_idle = False
-        self.update('running')
+        await self.update('running')
 
-    def set_idle(self):
+    async def set_idle(self):
         self.is_idle = True
         self.is_running = False
-        self.update('idle')
+        await self.update('idle')
 
 
 class OrchHandler:
@@ -93,27 +93,27 @@ class OrchHandler:
         while True:
             await asyncio.wait([self.handle_socket(uri, k) for k, uri in self.fastSockets])
 
-    def block(self):
+    async def block(self):
         self.is_blocked = True
 
-    def unblock(self):
+    async def unblock(self):
         self.is_blocked = False
 
-    def set_run(self):
+    async def set_run(self):
         self.is_running = True
         self.is_idle = False
-        self.update('running')
+        await self.update('running')
 
-    def set_idle(self):
+    async def set_idle(self):
         self.is_idle = True
         self.is_running = False
-        self.update('idle')
+        await self.update('idle')
 
-    def raise_skip(self):
-        self.update('skipping')
+    async def raise_skip(self):
+        await self.update('skipping')
 
-    def raise_stop(self):
-        self.update('stopping')
+    async def raise_stop(self):
+        await self.update('stopping')
 
 
 class Decision:

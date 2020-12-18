@@ -88,3 +88,4 @@ dependencies:
   - yaml
   - yapf
   - zlib
+  - pybase64

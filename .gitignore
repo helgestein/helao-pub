@@ -1,7 +1,10 @@
 .vscode/*
+.vs/*
 __pycache__/*
 */__pycache__/*
 *.pyc
 *.DS_Store
+*.pck
+outputs/*
 settings.json
 config/mischbares_small.py

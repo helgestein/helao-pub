@@ -24,7 +24,6 @@ from munch import munchify
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
-from galil_simulate import galil
 from core import StatusHandler
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -34,6 +33,17 @@ S = C[servKey]
 
 app = FastAPI(title=servKey,
               description="Galil I/O instrument/action server", version=1.0)
+
+# check if 'simulate' settings is present
+if not 'simulate' in S:
+    # default if no simulate is defined
+    print('"simulate" not defined, switching to Galil Simulator.')
+    S['simulate']= False
+if S.simulate:
+    print('Galil I/O simulator loaded.')
+    from galil_simulate import galil    
+else:
+    from galil_driver import galil
 
 
 class return_status(BaseModel):

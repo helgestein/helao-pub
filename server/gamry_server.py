@@ -12,7 +12,7 @@ IMPORTANT -- class methods which are "blocking" i.e. synchronous driver calls mu
 preceded by:
   await stat.update('busy', 'myprov')
 and followed by :
-  await stat.update('busy', 'myprov')
+  await stat.update('idle, 'myprov')
 which will update this action server's status dictionary which is query-able via
 ../get_status, and also broadcast the status change via websocket ../ws_status
 
@@ -117,6 +117,23 @@ async def pot_potential_ramp_wrap(
     await stat.update('idle', 'myprov')
     return return_class(**value)
 
+@app.post(f"/{servKey}/potential_chrono_amp")
+async def pot_chrono_amp_wrap(
+    Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float 
+):
+    await stat.update('busy', 'myprov')
+    value = await poti.chrono_amp(Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate)
+    await stat.update('idle', 'myprov')
+    return return_class(**value)
+
+@app.post(f"/{servKey}/potential_chrono_pot")
+async def pot_chrono_pot_wrap(
+    Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float 
+):
+    await stat.update('busy', 'myprov')
+    value = await poti.chrono_pot(Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate)
+    await stat.update('idle', 'myprov')
+    return return_class(**value)
 
 @app.post(f"/{servKey}/potential_cycle")
 async def pot_potential_cycle_wrap(

@@ -10,9 +10,9 @@ code, and hard-coded to use 'gamry' class (see "__main__").
 
 IMPORTANT -- class methods which are "blocking" i.e. synchronous driver calls must be
 preceded by:
-  await stat.update('busy', 'myprov')
+  await stat.set_run()
 and followed by :
-  await stat.update('idle, 'myprov')
+  await stat.set_idle()
 which will update this action server's status dictionary which is query-able via
 ../get_status, and also broadcast the status change via websocket ../ws_status
 
@@ -52,7 +52,7 @@ S = C[servKey]
 # check if 'simulate' settings is present
 if not 'simulate' in S:
     # default if no simulate is defined
-    print('"simulate" not defined, switching to Galil Simulator.')
+    print('"simulate" not defined, switching to Gamry Simulator.')
     S['simulate']= False
 
 
@@ -135,18 +135,18 @@ async def pot_potential_ramp_wrap(
 async def pot_chrono_amp_wrap(
     Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float 
 ):
-    await stat.update('busy', 'myprov')
+    await stat.set_run()
     value = await poti.chrono_amp(Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate)
-    await stat.update('idle', 'myprov')
+    await stat.set_idle()
     return return_class(**value)
 
 @app.post(f"/{servKey}/potential_chrono_pot")
 async def pot_chrono_pot_wrap(
     Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float 
 ):
-    await stat.update('busy', 'myprov')
+    await stat.set_run()
     value = await poti.chrono_pot(Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate)
-    await stat.update('idle', 'myprov')
+    await stat.set_idle()
     return return_class(**value)
 
 @app.post(f"/{servKey}/potential_cycle")

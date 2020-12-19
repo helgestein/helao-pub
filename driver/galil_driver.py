@@ -25,23 +25,19 @@ else:
     else:
         raise ModuleNotFoundError("unable to find config vars, current working directory is {}".format(cwd))
 
-from config.config import *
 
-if GALIL_SIMULATE:
-    import gclib_simulate as gclib
-else:
-    import gclib
-
-
-setupd = GALIL_SETUPD
+# install galil driver first
+# (helao) c:\Program Files (x86)\Galil\gclib\source\wrappers\python>python setup.py install
+import gclib
 
 
 class galil:
-    def __init__(self):
+    def __init__(self, config_dict):
+        self.config_dict = config_dict
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
         print("gclib version:", self.g.GVersion())
-        self.g.GOpen("%s --direct -s ALL" % (setupd["galil_ip_str"]))
+        self.g.GOpen("%s --direct -s ALL" % (self.config_dict["galil_ip_str"]))
         print(self.g.GInfo())
         self.c = self.g.GCommand  # alias the command callable
         self.cycle_lights = False
@@ -64,8 +60,8 @@ class galil:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
 
         # first we check if we have the right axis specified
-        if axis in setupd["axis_id"].keys():
-            ax = setupd["axis_id"][axis]
+        if axis in self.config_dict["axis_id"].keys():
+            ax = self.config_dict["axis_id"][axis]
         else:
             return {
                 "moved_axis": None,
@@ -79,24 +75,24 @@ class galil:
         # check if the motors are moving if so return an error message
         # recalculate the distance in mm into distance in counts
         try:
-            print(setupd["count_to_mm"][ax])
+            print(self.config_dict["count_to_mm"][ax])
             float_counts = (
-                x_mm / setupd["count_to_mm"][ax]
+                x_mm / self.config_dict["count_to_mm"][ax]
             )  # calculate float dist from steupd
-            print(setupd["count_to_mm"][ax])
+            print(self.config_dict["count_to_mm"][ax])
 
             counts = int(np.floor(float_counts))  # we can only mode full counts
             # save and report the error distance
-            error_distance = setupd["count_to_mm"][ax] * (float_counts - counts)
+            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
 
             # check if a speed was upplied otherwise set it to standart
             if speed == None:
-                speed = setupd["def_speed_count_sec"]
+                speed = self.config_dict["def_speed_count_sec"]
             else:
                 speed = int(np.floor(speed))
 
-            if speed > setupd["max_speed_count_sec"]:
-                speed = setupd["max_speed_count_sec"]
+            if speed > self.config_dict["max_speed_count_sec"]:
+                speed = self.config_dict["max_speed_count_sec"]
             self._speed = speed
         except:
             # something went wrong in the numerical part so we give that as feedback
@@ -124,9 +120,9 @@ class galil:
             if mode == "absolute":
                 # now we want an abolute position
                 # identify which axis we are talking about
-                axlett = {l: i for i, l in enumerate(setupd["axlett"])}
+                axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
                 cmd_str = "PA " + ",".join(
-                    str(0) if ax != lett else str(counts) for lett in setupd["axlett"]
+                    str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
                 )
                 cmd_seq.append(cmd_str)
             cmd_seq.append("BG{}".format(ax))
@@ -172,8 +168,8 @@ class galil:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
 
         # first we check if we have the right axis specified
-        if axis in setupd["axis_id"].keys():
-            ax = setupd["axis_id"][axis]
+        if axis in self.config_dict["axis_id"].keys():
+            ax = self.config_dict["axis_id"][axis]
         else:
             return {
                 "moved_axis": None,
@@ -188,20 +184,20 @@ class galil:
         # recalculate the distance in mm into distance in counts
         try:
             float_counts = (
-                x_mm / setupd["count_to_mm"][ax]
+                x_mm / self.config_dict["count_to_mm"][ax]
             )  # calculate float dist from steupd
             counts = int(np.floor(float_counts))  # we can only mode full counts
             # save and report the error distance
-            error_distance = setupd["count_to_mm"][ax] * (float_counts - counts)
+            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
 
             # check if a speed was upplied otherwise set it to standart
             if speed == None:
-                speed = setupd["def_speed_count_sec"]
+                speed = self.config_dict["def_speed_count_sec"]
             else:
                 speed = int(np.floor(speed))
 
-            if speed > setupd["max_speed_count_sec"]:
-                speed = setupd["max_speed_count_sec"]
+            if speed > self.config_dict["max_speed_count_sec"]:
+                speed = self.config_dict["max_speed_count_sec"]
             self._speed = speed
         except:
             # something went wrong in the numerical part so we give that as feedback
@@ -227,9 +223,9 @@ class galil:
             if mode == "absolute":
                 # now we want an abolute position
                 # identify which axis we are talking about
-                axlett = {l: i for i, l in enumerate(setupd["axlett"])}
+                axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
                 cmd_str = "PA " + ",".join(
-                    str(0) if ax != lett else str(counts) for lett in setupd["axlett"]
+                    str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
                 )
                 cmd_seq.append(cmd_str)
             cmd_seq.append("BG{}".format(ax))
@@ -291,11 +287,11 @@ class galil:
         # now we need to map these outputs to the ABCDEFG... channels
         # and then map that to xyz so it is humanly readable
 
-        inv_axis_id = {d: v for v, d in setupd["axis_id"].items()}
-        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(setupd["axlett"])}
+        inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
+        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
         pos = {
-            axl: int(r) * setupd["count_to_mm"][axl]
-            for axl, r in zip(setupd["axlett"], ret.split(", "))
+            axl: int(r) * self.config_dict["count_to_mm"][axl]
+            for axl, r in zip(self.config_dict["axlett"], ret.split(", "))
         }
         # return the results through calculating things into mm
         return {ax_abc_to_xyz[k]: p for k, p in pos.items()}
@@ -319,9 +315,9 @@ class galil:
         # a server call would look like:
         # http://127.0.0.1:8000/motor/query/position?axis=x
         ret = self.c("SC")
-        inv_axis_id = {d: v for v, d in setupd["axis_id"].items()}
-        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(setupd["axlett"])}
-        for axl, r in zip(setupd["axlett"], ret.split(", ")):
+        inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
+        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
+        for axl, r in zip(self.config_dict["axlett"], ret.split(", ")):
             if int(r) == 0:
                 return {"motor_status": "moving"}
         return {"motor_status": "stopped"}
@@ -335,8 +331,8 @@ class galil:
         # an example would be:
         # http://127.0.0.1:8000/motor/stop
 
-        if axis in setupd["axis_id"].keys():
-            ax = setupd["axis_id"][axis]
+        if axis in self.config_dict["axis_id"].keys():
+            ax = self.config_dict["axis_id"][axis]
         else:
             ret = self.query_moving()
             ret.update(self.query_all_axis_positions())
@@ -356,8 +352,8 @@ class galil:
         # and the current position of all motors
         # server example
         # http://127.0.0.1:8000/motor/on?axis=x
-        if axis in setupd["axis_id"].keys():
-            ax = setupd["axis_id"][axis]
+        if axis in self.config_dict["axis_id"].keys():
+            ax = self.config_dict["axis_id"][axis]
         else:
             ret = self.query_moving()
             ret.update(self.query_all_axis_positions())

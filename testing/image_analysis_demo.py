@@ -144,6 +144,55 @@ def find_peaks(A,r):
     return peaks
 
 
+def find_peaks_min(A,r):
+    xpeaks = []
+    n = len(A)
+    m = len(A[0])
+    for i in range(n):
+        j = 0
+        while j < m-2*r:
+            sublist = A[i][j:j+2*r+1]
+            peak = numpy.argmin(sublist)
+            if peak + j < r and sublist[peak] >= numpy.amin(A[i][:2*r+1]) or peak == r:
+                xpeaks.append([i,peak+j])
+                j += peak + 1
+            elif peak > r:
+                j += peak - r
+            else:
+                j += peak + 1
+    B = numpy.transpose(A)
+    peaks = []
+    for peak in xpeaks: 
+        sublist = B[peak[1]][max(0,peak[0]-r):min(n,peak[0]+r+1)]
+        if numpy.argmin(sublist) == r:
+            peaks.append(peak)
+    i = 0
+    while i < len(peaks)-1:
+        j = i+1
+        inti = A[peaks[i][0]][peaks[i][1]]
+        if inti == 0:
+            peaks = numpy.delete(peaks,i,axis=0)
+            i,j = i-1,len(peaks)
+        while j < len(peaks):
+            intj = A[peaks[j][0]][peaks[j][1]]
+            if intj == 0:
+                peaks = numpy.delete(peaks,j,axis=0)
+                j -= 1
+            if math.sqrt((peaks[i][0]-peaks[j][0])**2+(peaks[i][1]-peaks[j][1])**2) < r:
+                if inti < intj:
+                    peaks = numpy.delete(peaks,j,axis=0)
+                    j -= 1
+                if inti > intj:
+                    peaks = numpy.delete(peaks,i,axis=0)
+                    i,j = i-1,len(peaks)
+                if inti == 0 and intj == 0:
+                    peaks = numpy.delete(peaks,j,axis=0)
+                    peaks = numpy.delete(peaks,i,axis=0)
+                    i,j = i-1,len(peaks)
+            j += 1
+        i += 1
+    return peaks
+
 
 if __name__ == "__main__":
     
@@ -153,7 +202,7 @@ if __name__ == "__main__":
     d = .1
     dx,dy = (numpy.array(hgrid[-1][0]) - numpy.array(hgrid[0][0]))/d + 1
     dx,dy = int(dx),int(dy)
-    #hmatrix = numpy.transpose(numpy.reshape(numpy.array([i[1] for i in hgrid]),(dx,dy,3)),(1,0,2))
+    hmatrix = numpy.transpose(numpy.reshape(numpy.array([i[1] for i in hgrid]),(dx,dy,3)),(1,0,2))
     t0 = time.time()
     #scalegrid = [[[i*d,j*d],autocorrelation(i,j,hmatrix)] for i in range(dy) for j in range(dx)]
     #print('runtime in seconds: '+str(time.time()-t0))
@@ -168,20 +217,18 @@ if __name__ == "__main__":
     #print(find_peaks_wrap(scalematrix,5))
     
     #circle = circlematrix(11,15,3,2)
-    #circleconvgrid = [[[(i+(len(circle)-1)/2)*d,(j+(len(circle)-1)/2)*d],correlation(i,j,hmatrix,circle)] for i in range(-len(circle),dy+len(circle)) for j in range(-len(circle),dx+len(circle))]
-    #print('runtime in seconds: '+str(time.time()-t0))
-    #with open('C:/Users/Operator/Desktop/circleconvgrid.json','w') as outfile:
-    #    json.dump(circleconvgrid,outfile)
+    circle = circlematrix(11,11,3,0)
+    circleconvgrid = [[[(i+(len(circle)-1)/2)*d,(j+(len(circle)-1)/2)*d],correlation(i,j,hmatrix,circle)] for i in range(dy-len(circle)) for j in range(dx-len(circle))]
+    print('runtime in seconds: '+str(time.time()-t0))
+    with open('C:/Users/jkflowers/Desktop/circleconvgridd.json','w') as outfile:
+        json.dump(circleconvgrid,outfile)
 
-    with open('C:/Users/jkflowers/Downloads/circleconvgrid.json','r') as infile:
-        circleconvgrid = json.load(infile)
-
-    circleconvmatrix = numpy.array([i[1] for i in circleconvgrid]).reshape(dy+30,dx+30)
-    points = find_peaks(circleconvmatrix,5)
+    #with open('C:/Users/jkflowers/Downloads/circleconvgrid.json','r') as infile:
+    #    circleconvgrid = json.load(infile)
+    circleconvmatrix = numpy.array([i[1] for i in circleconvgrid]).reshape(dy-len(circle),dx-len(circle))
+    points = find_peaks_min(circleconvmatrix,3)
     print(points)
-    pointsgrid = [[i-15,j-15] for i,j in points]
+    pointsgrid = [[i+(len(circle)-1)/2,j+(len(circle)-1)/2] for i,j in points]
     print(pointsgrid)
-
-
 
 

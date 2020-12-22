@@ -140,17 +140,17 @@ def assimilateFile(filename:str,filepath:str):
 #assimilate file into our kadi system, defined such that each measurement area is a record and each substrate is a collection
     substrate,ma = filename.split("_")[1:3]
     recordname = substrate+"_"+ma
-    collectionname = "substrate_"+substrate
+    collectionname = "stein_substrate_"+substrate
     if not collectionExists(collectionname):
-        addCollection(collectionname,collectionname,"public")
+        addCollection(collectionname,collectionname,"private")
     if not recordExists(recordname):
-        addRecord(recordname,recordname,"public")
+        addRecord(recordname,recordname,"private")
         addRecordToCollection(collectionname,recordname)
     if not isFileInRecord(recordname,filename):
         addFileToRecord(recordname,os.path.join(filepath,filename))
-        paths = findFilepath(json.load(open(os.path.join(filepath,filename),'r')))
-        for i,j in zip(paths[0],paths[1]):
-            addFileToRecord(recordname,os.path.join(i,j))
+        #paths = findFilepath(json.load(open(os.path.join(filepath,filename),'r')))
+        #for i,j in zip(paths[0],paths[1]):
+        #    addFileToRecord(recordname,os.path.join(i,j))
     else:
         print("file already assimilated")
 

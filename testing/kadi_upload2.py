@@ -8,7 +8,7 @@ import json
 
 if __name__ == "__main__":
     i=0
-    filepath = "C:/Users/Operator/Documents/data"
+    filepath = "C:/Users/jkflowers/Desktop/data2/data"
     soe,params = [],{}
     for filename in os.listdir(filepath):
         soe.append("data/assimilatefile_{}".format(i))

@@ -21,7 +21,8 @@ from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
 from pydantic import BaseModel
 from munch import munchify
-from typing import List
+from starlette.responses import StreamingResponse
+
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
@@ -98,22 +99,26 @@ async def move(
     x_mm: str,
     axis: str,
     speed: int = None,
-    mode: move_modes = "relative",
-    stopping: bool = True,
+    mode: move_modes = "relative"
 ):
     """Move a apecified {axis} by {x_mm} distance at {speed} using {mode} i.e. relative"""
+    await stat.set_run()
     # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x
+    stopping=False
+    # TODO: no same axis in sequence
     
     # for multi axis movement, we need to split x_mm and axis into lists
     # (1) find separator and split it, else assume single axis move
     sepvals = [' ',',','\t',';','::',':']
     new_axis = None
     new_x_mm = None
+
+    
     for sep in sepvals:
-        if (x_mm.find(sep) == 1) and (axis.find(sep) == 1):
-            new_axis = axis.split(sep)
-            new_x_mm = [float(item) for item in x_mm.split(sep)]
-            break
+        if not (x_mm.find(sep) == -1) and not (axis.find(sep) == -1):
+                new_axis = axis.split(sep)
+                new_x_mm = [float(item) for item in x_mm.split(sep)]
+                break
     
     # single axis
     if new_x_mm == None:
@@ -121,15 +126,13 @@ async def move(
         new_x_mm = float(x_mm)
    
     
-    # stopping is currently not working ... calling two motors at the same time will stop one motion
-    await stat.set_run()
     retc = return_class(
         measurement_type="motion_command",
         parameters={
             "command": "move_axis",
             "parameters": {
-                "x_mm": x_mm,
-                "axis": axis,
+                "x_mm": new_x_mm,
+                "axis": new_axis,
                 "speed": speed,
                 "mode": mode,
                 "stopping": stopping,
@@ -137,11 +140,14 @@ async def move(
         },
         data=motion.motor_move(new_x_mm, new_axis, speed, mode),
     )
-    await stat.set_idle()
+
+    # check for errors    
+    if all(retc.data['err_code']):
+        await stat.set_error()
+    else:
+        await stat.set_idle()
+
     return retc
-
-
-from starlette.responses import StreamingResponse
 
 
 @app.post(f"/{servKey}/move_live")
@@ -186,7 +192,7 @@ def query_position(axis: str):
     retc = return_class(
         measurement_type="motion_query",
         parameters={"command": "query_position"},
-        data=motion.query_axis(axis),
+        data=motion.query_axis_position(axis),
     )
     return retc
 

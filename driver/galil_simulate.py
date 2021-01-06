@@ -94,18 +94,20 @@ class galil:
                 ret_err_code.append("setup")
                 ret_counts.append(None)
                 continue
-                
-            # check if the motors are moving if so return an error message
-            # recalculate the distance in mm into distance in counts
-            if time.time() < self.stop_time or stopping is False:
-                ret_moved_axis.append(None)
-                ret_speed.append(None)
-                ret_accepted_rel_dist.append(None)
-                ret_supplied_rel_dist.append(x_mm)
-                ret_err_dist.append(None)
-                ret_err_code.append("motor_in_motion")
-                ret_counts.append(None)
-                continue
+            
+            # TODO: not needed anymore as server checks if motor is moving?
+            
+            # # check if the motors are moving if so return an error message
+            # # recalculate the distance in mm into distance in counts
+            # if time.time() < self.stop_time or stopping is False:
+            #     ret_moved_axis.append(None)
+            #     ret_speed.append(None)
+            #     ret_accepted_rel_dist.append(None)
+            #     ret_supplied_rel_dist.append(x_mm)
+            #     ret_err_dist.append(None)
+            #     ret_err_code.append("motor_in_motion")
+            #     ret_counts.append(None)
+            #     continue
     
             try:
                 # print(self.config_dict["count_to_mm"][ax])
@@ -213,7 +215,7 @@ class galil:
             "supplied_rel_dist": ret_supplied_rel_dist,
             "err_dist": ret_err_dist,
             "err_code": ret_err_code,
-            "counts": ret_counts,
+            "counts": ret_counts
         }
 
     def motor_move_live(self, x_mm, axis, speed, mode):
@@ -394,7 +396,7 @@ class galil:
         # return the results through calculating things into mm
         return {ax_abc_to_xyz[k]: p for k, p in pos.items()}
 
-    def query_axis(self, axis):
+    def query_axis_position(self, axis):
         # this only queries the position of a single axis
         # server example:
         # http://127.0.0.1:8000/motor/query/position?axis=x

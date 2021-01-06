@@ -30,6 +30,10 @@ else:
 # (helao) c:\Program Files (x86)\Galil\gclib\source\wrappers\python>python setup.py install
 import gclib
 
+class cmd_exception(ValueError):
+    def __init__(self, arg):
+        self.args = arg
+
 
 class galil:
     def __init__(self, config_dict):
@@ -42,7 +46,8 @@ class galil:
         self.c = self.g.GCommand  # alias the command callable
         self.cycle_lights = False
 
-    def motor_move(self, x_mm, axis, speed, mode, stopping=True):
+    def motor_move(self, multi_x_mm, multi_axis, speed, mode):
+        stopping=False # no stopping of any movement by other actions
         # this function moves the motor by a set amount of milimeters
         # you have to specify the axis,
         # if no axis is specified this function throws an error
@@ -59,96 +64,150 @@ class galil:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
 
-        # first we check if we have the right axis specified
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
+
+        # convert single axis move to list        
+        if type(multi_x_mm) is not list:
+            multi_axis = [multi_axis]
+            multi_x_mm = [multi_x_mm]
+        
+        # return value arrays for multi axis movement
+        ret_moved_axis = []
+        ret_speed = []
+        ret_accepted_rel_dist = []
+        ret_supplied_rel_dist = []
+        ret_err_dist = []
+        ret_err_code = []
+        ret_counts = []
+        
+        # TODO: if same axis is moved twice
+        for x_mm, axis in zip(multi_x_mm, multi_axis):
+            # need to remove stopping for multi-axis move
+            if len(ret_moved_axis) > 0:
+                stopping = False
+
+
+            # first we check if we have the right axis specified
+            if axis in self.config_dict["axis_id"].keys():
+                ax = self.config_dict["axis_id"][axis]
+            else:
+                ret_moved_axis.append(None)
+                ret_speed.append(None)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(None)
+                ret_err_code.append("setup")
+                ret_counts.append(None)
+                continue
+    
+            # check if the motors are moving if so return an error message
+            # recalculate the distance in mm into distance in counts
+            try:
+                print(self.config_dict["count_to_mm"][ax])
+                float_counts = (
+                    x_mm / self.config_dict["count_to_mm"][ax]
+                )  # calculate float dist from steupd
+                print(self.config_dict["count_to_mm"][ax])
+    
+                counts = int(np.floor(float_counts))  # we can only mode full counts
+                # save and report the error distance
+                error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
+    
+                # check if a speed was upplied otherwise set it to standart
+                if speed == None:
+                    speed = self.config_dict["def_speed_count_sec"]
+                else:
+                    speed = int(np.floor(speed))
+    
+                if speed > self.config_dict["max_speed_count_sec"]:
+                    speed = self.config_dict["max_speed_count_sec"]
+                self._speed = speed
+            except:
+                # something went wrong in the numerical part so we give that as feedback
+                ret_moved_axis.append(None)
+                ret_speed.append(None)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(None)
+                ret_err_code.append("numerical")
+                ret_counts.append(None)
+                continue
+            try:
+                # the logic here is that we assemble a command sequence
+                # here we decide if we move relative, home, or move absolute
+                if mode not in ["relative", "absolute", "homing"]:
+                    raise cmd_exception
+                if stopping:
+                    cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
+                else:
+                    cmd_seq = ["SP{}={}".format(ax, speed)]
+                if mode == "relative":
+                    cmd_seq.append("PR{}={}".format(ax, counts))
+                if mode == "homing":
+                    cmd_seq.append("HM{}".format(ax))
+                if mode == "absolute":
+                    # now we want an abolute position
+                    # identify which axis we are talking about
+                    #axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
+                    cmd_str = "PA " + ",".join(
+                        str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
+                    )
+                    cmd_seq.append(cmd_str)
+                cmd_seq.append("BG{}".format(ax))
+    
+                #ret = ""
+                for cmd in cmd_seq:
+                    _ = self.c(cmd)
+                    #ret.join(_)
+                ret_moved_axis.append(ax)
+                ret_speed.append(speed)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(error_distance)
+                ret_err_code.append(0)
+                ret_counts.append(counts)
+                continue
+            except:
+                ret_moved_axis.append(None)
+                ret_speed.append(None)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(None)
+                ret_err_code.append("motor")
+                ret_counts.append(None)
+                continue
+
+        # check if all axis stopped              
+        tstart = time.time()
+        if "timeout" in self.config_dict:
+            tout = self.config_dict["timeout"]
         else:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "setup",
-            }
+            tout = 60
 
-        # check if the motors are moving if so return an error message
-        # recalculate the distance in mm into distance in counts
-        try:
-            print(self.config_dict["count_to_mm"][ax])
-            float_counts = (
-                x_mm / self.config_dict["count_to_mm"][ax]
-            )  # calculate float dist from steupd
-            print(self.config_dict["count_to_mm"][ax])
+        while time.time()-tstart < tout:
+            rettmp = self.query_axis_moving(multi_axis)
+            time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
+#            print(rettmp)
+            if all(rettmp['err_code']):
+#                print('Motors stopped')
+                break
+#            else:
+#                print('Motors moving')
+ 
+        # Estop of motor movement (motor still on)
+        if time.time()-tstart > tout:
+            self.stop_axis(multi_axis)
 
-            counts = int(np.floor(float_counts))  # we can only mode full counts
-            # save and report the error distance
-            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
+        # one return for all axis 
+        return {
+            "moved_axis": ret_moved_axis,
+            "speed": ret_speed,
+            "accepted_rel_dist": ret_accepted_rel_dist,
+            "supplied_rel_dist": ret_supplied_rel_dist,
+            "err_dist": ret_err_dist,
+            "err_code": ret_err_code,
+            "counts": ret_counts
+        }
 
-            # check if a speed was upplied otherwise set it to standart
-            if speed == None:
-                speed = self.config_dict["def_speed_count_sec"]
-            else:
-                speed = int(np.floor(speed))
-
-            if speed > self.config_dict["max_speed_count_sec"]:
-                speed = self.config_dict["max_speed_count_sec"]
-            self._speed = speed
-        except:
-            # something went wrong in the numerical part so we give that as feedback
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "numerical",
-            }
-        try:
-            # the logic here is that we assemble a command sequence
-            # here we decide if we move relative, home, or move absolute
-            if mode not in ["relative", "absolute", "homing"]:
-                raise cmd_exception
-            if stopping:
-                cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
-            else:
-                cmd_seq = ["SP{}={}".format(ax, speed)]
-            if mode == "relative":
-                cmd_seq.append("PR{}={}".format(ax, counts))
-            if mode == "homing":
-                cmd_seq.append("HM{}".format(ax))
-            if mode == "absolute":
-                # now we want an abolute position
-                # identify which axis we are talking about
-                axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
-                cmd_str = "PA " + ",".join(
-                    str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
-                )
-                cmd_seq.append(cmd_str)
-            cmd_seq.append("BG{}".format(ax))
-
-            ret = ""
-            for cmd in cmd_seq:
-                _ = self.c(cmd)
-                ret.join(_)
-            return {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "counts": counts,
-            }
-        except:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "motor",
-            }
 
     def motor_move_live(self, x_mm, axis, speed, mode):
         # this function moves the motor by a set amount of milimeters
@@ -215,7 +274,10 @@ class galil:
             if mode not in ["relative", "absolute", "homing"]:
                 raise cmd_exception
 
-            cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
+            # stops all other motion
+            #cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
+            # other motion won't be affected
+            cmd_seq = ["SP{}={}".format(ax, speed)]
             if mode == "relative":
                 cmd_seq.append("PR{}={}".format(ax, counts))
             if mode == "homing":
@@ -223,7 +285,7 @@ class galil:
             if mode == "absolute":
                 # now we want an abolute position
                 # identify which axis we are talking about
-                axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
+                #axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
                 cmd_str = "PA " + ",".join(
                     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
                 )
@@ -286,7 +348,6 @@ class galil:
         ret = self.c("TP")  # query position of all axis
         # now we need to map these outputs to the ABCDEFG... channels
         # and then map that to xyz so it is humanly readable
-
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
         ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
         pos = {
@@ -296,7 +357,7 @@ class galil:
         # return the results through calculating things into mm
         return {ax_abc_to_xyz[k]: p for k, p in pos.items()}
 
-    def query_axis(self, axis):
+    def query_axis_position(self, axis):
         # this only queries the position of a single axis
         # server example:
         # http://127.0.0.1:8000/motor/query/position?axis=x
@@ -305,6 +366,34 @@ class galil:
             return {"ax": axis, "position": q[axis]}
         else:
             return {"ax": None, "position": None}
+
+    def query_axis_moving(self, multi_axis):
+        # this functions queries the status of the axis
+        q = self.c("SC")
+        axlett = 'ABCDEFGH'
+        axlett[0:len(q.split(', '))]
+        # convert single axis move to list        
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
+        ret_status = []
+        ret_err_code = []
+        for axis in multi_axis:
+            for axl, r in zip(axlett, q.split(", ")):
+                if int(r) == 0:
+                    ret_status.append("moving")
+                    ret_err_code.append(int(r))
+                elif int(r) == 1:
+                    ret_status.append("stopped")
+                    ret_err_code.append(int(r))
+                else:
+                    # stopped due to error/issue
+                    ret_status.append("stopped")
+                    ret_err_code.append(int(r))
+        return {
+            "motor_status": ret_status,
+            "err_code": ret_err_code
+        }
+
 
     def query_moving(self,):
         # this function queries the galil motor controller if any of
@@ -315,12 +404,27 @@ class galil:
         # a server call would look like:
         # http://127.0.0.1:8000/motor/query/position?axis=x
         ret = self.c("SC")
-        inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
-        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
+        #inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
+        #ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
         for axl, r in zip(self.config_dict["axlett"], ret.split(", ")):
             if int(r) == 0:
                 return {"motor_status": "moving"}
         return {"motor_status": "stopped"}
+
+
+    def stop_axis(self, multi_axis):
+        # this will stop the current motion of the axis
+        # but not turn off the motor
+        # for stopping and turnuing off use moto_off
+
+        # convert single axis move to list        
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
+        for axis in multi_axis:
+            if axis in self.config_dict["axis_id"].keys():
+                ax = self.config_dict["axis_id"][axis]
+                self.c("ST {}".format(ax))
+
 
     def motor_off(self, axis):
         # sometimes it is useful to turn the motors off for manual alignment
@@ -397,19 +501,19 @@ class galil:
         ret = self.c("MG @IN[{}]".format(port))
         return {"port": port, "value": ret, "type": "digital_out"}
 
-    def set_analog_out(self, handle: int, module: int, bitnum: int, value: float):
+    def set_analog_out(self, port: int, handle: int, module: int, bitnum: int, value: float):
         # this is essentially a placeholder for now since the DMC-4143 does not support
-        # analog out butI believe it is worthwhile to have this in here for the RIO
+        # analog out but I believe it is worthwhile to have this in here for the RIO
         # Handle num is A-H and must be on port 502 for the modbus commons
         # module is the position of the module from 1 to 16
         # bitnum is the IO point in the module from 1-4
         # the fist value n_0
-        n_0 = handle * 1000 + (module - 1) * 4 + bitnum
-        ret = self.c("AO {},{}".format(port, value))
+        #n_0 = handle * 1000 + (module - 1) * 4 + bitnum
+        #_ = self.c("AO {},{}".format(port, value))
         return {"port": port, "value": value, "type": "analog_out"}
 
     def digital_out_on(self, port: int):
-        ret = self.c("SB {}".format(port))
+        _ = self.c("SB {}".format(port))
         return {
             "port": port,
             "value": self.read_digital_out(port),
@@ -417,7 +521,7 @@ class galil:
         }
 
     def digital_out_off(self, port: int):
-        ret = self.c("CB {}".format(port))
+        _ = self.c("CB {}".format(port))
         return {
             "port": port,
             "value": self.read_digital_out(port),

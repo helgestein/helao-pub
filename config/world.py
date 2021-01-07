@@ -32,7 +32,8 @@ config["servers"] = dict(
                 t="E",
                 u="F"
                 ),
-            axlett="ABCD"
+            axlett="ABCD",
+            timeout = 60 # timeout for axis stop in sec
         )
     ),
     io=dict(

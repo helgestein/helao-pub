@@ -64,8 +64,7 @@ class gamry:
     # since the gamry connection uses one class and it can be switched on or off with handoff and everythong
     # I decided to put the gamry in a class ... this puts the logic into this class and not like in the motion server
     # where the logic is spread across the functions. TODO: Decide which way to implement this and streamline everywhere
-    def __init__(self, config_dict):
-        print(config_dict)
+    def __init__(self, config_dict):        
         self.config_dict = config_dict
         self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
 

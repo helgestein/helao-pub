@@ -4,8 +4,8 @@ The 'galil' device class simulates the underlying motion and I/O functions provi
 'gclib'. The simulation class does not depend on the external 'gclib' library.
 """
 
-import sys
-import os
+#import sys
+#import os
 import numpy as np
 import json
 import time
@@ -47,7 +47,7 @@ class galil:
         self.doflag = defaultdict(int)
 
     # single axis motion, executes after building command string
-    def motor_move(self, x_mm, axis, speed, mode, stopping=True):
+    def motor_move(self, multi_x_mm, multi_axis, speed, mode, stopping=True):
         # this function moves the motor by a set amount of millimeters
         # you have to specify the axis,
         # if no axis is specified this function throws an error
@@ -64,129 +64,159 @@ class galil:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
 
-        # first we check if we have the right axis specified
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
-
-        else:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "setup",
-            }
-
-        # check if the motors are moving if so return an error message
-        # recalculate the distance in mm into distance in counts
-        if time.time() < self.stop_time or stopping is False:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "motor_in_motion",
-            }
-
-        try:
-            # print(self.config_dict["count_to_mm"][ax])
-            float_counts = (
-                x_mm / self.config_dict["count_to_mm"][ax]
-            )  # calculate float dist from self.config_dict
-            # print(self.config_dict["count_to_mm"][ax])
-
-            counts = int(np.floor(float_counts))  # we can only mode full counts
-            print(counts)
-            # save and report the error distance
-            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
-
-            # check if a speed was supplied otherwise set it to standard
-            if speed == None:
-                speed = self.config_dict["def_speed_count_sec"]
+        # convert single axis move to list        
+        if type(multi_x_mm) is not list:
+            multi_axis = [multi_axis]
+            multi_x_mm = [multi_x_mm]
+        
+        # return value arrays for multi axis movement
+        ret_moved_axis = []
+        ret_speed = []
+        ret_accepted_rel_dist = []
+        ret_supplied_rel_dist = []
+        ret_err_dist = []
+        ret_err_code = []
+        ret_counts = []
+        
+        for x_mm, axis in zip(multi_x_mm, multi_axis):
+       
+        
+            # first we check if we have the right axis specified
+            if axis in self.config_dict["axis_id"].keys():
+                ax = self.config_dict["axis_id"][axis]
+    
             else:
-                speed = int(np.floor(speed))
+                ret_moved_axis.append(None)
+                ret_speed.append(None)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(None)
+                ret_err_code.append("setup")
+                ret_counts.append(None)
+                continue
+            
+            # TODO: not needed anymore as server checks if motor is moving?
+            
+            # # check if the motors are moving if so return an error message
+            # # recalculate the distance in mm into distance in counts
+            # if time.time() < self.stop_time or stopping is False:
+            #     ret_moved_axis.append(None)
+            #     ret_speed.append(None)
+            #     ret_accepted_rel_dist.append(None)
+            #     ret_supplied_rel_dist.append(x_mm)
+            #     ret_err_dist.append(None)
+            #     ret_err_code.append("motor_in_motion")
+            #     ret_counts.append(None)
+            #     continue
+    
+            try:
+                # print(self.config_dict["count_to_mm"][ax])
+                float_counts = (
+                    x_mm / self.config_dict["count_to_mm"][ax]
+                )  # calculate float dist from self.config_dict
+                # print(self.config_dict["count_to_mm"][ax])
+    
+                counts = int(np.floor(float_counts))  # we can only mode full counts
+                print(counts)
+                # save and report the error distance
+                error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
+    
+                # check if a speed was supplied otherwise set it to standard
+                if speed == None:
+                    speed = self.config_dict["def_speed_count_sec"]
+                else:
+                    speed = int(np.floor(speed))
+    
+                if speed > self.config_dict["max_speed_count_sec"]:
+                    speed = self.config_dict["max_speed_count_sec"]
+                self._speed = speed
+            except:
+                # something went wrong in the numerical part so we give that as feedback
+                ret_moved_axis.append(None)
+                ret_speed.append(None)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(None)
+                ret_err_code.append("numerical")
+                ret_counts.append(None)
+                continue
 
-            if speed > self.config_dict["max_speed_count_sec"]:
-                speed = self.config_dict["max_speed_count_sec"]
-            self._speed = speed
-        except:
-            # something went wrong in the numerical part so we give that as feedback
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "numerical",
-            }
-        if True:
-            # the logic here is that we assemble a command sequence
-            # here we decide if we move relative, home, or move absolute
-            if mode not in ["relative", "absolute", "homing"]:
-                raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
-
-            if stopping:  # interrupt current motion
+            if True:
+                # the logic here is that we assemble a command sequence
+                # here we decide if we move relative, home, or move absolute
+                if mode not in ["relative", "absolute", "homing"]:
+                    raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
+    
+                if stopping:  # interrupt current motion
+                    self.start_time = time.time()
+                    self.stop_time = time.time()
+    
+                # else:  # if not stopping, set speed?, condition seems unrelated
+                    # cmd_seq = ["SP{}={}".format(ax, speed)]
+    
+                if mode == "relative":
+                    # cmd_seq.append("PR{}={}".format(ax, counts))
+                    dist = counts
+                    self.axlast[ax] = self.axdict[ax]
+                    self.axdict[ax] += counts
+    
+                if mode == "homing":
+                    # cmd_seq.append("HM{}".format(ax))
+                    dist = np.abs(self.axdict[ax])
+                    self.axlast[ax] = self.axdict[ax]
+                    self.axdict[ax] = 0
+    
+                if mode == "absolute":
+                    # now we want an absolute position
+                    # identify which axis we are talking about
+                    # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
+                    # cmd_str = "PA " + ",".join(
+                    #     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
+                    # )
+                    # cmd_seq.append(cmd_str)
+                    dist = np.abs(counts - self.axdict[ax])
+                    self.axlast[ax] = self.axdict[ax]
+                    self.axdict[ax] = counts
+    
+                # cmd_seq.append("BG{}".format(ax))
+    
+                motion_time = 1.0*dist/speed
                 self.start_time = time.time()
-                self.stop_time = time.time()
-
-            # else:  # if not stopping, set speed?, condition seems unrelated
-                # cmd_seq = ["SP{}={}".format(ax, speed)]
-
-            if mode == "relative":
-                # cmd_seq.append("PR{}={}".format(ax, counts))
-                dist = counts
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] += counts
-
-            if mode == "homing":
-                # cmd_seq.append("HM{}".format(ax))
-                dist = np.abs(self.axdict[ax])
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] = 0
-
-            if mode == "absolute":
-                # now we want an absolute position
-                # identify which axis we are talking about
-                # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
-                # cmd_str = "PA " + ",".join(
-                #     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
-                # )
-                # cmd_seq.append(cmd_str)
-                dist = np.abs(counts - self.axdict[ax])
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] = counts
-
-            # cmd_seq.append("BG{}".format(ax))
-
-            motion_time = 1.0*dist/speed
-            self.start_time = time.time()
-            self.stop_time = time.time() + motion_time
-
-            # ret = ""
-            # for cmd in cmd_seq:
-            #     _ = self.c(cmd)
-            #     ret.join(_)
-
-            return {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "counts": counts,
-            }
-        # except:
-        #     return {
-        #         "moved_axis": None,
-        #         "speed": None,
-        #         "accepted_rel_dist": None,
-        #         "supplied_rel_dist": x_mm,
-        #         "err_dist": None,
-        #         "err_code": "motor",
-        #     }
+                self.stop_time = time.time() + motion_time
+    
+                # ret = ""
+                # for cmd in cmd_seq:
+                #     _ = self.c(cmd)
+                #     ret.join(_)
+    
+                ret_moved_axis.append(ax)
+                ret_speed.append(speed)
+                ret_accepted_rel_dist.append(None)
+                ret_supplied_rel_dist.append(x_mm)
+                ret_err_dist.append(error_distance)
+                ret_err_code.append(0)
+                ret_counts.append(counts)
+                continue
+            # except:
+            #     return {
+            #         "moved_axis": None,
+            #         "speed": None,
+            #         "accepted_rel_dist": None,
+            #         "supplied_rel_dist": x_mm,
+            #         "err_dist": None,
+            #         "err_code": "motor",
+            #     }
+        
+        # one return for all axis 
+        return {
+            "moved_axis": ret_moved_axis,
+            "speed": ret_speed,
+            "accepted_rel_dist": ret_accepted_rel_dist,
+            "supplied_rel_dist": ret_supplied_rel_dist,
+            "err_dist": ret_err_dist,
+            "err_code": ret_err_code,
+            "counts": ret_counts
+        }
 
     def motor_move_live(self, x_mm, axis, speed, mode):
         # this function moves the motor by a set amount of millimeters
@@ -366,7 +396,7 @@ class galil:
         # return the results through calculating things into mm
         return {ax_abc_to_xyz[k]: p for k, p in pos.items()}
 
-    def query_axis(self, axis):
+    def query_axis_position(self, axis):
         # this only queries the position of a single axis
         # server example:
         # http://127.0.0.1:8000/motor/query/position?axis=x

@@ -60,6 +60,8 @@ class galil:
         # motor_move(5,'x',mode='absolute')
         # home the motor at low speed (the distance is not used)
         # motor_move(5,'x',mode='homing',speed=10000)
+        # multi axis move:
+        # motor_move([5, 10],['x', 'y'],mode='absolute',speed=10000)
         # the server call would look like:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
@@ -78,6 +80,9 @@ class galil:
         ret_err_dist = []
         ret_err_code = []
         ret_counts = []
+        
+        # expected time for each move, used for axis stop check
+        timeofmove = []
         
         # TODO: if same axis is moved twice
         for x_mm, axis in zip(multi_x_mm, multi_axis):
@@ -165,6 +170,8 @@ class galil:
                 ret_err_dist.append(error_distance)
                 ret_err_code.append(0)
                 ret_counts.append(counts)
+                # time = counts/ counts_per_second
+                timeofmove.append(counts/speed)
                 continue
             except:
                 ret_moved_axis.append(None)
@@ -176,13 +183,25 @@ class galil:
                 ret_counts.append(None)
                 continue
 
-        # check if all axis stopped              
+
+        # get max time until all axis are expected to have stopped
+        if len(timeofmove)>0:
+            tmax = max(timeofmove)
+            if tmax > 30*60:
+                tmax > 30*60 # 30min hard limit
+        else:
+            tmax = 0
+        
+        # wait for expected axis move time before checking if axis stoppped
+        print('Axis expected to stop in',tmax,'sec')
+        time.sleep(tmax)        
+
+        # check if all axis stopped
         tstart = time.time()
         if "timeout" in self.config_dict:
             tout = self.config_dict["timeout"]
         else:
             tout = 60
-
         while time.time()-tstart < tout:
             rettmp = self.query_axis_moving(multi_axis)
             time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil

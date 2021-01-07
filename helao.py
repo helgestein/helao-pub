@@ -290,7 +290,7 @@ def launcher(confPrefix, confDict):
                         continue
                     pidd.store_pid(server, servHost, servPort, ppid)
         if group!=LAUNCH_ORDER[-1]:
-            time.sleep(5)
+            time.sleep(3)
     return pidd
 
 

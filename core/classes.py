@@ -18,6 +18,7 @@ class StatusHandler:
         self.procid = 'NA'
         self.dict = {'status': self.status,
                      'last_update': self.last_update, 'procid': self.procid}
+        self.q.put_nowait(self.dict)
 
     async def update(self, state: str):
         self.status = state
@@ -58,6 +59,7 @@ class OrchHandler:
         self.procid = 'NA'
         self.dict = {'status': self.status,
                      'last_update': self.last_update, 'procid': self.procid, 'last_act': self.last_act, 'is_blocked': self.is_blocked, 'is_running': self.is_running, 'is_idle': self.is_idle}
+        self.msgq.put_nowait(self.dict)
 
         self.fastServers = [k for k in config.keys() if "fast" in config[k].keys()
                             and config[k]["group"] != "orchestrators"]

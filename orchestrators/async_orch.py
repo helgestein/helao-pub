@@ -75,6 +75,7 @@ async def websocket_status(websocket: WebSocket):
         if orch.status != 'idle':
             data = await orch.msgq.get()
             await websocket.send_text(json.dumps(data))
+            print(json.dumps(data))
             orch.msgq.task_done()
 
 @app.websocket(f"/{servKey}/ws_data")
@@ -130,17 +131,30 @@ def reset_demo():
     orch.decisions.append(Decision(uid='0001', plate_id=1234, sample_no=9, actualizer=oer_screen))
     orch.decisions.append(Decision(uid='0002', plate_id=1234, sample_no=12, actualizer=oer_screen))
     orch.decisions.append(Decision(uid='0003', plate_id=1234, sample_no=15, actualizer=oer_screen))
+    return {}
 
 # async_dispatcher executes an action, the action tuple 
 async def async_dispatcher(A: Action):
     S = C[A.server]
-    if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
-        orch.block()
+    # if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
+    #     orch.block()
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
             response = await resp.text()
-    if A.block or not orch.actions: # after action is complete, unblock orchestrator
-        orch.unblock()
+    # if A.block or not orch.actions: # after action is complete, unblock orchestrator
+    #     orch.unblock()
+    return response
+
+
+def sync_dispatcher(A: Action):
+    S = C[A.server]
+    # if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
+    #     orch.block()
+    with requests.Session() as session:
+        with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
+            response = resp.text
+    # if A.block or not orch.actions: # after action is complete, unblock orchestrator
+    #     orch.unblock()
     return response
 
     
@@ -166,25 +180,33 @@ async def run_dispatch_loop():
                 orch.set_run()
             elif orch.status == 'running':
                 # check current blocking status
-                print('waiting for orchestrator to unblock')
                 while orch.is_blocked:
+                    print('waiting for orchestrator to unblock')
                     _ = await orch.dataq.get()
                     orch.dataq.task_done()
                 A = orch.actions.popleft()
                 # see async_dispatcher for unpacking
                 if A.preempt:
                     while any([orch.STATES[k]['status'] != 'idle' for k in orch.STATES.keys()]):
+                        print(orch.STATES)
                         _ = await orch.dataq.get()
                         orch.dataq.task_done()
-                asyncio.create_task(async_dispatcher(A))
+                print(f"dispatching action {A.action} on server {A.server}")
+                if A.block or not orch.actions: # block if flag is set, or last action in queue
+                    orch.block()
+                    print(f'[{A.decision.uid} / {A.action}] blocking - sync action started')
+                    sync_dispatcher(A)
+                    orch.unblock()
+                    print(f'[{A.decision.uid} / {A.action}] unblocked - sync action finished')
+                else:
+                    print(f'[{A.decision.uid} / {A.action}] no blocking - async action started')
+                    asyncio.create_task(async_dispatcher(A))
+                    print(f'[{A.decision} / {A.action}] no blocking - async action finished')
                 # TODO: dynamic generate new decisions by signaling operator
                 # if not orch.decisions and not orch.actions
     print('decision queue is empty')
     await orch.set_idle()
     return True
-
-
-
 
 @app.post('/append_decision')
 def append_decision():

@@ -33,6 +33,7 @@ S = C[O.params.ws_host]
 
 doc = curdoc()
 uri = f"ws://{S.host}:{S.port}/{O.params.ws_host}/ws_data"
+stat_uri = f"ws://{S.host}:{S.port}/{O.params.ws_host}/ws_status"
 time_stamp = 0
 pids = collections.deque(10*[0], 10)
 
@@ -99,16 +100,24 @@ def remove_line(new_time_stamp):
     doc.add_root(data_table)
 
 
-async def loop(): # non-blocking coroutine, updates data source
+async def plotter(): # non-blocking coroutine, updates data source
     async with websockets.connect(uri) as ws:
         while True:
             new_data = await ws.recv()
-            new_data=json.loads(new_data)
-            if(type(new_data) == float):
-                if(new_data != time_stamp): 
-                    doc.add_next_tick_callback(partial(remove_line, new_data))
-            else:
-                doc.add_next_tick_callback(partial(update, new_data))
+            new_data = json.loads(new_data)
+            doc.add_next_tick_callback(partial(update, new_data))
+                        
+                    # if(type(new_data) == float):
+                    #     if(new_data != time_stamp): 
+                    # else:
+                    #     doc.add_next_tick_callback(partial(update, new_data))
+
+async def resetter():
+    async with websockets.connect(stat_uri) as sws:
+        while True:
+            new_status = await sws.recv()
+            new_status = json.loads(new_status)
+            doc.add_next_tick_callback(partial(remove_line, new_status['last_update']))
 
 source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
 
@@ -136,7 +145,8 @@ doc.add_root(checkbox_button_group)
 doc.add_root(plot) # add plot to document
 doc.add_root(data_table)
 
-IOLoop.current().spawn_callback(loop) # add coro to IOLoop
+IOLoop.current().spawn_callback(resetter) # add coro to IOLoop
+IOLoop.current().spawn_callback(plotter) # add coro to IOLoop
 
 
 

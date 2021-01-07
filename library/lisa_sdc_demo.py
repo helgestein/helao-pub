@@ -84,8 +84,8 @@ def oer_screen(decisionObj: Decision):
     # CV techniques:
     #   in general, need to preempt (wait for idle) and block during
     #   potentiostat measurements
-    action_list.append(Action(decisionObj, "potentiostat", "CV",
+    action_list.append(Action(decisionObj, "potentiostat", "potential_cycle",
                        cv0_pars, True, True))
-    action_list.append(Action(decisionObj, "potentiostat", "CV",
+    action_list.append(Action(decisionObj, "potentiostat", "potential_cycle",
                        cv1_pars, True, True))
     return action_list

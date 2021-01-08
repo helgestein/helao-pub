@@ -45,6 +45,11 @@ class StatusHandler:
         self.is_running = False
         await self.update('error')
 
+    async def set_estop(self):
+        self.is_idle = False
+        self.is_running = False
+        await self.update('estop')
+
 
 class OrchHandler:
     def __init__(self, config):

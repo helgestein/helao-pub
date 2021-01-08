@@ -155,10 +155,10 @@ def readsingleplatemaptxt(p, returnfiducials=False,  erroruifcn=None, lines=None
     if returnfiducials:
         s=ls[0].partition('=')[2].partition('mm')[0].strip()
         if not ',' in s[s.find('('):s.find(')')]: #needed because sometimes x,y in fiducials is comma delim and sometimes not
-            print 'WARNING: commas inserted into fiducials line to adhere to format.'
-            print s
+            print('WARNING: commas inserted into fiducials line to adhere to format.')
+            print(s)
             s=s.replace('(   ', '(  ',).replace('(  ', '( ',).replace('( ', '(',).replace('   )', '  )',).replace(',  ', ',',).replace(', ', ',',).replace('  )', ' )',).replace(' )', ')',).replace('   ', ',',).replace('  ', ',',).replace(' ', ',',)
-            print s
+            print(s)
         fid=eval('[%s]' %s)
         fid=numpy.array(fid)
     for count, l in enumerate(ls):
@@ -326,11 +326,11 @@ def readinfoplatemap(plateidstr):
     
     # 2. gets the elements from the screening print in the info file (see getelements_plateidstr()) and presents them to user
         elements=getelements_plateidstr(plateidstr)
-        print "Elements:", elements
+        print("Elements:", elements)
     
     # 3. checks that a print 5and anneal record exist in the info file
         if not 'prints' or not 'anneals' in infod.keys():
-            print 'Warning: no print or anneal record exists'
+            print('Warning: no print or anneal record exists')
       
     # 4. gets platemap and passes to alignment code
     #pmpath=getplatemappath_plateid(plateidstr, return_pmidstr=True)

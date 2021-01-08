@@ -116,11 +116,11 @@ class OrchHandler:
         self.is_running = False
         await self.update('idle')
 
-    def raise_skip(self):
-        self.update('skipping')
+    async def raise_skip(self):
+        await self.update('skipping')
 
-    def raise_stop(self):
-        self.update('stopping')
+    async def raise_stop(self):
+        await self.update('stopping')
 
 
 class Decision:

@@ -10,6 +10,8 @@ from importlib import import_module
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
+from pydantic import BaseModel
+from typing import List
 from munch import munchify
 from collections import deque
 
@@ -33,24 +35,11 @@ C = munchify(config)["servers"]
 O = C[servKey]
 
 # import action generators from action library
+action_lib = {}
 sys.path.append(os.path.join(helao_root, 'library'))
 for actlib in config['action_libraries']:
-    actlibd = import_module(actlib).__dict__
-    globals().update({func: actlibd[func] for func in actlibd['actualizers']})
-        
-
-# # TESTING
-# import os, sys, json, requests, asyncio, websockets
-# from importlib import import_module
-# from munch import munchify
-
-# sys.path.append(os.path.join(os.getcwd(), 'config'))
-# config = import_module("world").config
-# C = munchify(config)["servers"]
-# fastServers = [k for k in C.keys() if "fast" in C[k].keys() and C[k]["group"]!="orchestrators"]
-# STATES = {S: requests.post(f"http://{C[S].host}:{C[S].port}/{S}/get_status").json() for S in fastServers}
-
-# # END TESTING
+    tempd = import_module(actlib).__dict__
+    action_lib.update({func: tempd[func] for func in tempd['ACTUALIZERS']})
 
 
 app = FastAPI(title=servKey,
@@ -58,14 +47,19 @@ app = FastAPI(title=servKey,
 
 
 @app.on_event("startup")
-async def startup_event():
+def startup_event():
     global orch
     orch = OrchHandler(C)
     asyncio.create_task(orch.monitor_states())
-    orch.decisions.append(Decision(uid='0001', plate_id=1234, sample_no=9, actualizer=oer_screen))
-    orch.decisions.append(Decision(uid='0002', plate_id=1234, sample_no=12, actualizer=oer_screen))
-    orch.decisions.append(Decision(uid='0003', plate_id=1234, sample_no=15, actualizer=oer_screen))
+    # populate decisions for testing
+    orch.decisions.append(Decision(
+        uid='0001', plate_id=1234, sample_no=9, actualizer=action_lib['oer_screen']))
+    orch.decisions.append(Decision(
+        uid='0002', plate_id=1234, sample_no=12, actualizer=action_lib['oer_screen']))
+    orch.decisions.append(Decision(
+        uid='0003', plate_id=1234, sample_no=15, actualizer=action_lib['oer_screen']))
     print(len(orch.decisions))
+
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
@@ -78,6 +72,7 @@ async def websocket_status(websocket: WebSocket):
             print(json.dumps(data))
             orch.msgq.task_done()
 
+
 @app.websocket(f"/{servKey}/ws_data")
 async def websocket_data(websocket: WebSocket):
     await websocket.accept()
@@ -87,8 +82,8 @@ async def websocket_data(websocket: WebSocket):
             data = await orch.dataq.get()
             await websocket.send_text(json.dumps(data))
             orch.dataq.task_done()
-    
-    
+
+
 @app.post(f"/{servKey}/start")
 async def start_process():
     if orch.status == 'idle':
@@ -97,71 +92,78 @@ async def start_process():
             _ = await orch.msgq.get()
         if orch.actions or orch.decisions:  # resume actions from a paused run
             await run_dispatch_loop()
+            # asyncio.create_task(run_dispatch_loop())
         else:
             print('decision list is empty')
     else:
         print('already running')
     return {}
 
+
 @app.post(f"/{servKey}/stop")
-def stop_process():
+async def stop_process():
     if orch.status != 'idle':
-        orch.raise_stop()
+        await orch.raise_stop()
     else:
         print('orchestrator is not running')
     return {}
-    
+
+
 @app.post(f"/{servKey}/skip")
-def skip_decision():
+async def skip_decision():
     if orch.status != 'idle':
-        orch.raise_skip()
+        await orch.raise_skip()
     else:
         print('orchestrator not running, clearing action queue')
         orch.actions.clear()
     return {}
 
-@app.post(f"{servKey}/clear_queue")
-def clear_decisions():
+
+@app.post(f"/{servKey}/clear_actions")
+def clear_actions():
     print('clearing action queue')
     orch.actions.clear()
     return {}
 
-@app.post(f"{servKey}/reset_demo")
-def reset_demo():
-    orch.decisions.append(Decision(uid='0001', plate_id=1234, sample_no=9, actualizer=oer_screen))
-    orch.decisions.append(Decision(uid='0002', plate_id=1234, sample_no=12, actualizer=oer_screen))
-    orch.decisions.append(Decision(uid='0003', plate_id=1234, sample_no=15, actualizer=oer_screen))
+@app.post(f"/{servKey}/clear_decisions")
+def clear_decisions():
+    print('clearing decision queue')
+    orch.decisions.clear()
     return {}
 
-# async_dispatcher executes an action, the action tuple 
+@app.post(f"/{servKey}/reset_demo")
+def reset_demo():
+    orch.decisions.append(Decision(
+        uid='0001', plate_id=1234, sample_no=9, actualizer=action_lib['oer_screen']))
+    orch.decisions.append(Decision(
+        uid='0002', plate_id=1234, sample_no=12, actualizer=action_lib['oer_screen']))
+    orch.decisions.append(Decision(
+        uid='0003', plate_id=1234, sample_no=15, actualizer=action_lib['oer_screen']))
+    return {}
+
+
 async def async_dispatcher(A: Action):
     S = C[A.server]
-    # if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
-    #     orch.block()
     async with aiohttp.ClientSession() as session:
         async with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
             response = await resp.text()
-    # if A.block or not orch.actions: # after action is complete, unblock orchestrator
-    #     orch.unblock()
     return response
 
 
 def sync_dispatcher(A: Action):
     S = C[A.server]
-    # if A.block or not orch.actions: # if action is blocking, block orchestrator before execution
-    #     orch.block()
     with requests.Session() as session:
         with session.post(f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars) as resp:
             response = resp.text
-    # if A.block or not orch.actions: # after action is complete, unblock orchestrator
-    #     orch.unblock()
     return response
 
-    
+
 async def run_dispatch_loop():
     if orch.status == 'idle':
         await orch.set_run()
-    while orch.status != 'idle' and (orch.actions or orch.decisions):  # clause for resuming paused action list
+    # clause for resuming paused action list
+    while orch.status != 'idle' and (orch.actions or orch.decisions):
+        await asyncio.sleep(0.01) # await point allows status changes to affect between actions
         if not orch.actions:
             D = orch.decisions.popleft()
             orch.procid = D.uid
@@ -192,32 +194,93 @@ async def run_dispatch_loop():
                         _ = await orch.dataq.get()
                         orch.dataq.task_done()
                 print(f"dispatching action {A.action} on server {A.server}")
-                if A.block or not orch.actions: # block if flag is set, or last action in queue
+                if A.block or not orch.actions:  # block if flag is set, or last action in queue
                     orch.block()
-                    print(f'[{A.decision.uid} / {A.action}] blocking - sync action started')
+                    print(
+                        f'[{A.decision.uid} / {A.action}] blocking - sync action started')
                     sync_dispatcher(A)
                     orch.unblock()
-                    print(f'[{A.decision.uid} / {A.action}] unblocked - sync action finished')
+                    print(
+                        f'[{A.decision.uid} / {A.action}] unblocked - sync action finished')
                 else:
-                    print(f'[{A.decision.uid} / {A.action}] no blocking - async action started')
-                    asyncio.create_task(async_dispatcher(A))
-                    print(f'[{A.decision} / {A.action}] no blocking - async action finished')
+                    print(
+                        f'[{A.decision.uid} / {A.action}] no blocking - async action started')
+                    await async_dispatcher(A)
+                    print(
+                        f'[{A.decision.uid} / {A.action}] no blocking - async action finished')
                 # TODO: dynamic generate new decisions by signaling operator
                 # if not orch.decisions and not orch.actions
     print('decision queue is empty')
     await orch.set_idle()
     return True
 
-@app.post('/append_decision')
-def append_decision():
-    return ''
-@app.post('/prepend_decision')
-def prepend_decision():
-    return ''
-@app.post('/list_decisions')
-def list_decisions():
-    return ''
 
+@app.post(f'/{servKey}/append_decision')
+def append_decision(
+    uid: str,
+    plate_id: int,
+    sample_no: int,
+    actualizer: str
+):
+    orch.decisions.append((Decision(uid=uid, plate_id=plate_id,
+                                    sample_no=sample_no, actualizer=action_lib[actualizer])))
+    return {}
+
+
+@app.post(f'/{servKey}/prepend_decision')
+def prepend_decision(
+    uid: str,
+    plate_id: int,
+    sample_no: int,
+    actualizer: str
+):
+    orch.decisions.appendleft((Decision(
+        uid=uid, plate_id=plate_id, sample_no=sample_no, actualizer=action_lib[actualizer])))
+    return {}
+
+
+class return_dec(BaseModel):
+    index: int
+    uid: str
+    plate_id: int
+    sample_no: int
+    actualizer: str
+    timestamp: str
+
+
+class return_declist(BaseModel):
+    decisions: List[return_dec]
+
+
+class return_act(BaseModel):
+    index: int
+    uid: str
+    server: str
+    action: str
+    pars: dict
+    preempt: bool
+    block: bool
+    timestamp: str
+
+
+class return_actlist(BaseModel):
+    actions: List[return_act]
+
+
+@app.post(f'/{servKey}/list_decisions')
+def list_decisions():
+    declist = [return_dec(index=i, uid=dec.uid, plate_id=dec.plate_id, sample_no=dec.sample_no,
+                          actualizer=dec.actualizer.__name__, timestamp=dec.created_at) for i, dec in enumerate(orch.decisions)]
+    retval = return_declist(decisions=declist)
+    return retval
+
+
+@app.post(f'/{servKey}/list_actions')
+def list_actions():
+    actlist = [return_act(index=i, uid=act.decision.uid, server=act.server, action=act.action, pars=act.pars,
+                          preempt=act.preempt, block=act.block, timestamp=act.created_at) for i, act in enumerate(orch.actions)]
+    retval = return_actlist(actions=actlist)
+    return retval
 
 @app.post('/endpoints')
 def get_all_urls():

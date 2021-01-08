@@ -13,7 +13,8 @@ lib_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(os.path.dirname(
     os.path.dirname(lib_root)), 'core'))
 
-actualizers = ['oer_screen', 'dummy_act']
+# list valid actualizer functions 
+ACTUALIZERS = ['oer_screen', 'dummy_act']
 
 
 def dummy_act():

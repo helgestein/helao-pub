@@ -89,6 +89,18 @@ class galil:
         # expected time for each move, used for axis stop check
         timeofmove = []
         
+        if self.config_dict["estop_motor"] == True:
+            return {
+                "moved_axis": None,
+                "speed": None,
+                "accepted_rel_dist": None,
+                "supplied_rel_dist": None,
+                "err_dist": None,
+                "err_code": "estop",
+                "counts": None
+            }
+        
+        
         # TODO: if same axis is moved twice
         for x_mm, axis in zip(multi_x_mm, multi_axis):
             # need to remove stopping for multi-axis move
@@ -148,7 +160,7 @@ class galil:
                     raise cmd_exception
                 if stopping:
                     #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-                    cmd_seq = ["ST {}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
+                    cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
                 else:
                     cmd_seq = ["SP{}={}".format(ax, speed)]
                 if mode == "relative":
@@ -160,10 +172,13 @@ class galil:
                     cmd_seq.append("PA{}={}".format(ax, counts))
                 cmd_seq.append("BG{}".format(ax))
     
+                timeofmove.append(abs(counts/speed))
+                
                 #ret = ""
                 for cmd in cmd_seq:
                     _ = self.c(cmd)
                     #ret.join(_)
+                print(cmd_seq)
                 ret_moved_axis.append(ax)
                 ret_speed.append(speed)
                 ret_accepted_rel_dist.append(None)
@@ -172,7 +187,7 @@ class galil:
                 ret_err_code.append(0)
                 ret_counts.append(counts)
                 # time = counts/ counts_per_second
-                timeofmove.append(counts/speed)
+
                 continue
             except:
                 ret_moved_axis.append(None)
@@ -195,27 +210,43 @@ class galil:
         
         # wait for expected axis move time before checking if axis stoppped
         print('Axis expected to stop in',tmax,'sec')
-        time.sleep(tmax)        
+        time.sleep(tmax)
 
-        # check if all axis stopped
-        tstart = time.time()
-        if "timeout" in self.config_dict:
-            tout = self.config_dict["timeout"]
+        if self.config_dict["estop_motor"] == False:
+
+            # check if all axis stopped
+            tstart = time.time()
+            if "timeout" in self.config_dict:
+                tout = self.config_dict["timeout"]
+            else:
+                tout = 60
+            while (time.time()-tstart < tout) and self.config_dict["estop_motor"] == False:
+                qmove = self.query_axis_moving(multi_axis)
+                time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
+                if all(qmove['err_code']):
+                    break
+
+            if self.config_dict["estop_motor"] == False:
+                # stop of motor movement (motor still on)
+                if time.time()-tstart > tout:
+                    self.stop_axis(multi_axis)
+                # check which axis had the timeout
+                newret_err_code = []
+                for erridx, err_code in enumerate(ret_err_code):
+                    if qmove['err_code'][erridx] == 0:
+                        newret_err_code.append("timeout")
+                    else:
+                        newret_err_code.append(err_code)
+
+                ret_err_code = newret_err_code
+            else:
+                # estop occured while checking axis end position
+                ret_err_code = ["estop" for _ in ret_err_code]
+                
         else:
-            tout = 60
-        while time.time()-tstart < tout:
-            rettmp = self.query_axis_moving(multi_axis)
-            time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
-#            print(rettmp)
-            if all(rettmp['err_code']):
-#                print('Motors stopped')
-                break
-#            else:
-#                print('Motors moving')
- 
-        # Estop of motor movement (motor still on)
-        if time.time()-tstart > tout:
-            self.stop_axis(multi_axis)
+            # estop was triggered while waiting for axis to stop
+            ret_err_code = ["estop" for _ in ret_err_code]
+
 
         # one return for all axis 
         return {
@@ -245,6 +276,19 @@ class galil:
         # the server call would look like:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
+
+
+        if self.config_dict["estop_motor"] == True:
+            return {
+                "moved_axis": None,
+                "speed": None,
+                "accepted_rel_dist": None,
+                "supplied_rel_dist": None,
+                "err_dist": None,
+                "err_code": "estop",
+                "counts": None
+            }
+
 
         # first we check if we have the right axis specified
         if axis in self.config_dict["axis_id"].keys():
@@ -296,7 +340,7 @@ class galil:
 
             # stops all other motion
             #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-            #cmd_seq = ["ST {}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
+            #cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
             # other motion won't be affected
             cmd_seq = ["SP{}={}".format(ax, speed)]
             if mode == "relative":
@@ -370,7 +414,7 @@ class galil:
         # now we need to map these outputs to the ABCDEFG... channels
         # and then map that to xyz so it is humanly readable
         axlett = 'ABCDEFGH'
-        axlett[0:len(q.split(', '))]
+        axlett = axlett[0:len(q.split(','))]
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
         ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(axlett)}
         pos = {
@@ -397,7 +441,7 @@ class galil:
         # this functions queries the status of the axis
         q = self.c("SC")
         axlett = 'ABCDEFGH'
-        axlett[0:len(q.split(', '))]
+        axlett = axlett[0:len(q.split(','))]
         # convert single axis move to list
         if type(multi_axis) is not list:
             multi_axis = [multi_axis]
@@ -421,6 +465,22 @@ class galil:
         }
 
 
+    def estop_axis(self, switch):
+        # this will estop the axis
+        # set estop: switch=true
+        # release estop: switch=false
+        print('Estop')
+        if switch == True:
+            print(self.get_all_axis())
+            self.stop_axis(self.get_all_axis())
+            self.motor_off(self.get_all_axis())
+            # set flag (move command need to check for it)
+            self.config_dict["estop_motor"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_motor"] = False
+        
+
     def stop_axis(self, multi_axis):
         # this will stop the current motion of the axis
         # but not turn off the motor
@@ -432,7 +492,7 @@ class galil:
         for axis in multi_axis:
             if axis in self.config_dict["axis_id"].keys():
                 ax = self.config_dict["axis_id"][axis]
-                self.c("ST {}".format(ax))
+                self.c("ST{}".format(ax))
 
         ret = self.query_axis_moving(multi_axis)
         ret.update(self.query_axis_position(multi_axis))
@@ -463,7 +523,7 @@ class galil:
                 #return ret
     
             #cmd_seq = ["AB", "MO{}".format(ax)]
-            cmd_seq = ["ST {}".format(ax), "MO{}".format(ax)]
+            cmd_seq = ["ST{}".format(ax), "MO{}".format(ax)]
             
             for cmd in cmd_seq:
                 _ = self.c(cmd)
@@ -496,7 +556,7 @@ class galil:
                 #ret.update(self.query_axis_position(multi_axis))
                 #return ret
             #cmd_seq = ["AB", "SH{}".format(ax)]
-            cmd_seq = ["ST {}".format(ax), "SH{}".format(ax)]
+            cmd_seq = ["ST{}".format(ax), "SH{}".format(ax)]
             
             for cmd in cmd_seq:
                 _ = self.c(cmd)

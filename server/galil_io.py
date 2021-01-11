@@ -11,8 +11,8 @@ driver code, and hard-coded to use 'galil' class (see "__main__").
 
 import os
 import sys
-import time
-from enum import Enum
+#import time
+#from enum import Enum
 from importlib import import_module
 import json
 
@@ -26,7 +26,6 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
-from galil_simulate import galil
 from classes import StatusHandler
 
 confPrefix = sys.argv[1]
@@ -87,58 +86,116 @@ def status_wrapper():
 
 
 @app.post(f"/{servKey}/query_analog_in")
-def read_analog_in(port: int):
+def read_analog_in(port):
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_port = None
+    for sep in sepvals:
+        if not (port.find(sep) == -1):
+                new_port = [int(item) for item in port.split(sep)]
+                break    
+    # single port
+    if new_port == None:
+        new_port = int(port)
+
+
     # http://127.0.0.1:8001/io/query/analog_in?port=0
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "analog_in"},
-        data=motion.read_analog_in(port),
+        data=motion.read_analog_in(new_port),
     )
     return retc
 
 
 @app.post(f"/{servKey}/query_digital_in")
-def read_digital_in(port: int):
+def read_digital_in(port):
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_port = None
+    for sep in sepvals:
+        if not (port.find(sep) == -1):
+                new_port = [int(item) for item in port.split(sep)]
+                break    
+    # single port
+    if new_port == None:
+        new_port = int(port)
+
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_in"},
-        data=motion.read_digital_in(port),
+        data=motion.read_digital_in(new_port),
     )
     return retc
 
 
 @app.post(f"/{servKey}/query_digital_out")
-def read_digital_out(port: int):
+def read_digital_out(port):
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_port = None
+    for sep in sepvals:
+        if not (port.find(sep) == -1):
+                new_port = [int(item) for item in port.split(sep)]
+                break    
+    # single port
+    if new_port == None:
+        new_port = int(port)
+
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_out_query"},
-        data=motion.read_digital_out(port),
+        data=motion.read_digital_out(new_port),
     )
     return retc
 
 
 @app.post(f"/{servKey}/digital_out_on")
-def set_digital_out_on(port: int):
+def set_digital_out_on(port):
+    
+    sepvals = [' ',',','\t',';','::',':']
+    new_port = None
+    for sep in sepvals:
+        if not (port.find(sep) == -1):
+                new_port = [int(item) for item in port.split(sep)]
+                break    
+    # single port
+    if new_port == None:
+        new_port = int(port)
+    
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_out_query"},
-        data=motion.digital_out_on(port),
+        data=motion.digital_out_on(new_port),
     )
     return retc
 
 
 @app.post(f"/{servKey}/digital_out_off")
-def set_digital_out_off(port: int):
+def set_digital_out_off(port):
+    
+    sepvals = [' ',',','\t',';','::',':']
+    new_port = None
+    for sep in sepvals:
+        if not (port.find(sep) == -1):
+                new_port = [int(item) for item in port.split(sep)]
+                break    
+    # single port
+    if new_port == None:
+        new_port = int(port)
+    
+    
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "digital_out_query"},
-        data=motion.digital_out_off(port),
+        data=motion.digital_out_off(new_port),
     )
     return retc
 
 
 @app.post(f"/{servKey}/analog_out")
 def set_analog_out(handle: int, module: int, bitnum: int, value: float):
+    # TODO
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "analog_out_set"},

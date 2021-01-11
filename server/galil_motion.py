@@ -181,7 +181,7 @@ def query_positions():
     retc = return_class(
         measurement_type="motion_query",
         parameters={"command": "query_positions"},
-        data=motion.query_all_axis_positions(),
+        data=motion.query_axis_position(motion.get_all_axis())
     )
     return retc
 
@@ -189,10 +189,21 @@ def query_positions():
 @app.post(f"/{servKey}/query_position")
 def query_position(axis: str):
     # http://127.0.0.1:8001/motor/query/position?axis=x
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_axis = None
+    for sep in sepvals:
+        if not (axis.find(sep) == -1):
+                new_axis = axis.split(sep)
+                break    
+    # single axis
+    if new_axis == None:
+        new_axis = axis
+
     retc = return_class(
         measurement_type="motion_query",
-        parameters={"command": "query_position"},
-        data=motion.query_axis_position(axis),
+        parameters={"command": "query_position", "parameters": {"axis": new_axis}},
+        data=motion.query_axis_position(new_axis),
     )
     return retc
 
@@ -200,10 +211,21 @@ def query_position(axis: str):
 @app.post(f"/{servKey}/query_moving")
 def query_moving(axis: str):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_axis = None
+    for sep in sepvals:
+        if not (axis.find(sep) == -1):
+                new_axis = axis.split(sep)
+                break    
+    # single axis
+    if new_axis == None:
+        new_axis = axis
+
     retc = return_class(
         measurement_type="motion_query",
-        parameters={"command": "query_moving"},
-        data=motion.query_moving(),
+        parameters={"command": "query_axis_moving", "parameters": {"axis": new_axis}},
+        data=motion.query_axis_moving(),
     )
     return retc
 
@@ -211,10 +233,21 @@ def query_moving(axis: str):
 @app.post(f"/{servKey}/off")
 def axis_off(axis: str):
     # http://127.0.0.1:8001/motor/set/off?axis=x
+    
+    sepvals = [' ',',','\t',';','::',':']
+    new_axis = None
+    for sep in sepvals:
+        if not (axis.find(sep) == -1):
+                new_axis = axis.split(sep)
+                break    
+    # single axis
+    if new_axis == None:
+        new_axis = axis
+        
     retc = return_class(
         measurement_type="motion_command",
-        parameters={"command": "motor_off", "parameters": {"axis": axis}},
-        data=motion.motor_off(axis),
+        parameters={"command": "motor_off", "parameters": {"axis": new_axis}},
+        data=motion.motor_off(new_axis),
     )
     return retc
 
@@ -222,10 +255,21 @@ def axis_off(axis: str):
 @app.post(f"/{servKey}/on")
 def axis_on(axis: str):
     # http://127.0.0.1:8001/motor/set/on?axis=x
+
+    sepvals = [' ',',','\t',';','::',':']
+    new_axis = None
+    for sep in sepvals:
+        if not (axis.find(sep) == -1):
+                new_axis = axis.split(sep)
+                break    
+    # single axis
+    if new_axis == None:
+        new_axis = axis
+
     retc = return_class(
         measurement_type="motion_command",
-        parameters={"command": "motor_on", "parameters": {"axis": axis}},
-        data=motion.motor_on(axis),
+        parameters={"command": "motor_on", "parameters": {"axis": new_axis}},
+        data=motion.motor_on(new_axis),
     )
     return retc
 
@@ -236,7 +280,7 @@ def stop():
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "stop"},
-        data=motion.motor_stop(),
+        data = motion.motor_off(motion.get_all_axis()),
     )
     return retc
 

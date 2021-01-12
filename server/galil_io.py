@@ -194,12 +194,14 @@ def set_digital_out_off(port):
 
 
 @app.post(f"/{servKey}/analog_out")
-def set_analog_out(handle: int, module: int, bitnum: int, value: float):
+def set_analog_out(port: int, value: float):
+#def set_analog_out(handle: int, module: int, bitnum: int, value: float):
     # TODO
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "analog_out_set"},
-        data=motion.set_analog_out(handle, module, bitnum, value),
+        data=motion.set_analog_out(port, value),
+        #data=motion.set_analog_out(handle, module, bitnum, value),
     )
     return retc
 
@@ -221,6 +223,19 @@ def break_inf_cycles():
         parameters={"command": "analog_out_set"},
         data=motion.break_infinite_digital_cycles(),
     )
+    return retc
+
+
+@app.post(f"/{servKey}/estop")
+async def estop(switch: bool = True):
+    # http://127.0.0.1:8001/motor/set/stop
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="motion_command",
+        parameters={"command": "estop", "parameters": switch},
+        data = motion.estop_io(switch),
+    )
+    await stat.set_estop()
     return retc
 
 

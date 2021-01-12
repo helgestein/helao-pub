@@ -41,6 +41,21 @@ class galil:
 
         self.config_dict["estop_motor"] = False
         self.config_dict["estop_io"] = False
+        
+        # need to check if config settings exist
+        # else need to create empty ones
+        if "axis_id" not in self.config_dict:
+            self.config_dict["axis_id"] = dict()
+
+        if "axis_Din_id" not in self.config_dict:
+            self.config_dict["axis_Din_id"] = dict()
+
+        if "axis_Dout_id" not in self.config_dict:
+            self.config_dict["axis_Dout_id"] = dict()
+
+        if "axis_Aout_id" not in self.config_dict:
+            self.config_dict["axis_Aout_id"] = dict()
+            
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -469,9 +484,8 @@ class galil:
         # this will estop the axis
         # set estop: switch=true
         # release estop: switch=false
-        print('Estop')
+        print('Axis Estop')
         if switch == True:
-            print(self.get_all_axis())
             self.stop_axis(self.get_all_axis())
             self.motor_off(self.get_all_axis())
             # set flag (move command need to check for it)
@@ -479,6 +493,22 @@ class galil:
         else:
             # need only to set the flag
             self.config_dict["estop_motor"] = False
+
+
+    def estop_io(self, switch):
+        # this will estop the io
+        # set estop: switch=true
+        # release estop: switch=false
+        print('IO Estop')
+        if switch == True:         
+            self.break_infinite_digital_cycles()
+            self.digital_out_off(self.get_all_digital_out())
+            self.set_analog_out(self.get_all_analoh_out(),0)
+            # set flag
+            self.config_dict["estop_io"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_io"] = False
         
 
     def stop_axis(self, multi_axis):
@@ -600,7 +630,8 @@ class galil:
         return {"port": multi_port, "value": ret, "type": "digital_out"}
 
 
-    def set_analog_out(self, multi_port, handle: int, module: int, bitnum: int, multi_value):
+    #def set_analog_out(self, multi_port, handle: int, module: int, bitnum: int, multi_value):
+    def set_analog_out(self, multi_port, multi_value):
         # this is essentially a placeholder for now since the DMC-4143 does not support
         # analog out but I believe it is worthwhile to have this in here for the RIO
         # Handle num is A-H and must be on port 502 for the modbus commons
@@ -661,7 +692,19 @@ class galil:
 
     def get_all_axis(self):
         return [axis for axis in self.config_dict["axis_id"].keys()]
-        
+     
+    
+    def get_all_digital_out(self):
+        return [port for port in self.config_dict["port_Dout_id"].keys()]
+
+
+    def get_all_digital_in(self):
+        return [port for port in self.config_dict["port_Din_id"].keys()]
+
+
+    def get_all_analog_out(self):
+        return [port for port in self.config_dict["port_Aout_id"].keys()]
+
 
     def shutdown_event(self):
         # this gets called when the server is shut down or reloaded to ensure a clean

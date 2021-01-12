@@ -228,7 +228,7 @@ async def query_moving(axis: str):
     retc = return_class(
         measurement_type="motion_query",
         parameters={"command": "query_axis_moving", "parameters": {"axis": new_axis}},
-        data=motion.query_axis_moving(),
+        data=motion.query_axis_moving(new_axis),
     )
     await stat.set_idle()
     return retc
@@ -294,12 +294,12 @@ async def stop():
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool):
+async def estop(switch: bool = True):
     # http://127.0.0.1:8001/motor/set/stop
     await stat.set_run()
     retc = return_class(
         measurement_type="motion_command",
-        parameters={"command": "stop"},
+        parameters={"command": "estop", "parameters": switch},
         data = motion.estop_axis(switch),
     )
     await stat.set_estop()

@@ -604,7 +604,7 @@ class galil:
         ret = []
         for port in multi_port:        
             ret.append(self.c("MG @AN[{}]".format(int(port))))
-        return {"port": port, "value": ret, "type": "analog_in"}
+        return {"port": multi_port, "value": ret, "type": "analog_in"}
 
 
     def read_digital_in(self, multi_port):

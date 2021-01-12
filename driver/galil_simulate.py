@@ -45,9 +45,31 @@ class galil:
         self.aodict = defaultdict(float)
         self.didict = defaultdict(int)
         self.doflag = defaultdict(int)
+        
+        self.config_dict["estop_motor"] = False
+        self.config_dict["estop_io"] = False
+        
+        # need to check if config settings exist
+        # else need to create empty ones
+        if "axis_id" not in self.config_dict:
+            self.config_dict["axis_id"] = dict()
+
+        if "axis_Din_id" not in self.config_dict:
+            self.config_dict["axis_Din_id"] = dict()
+
+        if "axis_Dout_id" not in self.config_dict:
+            self.config_dict["axis_Dout_id"] = dict()
+
+        if "axis_Aout_id" not in self.config_dict:
+            self.config_dict["axis_Aout_id"] = dict()
+
+        
+        
+        
 
     # single axis motion, executes after building command string
-    def motor_move(self, multi_x_mm, multi_axis, speed, mode, stopping=True):
+    def motor_move(self, multi_x_mm, multi_axis, speed, mode):
+        stopping=False # no stopping of any movement by other actions
         # this function moves the motor by a set amount of millimeters
         # you have to specify the axis,
         # if no axis is specified this function throws an error
@@ -372,13 +394,17 @@ class galil:
         #     return {"connection": {"Unexpected GclibError:", e}}
         return {"connection": "motor_offline"}
 
-    def query_all_axis_positions(self):
-        # this queries all axis positions
-        # example: query_all_axis_positions()
-        # a server call should look like
-        # http://127.0.0.1:8000/motor/query/positions
-        # first query the actual position
-        # ret = self.c("TP")  # query position of all axis
+
+
+    def query_axis_position(self, multi_axis):
+        # this only queries the position of a single axis
+        # server example:
+        # http://127.0.0.1:8000/motor/query/position?axis=x
+        
+        # convert single axis move to list
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
+
         if self.stop_time == self.start_time or time.time() >= self.stop_time:
             elapsed_frac = 1
         else:
@@ -394,19 +420,22 @@ class galil:
             for axl, r in zip(self.config_dict["axlett"], ret)
         }
         # return the results through calculating things into mm
-        return {ax_abc_to_xyz[k]: p for k, p in pos.items()}
+        axpos = {ax_abc_to_xyz[k]: p for k, p in pos.items()}
 
-    def query_axis_position(self, axis):
-        # this only queries the position of a single axis
-        # server example:
-        # http://127.0.0.1:8000/motor/query/position?axis=x
-        q = self.query_all_axis_positions()
-        if axis in q.keys():
-            return {"ax": axis, "position": q[axis]}
-        else:
-            return {"ax": None, "position": None}
+        ret_ax = []
+        ret_position = []
+        for axis in multi_axis:
+            if axis in axpos.keys():
+                ret_ax.append(axis)
+                ret_position.append(axpos[axis])
+            else:
+                ret_ax.append(None)
+                ret_position.append(None)
 
-    def query_moving(self):
+        return {"ax": ret_ax, "position": ret_position}
+
+
+    def query_axis_moving(self, multi_axis):
         # this function queries the galil motor controller if any of
         # it's motors are moving if so it returns moving as a
         # motor_status otherwise stopped. Stopping codes can mean different things
@@ -416,15 +445,88 @@ class galil:
         # http://127.0.0.1:8000/motor/query/position?axis=x
         # ret = self.c("SC")
 
-        # inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
-        # ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
-        # for axl, r in zip(self.config_dict["axlett"], ret):
-        #     if int(r) == 0:
-        if time.time() < self.stop_time:
-            return {"motor_status": "moving"}
-        return {"motor_status": "stopped"}
+        # convert single axis move to list
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]            
 
-    def motor_off(self, axis):
+        ret_status = []
+        ret_err_code = []
+        for axis in multi_axis:
+            if time.time() < self.stop_time:
+                ret_status.append("moving")
+                ret_err_code.append(0)
+            else:
+                ret_status.append("stopped")
+                ret_err_code.append(1)
+
+
+        return {
+            "motor_status": ret_status,
+            "err_code": ret_err_code
+        }
+
+
+    def estop_axis(self, switch):
+        # this will estop the axis
+        # set estop: switch=true
+        # release estop: switch=false
+        print('Axis Estop')
+        if switch == True:
+            self.stop_axis(self.get_all_axis())
+            self.motor_off(self.get_all_axis())
+            # set flag (move command need to check for it)
+            self.config_dict["estop_motor"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_motor"] = False
+
+
+    def estop_io(self, switch):
+        # this will estop the io
+        # set estop: switch=true
+        # release estop: switch=false
+        print('IO Estop')
+        if switch == True:         
+            self.break_infinite_digital_cycles()
+            self.digital_out_off(self.get_all_digital_out())
+            self.set_analog_out(self.get_all_analoh_out(),0)
+            # set flag
+            self.config_dict["estop_io"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_io"] = False
+
+
+    def stop_axis(self, multi_axis):
+        # this will stop the current motion of the axis
+        # but not turn off the motor
+        # for stopping and turnuing off use moto_off
+
+        # convert single axis move to list
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
+
+        for axis in multi_axis:
+            if axis in self.config_dict["axis_id"].keys():
+                #ax = self.config_dict["axis_id"][axis]
+
+                ret = self.query_axis_moving(axis)
+                if self.stop_time == self.start_time or time.time() >= self.stop_time:
+                    elapsed_frac = 1
+                else:
+                    elapsed_frac = (time.time() - self.start_time) / (self.stop_time - self.start_time)
+                for k in 'ABCDEFGH':
+                    self.axdict[k] = self.axdict[k] - (self.axdict[k] - self.axlast[k]) * (1 - elapsed_frac)
+
+        self.start_time = time.time()
+        self.stop_time = time.time()
+        
+        ret = self.query_axis_moving(multi_axis)
+        ret.update(self.query_axis_position(multi_axis))
+        return ret
+
+
+    def motor_off(self, multi_axis):
         # sometimes it is useful to turn the motors off for manual alignment
         # this function does exactly that
         # It then returns the status
@@ -433,111 +535,127 @@ class galil:
         # an example would be:
         # http://127.0.0.1:8000/motor/stop
 
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
-        else:
-            ret = self.query_moving()
-            ret.update(self.query_all_axis_positions())
-            return ret
+        # convert single axis move to list
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
 
-        # cmd_seq = ["AB", "MO{}".format(ax)]
-        # for cmd in cmd_seq:
-        #     _ = self.c(cmd)
-        ret = self.query_moving()
-        ret.update(self.query_all_axis_positions())
+        for axis in multi_axis:
+
+            if axis in self.config_dict["axis_id"].keys():
+                _ = self.config_dict["axis_id"][axis]
+            else:
+                continue
+
+
+        ret = self.query_axis_moving(multi_axis)
+        ret.update(self.query_axis_position(multi_axis))
         return ret
 
-    def motor_on(self, axis):
+    def motor_on(self, multi_axis):
         # sometimes it is useful to turn the motors back on for manual alignment
         # this function does exactly that
         # It then returns the status
         # and the current position of all motors
         # server example
         # http://127.0.0.1:8000/motor/on?axis=x
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
-        else:
-            ret = self.query_moving()
-            ret.update(self.query_all_axis_positions())
-            return ret
-        # cmd_seq = ["AB", "SH{}".format(ax)]
-        # for cmd in cmd_seq:
-        #     _ = self.c(cmd)
-        ret = self.query_moving()
-        ret.update(self.query_all_axis_positions())
+        # convert single axis move to list
+        if type(multi_axis) is not list:
+            multi_axis = [multi_axis]
+
+        for axis in multi_axis:
+
+            if axis in self.config_dict["axis_id"].keys():
+                _ = self.config_dict["axis_id"][axis]
+            else:
+                continue
+
+
+        ret = self.query_axis_moving(multi_axis)
+        ret.update(self.query_axis_position(multi_axis))
         return ret
 
-    def motor_stop(self):
-        # this immediately stops all motions turns off the motors for a short
-        # time and then turns them back on. It then returns the status
-        # and the current position of all motors
-        # a server example would be
-        # http://127.0.0.1:8000/motor/off?axis=x
-        # cmd_seq = ["AB", "MO", "SH"]
-        # for cmd in cmd_seq:
-        #     _ = self.c(cmd)
-        ret = self.query_moving()
-        if self.stop_time == self.start_time or time.time() >= self.stop_time:
-            elapsed_frac = 1
-        else:
-            elapsed_frac = (time.time() - self.start_time) / (self.stop_time - self.start_time)
-        for k in 'ABCDEFGH':
-            self.axdict[k] = self.axdict[k] - (self.axdict[k] - self.axlast[k]) * (1 - elapsed_frac)
-        self.start_time = time.time()
-        self.stop_time = time.time()
-        ret.update(self.query_all_axis_positions())
-        return ret
 
-    def read_analog_in(self, port: int):
+    def read_analog_in(self, multi_port):
         # this reads the value of an analog in port
         # http://127.0.0.1:8000/
         # ret = self.c("MG @AN[{}]".format(port))
-        ret = np.random.random()
+        if type(multi_port) is not list:
+            multi_port = [multi_port]
+        ret = []
+        for port in multi_port:        
+            ret.append(np.random.random())
         return {"port": port, "value": ret, "type": "analog_in"}
 
-    def read_digital_in(self, port: int):
+
+    def read_digital_in(self, multi_port):
         # this reads the value of a digital in port
         # http://127.0.0.1:8000/
-        ret = np.random.randint(2)
-        return {"port": port, "value": ret, "type": "digital_in"}
 
-    def read_digital_out(self, port: int):
+        if type(multi_port) is not list:
+            multi_port = [multi_port]
+        ret = []
+        for port in multi_port:        
+            ret.append(np.random.randint(2))
+        return {"port": multi_port, "value": ret, "type": "digital_in"}
+
+
+    def read_digital_out(self, multi_port):
         # this reads the value of an digital out port i.e. what is
         # actually being put out (for checking)
         # http://127.0.0.1:8000/
         # ret = self.c("MG @IN[{}]".format(port))
-        ret = self.doflag[port]
-        return {"port": port, "value": ret, "type": "digital_out"}
+        if type(multi_port) is not list:
+            multi_port = [multi_port]
+        ret = []
+        for port in multi_port:        
+            ret.append(self.doflag[port])
+        return {"port": multi_port, "value": ret, "type": "digital_out"}
 
-    def set_analog_out(self, handle: int, module: int, bitnum: int, value: float):
+
+    #def set_analog_out(self, handle: int, module: int, bitnum: int, value: float):
+    def set_analog_out(self, multi_port, multi_value):
         # this is essentially a placeholder for now since the DMC-4143 does not support
         # analog out butI believe it is worthwhile to have this in here for the RIO
         # Handle num is A-H and must be on port 502 for the modbus commons
         # module is the position of the module from 1 to 16
         # bitnum is the IO point in the module from 1-4
         # the fist value n_0
-        n_0 = handle * 1000 + (module - 1) * 4 + bitnum
+        #n_0 = handle * 1000 + (module - 1) * 4 + bitnum
         # ret = self.c("AO {},{}".format(port, value))
-        self.aodict[port] = value
-        return {"port": port, "value": value, "type": "analog_out"}
+        #self.aodict[port] = value
+        #return {"port": port, "value": value, "type": "analog_out"}
+        return {"port": multi_port, "value": multi_value, "type": "analog_out"}
 
-    def digital_out_on(self, port: int):
-        # ret = self.c("SB {}".format(port))
-        self.doflag[port] = 1
+
+    def digital_out_on(self, multi_port):
+
+
+        if type(multi_port) is not list:
+            multi_port = [multi_port]
+        for port in multi_port:        
+            self.doflag[port] = 1
         return {
-            "port": port,
-            "value": self.read_digital_out(port),
+            "port": multi_port,
+            "value": self.read_digital_out(multi_port),
             "type": "digital_out",
         }
 
-    def digital_out_off(self, port: int):
+
+    def digital_out_off(self, multi_port):
         # ret = self.c("CB {}".format(port))
-        self.doflag[port] = 0
+
+        if type(multi_port) is not list:
+            multi_port = [multi_port]
+
+        for port in multi_port:
+           self.doflag[port] = 0
+
         return {
-            "port": port,
-            "value": self.read_digital_out(port),
+            "port": multi_port,
+            "value": self.read_digital_out(multi_port),
             "type": "digital_out",
         }
+
 
     def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):
         self.cycle_lights = True
@@ -553,14 +671,33 @@ class galil:
             "type": "digital_out",
         }
 
+
     def break_infinite_digital_cycles(
         self, on_time=0.2, off_time=0.2, port=0, init_time=0
     ):
         self.cycle_lights = False
 
+
+    def get_all_axis(self):
+        return [axis for axis in self.config_dict["axis_id"].keys()]
+     
+    
+    def get_all_digital_out(self):
+        return [port for port in self.config_dict["port_Dout_id"].keys()]
+
+
+    def get_all_digital_in(self):
+        return [port for port in self.config_dict["port_Din_id"].keys()]
+
+
+    def get_all_analog_out(self):
+        return [port for port in self.config_dict["port_Aout_id"].keys()]
+
+
     def shutdown_event(self):
         # this gets called when the server is shut down or reloaded to ensure a clean
         # disconnect ... just restart or terminate the server
-        self.motor_stop()
+        #self.motor_stop()
+        self.motor_off(self.get_all_axis())
         # self.g.GClose()
         return {"shutdown"}

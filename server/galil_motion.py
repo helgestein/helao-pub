@@ -293,6 +293,20 @@ async def stop():
     return retc
 
 
+
+@app.post(f"/{servKey}/reset")
+async def reset():
+    """Resets Galil device. Only for emergency use!"""
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="motion_command",
+        parameters={"command": "reset"},
+        data = motion.reset(),
+    )
+    await stat.set_idle()
+    return retc
+
+
 @app.post(f"/{servKey}/estop")
 async def estop(switch: bool = True):
     # http://127.0.0.1:8001/motor/set/stop

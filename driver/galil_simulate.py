@@ -466,6 +466,13 @@ class galil:
         }
 
 
+    def reset(self):
+        #The RS command resets the state of the processor to its power-on condition. 
+        #The previously saved state of the controller,
+        #along with parameter values, and saved sequences are restored.    
+        return ""#self.c("RS")
+
+
     def estop_axis(self, switch):
         # this will estop the axis
         # set estop: switch=true

@@ -5,6 +5,7 @@ import os
 sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
+sys.path.append(r'../helper')
 import time
 from mischbares_small import config
 from fastapi import FastAPI,BackgroundTasks
@@ -15,8 +16,14 @@ import uvicorn
 from typing import List
 from fastapi import FastAPI, Query
 import json
+import h5py
+import hdfdict
+from datetime import date
+from ae_helper_fcns import getCircularMA
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
+
+
 
 @app.post("/orchestrator/addExperiment")
 def sendMeasurement(experiment: str):
@@ -69,7 +76,20 @@ def stopInfiniteLoop():
 def doMeasurement(experiment: str):
     experiment = json.loads(experiment)
     print(experiment)
+    experiment['meta'].update(dict(path=os.path.join(config['orchestrator']['path'],f"substrate_{experiment['meta']['substrate']}")))
+    #get the provisional run and measurement number
+    if session == None:
+        experiment['meta'].update(dict(run=None,measurement_number=None))
+    else:
+        experiment['meta'].update(dict(run=int(highestName(filter(lambda k: k[:4]=="run_",list(session.keys()))[4:]))))
+        measurements = list(session[f"run_{experiment['meta']['run']}"].keys())
+        if len(measurements) != 0:
+            experiment['meta'].update(dict(measurement_number=int(incrementName(highestName(measurements))[15:])))
+        else:
+            experiment['meta'].update(dict(measurement_number=0))
+    experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     for action_str in experiment['soe']:
+        experiment['meta'].update(dict(current_action=action_str))
         if not emergencyStop:
             #print(action_str)
             server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
@@ -98,25 +118,122 @@ def doMeasurement(experiment: str):
             elif server == 'data':
                 requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
                             params= params)
+                continue
             elif server == 'table':
                 res = requests.get("http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server, action),
                             params= params).json()
             elif server == 'oceanAction':
                 res = requests.get("http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server, action),
                             params= params).json()
-            if server != "data":
-                substrate= experiment['meta']['substrate']
-                ma = experiment['meta']['ma']
-                with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
-                    json.dump(res, f)
+            elif server == 'orchestrator':
+                experiment = process_native_command(action,experiment)
+                continue
+            session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas']}})
+            experiment['meta']['measurement_number'] += 1
+            #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
+            #    json.dump(res, f)
 
         else:
             print("Emergency stopped!")
-    
+
+def process_native_command(command: str,experiment: dict):
+    if command == "start":
+        #ensure that the directory in which this session should be saved exists
+        if not os.path.exists(experiment['meta']['path']):
+            os.mkdir(experiment['meta']['path'])
+            session = dict(meta=dict(date=date.today.strftime("%d/%m/%Y")))
+            sessionname = f"substrate_{experiment['meta']['substrate']}_session_0"
+        #grabs most recent session for this substrate
+        if sessionname == None:
+            sessionname = highestName(filter(lambda s: s[-5:]=='.hdf5',os.listdir(experiment['meta']['path'])))[:-5]
+            session = dict(hdfdict.load(os.path.join(experiment['meta']['path'],sessionname)))
+        #assigns date to this session if necessary, or replaces session if too old
+        if 'date' not in session['meta']:
+            session['meta'].update(dict(date=date.today.strftime("%d/%m/%Y")))
+        elif session['meta']['date'] != date.today.strftime("%d/%m/%Y"):
+            print('current session is old, saving current session and creating new session')
+            hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
+            try:
+                requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
+                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
+            except:
+                print('automatic upload of completed session failed')
+            sessionname = incrementName(sessionname)
+            session = dict(meta=dict(date=date.today.strftime("%d/%m/%Y")))
+        #adds a new run to session to receive incoming data
+        if "run_0" not in list(session.keys()):
+            session.update(dict(run_0=dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
+            run = 0
+        else:
+            run = incrementName(highestName(filter(lambda k: k[:4]=="run_",list(session.keys()))))
+            session.update({run:dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
+            run = int(run[4:])
+        #don't put any keys in here that have length less than 4 i guess
+        experiment['meta']['run'] = run
+    elif command == "finish":
+        try:
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
+                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
+        except:
+            print('automatic upload of completed session failed')
+        sessionname = incrementName(sessionname)
+        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
+        #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
+    else:
+        print("error: native command not recognized")
+    return experiment
+
+def incrementName(s:str):
+    #i am incrementing names of runs, sessions, substrates, and measurement numbers numbers enough
+    #go from run_1 to run_2 or from substrate_1_session_1.hdf5 to substrate_1_session_2.hdf5, etc...
+    segments = s.split('_')
+    if '.' in segments[-1]:
+        #so that we can increment filenames too
+        subsegment = segments[-1].split('.') 
+        subsegment[0] = str(int(subsegment[0])+1)
+        segments[-1] = '.'.join(subsegment)
+    else:
+        segments[-1] = str(int(segments[-1])+1)
+    return '_'.join(segments)
+
+def highestName(names:list):
+    #take in a list of strings which differ only by an integer, and return the one for which that integer is highest
+    #another function I am performing often enough that it deserves it's own tool
+    #used for finding the most recent run, measurement number, and session
+    slen = len(names[0])
+    for i in range(slen):
+        for s in names:
+            if s[i] != names[0][i]:
+                leftindex = i
+                i = slen
+                break
+    for i in range(-1,-slen-1,-1):
+        for s in names:
+            if s[i] != names[0][i]:
+                rightindex = i
+                i = -slen-1
+                break
+    #assert leftindex < slen - rightindex
+    numbers = [int(s[leftindex:rightindex]) for s in names]
+    return names.index(max(numbers))
+
+@app.on_event("startup")
+def memory():
+    #the current working dictionary, will be saved as hdf5
+    global session
+    session = None
+    #the filename for above hdf5
+    global sessionname
+    sessionname = None
+
 @app.on_event("shutdown")
 def disconnect():
     emergencyStop = True
     time.sleep(0.75)
+    if session != None:
+        print('saving work on session close -- do not exit terminal')
+        hdfdict.dump(session,os.path.join(os.path.join(config['orchestrator']['path'],'_'.join(sessionname.split('_')[:2])),sessionname+'.hdf5'))
+        print('work saved')
             
 if __name__ == "__main__":
     emergencyStop = False
@@ -208,4 +325,3 @@ if __name__ == "__main__":
     "fomulation_3": {"formulation": [1], "pumps": [5], "speed": 4000, "direction": 1, "stage": true, "totalVol": 2000}}}
 
     '''
-

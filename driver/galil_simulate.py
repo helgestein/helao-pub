@@ -5,12 +5,13 @@ The 'galil' device class simulates the underlying motion and I/O functions provi
 """
 
 #import sys
-#import os
+import os
 import numpy as np
 import json
 import time
 from collections import defaultdict
 
+driver_path = os.path.dirname(__file__)
 
 class cmd_exception(ValueError):
     def __init__(self, arg):
@@ -663,6 +664,14 @@ class galil:
             "type": "digital_out",
         }
 
+
+    def upload_DMC(self, DMC_prog):
+        return
+
+        
+    def set_digital_cycle(self, trigger_port, out_port, t_cycle):
+        return
+        
 
     def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):
         self.cycle_lights = True

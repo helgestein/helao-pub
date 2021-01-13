@@ -193,6 +193,16 @@ def set_digital_out_off(port):
     return retc
 
 
+@app.post(f"/{servKey}/set_triggered_cycles")
+def set_triggered_cycles(trigger_port: int, out_port: int, t_cycle: int):
+    retc = return_class(
+        measurement_type="io_command",
+        parameters={"command": "set_digital_cycle"},
+        data=motion.set_digital_cycle(trigger_port, out_port, t_cycle)
+    )
+    return retc
+
+
 @app.post(f"/{servKey}/analog_out")
 def set_analog_out(port: int, value: float):
 #def set_analog_out(handle: int, module: int, bitnum: int, value: float):

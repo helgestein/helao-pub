@@ -6,10 +6,13 @@ config/config.py.
 """
 
 #import sys
-#import os
+import os
 import numpy as np
 import json
 import time
+import pathlib
+
+driver_path = os.path.dirname(__file__)
 
 # if __package__:
 #     # can import directly in package mode
@@ -29,6 +32,9 @@ import time
 # install galil driver first
 # (helao) c:\Program Files (x86)\Galil\gclib\source\wrappers\python>python setup.py install
 import gclib
+
+
+#pathlib.Path(os.path.join(helao_root, 'visualizer\styles.css')).read_text()
 
 class cmd_exception(ValueError):
     def __init__(self, arg):
@@ -674,6 +680,21 @@ class galil:
             "value": self.read_digital_out(multi_port),
             "type": "digital_out",
         }
+
+    def upload_DMC(self, DMC_prog):
+        self.c("UL;") # begin upload
+        # upload line by line from DMC_prog
+        for DMC_prog_line in DMC_prog.split("\n"):
+            self.c(DMC_prog_line)
+        self.c("\x1a") # terminator "<cntrl>Z"
+
+        
+    def set_digital_cycle(self, trigger_port, out_port, t_cycle):
+        DMC_prog = pathlib.Path(os.path.join(driver_path, 'galil_toogle.dmc')).read_text()
+        DMC_prog = DMC_prog.format(p_trigger=trigger_port, p_output = out_port, t_time = t_cycle)
+        self.upload_DMC(DMC_prog)
+        #self.c("XQ")
+        self.c("XQ #main") # excecute main routine
 
 
     def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):

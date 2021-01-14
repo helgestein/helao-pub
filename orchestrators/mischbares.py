@@ -74,6 +74,7 @@ def stopInfiniteLoop():
     return {"message": 'bla'}
 
 def doMeasurement(experiment: str):
+    global session,sessionname
     experiment = json.loads(experiment)
     print(experiment)
     experiment['meta'].update(dict(path=os.path.join(config['orchestrator']['path'],f"substrate_{experiment['meta']['substrate']}")))
@@ -81,8 +82,8 @@ def doMeasurement(experiment: str):
     if session == None:
         experiment['meta'].update(dict(run=None,measurement_number=None))
     else:
-        experiment['meta'].update(dict(run=int(highestName(filter(lambda k: k[:4]=="run_",list(session.keys()))[4:]))))
-        measurements = list(session[f"run_{experiment['meta']['run']}"].keys())
+        experiment['meta'].update(dict(run=int(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys()))))[4:])))
+        measurements = list(session[f"run_{experiment['meta']['run']}"]['data'].keys())
         if len(measurements) != 0:
             experiment['meta'].update(dict(measurement_number=int(incrementName(highestName(measurements))[15:])))
         else:
@@ -137,20 +138,22 @@ def doMeasurement(experiment: str):
             print("Emergency stopped!")
 
 def process_native_command(command: str,experiment: dict):
+    global session,sessionname
     if command == "start":
         #ensure that the directory in which this session should be saved exists
         if not os.path.exists(experiment['meta']['path']):
             os.mkdir(experiment['meta']['path'])
-            session = dict(meta=dict(date=date.today.strftime("%d/%m/%Y")))
+        if not os.path.exists(experiment['meta']['path']) or os.listdir(experiment['meta']['path']) == []:
+            session = dict(meta=dict(date=date.today().strftime("%d/%m/%Y")))
             sessionname = f"substrate_{experiment['meta']['substrate']}_session_0"
         #grabs most recent session for this substrate
         if sessionname == None:
-            sessionname = highestName(filter(lambda s: s[-5:]=='.hdf5',os.listdir(experiment['meta']['path'])))[:-5]
-            session = dict(hdfdict.load(os.path.join(experiment['meta']['path'],sessionname)))
+            sessionname = highestName(list(filter(lambda s: s[-5:]=='.hdf5',os.listdir(experiment['meta']['path']))))[:-5]
+            session = dict(hdfdict.load(os.path.join(experiment['meta']['path'],sessionname+'.hdf5')))
         #assigns date to this session if necessary, or replaces session if too old
         if 'date' not in session['meta']:
-            session['meta'].update(dict(date=date.today.strftime("%d/%m/%Y")))
-        elif session['meta']['date'] != date.today.strftime("%d/%m/%Y"):
+            session['meta'].update(dict(date=date.today().strftime("%d/%m/%Y")))
+        elif session['meta']['date'] != date.today().strftime("%d/%m/%Y"):
             print('current session is old, saving current session and creating new session')
             hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
             try:
@@ -159,25 +162,26 @@ def process_native_command(command: str,experiment: dict):
             except:
                 print('automatic upload of completed session failed')
             sessionname = incrementName(sessionname)
-            session = dict(meta=dict(date=date.today.strftime("%d/%m/%Y")))
+            session = dict(meta=dict(date=date.today().strftime("%d/%m/%Y")))
         #adds a new run to session to receive incoming data
         if "run_0" not in list(session.keys()):
             session.update(dict(run_0=dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
             run = 0
         else:
-            run = incrementName(highestName(filter(lambda k: k[:4]=="run_",list(session.keys()))))
+            run = incrementName(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys())))))
             session.update({run:dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
             run = int(run[4:])
         #don't put any keys in here that have length less than 4 i guess
         experiment['meta']['run'] = run
+        experiment['meta']['measurement_number'] = 0
     elif command == "finish":
+        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
         try:
             requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
                             params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
         except:
             print('automatic upload of completed session failed')
-        sessionname = incrementName(sessionname)
-        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
+        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementname(sessionname)+'.hdf5'))
         #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
     else:
         print("error: native command not recognized")
@@ -200,22 +204,27 @@ def highestName(names:list):
     #take in a list of strings which differ only by an integer, and return the one for which that integer is highest
     #another function I am performing often enough that it deserves it's own tool
     #used for finding the most recent run, measurement number, and session
-    slen = len(names[0])
-    for i in range(slen):
-        for s in names:
-            if s[i] != names[0][i]:
-                leftindex = i
-                i = slen
-                break
-    for i in range(-1,-slen-1,-1):
-        for s in names:
-            if s[i] != names[0][i]:
-                rightindex = i
-                i = -slen-1
-                break
-    #assert leftindex < slen - rightindex
-    numbers = [int(s[leftindex:rightindex]) for s in names]
-    return names.index(max(numbers))
+    if len(names) == 1:
+        return names[0]
+    else:
+        slen = len(names[0])
+        leftindex = None
+        rightindex = None
+        for i in range(slen):
+            for s in names:
+                if s[i] != names[0][i]:
+                    leftindex = i
+                    i = slen
+                    break
+        for i in range(-1,-slen-1,-1):
+            for s in names:
+                if s[i] != names[0][i]:
+                    rightindex = i
+                    i = -slen-1
+                    break
+        #assert leftindex < slen - rightindex
+        numbers = [int(s[leftindex:rightindex+1] if rightindex != -1 else s[leftindex:]) for s in names]
+        return names[numbers.index(max(numbers))]
 
 @app.on_event("startup")
 def memory():

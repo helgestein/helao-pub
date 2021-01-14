@@ -171,13 +171,15 @@ if __name__ == "__main__":
     if task == "make_map":
         soe = []
         params = {}
-        soe.append("movement/moveToHome_0")
-        params.update({"moveToHome_0":None})
+        #soe.append("movement/moveToHome_0")
+        #params.update({"moveToHome_0":None})
+        soe.append("orchestrator/start")
+        params.update({"start":None})
         soe.append("table/configure_0")
         params.update({"configure_0":dict(motor=0)})
         soe.append("table/configure_1")
         params.update({"configure_1":dict(motor=1)})
-        experiment = dict(soe=soe,params=params,meta=dict(substrate="2",ma="none"))
+        experiment = dict(soe=soe,params=params,meta=dict(substrate=0,ma=[4,4],r=.1))
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
         i = 0
@@ -188,18 +190,22 @@ if __name__ == "__main__":
         with open('C:/Users/Operator/Desktop/Hgrid.json','r') as infile:
             data = json.load(infile)
         grid = [i[0] for i in data]
+        grid = [[4,4],[5,5],[6,6]]
         for loc in grid:
             soe = []
             params = {}
             soe.append("table/move_{}".format(i))
             params.update({"move_{}".format(i):dict(loc=json.dumps(loc))})
-            soe.append("movement/measuringRaman_{}".format(i))
-            params.update({"measuringRaman_{}".format(i):dict(z=5,h=1)})
+            #soe.append("movement/measuringRaman_{}".format(i))
+            #params.update({"measuringRaman_{}".format(i):dict(z=5,h=1)})
             soe.append("oceanAction/read_{}".format(i))
             params.update({"read_{}".format(i):dict(t=10000000,filename="C:/Users/Operator/Documents/temp/substrate_2_"+str(i))})
-            soe.append("movement/safeRaman_{}".format(i+1))
-            params.update({"safeRaman_{}".format(i+1):None})
+            #soe.append("movement/safeRaman_{}".format(i+1))
+            #params.update({"safeRaman_{}".format(i+1):None})
             i += 1
-            experiment = dict(soe=soe,params=params,meta=dict(substrate="2",ma=str(round(loc[0]*10)*100)+'-'+str(round(loc[1]*10)*100)))
+            if loc == grid[-1]:
+                soe.append("orchestrator/finish")
+                params.update({"finish":None})
+            experiment = dict(soe=soe,params=params,meta=dict(substrate=0,ma=[4,4],r=.1))
             requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
 

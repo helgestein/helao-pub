@@ -28,20 +28,18 @@ def getMAFromXY(x_,y_,a=50,b=50,da=0.01,db=0.01):
     mod_y = Decimal(str(y_))%Decimal(str(db))
     if not mod_y == 0:
         raise ValueError
-    MA_ID = dm_y*Decimal(str(b))/Decimal(str(db))+dm_y+Decimal(str(x_))/Decimal(str(db))+1
+    MA_ID_ = dm_y*Decimal(str(b))/Decimal(str(db))+dm_y+Decimal(str(x_))/Decimal(str(db))+1
     if MA_ID<0:
         raise ValueError
-    return dict(a=a,b=b,da=da,db=db,MA=int(MA_ID))
+    return dict(a=a,b=b,da=da,db=db,MA=int(MA_ID_))
 
-def getCircularMA(x_offset,y_offset,r,gridSpec=None,da=0.01,db=0.01):
-    x,y,_ = makeMeshBrute(offset_x=x_offset-r/2,offset_y=y_offset-r/2,a=r,b=r,da=0.01,db=0.01)
+def getCircularMA(x_offset,y_offset,r,gridSpec=None):
+    x,y,_ = makeMeshBrute(offset_x=x_offset-r/2,offset_y=y_offset-r/2,a=r,b=r)
     MAlist = []
     for x_,y_ in zip(x,y):
-        x_=round(x_,len(str(da-int(da)))-2)#jack's edit to avoid floating point errors
-        y_=round(y_,len(str(db-int(db)))-2)
         dist = np.sqrt((x_offset-x_)**2+(y_offset-y_)**2)
         if dist<r:
-            MAlist.append(getMAFromXY(x_,y_,a=r,b=r,da=0.01,db=0.01)['MA'])
+            MAlist.append(getMAFromXY(x_,y_)['MA'])
     return MAlist
 
 def makeNAry(n,steps,shuffle=True):

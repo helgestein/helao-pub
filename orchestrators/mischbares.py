@@ -24,9 +24,9 @@ from ae_helper_fcns import getCircularMA
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
 #things to sort out:
-#kadi, may be an issue here, probably just an issue with updating our version and driver
+#kadi, get a new access token
 #mysterious experiment list loss
-#helge's emergency stop has never worked, and it is now more important to make it work
+#helge's emergency stop doesn't always work (and i don't understand why it even sometimes works), and it is now more important to make it work
 #then go back and continue to confirm that this code can properly start and end a series of experiments, whether or not they are interrupted partway through
 
 
@@ -49,6 +49,7 @@ async def semiInfiniteLoop():
             for i in range(numToMeasure):
                 doMeasurement(experiment_list.pop(0))
         else:
+            print('loop breaking')
             break
 
 def infl():
@@ -57,11 +58,16 @@ def infl():
         numToAdd = copy(len(add_experiments))
         if numToAdd>0:
             for i in range(numToAdd):
+                print(f'add_experiments list of len {len(add_experiments)} to follow:')
+                print(f'i: {i}. numToMeasure: {numToAdd}')
+                print(add_experiments)
                 experiment_list.append(add_experiments.pop(0))
         #for reasons of changing list lens:
         numToMeasure = copy(len(experiment_list))
         if numToMeasure>0:
             for i in range(numToMeasure):
+                print(f'experiment list of len {len(experiment_list)} to follow:')
+                print(f'i: {i}. numToMeasure: {numToMeasure}')
                 print(experiment_list)
                 doMeasurement(experiment_list.pop(0))
         else:

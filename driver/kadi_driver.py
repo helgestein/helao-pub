@@ -1,6 +1,6 @@
-from kadi_apy.lib.core import KadiAPI
-from kadi_apy.lib.records import Record
-from kadi_apy.lib.collections import Collection
+from kadi_apy import KadiAPI
+from kadi_apy import Record
+from kadi_apy import Collection
 import json
 import time
 import pandas

@@ -23,6 +23,11 @@ from ae_helper_fcns import getCircularMA
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
+#things to sort out:
+#kadi, may be an issue here, probably just an issue with updating our version and driver
+#mysterious experiment list loss
+#helge's emergency stop has never worked, and it is now more important to make it work
+#then go back and continue to confirm that this code can properly start and end a series of experiments, whether or not they are interrupted partway through
 
 
 @app.post("/orchestrator/addExperiment")
@@ -57,6 +62,7 @@ def infl():
         numToMeasure = copy(len(experiment_list))
         if numToMeasure>0:
             for i in range(numToMeasure):
+                print(experiment_list)
                 doMeasurement(experiment_list.pop(0))
         else:
             time.sleep(0.5)
@@ -149,13 +155,14 @@ def process_native_command(command: str,experiment: dict):
         #grabs most recent session for this substrate
         if sessionname == None:
             sessionname = highestName(list(filter(lambda s: s[-5:]=='.hdf5',os.listdir(experiment['meta']['path']))))[:-5]
-            session = dict(hdfdict.load(os.path.join(experiment['meta']['path'],sessionname+'.hdf5')))
+            session = dict(hdfdict.load(os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),lazy=False,mode='r+')) #lazy = False because otherwise it will not load properly
+            #if it turns out we need to optimize what is loaded when, we may need to switch packages. Ironically, I am taking the laziest possible approach here to loading and dumping files
         #assigns date to this session if necessary, or replaces session if too old
         if 'date' not in session['meta']:
             session['meta'].update(dict(date=date.today().strftime("%d/%m/%Y")))
         elif session['meta']['date'] != date.today().strftime("%d/%m/%Y"):
             print('current session is old, saving current session and creating new session')
-            hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
+            hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
             try:
                 requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
                             params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
@@ -175,13 +182,13 @@ def process_native_command(command: str,experiment: dict):
         experiment['meta']['run'] = run
         experiment['meta']['measurement_number'] = 0
     elif command == "finish":
-        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'))
+        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         try:
             requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
                             params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
         except:
             print('automatic upload of completed session failed')
-        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementname(sessionname)+'.hdf5'))
+        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementName(sessionname)+'.hdf5'),mode='w')
         #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
     else:
         print("error: native command not recognized")
@@ -241,7 +248,7 @@ def disconnect():
     time.sleep(0.75)
     if session != None:
         print('saving work on session close -- do not exit terminal')
-        hdfdict.dump(session,os.path.join(os.path.join(config['orchestrator']['path'],'_'.join(sessionname.split('_')[:2])),sessionname+'.hdf5'))
+        hdfdict.dump(session,os.path.join(os.path.join(config['orchestrator']['path'],'_'.join(sessionname.split('_')[:2])),sessionname+'.hdf5'),mode='w')
         print('work saved')
             
 if __name__ == "__main__":

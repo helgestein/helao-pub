@@ -1,29 +1,27 @@
-"""
-helao.py is a full-stack launcher for initializing API servers
+"""helao.py is a full-stack launcher for initializing API servers
 
-launch via 'python helao.py {config_prefix}'
+Example:
+  launch via 'python helao.py {config_prefix}'
 
-where config_prefix specifies the config/{config_prefix}.py 
-contains parameters for a jointly-managed group of servers and 
-server_key references the API server's unique subdictionary defined
-in config_prefix.py
+  where config_prefix specifies the config/{config_prefix}.py
+  contains parameters for a jointly-managed group of servers and
+  server_key references the API server's unique subdictionary defined
+  in config_prefix.py
 
-  
 See config/world.py for example.
 
 Requirements:
-1. All API server instances must take a {config_prefix} argument 
-when launched in order to reference the same configuration parameters.
-This allows server code to be reused for separate instances.
+  1. All API server instances must take a {config_prefix} argument
+     when launched in order to reference the same configuration parameters.
+     This allows server code to be reused for separate instances.
 
-2. All API server instances must include a {server_key} argument
-following the {config_prefix} argument. This the subdictionary
-referenced by server_key must be unique.
+  2. All API server instances must include a {server_key} argument
+     following the {config_prefix} argument. This the subdictionary
+     referenced by server_key must be unique.
 
-3. Consequently, only class and function definitions are allowed in 
-driver code, and driver configuration must be supplied during class 
-initialization by an API server's @app.startup method.
-
+  3. Consequently, only class and function definitions are allowed in
+     driver code, and driver configuration must be supplied during class
+     initialization by an API server's @app.startup method.
 """
 
 import os
@@ -224,7 +222,7 @@ def launcher(confPrefix, confDict):
 
     # API server launch priority (matches folders in root helao-dev/)
     LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer"]
-    
+
     pidd = Pidd(f"pids_{confPrefix}.pck")
     if not validateConfig(pidd, confDict):
         raise Exception(f"Configuration for '{confPrefix}' is invalid.")

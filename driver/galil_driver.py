@@ -6,10 +6,13 @@ config/config.py.
 """
 
 #import sys
-#import os
+import os
 import numpy as np
 import json
 import time
+import pathlib
+
+driver_path = os.path.dirname(__file__)
 
 # if __package__:
 #     # can import directly in package mode
@@ -30,6 +33,9 @@ import time
 # (helao) c:\Program Files (x86)\Galil\gclib\source\wrappers\python>python setup.py install
 import gclib
 
+
+#pathlib.Path(os.path.join(helao_root, 'visualizer\styles.css')).read_text()
+
 class cmd_exception(ValueError):
     def __init__(self, arg):
         self.args = arg
@@ -41,6 +47,21 @@ class galil:
 
         self.config_dict["estop_motor"] = False
         self.config_dict["estop_io"] = False
+        
+        # need to check if config settings exist
+        # else need to create empty ones
+        if "axis_id" not in self.config_dict:
+            self.config_dict["axis_id"] = dict()
+
+        if "axis_Din_id" not in self.config_dict:
+            self.config_dict["axis_Din_id"] = dict()
+
+        if "axis_Dout_id" not in self.config_dict:
+            self.config_dict["axis_Dout_id"] = dict()
+
+        if "axis_Aout_id" not in self.config_dict:
+            self.config_dict["axis_Aout_id"] = dict()
+            
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -88,6 +109,18 @@ class galil:
         
         # expected time for each move, used for axis stop check
         timeofmove = []
+        
+        if self.config_dict["estop_motor"] == True:
+            return {
+                "moved_axis": None,
+                "speed": None,
+                "accepted_rel_dist": None,
+                "supplied_rel_dist": None,
+                "err_dist": None,
+                "err_code": "estop",
+                "counts": None
+            }
+        
         
         # TODO: if same axis is moved twice
         for x_mm, axis in zip(multi_x_mm, multi_axis):
@@ -148,7 +181,7 @@ class galil:
                     raise cmd_exception
                 if stopping:
                     #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-                    cmd_seq = ["ST {}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
+                    cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
                 else:
                     cmd_seq = ["SP{}={}".format(ax, speed)]
                 if mode == "relative":
@@ -160,10 +193,13 @@ class galil:
                     cmd_seq.append("PA{}={}".format(ax, counts))
                 cmd_seq.append("BG{}".format(ax))
     
+                timeofmove.append(abs(counts/speed))
+                
                 #ret = ""
                 for cmd in cmd_seq:
                     _ = self.c(cmd)
                     #ret.join(_)
+                print(cmd_seq)
                 ret_moved_axis.append(ax)
                 ret_speed.append(speed)
                 ret_accepted_rel_dist.append(None)
@@ -172,7 +208,7 @@ class galil:
                 ret_err_code.append(0)
                 ret_counts.append(counts)
                 # time = counts/ counts_per_second
-                timeofmove.append(counts/speed)
+
                 continue
             except:
                 ret_moved_axis.append(None)
@@ -195,27 +231,43 @@ class galil:
         
         # wait for expected axis move time before checking if axis stoppped
         print('Axis expected to stop in',tmax,'sec')
-        time.sleep(tmax)        
+        time.sleep(tmax)
 
-        # check if all axis stopped
-        tstart = time.time()
-        if "timeout" in self.config_dict:
-            tout = self.config_dict["timeout"]
+        if self.config_dict["estop_motor"] == False:
+
+            # check if all axis stopped
+            tstart = time.time()
+            if "timeout" in self.config_dict:
+                tout = self.config_dict["timeout"]
+            else:
+                tout = 60
+            while (time.time()-tstart < tout) and self.config_dict["estop_motor"] == False:
+                qmove = self.query_axis_moving(multi_axis)
+                time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
+                if all(qmove['err_code']):
+                    break
+
+            if self.config_dict["estop_motor"] == False:
+                # stop of motor movement (motor still on)
+                if time.time()-tstart > tout:
+                    self.stop_axis(multi_axis)
+                # check which axis had the timeout
+                newret_err_code = []
+                for erridx, err_code in enumerate(ret_err_code):
+                    if qmove['err_code'][erridx] == 0:
+                        newret_err_code.append("timeout")
+                    else:
+                        newret_err_code.append(err_code)
+
+                ret_err_code = newret_err_code
+            else:
+                # estop occured while checking axis end position
+                ret_err_code = ["estop" for _ in ret_err_code]
+                
         else:
-            tout = 60
-        while time.time()-tstart < tout:
-            rettmp = self.query_axis_moving(multi_axis)
-            time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
-#            print(rettmp)
-            if all(rettmp['err_code']):
-#                print('Motors stopped')
-                break
-#            else:
-#                print('Motors moving')
- 
-        # Estop of motor movement (motor still on)
-        if time.time()-tstart > tout:
-            self.stop_axis(multi_axis)
+            # estop was triggered while waiting for axis to stop
+            ret_err_code = ["estop" for _ in ret_err_code]
+
 
         # one return for all axis 
         return {
@@ -245,6 +297,19 @@ class galil:
         # the server call would look like:
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
         # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
+
+
+        if self.config_dict["estop_motor"] == True:
+            return {
+                "moved_axis": None,
+                "speed": None,
+                "accepted_rel_dist": None,
+                "supplied_rel_dist": None,
+                "err_dist": None,
+                "err_code": "estop",
+                "counts": None
+            }
+
 
         # first we check if we have the right axis specified
         if axis in self.config_dict["axis_id"].keys():
@@ -296,7 +361,7 @@ class galil:
 
             # stops all other motion
             #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-            #cmd_seq = ["ST {}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
+            #cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
             # other motion won't be affected
             cmd_seq = ["SP{}={}".format(ax, speed)]
             if mode == "relative":
@@ -370,7 +435,7 @@ class galil:
         # now we need to map these outputs to the ABCDEFG... channels
         # and then map that to xyz so it is humanly readable
         axlett = 'ABCDEFGH'
-        axlett[0:len(q.split(', '))]
+        axlett = axlett[0:len(q.split(','))]
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
         ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(axlett)}
         pos = {
@@ -397,7 +462,7 @@ class galil:
         # this functions queries the status of the axis
         q = self.c("SC")
         axlett = 'ABCDEFGH'
-        axlett[0:len(q.split(', '))]
+        axlett = axlett[0:len(q.split(','))]
         # convert single axis move to list
         if type(multi_axis) is not list:
             multi_axis = [multi_axis]
@@ -421,6 +486,44 @@ class galil:
         }
 
 
+    def reset(self):
+        #The RS command resets the state of the processor to its power-on condition. 
+        #The previously saved state of the controller,
+        #along with parameter values, and saved sequences are restored.    
+        return self.c("RS")
+
+
+    def estop_axis(self, switch):
+        # this will estop the axis
+        # set estop: switch=true
+        # release estop: switch=false
+        print('Axis Estop')
+        if switch == True:
+            self.stop_axis(self.get_all_axis())
+            self.motor_off(self.get_all_axis())
+            # set flag (move command need to check for it)
+            self.config_dict["estop_motor"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_motor"] = False
+
+
+    def estop_io(self, switch):
+        # this will estop the io
+        # set estop: switch=true
+        # release estop: switch=false
+        print('IO Estop')
+        if switch == True:         
+            self.break_infinite_digital_cycles()
+            self.digital_out_off(self.get_all_digital_out())
+            self.set_analog_out(self.get_all_analoh_out(),0)
+            # set flag
+            self.config_dict["estop_io"] = True
+        else:
+            # need only to set the flag
+            self.config_dict["estop_io"] = False
+        
+
     def stop_axis(self, multi_axis):
         # this will stop the current motion of the axis
         # but not turn off the motor
@@ -432,7 +535,7 @@ class galil:
         for axis in multi_axis:
             if axis in self.config_dict["axis_id"].keys():
                 ax = self.config_dict["axis_id"][axis]
-                self.c("ST {}".format(ax))
+                self.c("ST{}".format(ax))
 
         ret = self.query_axis_moving(multi_axis)
         ret.update(self.query_axis_position(multi_axis))
@@ -463,7 +566,7 @@ class galil:
                 #return ret
     
             #cmd_seq = ["AB", "MO{}".format(ax)]
-            cmd_seq = ["ST {}".format(ax), "MO{}".format(ax)]
+            cmd_seq = ["ST{}".format(ax), "MO{}".format(ax)]
             
             for cmd in cmd_seq:
                 _ = self.c(cmd)
@@ -496,7 +599,7 @@ class galil:
                 #ret.update(self.query_axis_position(multi_axis))
                 #return ret
             #cmd_seq = ["AB", "SH{}".format(ax)]
-            cmd_seq = ["ST {}".format(ax), "SH{}".format(ax)]
+            cmd_seq = ["ST{}".format(ax), "SH{}".format(ax)]
             
             for cmd in cmd_seq:
                 _ = self.c(cmd)
@@ -514,7 +617,7 @@ class galil:
         ret = []
         for port in multi_port:        
             ret.append(self.c("MG @AN[{}]".format(int(port))))
-        return {"port": port, "value": ret, "type": "analog_in"}
+        return {"port": multi_port, "value": ret, "type": "analog_in"}
 
 
     def read_digital_in(self, multi_port):
@@ -540,7 +643,8 @@ class galil:
         return {"port": multi_port, "value": ret, "type": "digital_out"}
 
 
-    def set_analog_out(self, multi_port, handle: int, module: int, bitnum: int, multi_value):
+    #def set_analog_out(self, multi_port, handle: int, module: int, bitnum: int, multi_value):
+    def set_analog_out(self, multi_port, multi_value):
         # this is essentially a placeholder for now since the DMC-4143 does not support
         # analog out but I believe it is worthwhile to have this in here for the RIO
         # Handle num is A-H and must be on port 502 for the modbus commons
@@ -577,6 +681,21 @@ class galil:
             "type": "digital_out",
         }
 
+    def upload_DMC(self, DMC_prog):
+        self.c("UL;") # begin upload
+        # upload line by line from DMC_prog
+        for DMC_prog_line in DMC_prog.split("\n"):
+            self.c(DMC_prog_line)
+        self.c("\x1a") # terminator "<cntrl>Z"
+
+        
+    def set_digital_cycle(self, trigger_port, out_port, t_cycle):
+        DMC_prog = pathlib.Path(os.path.join(driver_path, 'galil_toogle.dmc')).read_text()
+        DMC_prog = DMC_prog.format(p_trigger=trigger_port, p_output = out_port, t_time = t_cycle)
+        self.upload_DMC(DMC_prog)
+        #self.c("XQ")
+        self.c("XQ #main") # excecute main routine
+
 
     def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):
         self.cycle_lights = True
@@ -601,7 +720,19 @@ class galil:
 
     def get_all_axis(self):
         return [axis for axis in self.config_dict["axis_id"].keys()]
-        
+     
+    
+    def get_all_digital_out(self):
+        return [port for port in self.config_dict["port_Dout_id"].keys()]
+
+
+    def get_all_digital_in(self):
+        return [port for port in self.config_dict["port_Din_id"].keys()]
+
+
+    def get_all_analog_out(self):
+        return [port for port in self.config_dict["port_Aout_id"].keys()]
+
 
     def shutdown_event(self):
         # this gets called when the server is shut down or reloaded to ensure a clean

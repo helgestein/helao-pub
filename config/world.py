@@ -29,8 +29,8 @@ config["servers"] = dict(
                 y="B",
                 z="C",
                 s="A",
-                t="E",
-                u="F"
+                #t="E",
+                #u="F"
                 ),
             axlett="ABCD",
             timeout = 60 # timeout for axis stop in sec
@@ -59,8 +59,8 @@ config["servers"] = dict(
                 y="B",
                 z="C",
                 s="A",
-                t="E",
-                u="F"
+                #t="E",
+                #u="F"
             ),
             axlett="ABCD"
         )

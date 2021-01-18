@@ -153,7 +153,7 @@ def validateConfig(PIDD, confDict):
         print("Server keys are not unique.")
         return False
     if "servers" not in confDict.keys():
-        print(f"'servers' key not defined in config dictionary.")
+        print("'servers' key not defined in config dictionary.")
         return False
     for server in confDict["servers"].keys():
         serverDict = confDict["servers"][server]

@@ -180,8 +180,9 @@ if __name__ == "__main__":
         soe.append("table/configure_1")
         params.update({"configure_1":dict(motor=1)})
         experiment = dict(soe=soe,params=params,meta=dict(substrate=0,ma=[4,4],r=.1))
-        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
+        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
+        
         i = 0
         #[45,20] to [55,25]
         #grid = [[i/10,j/10] for i in range(450,501) for j in range(200,251)]

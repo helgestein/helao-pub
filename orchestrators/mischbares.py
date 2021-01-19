@@ -18,73 +18,27 @@ from fastapi import FastAPI, Query
 import json
 import h5py
 import hdfdict
-from datetime import date
+import datetime
 from ae_helper_fcns import getCircularMA
 import asyncio
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
 #things to sort out:
-#kadi, get a new access token
-#mysterious experiment list loss
-#helge's emergency stop doesn't always work (and i don't understand why it even sometimes works), and it is now more important to make it work
-#then go back and continue to confirm that this code can properly start and end a series of experiments, whether or not they are interrupted partway through
+#kadi, get a new access token and add a handshake
+#make clean shutdown, should be able to interrupt terminal at any point and trigger shutdown event
+#double check that the data hierarchy makes sense
+#then go back and continue to confirm that this code can properly start and end a series of experiments, whether or not they are interrupted partway through or additions are injected
 
 
 @app.post("/orchestrator/addExperiment")
 async def sendMeasurement(experiment: str):
     await experiment_queue.put(experiment)
 
-#@app.post("/orchestrator/semiInfiniteLoop")
-#async def semiInfiniteLoop():
-#    while True:
-#        #for reasons of changing list lens:
-#        numToAdd = copy(len(add_experiments))
-#        if numToAdd>0:
-#            for i in range(numToAdd):
-#                experiment_list.append(add_experiments.pop(0))
-#        #for reasons of changing list lens:
-#        numToMeasure = copy(len(experiment_list))
-#        if numToMeasure>0:
-#            for i in range(numToMeasure):
-#                doMeasurement(experiment_list.pop(0))
-#        else:
-#            print('loop breaking')
-#            break
-
 async def infl():
     while True:
         experiment = await experiment_queue.get()
         await doMeasurement(experiment)
-#        #for reasons of changing list lens:
-#       numToAdd = copy(len(add_experiments))
-#        if numToAdd>0:
-#            for i in range(numToAdd):
-#                print(f'add_experiments list of len {len(add_experiments)} to follow:')
-#                print(f'i: {i}. numToMeasure: {numToAdd}')
-#                print(add_experiments)
-#                experiment_list.append(add_experiments.pop(0))
-#        #for reasons of changing list lens:
-#        numToMeasure = copy(len(experiment_list))
-#        if numToMeasure>0:
-#            for i in range(numToMeasure):
-#                print(f'experiment list of len {len(experiment_list)} to follow:')
-#                print(f'i: {i}. numToMeasure: {numToMeasure}')
-#                print(experiment_list)
-#                doMeasurement(experiment_list.pop(0))
-#        else:
-#            asyncio.sleep(0.5)
-#        if emergencyStop:
-#            break
-
-@app.post("/orchestrator/infiniteLoop")
-async def infiniteLoop():
-    await infl()
-
-#@app.post("/orchestrator/emergencyStop")
-#def stopInfiniteLoop():
-#    emergencyStop = True
-#    return {"message": 'bla'}
 
 async def doMeasurement(experiment: str):
     global session,sessionname
@@ -103,7 +57,6 @@ async def doMeasurement(experiment: str):
             experiment['meta'].update(dict(measurement_number=0))
     experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     for action_str in experiment['soe']:
-        await asyncio.sleep(.05)
         experiment['meta'].update(dict(current_action=action_str))
         #print(action_str)
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
@@ -142,13 +95,9 @@ async def doMeasurement(experiment: str):
         elif server == 'orchestrator':
             experiment = process_native_command(action,experiment)
             continue
-        session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas']}})
-        experiment['meta']['measurement_number'] += 1
+        session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas'],'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
-
-        else:
-            print("Emergency stopped!")
 
 def process_native_command(command: str,experiment: dict):
     global session,sessionname
@@ -157,7 +106,7 @@ def process_native_command(command: str,experiment: dict):
         if not os.path.exists(experiment['meta']['path']):
             os.mkdir(experiment['meta']['path'])
         if not os.path.exists(experiment['meta']['path']) or os.listdir(experiment['meta']['path']) == []:
-            session = dict(meta=dict(date=date.today().strftime("%d/%m/%Y")))
+            session = dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y")))
             sessionname = f"substrate_{experiment['meta']['substrate']}_session_0"
         #grabs most recent session for this substrate
         if sessionname == None:
@@ -166,8 +115,8 @@ def process_native_command(command: str,experiment: dict):
             #if it turns out we need to optimize what is loaded when, we may need to switch packages. Ironically, I am taking the laziest possible approach here to loading and dumping files
         #assigns date to this session if necessary, or replaces session if too old
         if 'date' not in session['meta']:
-            session['meta'].update(dict(date=date.today().strftime("%d/%m/%Y")))
-        elif session['meta']['date'] != date.today().strftime("%d/%m/%Y"):
+            session['meta'].update(dict(date=datetime.date.today().strftime("%d/%m/%Y")))
+        elif session['meta']['date'] != datetime.date.today().strftime("%d/%m/%Y"):
             print('current session is old, saving current session and creating new session')
             hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
             try:
@@ -176,7 +125,7 @@ def process_native_command(command: str,experiment: dict):
             except:
                 print('automatic upload of completed session failed')
             sessionname = incrementName(sessionname)
-            session = dict(meta=dict(date=date.today().strftime("%d/%m/%Y")))
+            session = dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y")))
         #adds a new run to session to receive incoming data
         if "run_0" not in list(session.keys()):
             session.update(dict(run_0=dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
@@ -241,7 +190,7 @@ def highestName(names:list):
         return names[numbers.index(max(numbers))]
 
 @app.on_event("startup")
-def memory():
+async def memory():
     #the current working dictionary, will be saved as hdf5
     global session
     session = None
@@ -250,6 +199,7 @@ def memory():
     sessionname = None
     global experiment_queue
     experiment_queue = asyncio.Queue()
+    asyncio.create_task(infl())
 
 @app.on_event("shutdown")
 def disconnect():
@@ -257,6 +207,8 @@ def disconnect():
         print('saving work on session close -- do not exit terminal')
         hdfdict.dump(session,os.path.join(os.path.join(config['orchestrator']['path'],'_'.join(sessionname.split('_')[:2])),sessionname+'.hdf5'),mode='w')
         print('work saved')
+    else:
+        print('empty session -- no work to save')
             
 if __name__ == "__main__":
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])

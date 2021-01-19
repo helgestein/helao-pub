@@ -20,6 +20,7 @@ import h5py
 import hdfdict
 from datetime import date
 from ae_helper_fcns import getCircularMA
+import asyncio
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
@@ -31,61 +32,61 @@ app = FastAPI(title = "orchestrator", description = "A fancy complex server",ver
 
 
 @app.post("/orchestrator/addExperiment")
-def sendMeasurement(experiment: str):
-    add_experiments.append(experiment)
-    return {"message": experiment}
+async def sendMeasurement(experiment: str):
+    await experiment_queue.put(experiment)
 
-@app.post("/orchestrator/semiInfiniteLoop")
-async def semiInfiniteLoop():
-    while True:
-        #for reasons of changing list lens:
-        numToAdd = copy(len(add_experiments))
-        if numToAdd>0:
-            for i in range(numToAdd):
-                experiment_list.append(add_experiments.pop(0))
-        #for reasons of changing list lens:
-        numToMeasure = copy(len(experiment_list))
-        if numToMeasure>0:
-            for i in range(numToMeasure):
-                doMeasurement(experiment_list.pop(0))
-        else:
-            print('loop breaking')
-            break
+#@app.post("/orchestrator/semiInfiniteLoop")
+#async def semiInfiniteLoop():
+#    while True:
+#        #for reasons of changing list lens:
+#        numToAdd = copy(len(add_experiments))
+#        if numToAdd>0:
+#            for i in range(numToAdd):
+#                experiment_list.append(add_experiments.pop(0))
+#        #for reasons of changing list lens:
+#        numToMeasure = copy(len(experiment_list))
+#        if numToMeasure>0:
+#            for i in range(numToMeasure):
+#                doMeasurement(experiment_list.pop(0))
+#        else:
+#            print('loop breaking')
+#            break
 
-def infl():
+async def infl():
     while True:
-        #for reasons of changing list lens:
-        numToAdd = copy(len(add_experiments))
-        if numToAdd>0:
-            for i in range(numToAdd):
-                print(f'add_experiments list of len {len(add_experiments)} to follow:')
-                print(f'i: {i}. numToMeasure: {numToAdd}')
-                print(add_experiments)
-                experiment_list.append(add_experiments.pop(0))
-        #for reasons of changing list lens:
-        numToMeasure = copy(len(experiment_list))
-        if numToMeasure>0:
-            for i in range(numToMeasure):
-                print(f'experiment list of len {len(experiment_list)} to follow:')
-                print(f'i: {i}. numToMeasure: {numToMeasure}')
-                print(experiment_list)
-                doMeasurement(experiment_list.pop(0))
-        else:
-            time.sleep(0.5)
-        if emergencyStop:
-            break
+        experiment = await experiment_queue.get()
+        await doMeasurement(experiment)
+#        #for reasons of changing list lens:
+#       numToAdd = copy(len(add_experiments))
+#        if numToAdd>0:
+#            for i in range(numToAdd):
+#                print(f'add_experiments list of len {len(add_experiments)} to follow:')
+#                print(f'i: {i}. numToMeasure: {numToAdd}')
+#                print(add_experiments)
+#                experiment_list.append(add_experiments.pop(0))
+#        #for reasons of changing list lens:
+#        numToMeasure = copy(len(experiment_list))
+#        if numToMeasure>0:
+#            for i in range(numToMeasure):
+#                print(f'experiment list of len {len(experiment_list)} to follow:')
+#                print(f'i: {i}. numToMeasure: {numToMeasure}')
+#                print(experiment_list)
+#                doMeasurement(experiment_list.pop(0))
+#        else:
+#            asyncio.sleep(0.5)
+#        if emergencyStop:
+#            break
 
 @app.post("/orchestrator/infiniteLoop")
-def infiniteLoop(background_tasks: BackgroundTasks):
-    background_tasks.add_task(infl)
-    return {"message": 'bla'}
+async def infiniteLoop():
+    await infl()
 
-@app.post("/orchestrator/emergencyStop")
-def stopInfiniteLoop():
-    emergencyStop = True
-    return {"message": 'bla'}
+#@app.post("/orchestrator/emergencyStop")
+#def stopInfiniteLoop():
+#    emergencyStop = True
+#    return {"message": 'bla'}
 
-def doMeasurement(experiment: str):
+async def doMeasurement(experiment: str):
     global session,sessionname
     experiment = json.loads(experiment)
     print(experiment)
@@ -102,49 +103,49 @@ def doMeasurement(experiment: str):
             experiment['meta'].update(dict(measurement_number=0))
     experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     for action_str in experiment['soe']:
+        await asyncio.sleep(.05)
         experiment['meta'].update(dict(current_action=action_str))
-        if not emergencyStop:
-            #print(action_str)
-            server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
-            #print(server)
-            #print(fnc)
-            action = fnc.split('_')[0]
-            params = experiment['params'][fnc]
-            #print(action)
-            #print(params)
-            if server == 'movement':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
-                                params= params).json()
-            elif server == 'motor':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server , action),
-                                params= params).json()
-            elif server == 'pumping':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
+        #print(action_str)
+        server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
+        #print(server)
+        #print(fnc)
+        action = fnc.split('_')[0]
+        params = experiment['params'][fnc]
+        #print(action)
+        #print(params)
+        if server == 'movement':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
                             params= params).json()
-            elif server == 'echem':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
+        elif server == 'motor':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server , action),
                             params= params).json()
-            elif server == 'forceAction':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
-                            params= params).json()
-                print(res)
-            elif server == 'data':
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
-                            params= params)
-                continue
-            elif server == 'table':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server, action),
-                            params= params).json()
-            elif server == 'oceanAction':
-                res = requests.get("http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server, action),
-                            params= params).json()
-            elif server == 'orchestrator':
-                experiment = process_native_command(action,experiment)
-                continue
-            session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas']}})
-            experiment['meta']['measurement_number'] += 1
-            #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
-            #    json.dump(res, f)
+        elif server == 'pumping':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
+                        params= params).json()
+        elif server == 'echem':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
+                        params= params).json()
+        elif server == 'forceAction':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
+                        params= params).json()
+            print(res)
+        elif server == 'data':
+            requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
+                        params= params)
+            continue
+        elif server == 'table':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server, action),
+                        params= params).json()
+        elif server == 'oceanAction':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server, action),
+                        params= params).json()
+        elif server == 'orchestrator':
+            experiment = process_native_command(action,experiment)
+            continue
+        session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas']}})
+        experiment['meta']['measurement_number'] += 1
+        #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
+        #    json.dump(res, f)
 
         else:
             print("Emergency stopped!")
@@ -247,20 +248,17 @@ def memory():
     #the filename for above hdf5
     global sessionname
     sessionname = None
+    global experiment_queue
+    experiment_queue = asyncio.Queue()
 
 @app.on_event("shutdown")
 def disconnect():
-    emergencyStop = True
-    time.sleep(0.75)
     if session != None:
         print('saving work on session close -- do not exit terminal')
         hdfdict.dump(session,os.path.join(os.path.join(config['orchestrator']['path'],'_'.join(sessionname.split('_')[:2])),sessionname+'.hdf5'),mode='w')
         print('work saved')
             
 if __name__ == "__main__":
-    emergencyStop = False
-    experiment_list = []
-    add_experiments = []
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
     # run an example with
     # json.dumps({"soe": ["movement/moveToHome_0", "movement/moveUp_0", "movement/moveUp_1"], "params": {"moveToHome_0": None, "moveUp_0": {"z": 50}, "moveUp_1": {"z": -60}}})

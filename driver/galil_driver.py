@@ -53,14 +53,17 @@ class galil:
         if "axis_id" not in self.config_dict:
             self.config_dict["axis_id"] = dict()
 
-        if "axis_Din_id" not in self.config_dict:
-            self.config_dict["axis_Din_id"] = dict()
+        if "Din_id" not in self.config_dict:
+            self.config_dict["Din_id"] = dict()
 
-        if "axis_Dout_id" not in self.config_dict:
-            self.config_dict["axis_Dout_id"] = dict()
+        if "Dout_id" not in self.config_dict:
+            self.config_dict["Dout_id"] = dict()
 
-        if "axis_Aout_id" not in self.config_dict:
-            self.config_dict["axis_Aout_id"] = dict()
+        if "Aout_id" not in self.config_dict:
+            self.config_dict["Aout_id"] = dict()
+
+        if "Ain_id" not in self.config_dict:
+            self.config_dict["Ain_id"] = dict()
             
 
         # if this is the main instance let us make a galil connection
@@ -616,7 +619,11 @@ class galil:
             multi_port = [multi_port]
         ret = []
         for port in multi_port:        
-            ret.append(self.c("MG @AN[{}]".format(int(port))))
+            if port in self.config_dict["Ain_id"].keys():
+                pID = self.config_dict["Ain_id"][port]
+                ret.append(self.c("@AN[{}]".format(int(pID))))
+            else:
+                ret.append("AI ERROR")
         return {"port": multi_port, "value": ret, "type": "analog_in"}
 
 
@@ -626,8 +633,12 @@ class galil:
         if type(multi_port) is not list:
             multi_port = [multi_port]
         ret = []
-        for port in multi_port:        
-            ret.append(self.c("MG @IN[{}]".format(int(port))))
+        for port in multi_port:
+            if port in self.config_dict["Din_id"].keys():
+                pID = self.config_dict["Din_id"][port]
+                ret.append(self.c("@IN[{}]".format(int(pID))))
+            else:
+                ret.append("DI ERROR")
         return {"port": multi_port, "value": ret, "type": "digital_in"}
 
 
@@ -638,8 +649,12 @@ class galil:
         if type(multi_port) is not list:
             multi_port = [multi_port]
         ret = []
-        for port in multi_port:        
-            ret.append(self.c("MG @IN[{}]".format(int(port))))
+        for port in multi_port:
+            if port in self.config_dict["Dout_id"].keys():
+                pID = self.config_dict["Dout_id"][port]
+                ret.append(self.c("@OUT[{}]".format(int(pID))))
+            else:
+                ret.append("DO ERROR")          
         return {"port": multi_port, "value": ret, "type": "digital_out"}
 
 
@@ -659,8 +674,10 @@ class galil:
     def digital_out_on(self, multi_port):
         if type(multi_port) is not list:
             multi_port = [multi_port]
-        for port in multi_port:        
-            _ = self.c("SB {}".format(int(port)))
+        for port in multi_port:
+            if port in self.config_dict["Dout_id"].keys():
+                pID = self.config_dict["Dout_id"][port]
+                _ = self.c("SB {}".format(int(pID)))
         return {
             "port": multi_port,
             "value": self.read_digital_out(multi_port),
@@ -673,13 +690,15 @@ class galil:
             multi_port = [multi_port]
 
         for port in multi_port:
-            _ = self.c("CB {}".format(int(port)))
-
+            if port in self.config_dict["Dout_id"].keys():
+                pID = self.config_dict["Dout_id"][port]
+                _ = self.c("CB {}".format(int(pID)))
         return {
             "port": multi_port,
             "value": self.read_digital_out(multi_port),
             "type": "digital_out",
         }
+
 
     def upload_DMC(self, DMC_prog):
         self.c("UL;") # begin upload
@@ -723,15 +742,18 @@ class galil:
      
     
     def get_all_digital_out(self):
-        return [port for port in self.config_dict["port_Dout_id"].keys()]
+        return [port for port in self.config_dict["Dout_id"].keys()]
 
 
     def get_all_digital_in(self):
-        return [port for port in self.config_dict["port_Din_id"].keys()]
+        return [port for port in self.config_dict["Din_id"].keys()]
 
 
     def get_all_analog_out(self):
-        return [port for port in self.config_dict["port_Aout_id"].keys()]
+        return [port for port in self.config_dict["Aout_id"].keys()]
+
+    def get_all_analog_in(self):
+        return [port for port in self.config_dict["Ain_id"].keys()]
 
 
     def shutdown_event(self):

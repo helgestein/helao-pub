@@ -415,10 +415,10 @@ class galil:
         # and then map that to xyz so it is humanly readable
 
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
-        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(self.config_dict["axlett"])}
+        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate("ABCD")}
         pos = {
             axl: int(r) * self.config_dict["count_to_mm"][axl]
-            for axl, r in zip(self.config_dict["axlett"], ret)
+            for axl, r in zip("ABCD", ret)
         }
         # return the results through calculating things into mm
         axpos = {ax_abc_to_xyz[k]: p for k, p in pos.items()}
@@ -699,15 +699,15 @@ class galil:
      
     
     def get_all_digital_out(self):
-        return [port for port in self.config_dict["port_Dout_id"].keys()]
+        return [port for port in self.config_dict["Dout_id"].keys()]
 
 
     def get_all_digital_in(self):
-        return [port for port in self.config_dict["port_Din_id"].keys()]
+        return [port for port in self.config_dict["Din_id"].keys()]
 
 
     def get_all_analog_out(self):
-        return [port for port in self.config_dict["port_Aout_id"].keys()]
+        return [port for port in self.config_dict["Aout_id"].keys()]
 
 
     def shutdown_event(self):

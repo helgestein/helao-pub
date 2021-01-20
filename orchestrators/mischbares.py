@@ -38,9 +38,9 @@ async def sendMeasurement(experiment: str):
 async def infl():
     while True:
         experiment = await experiment_queue.get()
-        await doMeasurement(experiment)
+        doMeasurement(experiment)
 
-async def doMeasurement(experiment: str):
+def doMeasurement(experiment: str):
     global session,sessionname
     experiment = json.loads(experiment)
     print(experiment)

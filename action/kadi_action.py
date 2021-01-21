@@ -75,6 +75,7 @@ def uploadHDF5(filename:str,filepath:str):
     #i will need to add metadata capability for this, 
     #but want to have another conversation with helge and fuzhan first
     #so probably will not implement this feature on the first pass
+    return "upload successful"
 
 @app.get("/data/reformatmetadata")
 def reformatMetadata(metadata:dict):

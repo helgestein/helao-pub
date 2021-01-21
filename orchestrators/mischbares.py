@@ -24,11 +24,6 @@ import asyncio
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
 
-#things to sort out:
-#kadi, get a new access token and add a handshake
-#make clean shutdown, should be able to interrupt terminal at any point and trigger shutdown event
-#double check that the data hierarchy makes sense
-#then go back and continue to confirm that this code can properly start and end a series of experiments, whether or not they are interrupted partway through or additions are injected
 
 
 @app.post("/orchestrator/addExperiment")
@@ -50,12 +45,15 @@ def doMeasurement(experiment: str):
         experiment['meta'].update(dict(run=None,measurement_number=None))
     else:
         experiment['meta'].update(dict(run=int(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys()))))[4:])))
-        measurements = list(session[f"run_{experiment['meta']['run']}"]['data'].keys())
-        if len(measurements) != 0:
-            experiment['meta'].update(dict(measurement_number=int(incrementName(highestName(measurements))[15:])))
+        measurement = highestName(list(filter(lambda k: k != 'meta',session[f"run_{experiment['meta']['run']}"].keys())))
+        #don't add a new measurement if last measurement was empty
+        if list(measurement.keys()) == ['meta']:
+            experiment['meta'].update(dict(measurement_number=int(measurement[15:])))
         else:
-            experiment['meta'].update(dict(measurement_number=0))
+            experiment['meta'].update(dict(measurement_number=int(measurement[15:])+1))
     experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
+    if experiment['meta']['measurement_number'] != None:
+        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
     for action_str in experiment['soe']:
         experiment['meta'].update(dict(current_action=action_str))
         #print(action_str)
@@ -95,7 +93,9 @@ def doMeasurement(experiment: str):
         elif server == 'orchestrator':
             experiment = process_native_command(action,experiment)
             continue
-        session[f"run_{experiment['meta']['run']}"]['data'].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'data':res,'measurement_areas':experiment['meta']['measurement_areas'],'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
+        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({action_str:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
+        #provisionally dumping every time until I get clean shutdown and proper backup implemented
+        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
@@ -120,28 +120,29 @@ def process_native_command(command: str,experiment: dict):
             print('current session is old, saving current session and creating new session')
             hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
             try:
-                requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
-                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
+                print(requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
+                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path'])).json())
             except:
                 print('automatic upload of completed session failed')
             sessionname = incrementName(sessionname)
             session = dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y")))
         #adds a new run to session to receive incoming data
         if "run_0" not in list(session.keys()):
-            session.update(dict(run_0=dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
+            session.update(dict(run_0=dict(measurement_number_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
             run = 0
         else:
             run = incrementName(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys())))))
-            session.update({run:dict(data={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
+            session.update({run:dict(measurement_number_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
             run = int(run[4:])
         #don't put any keys in here that have length less than 4 i guess
         experiment['meta']['run'] = run
         experiment['meta']['measurement_number'] = 0
+        session[f"run_{run}"][f"measurement_no_0"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
     elif command == "finish":
         hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         try:
-            requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
-                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path']))
+            print(requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
+                            params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path'])).json())
         except:
             print('automatic upload of completed session failed')
         hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementName(sessionname)+'.hdf5'),mode='w')

@@ -6,7 +6,7 @@ import numpy
 #import pathlib
 import zipfile
 from re import compile as regexcompile
-
+import json
 
 
 class cmd_exception(ValueError):
@@ -14,16 +14,14 @@ class cmd_exception(ValueError):
         self.args = arg
 
 
-        self.PLATEMAPFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\map', r'J:\hte_jcap_app_proto\map', \
-                       r'\\htejcap.caltech.edu\share\home\users\hte\platemaps', r'ERT',r'K:\users\hte\platemaps']
-        self.PLATEFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\plate', r'J:\hte_jcap_app_proto\plate']
-
-
 class HTEdata:
     def __init__(self, config_dict):
         self.config_dict = config_dict
 
-
+        self.PLATEMAPFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\map', r'J:\hte_jcap_app_proto\map', \
+                              r'\\htejcap.caltech.edu\share\home\users\hte\platemaps', r'ERT',r'K:\users\hte\platemaps']
+        self.PLATEFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\plate', r'J:\hte_jcap_app_proto\plate']
+        
     ##########################################################################
     # Server Functions
     ##########################################################################
@@ -80,7 +78,7 @@ class HTEdata:
     def get_platemap(self, plateidstr):
         pmpath=self.getplatemappath_plateid(plateidstr)
         pmdlist=self.readsingleplatemaptxt(pmpath)
-        return pmdlist
+        return json.dumps(pmdlist)
 
 
     def getelements_plateidstr(self, plateidstr_or_filed, multielementink_concentrationinfo_bool=False,print_key_or_keyword='screening_print_id', exclude_elements_list=[''], return_defaults_if_none=False):#print_key_or_keyword can be e.g. "print__3" or screening_print_id
@@ -90,7 +88,7 @@ class HTEdata:
             infofiled=self.importinfo(plateidstr_or_filed)
             if infofiled is None:
                 return None
-        requiredkeysthere=lambda infofiled: ('screening_print_id' in infofiled.keys()) if print_key_or_keyword=='screening_print_id' \
+        requiredkeysthere=lambda infofiled, print_key_or_keyword=print_key_or_keyword: ('screening_print_id' in infofiled.keys()) if print_key_or_keyword=='screening_print_id' \
                                                                else (print_key_or_keyword in infofiled['prints'].keys())
         while not ('prints' in infofiled.keys() and requiredkeysthere(infofiled)):
             if not 'lineage' in infofiled.keys() or not ',' in infofiled['lineage']:
@@ -108,7 +106,7 @@ class HTEdata:
             return None
         els=[x for x in printd['elements'].split(',') if x not in exclude_elements_list]
     
-        if self.multielementink_concentrationinfo_bool:
+        if multielementink_concentrationinfo_bool:
             return els, self.get_multielementink_concentrationinfo(printd,els, return_defaults_if_none=return_defaults_if_none)
         return els
 
@@ -117,13 +115,13 @@ class HTEdata:
     ##########################################################################
     # Helper functions
     ##########################################################################
-    getnumspaces=lambda a:len(a) - len(a.lstrip(' '))
+    getnumspaces=lambda self, a:len(a) - len(a.lstrip(' '))
 
 
-    def rcp_to_dict(rcppath):  # read standard rcp/exp/ana/info structure to dict
+    def rcp_to_dict(self, rcppath):  # read standard rcp/exp/ana/info structure to dict
         dlist = []
     
-        def tab_level(astr):
+        def tab_level(self, astr):
             """Count number of leading tabs in a string
             """
             return (len(astr) - len(astr.lstrip("    "))) / 4
@@ -185,6 +183,7 @@ class HTEdata:
         return (p, pmidstr) if return_pmidstr else p
 
     def importinfo(self, plateidstr):
+        print(self.PLATEFOLDERS)
         fn=plateidstr+'.info'
         p=self.tryprependpath(self.PLATEFOLDERS, os.path.join(plateidstr, fn), testfile=True, testdir=False)
         if not os.path.isfile(p):
@@ -195,7 +194,7 @@ class HTEdata:
         return infofiled
 
 
-    def tryprependpath(preppendfolderlist, p, testfile=True, testdir=True):
+    def tryprependpath(self, preppendfolderlist, p, testfile=True, testdir=True):
         #if (testfile and os.path.isfile(p)) or (testdir and os.path.isdir(p)):
         if os.path.isfile(p):
             return p
@@ -247,7 +246,7 @@ class HTEdata:
         return (k_vtup[0], d)
 
 
-    def get_multielementink_concentrationinfo(printd, els, return_defaults_if_none=False):#None if nothing to report, (True, str) if error, (False, (cels_set_ordered, conc_el_chan)) with the set of elements and how to caclualte their concentration from the platemap
+    def get_multielementink_concentrationinfo(self, printd, els, return_defaults_if_none=False):#None if nothing to report, (True, str) if error, (False, (cels_set_ordered, conc_el_chan)) with the set of elements and how to caclualte their concentration from the platemap
     
         searchstr1='concentration_elements'
         searchstr2='concentration_values'
@@ -304,11 +303,11 @@ class HTEdata:
         return None
               
         
-    def partitionlineitem(ln):
+    def partitionlineitem(self, ln):
         a, b, c=ln.strip().partition(':')
         return (a.strip(), c.strip())
     
-    def myeval(c):
+    def myeval(self, c):
         if c=='None':
             c=None
         elif c=='nan' or c=='NaN':

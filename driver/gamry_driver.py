@@ -59,6 +59,9 @@ class GamryDtaqEvents(object):
         self.status = "done"
         # TODO:  indicate completion to enclosing code?
 
+class dummy_sink:
+    def __init__(self):
+        self.status = "idle"
 
 class gamry:
     # since the gamry connection uses one class and it can be switched on or off with handoff and everythong
@@ -82,6 +85,7 @@ class gamry:
         self.buffer = dict()
         self.buffer_size = 0
         self.q = asyncio.Queue()
+        self.dtaqsink = dummy_sink()
 
     def open_connection(self):
         # this just tries to open a connection with try/catch
@@ -193,11 +197,9 @@ class gamry:
         self.pstat.SetCell(self.GamryCOM.CellOff)
         self.close_connection()
 
-    def status(self):
-        try:
-            return self.dtaqsink.status
-        except:
-            return "other"
+    async def status(self):
+        await asyncio.sleep(0.001)
+        return self.dtaqsink.status
 
     def dump_data(self):
         pickle.dump(

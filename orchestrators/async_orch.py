@@ -96,7 +96,9 @@ def startup_event():
     global orch
     orch = OrchHandler(C)
     # TODO: write class method to launch monitor_states coro in current event loop
-    asyncio.create_task(orch.monitor_states())
+    # global monitor_task
+    # monitor_task = asyncio.create_task(orch.monitor_states())
+    orch.monitor_states()
     # populate decisions for testing
     orch.decisions.append(
         Decision(
@@ -457,6 +459,14 @@ def list_actions():
     ]
     retval = return_actlist(actions=actlist)
     return retval
+
+
+@app.post(f"/shutdown")
+def pre_shutdown_tasks():
+    """Execute code before terminating with helao.py script."""
+    for k, task in orch.monitors.items():
+        task.cancel()
+        print(f'Cancelled {k} websocket monitor')
 
 
 @app.post("/endpoints")

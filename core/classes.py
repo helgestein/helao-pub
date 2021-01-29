@@ -88,22 +88,27 @@ class OrchHandler:
         await self.msgq.put(self.dict)
 
     async def handle_socket(self, uri, key):
-        async with websockets.connect(uri) as websocket:
-            async for message in websocket:
-                statusd = json.loads(message)
-                self.STATES[key] = statusd
-                self.last_update = f'{strftime("%Y%m%d.%H%M%S%z")}'
-                self.last_act = {key: statusd}
-                if self.dataq.full():
-                    _ = await self.dataq.get()
-                    self.dataq.task_done()
-                await self.dataq.put(self.STATES)
+        while True:
+            try:
+                async with websockets.connect(uri) as websocket:
+                    async for message in websocket:
+                        statusd = json.loads(message)
+                        self.STATES[key] = statusd
+                        self.last_update = f'{strftime("%Y%m%d.%H%M%S%z")}'
+                        self.last_act = {key: statusd}
+                        if self.dataq.full():
+                            _ = await self.dataq.get()
+                            self.dataq.task_done()
+                        await self.dataq.put(self.STATES)
+            except websockets.exceptions.ConnectionClosedError:
+                print('Websocket connection unexpectedly closed. Retrying in 3 seconds.')
+                await asyncio.sleep(3)
 
-    async def monitor_states(self):
+    def monitor_states(self):
         self.fastSockets = {
             S: f"ws://{self.C[S].host}:{self.C[S].port}/{S}/ws_status" for S in self.fastServers}
-        while True:
-            await asyncio.wait([self.handle_socket(uri, k) for k, uri in self.fastSockets.items()])
+        if self.fastSockets:
+            self.monitors = {k: asyncio.create_task(self.handle_socket(uri, k)) for k, uri in self.fastSockets.items()}
 
     def block(self):
         self.is_blocked = True

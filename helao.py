@@ -29,7 +29,7 @@ import sys
 import pickle
 import psutil
 import time
-# import signal
+import requests
 import subprocess
 from importlib import import_module
 
@@ -234,11 +234,12 @@ def launcher(confPrefix, confDict):
     activeHP = [(h, p) for k, h, p, _ in active]
     allGroup = {k: {sk: sv for sk, sv in confDict['servers'].items(
     ) if sv['group'] == k} for k in LAUNCH_ORDER}
-    A = munchify(allGroup)
+    pidd.A = munchify(allGroup)
+    pidd.orchServs = []
     for group in LAUNCH_ORDER:
         print(f"Launching {group} group.")
-        if group in A:
-            G = A[group]
+        if group in pidd.A:
+            G = pidd.A[group]
             for server in G:
                 S = G[server]
                 codeKey = [k for k in S.keys() if k in pidd.codeKeys]
@@ -265,6 +266,8 @@ def launcher(confPrefix, confDict):
                     print(
                         f"Launching {server} at {servHost}:{servPort} using {group}/{servPy}.py")
                     if codeKey == "fast":
+                        if group == "orchestrators":
+                            pidd.orchServs.append(server)
                         cmd = [
                             "python", f"{group}/{servPy}.py", confPrefix, server]
                         p = subprocess.Popen(cmd, cwd=helao_root)
@@ -299,6 +302,10 @@ if __name__ == "__main__":
         print("CTRL-x to terminate process group. CTRL-d to disconnect.")
         result = wait_key()
     if result == b'\x18':
+        for server in pidd.orchServs:
+            print(f'Unsubscribing {server} websockets.')
+            S = pidd.A["orchestrators"][server]
+            requests.post(f"http://{S.host}:{S.port}/shutdown")
         pidd.close()
     else:
         print(

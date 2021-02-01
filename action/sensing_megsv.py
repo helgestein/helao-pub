@@ -29,9 +29,7 @@ def read():
         data = requests.get("{}/force/read".format(url)).json()
         if data['data']['value'] != None:
             break
-    retc = return_class(measurement_type='movement_command', 
-                            parameters={'command':'read_data'}, 
-                            data={'data':data})
+    retc = return_class(parameters=None, data=data)
     return retc
 
 

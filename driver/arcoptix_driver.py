@@ -9,14 +9,9 @@ class arcoptix:
         import ARCsoft.ARCspectroMd as arc
         self.interface = arc.ARCspectroMd.CreateApiInterface()
 
-    def getSpectrumWavelengths(self,filename:str):
-        data = {'wavelengths':[float(i) for i in self.interface.Wavelength],'intensities':[float(i) for i in self.interface.Spectrum]}
-        with open(filename,'w') as outfile: 
-            json.dump(data,outfile)
-        return data
-
-    def getSpectrumWavenumbers(self,filename:str):
-        data = {'wavenumbers':[float(i) for i in self.interface.Wavenumber],'intensities':[float(i) for i in self.interface.Spectrum]}
+    def getSpectrum(self,filename:str):
+        data = {'wavelengths':[float(i) for i in self.interface.Wavelength],'wavenumbers':[float(i) for i in self.interface.Wavenumber],'intensities':[float(i) for i in self.interface.Spectrum],
+                'units':{'wavelengths':'nm','wavenumbers':'1/cm','intensities':'counts'}}
         with open(filename,'w') as outfile: 
             json.dump(data,outfile)
         return data

@@ -27,42 +27,32 @@ def startup_event():
 @app.get("/ocean/find")
 def findDevice():
     device = o.findDevice()
-    retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"command" : "find_device"},
-                        data = {"device" : str(device)})
+    retc = return_class(parameters = None,data = {"device" : str(device)})
     return retc
 
 @app.get("/ocean/connect")
 def open():
     o.open()
-    retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"command" : "open"},
-                        data = {"status" : "activated"})
+    retc = return_class(parameters = None,data = None)
     return retc
 
 @app.get("/ocean/readSpectrum")
 async def readSpectrum(t:int,filename:str):
     data = o.readSpectrum(t,filename)
     await q.put(data)
-    retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"filename" : filename, "t" : t},
-                        data = data)
+    retc = return_class(parameters = {"filename" : filename, "t" : t,'units':{'t':'µs'}},data = data)
     return retc
 
 @app.get("/ocean/loadFile")
 def loadFile(filename:str):
     data = o.loadFile(filename)
-    retc = return_class(measurement_type = "ocean_raman_command",
-                    parameters = {"filename" : filename},
-                    data = {"data" : data})
+    retc = return_class(parameters = {"filename" : filename},data = data)
     return retc
 
 @app.on_event("shutdown")
 def close(self):
     o.close()
-    retc = return_class(measurement_type = "ocean_raman_command",
-                        parameters = {"command" : "close"},
-                        data = {"status" : "deactivated"})
+    retc = return_class(parameters = None,data = None)
     return retc
 
 

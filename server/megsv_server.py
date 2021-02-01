@@ -25,34 +25,26 @@ class return_class(BaseModel):
 @app.get("/force/connect")
 def activate():
     m.activate()
-    retc = return_class(measurement_type= "force_sensor_command",
-                        parameters={ "command": " connect"},
-                        data= {"status": "activated"})
+    retc = return_class(parameters=None,data= None)
     return retc
 
 @app.get("/force/read")
 def read():
     data = m.read()
-    retc = return_class(measurement_type= "force_sensor_command",
-                    parameters={ "command": "read_data"},
-                    data= {"value": data})
+    retc = return_class(parameters=None,data= {"value": data, 'units':'internal units [-1.05,1.05]'})
     return retc
 
 @app.get("/force/readBuffer")
 def readBuffer():
     data = m.readBuffer()
-    retc = return_class(measurement_type= "force_sensor_command",
-                    parameters={ "command": "read_buffer"},
-                    data= {"value": data})
+    retc = return_class(parameters=None,data= {"values": data, 'units':'internal units [-1.05,1.05]'})
     return retc
 
 
 @app.on_event("shutdown")
 def release():
     m.release()
-    retc = return_class(measurement_type= "force_sensor_command",
-                        parameters={ "command": " disconnect"},
-                        data= {"status": "deactivated"})
+    retc = return_class(parameters=None,data=None)
     return retc
 
 

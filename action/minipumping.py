@@ -28,19 +28,15 @@ def formulation(speed: int, volume: int, direction: int = 1):
     retl.append(res)
     requests.get("{}/minipump/runPump".format(pumpurl),params=None).json()
     retl.append(flushSerial()) #it is good to keep the buffer clean
-    retc = return_class(measurement_type='pumping',
-                        parameters= {'command':'measure',
-                                    'parameters':{'speed':speed,'volume':volume,'direction':direction}},
-                        data = {'data':retl})
+    retc = return_class(parameters = {'speed':speed,'volume':volume,'direction':direction,
+                                      'units':{'volume':'µL','speed':'µL/s'}},data = retl)
     time.sleep(volume/speed)
     return retc
 
 @app.get("/minipumping/flushSerial/")
 def flushSerial():
     res = requests.get("{}/minipump/read".format(pumpurl)).json()
-    retc = return_class(measurement_type='pumping',
-                        parameters= {'command':'flushSerial','parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data = res)
     return retc
 
 

@@ -11,6 +11,8 @@ import numpy as np
 import json
 import time
 import pathlib
+import copy
+import asyncio
 
 driver_path = os.path.dirname(__file__)
 
@@ -64,7 +66,7 @@ class galil:
 
         if "Ain_id" not in self.config_dict:
             self.config_dict["Ain_id"] = dict()
-            
+
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -73,6 +75,43 @@ class galil:
         print(self.g.GInfo())
         self.c = self.g.GCommand  # alias the command callable
         self.cycle_lights = False
+
+        # local buffer for motion data streaming
+        # nees to be upated by every motion function
+        self.wsmotordata_buffer = dict(
+           axis = [axis for axis in self.config_dict["axis_id"].keys()],
+           axisid = [axisid for _, axisid in self.config_dict["axis_id"].items()],
+           motor_status = ["stopped" for axis in self.config_dict["axis_id"].keys()],
+           err_code = [0 for axis in self.config_dict["axis_id"].keys()],
+           position = ["" for axis in self.config_dict["axis_id"].keys()],
+           )
+
+        # we check against previous version for streaming event
+        self.wsmotordata_buffer_old =copy.deepcopy(self.wsmotordata_buffer)
+
+
+    def update_wsmotorbufferall(self, datakey, dataitems):
+        if datakey in self.wsmotordata_buffer.keys():
+            self.wsmotordata_buffer[datakey] = dataitems
+ 
+ 
+    def update_wsmotorbuffersingle(self, datakey, ax, item):
+        if datakey in self.wsmotordata_buffer.keys():
+            if ax in self.wsmotordata_buffer['axis']:
+                idx = self.wsmotordata_buffer['axis'].index(ax)
+                self.wsmotordata_buffer[datakey][idx] = item
+
+
+    # for streaming a local buffer to the ws
+    async def ws_getmotordata(self):
+        # wait until buffer is changed
+        while self.wsmotordata_buffer_old == self.wsmotordata_buffer:
+            # reduce to increase broadcast frequeny
+            await asyncio.sleep(1)
+        # make copy of buffer for next time to check against
+        self.wsmotordata_buffer_old = copy.deepcopy(self.wsmotordata_buffer)
+        # return new buffer
+        return self.wsmotordata_buffer
 
 
     def motor_move(self, multi_x_mm, multi_axis, speed, mode):
@@ -271,6 +310,9 @@ class galil:
             # estop was triggered while waiting for axis to stop
             ret_err_code = ["estop" for _ in ret_err_code]
 
+        # read final position
+        # updates ws buffer
+        _ = self.query_axis_position(multi_axis)
 
         # one return for all axis 
         return {
@@ -452,6 +494,7 @@ class galil:
         ret_position = []
         for axis in multi_axis:
             if axis in axpos.keys():
+                self.update_wsmotorbuffersingle('position', axis, axpos[axis])
                 ret_ax.append(axis)
                 ret_position.append(axpos[axis])
             else:
@@ -474,12 +517,18 @@ class galil:
         for axis in multi_axis:
             for axl, r in zip(axlett, q.split(", ")):
                 if int(r) == 0:
+                    self.update_wsmotorbuffersingle('motor_status', axis, "moving")
+                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
                     ret_status.append("moving")
                     ret_err_code.append(int(r))
                 elif int(r) == 1:
+                    self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
+                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
                     ret_status.append("stopped")
                     ret_err_code.append(int(r))
                 else:
+                    self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
+                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
                     # stopped due to error/issue
                     ret_status.append("stopped")
                     ret_err_code.append(int(r))

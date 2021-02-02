@@ -40,6 +40,7 @@ S = C[servKey]
 app = FastAPI(title=servKey,
               description="Galil motion instrument/action server", version=1.0)
 
+galil_motion_running = True
 
 # check if 'simulate' settings is present
 if not 'simulate' in S:
@@ -58,21 +59,33 @@ class return_status(BaseModel):
     parameters: dict
     status: dict
 
+
 @app.on_event("startup")
 def startup_event():
     global motion
     motion = galil(S.params)
     global stat
     stat = StatusHandler()
-    
+
+
+# stream the a buffered version
+# buffer will be updated by all regular queries
+# don't use for critical application, the low broadcast frequency can miss events
+@app.websocket(f"/{servKey}/ws_motordata")
+async def websocket_data(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await motion.ws_getmotordata()
+        await websocket.send_text(json.dumps(data))
+
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
     await websocket.accept()
-    while True:
+    while galil_motion_running:
         data = await stat.q.get()
         await websocket.send_text(json.dumps(data))
-        
+
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
@@ -81,6 +94,7 @@ def status_wrapper():
         parameters={},
         status=stat.dict,
     )
+
 
 class return_class(BaseModel):
     measurement_type: str = None
@@ -293,7 +307,6 @@ async def stop():
     return retc
 
 
-
 @app.post(f"/{servKey}/reset")
 async def reset():
     """Resets Galil device. Only for emergency use!"""
@@ -345,6 +358,8 @@ def get_all_urls():
 
 @app.on_event("shutdown")
 def shutdown():
+    global galil_motion_running
+    galil_motion_running = False
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "shutdown"},

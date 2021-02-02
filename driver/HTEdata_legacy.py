@@ -20,35 +20,44 @@ class HTEdata:
 
         self.PLATEMAPFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\map', r'J:\hte_jcap_app_proto\map', \
                               r'\\htejcap.caltech.edu\share\home\users\hte\platemaps', r'ERT',r'K:\users\hte\platemaps']
+
         self.PLATEFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\plate', r'J:\hte_jcap_app_proto\plate']
         
     ##########################################################################
     # Server Functions
     ##########################################################################
     
-    def readinfoplatemap(self, plateidstr):
+#    def update_rcp_plateidstr(self, plateidstr, newdata):
+        # update rcp file with filenames of measured data
+    
+    def get_rcp_plateidstr(self, plateidstr):
+        print(plateidstr)
+        
+        return ""
+    
+    def get_info_plateidstr(self, plateidstr):
         infod=self.importinfo(str(plateidstr))
         # 1. checks that the plate_id (info file) exists
         if infod!="No plate found!":
             #print(infod)    
         
         # 2. gets the elements from the screening print in the info file (see getelements_plateidstr()) and presents them to user
-            elements=self.getelements_plateidstr(plateidstr)
+            elements=self.get_elements_plateidstr(plateidstr)
             print("Elements:", elements)
         
-        # 3. checks that a print 5and anneal record exist in the info file
+        # 3. checks that a print and anneal record exist in the info file
             if not 'prints' or not 'anneals' in infod.keys():
                 print('Warning: no print or anneal record exists')
           
         # 4. gets platemap and passes to alignment code
         #pmpath=getplatemappath_plateid(plateidstr, return_pmidstr=True)
-            return self.get_platemap(plateidstr)
+            return self.get_platemap_plateidstr(plateidstr)
              
         else:
             return "No plate found!"
 
 
-    def check_plateid(self, plateidstr):
+    def check_plateidstr(self, plateidstr):
         infod=self.importinfo(str(plateidstr))
         # 1. checks that the plate_id (info file) exists
         if infod!="No plate found!":
@@ -57,7 +66,7 @@ class HTEdata:
             return False
 
 
-    def check_printrecord(self, plateidstr):
+    def check_printrecord_plateidstr(self, plateidstr):
         infod=self.importinfo(str(plateidstr))
         if infod!="No plate found!":
             if not 'prints' in infod.keys():
@@ -66,7 +75,7 @@ class HTEdata:
                 return True
 
 
-    def check_annealrecord(self, plateidstr):
+    def check_annealrecord_plateidstr(self, plateidstr):
         infod=self.importinfo(str(plateidstr))
         if infod!="No plate found!":
             if not 'anneals' in infod.keys():
@@ -75,13 +84,13 @@ class HTEdata:
                 return True
 
 
-    def get_platemap(self, plateidstr):
+    def get_platemap_plateidstr(self, plateidstr):
         pmpath=self.getplatemappath_plateid(plateidstr)
         pmdlist=self.readsingleplatemaptxt(pmpath)
         return json.dumps(pmdlist)
 
 
-    def getelements_plateidstr(self, plateidstr_or_filed, multielementink_concentrationinfo_bool=False,print_key_or_keyword='screening_print_id', exclude_elements_list=[''], return_defaults_if_none=False):#print_key_or_keyword can be e.g. "print__3" or screening_print_id
+    def get_elements_plateidstr(self, plateidstr_or_filed, multielementink_concentrationinfo_bool=False,print_key_or_keyword='screening_print_id', exclude_elements_list=[''], return_defaults_if_none=False):#print_key_or_keyword can be e.g. "print__3" or screening_print_id
         if isinstance(plateidstr_or_filed, dict):
             infofiled=plateidstr_or_filed
         else:
@@ -109,7 +118,6 @@ class HTEdata:
         if multielementink_concentrationinfo_bool:
             return els, self.get_multielementink_concentrationinfo(printd,els, return_defaults_if_none=return_defaults_if_none)
         return els
-
 
     
     ##########################################################################
@@ -182,8 +190,8 @@ class HTEdata:
         p=os.path.join(pmfold, fns[0])
         return (p, pmidstr) if return_pmidstr else p
 
+
     def importinfo(self, plateidstr):
-        print(self.PLATEFOLDERS)
         fn=plateidstr+'.info'
         p=self.tryprependpath(self.PLATEFOLDERS, os.path.join(plateidstr, fn), testfile=True, testdir=False)
         if not os.path.isfile(p):

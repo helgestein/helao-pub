@@ -71,7 +71,6 @@ def startup_event():
     stat = StatusHandler()
 
 
-
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
     await websocket.accept()
@@ -79,7 +78,6 @@ async def websocket_status(websocket: WebSocket):
         data = await stat.q.get()
         await websocket.send_text(json.dumps(data))
 
-        
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
@@ -91,67 +89,91 @@ def status_wrapper():
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
-def get_elements_plateid(plateid: str):
+async def get_elements_plateid(plateid: str):
     """Gets the elements from the screening print in the info file"""
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "get_elements_plateid"},
-        data={"elements": dataserv.getelements_plateidstr(plateid)},
+        data={"elements": dataserv.get_elements_plateidstr(plateid)},
     )
+    await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/get_platemap_plateid")
-def get_platemape_plateid(plateid: str):
+async def get_platemap_plateid(plateid: str):
     """gets platemap"""
-    dataserv.get_platemap(plateid)
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "get_platemap_plateid"},
-        data={"map": dataserv.get_platemap(plateid)},
+        data={"map": dataserv.get_platemap_plateidstr(plateid)},
     )
+    await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/check_plateid")
-def check_plateid(plateid):
+async def check_plateid(plateid):
     """checks that the plate_id (info file) exists"""
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "check_plateid"},
-        data={"bool": dataserv.check_plateid(plateid)},
+        data={"bool": dataserv.check_plateidstr(plateid)},
     )
+    await stat.set_idle()
     return retc
 
+
 @app.post(f"/{servKey}/check_printrecord_plateid")
-def check_printrecord_plateid(plateid: str):
+async def check_printrecord_plateid(plateid: str):
     """checks that a print record exist in the info file"""
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "check_printrecord_plateid"},
-        data={"bool": dataserv.check_printrecord(plateid)},
+        data={"bool": dataserv.check_printrecord_plateidstr(plateid)},
     )
+    await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/check_annealrecord_plateid")
-def check_annealrecord_plateid(plateid: str):
+async def check_annealrecord_plateid(plateid: str):
     """checks that a anneal record exist in the info file"""
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "check_annealrecord_plateid"},
-        data={"bool": dataserv.check_annealrecord(plateid)},
+        data={"bool": dataserv.check_annealrecord_plateidstr(plateid)},
     )
+    await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/get_info_plateid")
-def get_info_plateid(plateid: str):
+async def get_info_plateid(plateid: str):
+    await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "get_info_plateid"},
-        data={"info": dataserv.readinfoplatemap(plateid)},
+        data={"info": dataserv.get_info_plateidstr(plateid)},
     )
+    await stat.set_idle()
+    return retc
+
+
+@app.post(f"/{servKey}/get_rcp_plateid")
+async def get_rcp_plateid(plateid: str):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_rcp_plateid"},
+        data={"info": dataserv.get_rcp_plateidstr(plateid)},
+    )
+    await stat.set_idle()
     return retc
 
 

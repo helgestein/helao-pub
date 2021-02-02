@@ -115,7 +115,7 @@ def startup_event():
             uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
         )
     )
-    print(len(orch.decisions))
+    print('Orch decision length:',len(orch.decisions))
 
 
 @app.websocket(f"/{servKey}/ws_status")

@@ -140,7 +140,7 @@ class galil:
                 # print(self.config_dict["count_to_mm"][ax])
     
                 counts = int(np.floor(float_counts))  # we can only mode full counts
-                print(counts)
+                print('Motor counts:',counts)
                 # save and report the error distance
                 error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
     

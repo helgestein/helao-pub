@@ -29,8 +29,7 @@ servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
 # shorthand object-style access to config dictionary
 
-    uvicorn.run(app, host=, port=)
-
+ 
 C = config['servers']['autolabServer']['host']#munchify(config)["servers"]
 # config dict for visualization server
 #O = C[servKey]

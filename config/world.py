@@ -99,6 +99,22 @@ config["servers"] = dict(
         params = dict(
         )
     ),
+    aligner=dict(
+        host="127.0.0.1",
+        port=8005,
+        group="server",
+        fast="alignment_server",
+        params = dict(
+            data_server = "data", # will use this to get PM_map temporaily, else need to parse it as JSON later
+            motor_server = "motor", # will use this to get PM_map temporaily, else need to parse it as JSON later
+            vis_server = "aligner_vis", # will use this to get PM_map temporaily, else need to parse it as JSON later
+            Transfermatrix = [[0.5,0,0],[0,0.5,0],[0,0,1]], # default Transfermatrix for instrument
+            cutoff = 6, # cutoff of digits for TransferMatrix calculation
+            x = 'x', # define which axis are used for calib
+            y = 'y', # check motor config
+            #z = 'z', # later for 3d calib if necessary        
+        )
+    ),
     orchestrator=dict(
         host="127.0.0.1",
         port=8010,
@@ -115,13 +131,16 @@ config["servers"] = dict(
             ws_host="potentiostat"
         )
     ),
-#    motor_aligner=dict(
-#        host="127.0.0.1",
-#        port=5007,
-#        group="action",
-#        bokeh="bokeh_platealigner",
-#        params = dict(
-#            ws_host="motor",
-#        )
-#    )
+    aligner_vis=dict(
+        host="127.0.0.1",
+        port=5007,
+        group="action",
+        bokeh="bokeh_platealigner",
+        params = dict(
+            aligner_server="aligner", # aligner and aligner_vis should be in tandem
+            x = 'x', # define which axis are used for calib
+            y = 'y', # check motor config
+            #z = 'z', # later for 3d calib if necessary
+        )
+    )
 )

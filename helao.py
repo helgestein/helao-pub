@@ -136,6 +136,20 @@ class Pidd:
     def close(self):
         active = self.list_active()
         print(active)
+
+        activeserver = [k for k, _, _, _ in active]
+        KILL_ORDER = ["visualizer", "action", "server", "orchestrators"]
+        for group in KILL_ORDER:
+            print(f"Killing {group} group.")
+            if group in pidd.A:
+                G = pidd.A[group]
+                for server in G:
+                    print(f"Killing {server}.")
+                    if server in activeserver:
+                        self.kill_server(server)
+
+        # kill whats left
+        active = self.list_active()
         for k, _, _, _ in self.list_active():
             self.kill_server(k)
         active = self.list_active()
@@ -306,6 +320,22 @@ if __name__ == "__main__":
             print(f'Unsubscribing {server} websockets.')
             S = pidd.A["orchestrators"][server]
             requests.post(f"http://{S.host}:{S.port}/shutdown")
+   
+    
+        # in case a /shutdown is added to other FastAPI servers (not the shutdown without '/')
+        #KILL_ORDER = ["visualizer", "action", "server"] # orch are killed above
+        # no /shutdown in visualizers
+        KILL_ORDER = ["action", "server"] # orch are killed above
+        for group in KILL_ORDER:
+            print(f"Shutting down {group} group.")
+            if group in pidd.A:
+                G = pidd.A[group]
+                for server in G:
+                    print(f"Shutting down {server}.")
+                    S = G[server]
+                    # will produce a 404 if not found
+                    requests.post(f"http://{S.host}:{S.port}/shutdown")
+
         pidd.close()
     else:
         print(

@@ -461,7 +461,7 @@ def list_actions():
     return retval
 
 
-@app.post(f"/shutdown")
+@app.post("/shutdown")
 def pre_shutdown_tasks():
     """Execute code before terminating with helao.py script."""
     for k, task in orch.monitors.items():

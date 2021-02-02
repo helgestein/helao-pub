@@ -196,6 +196,7 @@ def clicked_calc():
     TransferMatrix = cutoffdigits(M, cutoff)
     print('new TransferMatrix:')
     print(M)
+    update_TranferMatrixdisplay()
     update_status('New Matrix:\n'+(str)(M))
 
 
@@ -211,6 +212,27 @@ def clicked_skipstep():
 ################################################################################
 def clicked_buttonsel(idx):
     calib_sel_motor_loc_marker.value = MarkerNames[idx]
+
+
+################################################################################
+# remove cal point
+################################################################################
+def clicked_calib_del_pt(idx):
+    # remove first point from calib list
+    calib_ptsplate.pop(idx)
+    calib_ptsmotor.pop(idx)
+    calib_ptsplate.insert(0,(None, None, 1))
+    calib_ptsmotor.insert(0,(None, None, 1))
+    # display points
+    update_calpointdisplay()
+
+
+################################################################################
+# move motor to maker position
+################################################################################
+def clicked_button_marker_move(idx):
+    if not marker_x[idx].value == "None" and not marker_y[idx].value == "None":
+        asyncio.gather(motor_move('absolute',marker_x[idx].value, marker_y[idx].value))
 
 
 ################################################################################
@@ -230,22 +252,23 @@ def clicked_pmplot(event):
     PMnum = get_samples([platex], [platey])
     buf = ""
     if PMnum is not None:
-        platex = pmdata[PMnum[0]]['x']
-        platey = pmdata[PMnum[0]]['y']
-        MarkerXYplate[selMarker] = (platex,platey,1)
-        MarkerSample[selMarker] = pmdata[PMnum[0]]["Sample"]
-        MarkerIndex[selMarker] = PMnum[0]
-        MarkerCode[selMarker] = pmdata[PMnum[0]]["code"]
-
-        # only display non zero fractions
-        buf = ""
-        # TODO: test on other platemap
-        for fraclet in ("A", "B", "C", "D", "E", "F", "G", "H"):
-            if pmdata[PMnum[0]][fraclet] > 0:
-                buf = "%s%s%d " % (buf,fraclet, pmdata[PMnum[0]][fraclet]*100)
-        if len(buf) == 0:
-            buf = "-"
-        MarkerFraction[selMarker] = buf
+        if PMnum[0] is not None: # need to check as this can also happen
+            platex = pmdata[PMnum[0]]['x']
+            platey = pmdata[PMnum[0]]['y']
+            MarkerXYplate[selMarker] = (platex,platey,1)
+            MarkerSample[selMarker] = pmdata[PMnum[0]]["Sample"]
+            MarkerIndex[selMarker] = PMnum[0]
+            MarkerCode[selMarker] = pmdata[PMnum[0]]["code"]
+    
+            # only display non zero fractions
+            buf = ""
+            # TODO: test on other platemap
+            for fraclet in ("A", "B", "C", "D", "E", "F", "G", "H"):
+                if pmdata[PMnum[0]][fraclet] > 0:
+                    buf = "%s%s%d " % (buf,fraclet, pmdata[PMnum[0]][fraclet]*100)
+            if len(buf) == 0:
+                buf = "-"
+            MarkerFraction[selMarker] = buf
     ##    elif:
     # remove old Marker point
     old_point = plot_mpmap.select(name=MarkerNames[selMarker])
@@ -553,9 +576,10 @@ def transform_platexy_to_motorxy(M, platexy):
     # should be faster then calling numpy
     # [][] for non numpy
     # [ , ] for numpy
-    return (M[0][0]*platexy[0]+M[0][1]*platexy[1]+M[0][2]*platexy[2],
-            M[1][0]*platexy[0]+M[1][1]*platexy[1]+M[1][2]*platexy[2],
-            M[2][0]*platexy[0]+M[2][1]*platexy[1]+M[2][2]*platexy[2])
+    M = np.matrix(M)
+    return (M[0, 0]*platexy[0]+M[0, 1]*platexy[1]+M[0, 2]*platexy[2],
+            M[1, 0]*platexy[0]+M[1, 1]*platexy[1]+M[1, 2]*platexy[2],
+            M[2, 0]*platexy[0]+M[2, 1]*platexy[1]+M[2, 2]*platexy[2])
 
 
 ################################################################################
@@ -638,6 +662,16 @@ def update_Markerdisplay(selMarker):
     marker_fraction[selMarker].value = (str)(MarkerFraction[selMarker])
 
 
+def update_TranferMatrixdisplay():
+    global TransferMatrix
+    calib_xscale_text.value = "%.1E" % TransferMatrix[0, 0]
+    calib_yscale_text.value = "%.1E" % TransferMatrix[1, 1]
+    calib_xtrans_text.value = "%.1E" % TransferMatrix[0, 2]
+    calib_ytrans_text.value = "%.1E" % TransferMatrix[1, 2]
+    calib_rotx_text.value = "%.1E" % TransferMatrix[0, 1] # or the other way around?
+    calib_roty_text.value = "%.1E" % TransferMatrix[1, 0]
+    
+
 ################################################################################
 # resets all parameters
 ################################################################################
@@ -662,6 +696,7 @@ def init_mapaligner():
     #update_Transferparam(TransferMatrix)
     update_calpointdisplay()
     remove_allMarkerpoints()
+    update_TranferMatrixdisplay()
     update_status("Press ""Go"" to start alignment procedure.",reset = 1)
     
     # initialize motor position variables
@@ -703,6 +738,32 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
         # plot new Marker point
         plot_mpmap.square(tmpplate[0], tmpplate[1], size=7,line_width=2, color=None, alpha=1.0, line_color=MarkerColors[0], name=MarkerNames[0])
 
+
+
+        MarkerXYplate[0] = (tmpplate[0],tmpplate[1],1)
+        # get rest of values from nearest point 
+        PMnum = get_samples([tmpplate[0]], [tmpplate[1]])
+        buf = ""
+        if PMnum is not None:
+ #           print('#######',PMnum[0])
+            if PMnum[0] is not None: # need to check as this can also happen
+                MarkerSample[0] = pmdata[PMnum[0]]["Sample"]
+                MarkerIndex[0] = PMnum[0]
+                MarkerCode[0] = pmdata[PMnum[0]]["code"]
+        
+                # only display non zero fractions
+                buf = ""
+                # TODO: test on other platemap
+                for fraclet in ("A", "B", "C", "D", "E", "F", "G", "H"):
+                    if pmdata[PMnum[0]][fraclet] > 0:
+                        buf = "%s%s%d " % (buf,fraclet, pmdata[PMnum[0]][fraclet]*100)
+                if len(buf) == 0:
+                    buf = "-"
+                MarkerFraction[0] = buf
+
+        update_Markerdisplay(0)
+
+
     # buffer position
     gbuf_motor_position = g_motor_position
 
@@ -741,7 +802,8 @@ uri = f"ws://{S.host}:{S.port}/ws"
 
 
 MarkerColors = [(255,0,0),(0,0,255),(0,255,0),(255,165,0),(255,105,180)]
-MarkerNames = ["Cell Marker", "Blue Marker", "Green Marker", "Orange Marker", "Pink Marker"]
+#MarkerNames = ["Cell Marker", "Blue Marker", "Green Marker", "Orange Marker", "Pink Marker"]
+MarkerNames = ["Cell", "Blue", "Green", "Orange", "Pink"]
 MarkerSample = [None, None, None, None, None]
 MarkerIndex = [None, None, None, None, None]
 MarkerCode = [None, None, None, None, None]
@@ -787,19 +849,19 @@ layout_getPM = layout([
 #### Calibration group elements ###
 ##############################################################################
 
-calib_sel_motor_loc_marker = Select(title="Active Marker", value="Blue Marker", options=MarkerNames, width=110)
+calib_sel_motor_loc_marker = Select(title="Active Marker", value=MarkerNames[1], options=MarkerNames, width=110-50)
 
-calib_button_addpt = Button(label="Add Point", button_type="default", width=110)
+calib_button_addpt = Button(label="Add Pt", button_type="default", width=110-50)
 calib_button_addpt.on_event(ButtonClick, clicked_addpoint)
 
 #Calc. Motor-Plate Coord. Transform
-calib_button_calc = Button(label="Calc", button_type="primary", width=110)
+calib_button_calc = Button(label="Calc", button_type="primary", width=110-50)
 calib_button_calc.on_event(ButtonClick, clicked_calc)
 
-calib_button_reset = Button(label="Reset calib", button_type="default", width=110)
+calib_button_reset = Button(label="Reset", button_type="default", width=110-50)
 calib_button_reset.on_event(ButtonClick, clicked_reset)
 
-calib_button_done = Button(label="Submit calib", button_type="danger", width=110)
+calib_button_done = Button(label="Sub.", button_type="danger", width=110-50)
 calib_button_done.on_event(ButtonClick, clicked_submit)
 
 
@@ -807,6 +869,7 @@ calib_xplate = []
 calib_yplate = []
 calib_xmotor = []
 calib_ymotor = []
+calib_pt_del_button = []
 for i in range(0,3):
     buf = "x%d plate" % (i+1)
     calib_xplate.append(TextInput(value="", title=buf, disabled=True, width=60, height=40))
@@ -816,16 +879,17 @@ for i in range(0,3):
     calib_xmotor.append(TextInput(value="", title=buf, disabled=True, width=60, height=40))
     buf = "y%d motor" % (i+1)
     calib_ymotor.append(TextInput(value="", title=buf, disabled=True, width=60, height=40))
+    calib_pt_del_button.append(Button(label="Del", button_type="primary", width=(int)(30), height=25))
+    calib_pt_del_button[i].on_click(partial(clicked_calib_del_pt, idx=i))
 
-    
-#calib_xscale_text = TextInput(value="", title="xscale", disabled=True, width=40, height=40, css_classes=['custom_input1'])
-#calib_yscale_text = TextInput(value="", title="yscale", disabled=True, width=40, height=40, css_classes=['custom_input1'])
+calib_xscale_text = TextInput(value="", title="xscale", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+calib_yscale_text = TextInput(value="", title="yscale", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+calib_xtrans_text = TextInput(value="", title="x trans", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+calib_ytrans_text = TextInput(value="", title="y trans", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+calib_rotx_text = TextInput(value="", title="rotx (deg)", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+calib_roty_text = TextInput(value="", title="roty (deg)", disabled=True, width=50, height=40, css_classes=['custom_input1'])
+
 #calib_plotsmp_check = CheckboxGroup(labels=["don't plot smp 0"], active=[0], width = 50)
-
-#calib_xtrans_text = TextInput(value="", title="x trans", disabled=True, width=40, height=40, css_classes=['custom_input1'])
-#calib_ytrans_text = TextInput(value="", title="y trans", disabled=True, width=40, height=40, css_classes=['custom_input1'])
-#calib_rot_text = TextInput(value="", title="rot (deg)", disabled=True, width=40, height=40, css_classes=['custom_input1'])
-
 
 layout_calib = layout([
     [layout([
@@ -837,18 +901,22 @@ layout_calib = layout([
             [calib_button_done],
             ]),
     layout([
-            [Div(text="<b>Calibration Coordinates</b>", width=200, height=15)],
+            [Spacer(width=20), Div(text="<b>Calibration Coordinates</b>", width=200+50, height=15)],
             layout([
-                [calib_xplate[0], calib_yplate[0],calib_xmotor[0],calib_ymotor[0]],
+                [[Spacer(height=20),[calib_pt_del_button[0]]],Spacer(width=10),calib_xplate[0], calib_yplate[0],calib_xmotor[0],calib_ymotor[0]],
                 Spacer(height=10),
                 Spacer(height=5, background=(0,0,0)),
-                [calib_xplate[1], calib_yplate[1],calib_xmotor[1],calib_ymotor[1]],
+                [[Spacer(height=20),[calib_pt_del_button[1]]],Spacer(width=10),calib_xplate[1], calib_yplate[1],calib_xmotor[1],calib_ymotor[1]],
                 Spacer(height=10),
                 Spacer(height=5, background=(0,0,0)),
-                [calib_xplate[2], calib_yplate[2],calib_xmotor[2],calib_ymotor[2]],
+                [[Spacer(height=20),[calib_pt_del_button[2]]],Spacer(width=10),calib_xplate[2], calib_yplate[2],calib_xmotor[2],calib_ymotor[2]],
                 [ Spacer(height=10)],
                 ],background="#C0C0C0"),
            ])],
+    [layout([
+           [calib_xscale_text, calib_xtrans_text, calib_rotx_text, Spacer(width=10), calib_yscale_text, calib_ytrans_text, calib_roty_text],
+           ]),
+    ],
 #    [layout([
 #           [calib_xscale_text, calib_yscale_text,calib_xtrans_text, calib_ytrans_text,calib_rot_text],
 #           ]),[Spacer(height=20),[calib_plotsmp_check]]],
@@ -898,7 +966,7 @@ layout_motor = layout([
 #### Marker group elements ####
 ##############################################################################
 marker_type_text = []
-marker_button = []
+marker_move_button = []
 marker_buttonsel = []
 marker_index = []
 marker_sample = []
@@ -910,8 +978,8 @@ marker_layout = []
 
 
 for idx in range(len(MarkerNames)):
-    marker_type_text.append(Paragraph(text=MarkerNames[idx], width=120, height=15))
-    marker_button.append(Button(label="Move", button_type="primary", width=(int)(totalwidth/5-40), height=25))
+    marker_type_text.append(Paragraph(text=MarkerNames[idx]+" Marker", width=120, height=15))
+    marker_move_button.append(Button(label="Move", button_type="primary", width=(int)(totalwidth/5-40), height=25))
     marker_index.append(TextInput(value="", title="Index", disabled=True, width=40, height=40, css_classes=['custom_input2']))
     marker_sample.append(TextInput(value="", title="Sample", disabled=True, width=40, height=40, css_classes=['custom_input2']))
     marker_x.append(TextInput(value="", title="x(mm)", disabled=True, width=40, height=40, css_classes=['custom_input2']))
@@ -921,6 +989,9 @@ for idx in range(len(MarkerNames)):
     buf = ("custom_button_Marker%d") % (idx+1)
     marker_buttonsel.append(Button(label="", button_type="default", disabled=False, width=40, height=40,css_classes=[buf]))
     marker_buttonsel[idx].on_click(partial(clicked_buttonsel, idx=idx))
+    
+    marker_move_button[idx].on_click(partial(clicked_button_marker_move, idx=idx))
+    
     buf = """<svg width="40" height="40"><rect width="40" height="40" style="fill:rgb(%d,%d,%d);stroke-width:3;stroke:rgb(%d,%d,%d)" /></svg>""" % (MarkerColors[idx][0],MarkerColors[idx][1],MarkerColors[idx][2],MarkerColors[idx][0],MarkerColors[idx][1],MarkerColors[idx][2])
     marker_layout.append(layout([
                         [marker_type_text[idx]],
@@ -928,12 +999,12 @@ for idx in range(len(MarkerNames)):
                         [marker_x[idx],marker_y[idx], marker_code[idx]],
                         [marker_fraction[idx]],
                         [Spacer(height=5)],
-                        [marker_button[idx]],
+                        [marker_move_button[idx]],
                         ], width=(int)((totalwidth-4*5)/5)))
 
 
 # disbale cell marker
-marker_button[0].disabled=True
+marker_move_button[0].disabled=True
 marker_buttonsel[0].disabled=True
 
 # combine marker group layouts

@@ -21,11 +21,7 @@ class return_class(BaseModel):
 @app.get("/lang/connect")
 def connect():
     l.connect()
-    retc = return_class(
-        measurement_type="motor_command",
-        parameters={"command": "motor_is_connected"},
-        data={'status': True}
-        )
+    retc = return_class(parameters=None,data=None)
     return retc 
 
 @app.get("/lang/disconnected")

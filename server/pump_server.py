@@ -20,7 +20,7 @@ class return_class(BaseModel):
 @app.get("/pump/stopPump")
 def stopPump(pump:int,read:bool=False):
     ret = p.stopPump(pump,read)
-    retc = return_class(parameters={"pump": pump,"read":read},data=ret)
+    retc = return_class(parameters={"pump": pump,"read":read},data={'serial_response':ret})
     return retc
 
 @app.get("/pump/primePump")
@@ -28,25 +28,25 @@ def primePump(pump:int, volume:int, speed:int, direction:int=1, read:bool=False)
     ret = p.primePump(pump, volume, speed, direction, read)
     retc = return_class(parameters={"volume": volume,"speed": speed,"pump": pump,"direction": direction,"read": read,
                                     'units': {'speed':'µl/min','totalvol':'µL'}},
-                        data=ret)
+                        data={'serial_response':ret})
     return retc
 
 @app.get("/pump/runPump")
 def runPump(pump:int,read:bool=False):
     ret = p.runPump(pump,read)
-    retc = return_class(parameters={"pump":pump,"read":read},data=ret)
+    retc = return_class(parameters={"pump":pump,"read":read},data={'serial_response':ret})
     return retc
 
 @app.get("/pump/readPump")
 def readPump(pump:int):
     ret = p.readPump(pump)
-    retc = return_class(parameters={"pump": pump},data=ret)
+    retc = return_class(parameters={"pump": pump},data={'serial_response':ret})
     return retc
 
 @app.get("/pump/pumpOff")
 def pumpOff(pump:int,read:bool=False):
     ret = p.pumpOff(pump,read)
-    retc = return_class(parameters={"pump": pump,"read":read},data=ret)
+    retc = return_class(parameters={"pump": pump,"read":read},data={'serial_response':ret})
     return retc
 
 @app.get("/pump/read")

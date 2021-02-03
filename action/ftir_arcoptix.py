@@ -25,10 +25,10 @@ class return_class(BaseModel):
 def read(filename:str,timeMode:bool=False,av:int=1,time:float=None):
     readstring = 'Time' if timeMode else ''
     readparams = {'time':time} if timeMode else {'av':av}
-    requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
+    call = requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
     spectrum = requests.get("{}/arcoptix/spectrum".format(url),params={'filename':filename}).json()
     retc = return_class(parameters={'timeMode':timeMode,'av':av,'time':time,'filename':filename,'units':{'time':'??'}}, 
-                        data=spectrum)
+                        data={'raw':[call,spectrum],'res':spectrum['data']})
     return retc
 
 @app.get("/ftir/loadFile")

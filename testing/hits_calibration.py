@@ -2,6 +2,7 @@ import numpy
 from scipy.ndimage import correlate
 from math import sin,cos
 from scipy.optimize import minimize
+from julia import Julia
 
 def kernel(d):
     #returns a dxd matrix with value 1 for all values i,j within radius d/2 of matrix center, 0 otherwise
@@ -77,6 +78,10 @@ def optimize_lattice(peaks,a1,a2):
     fit_func = lambda x: fitness(peaks,x[:2],x[2],a1,a2)
     return minimize(fit_func,numpy.array([0,0,0]),method='nelder-mead')
 
+
+def make_image():
+    j = Julia().include('C:/Users/jkflowers/BackgroundSubtraction.jl-master/src/background.jl')
+    #lol
 
 #so next: implement the background subtraction
 #function to take in a basis and a grid, or just a list of weights...

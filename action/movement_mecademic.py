@@ -307,13 +307,14 @@ def calibrate_raman(zs:str,h:float,t:int,safepath:str):
         rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':safepath+"/raman_calibration_"+str(time.time()).replace('.','_')}).json()
         zc = z
         tot = sum(rcall['data']['intensities'])
-        data.append(dict(movement=zcall,read=rcall,z=z,int=tot))
+        data.append(zcall)
+        data.append(rcall)
         if best == {} or tot > best['int']:
             best = dict(z=z,int=tot)
     safe_raman()
     retc = return_class(parameters= {'zs':zs,'h':h,'t':t,'safepath':safepath,
                                      'units':{'zs':'mm','h':'mm','t':'µs'}}, 
-                        data = {'raw':data,'res':{'best':best,'units':'mm'}})
+                        data = {'raw':data,'res':best.update({'units':{'z':'mm','int':'intensity*nm'}})})
     return retc
 
 #used for calibration. for a given height z above substrate of thickness h, 

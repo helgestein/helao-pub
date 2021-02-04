@@ -5,9 +5,6 @@ import time
 
 #If cross-referencing this code with the API found in ba-megsv.pdf, note that GSV_Error = -1, GSV_OK = 0, GSV_True = 1
 
-#Limited testing shows that the force sensor transmits 25 values per second
-
-
 class MEGSV:
     def __init__(self,conf):
         self.port = conf["port"]

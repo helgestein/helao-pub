@@ -1,15 +1,3 @@
-#(c) Prof.-jun. Dr.-Ing. Helge Sören Stein 2020
-#this is a program for the CAT Engineering MDPS Multichannel Pump
-#besides this this is also a reference implementation for a HELAO driver
-
-
-#pump issues for future notice:
-#-I noticed in early August that something confusing is going on with the read volume and speed commands
-#-what I thought was happening was that it was reading out for every pump the values written to pump 0, but I never confirmed this perfectly
-#-serial buffer gets garbled if you send more than a few commands to it without reading it to clear it out
-#-something weird probably happens when you read or write priming values to a pump while it is pumping
-#all of these problems we are going to ignore for now by making the code much simpler, but i do not want to forget them
-
 import serial
 
 class pump():
@@ -18,10 +6,10 @@ class pump():
             self.ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
                 
     def primePump(self,pump:int,volume:int,speed:int,direction:int=1,read:bool=False):
-        #pump is an index 0-13 indicating the pump channel
-        #volume is the volume in µL, 0 to 50000µL
-        #speed is a variable going from 20µl/min to 4000µL/min
-        #direction is 1 for normal and 0 for reverse
+        # pump is an index 0-13 indicating the pump channel
+        # volume is the volume in µL, 0 to 50000µL
+        # speed is a variable going from 20µl/min to 4000µL/min
+        # direction is 1 for normal and 0 for reverse
         self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
@@ -32,12 +20,10 @@ class pump():
         return self.read() if read else None
 
     def stopPump(self,pump:int,read:bool=False):
-        #this stops a selected pump and returns the nessesary information the seed is recorded as zero and direction as -1
-        #the reason for that is that i want to indicate that we manually stopped the pump
+        # this stops a selected pump and returns the nessesary information the seed is recorded as zero and direction as -1
         self.ser.write(bytes('{},WON,0\r'.format(self.pumpAddr[pump]), 'utf-8'))
         return self.read() if read else None
 
-    #again, there is a good chance this does not work quite right
     def readPump(self,pump:int):
         self.read()
         ret = {'direction': None, 'speed': None, 'volume': None}

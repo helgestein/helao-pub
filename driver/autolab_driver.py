@@ -16,7 +16,6 @@ class Autolab:
         self.micsetupf = autolab_conf["micsetupf"]
         self.proceduresd = autolab_conf["proceuduresd"]
         clr.AddReference("EcoChemie.Autolab.Sdk")
-        #this is a hacky way of trying again
         try:
             from EcoChemie.Autolab import Sdk as sdk
         except:
@@ -32,7 +31,6 @@ class Autolab:
 
     def disconnect(self):
         try:
-            # to be sure that the procedure is stopped we try to abort it
             self.proc.Abort()
         except:
             print('Procedure abort failed. Disconnecting anyhow.')
@@ -81,8 +79,6 @@ class Autolab:
         else:
             self.inst.Ei.Bandwith = 1
 
-    def time(self):
-        return 'TODO'
 
     def appliedPotential(self):
         return float(self.inst.Ei.PotentialApplied)
@@ -98,36 +94,43 @@ class Autolab:
 
     def setSetpoints(self, setpoints):
         for comm, params in setpoints.items():
+            if  params == None:
+                print("comm:{}, params: {}".format(comm, params))
+                continue
+            #print("comm:{}, params: {}".format(comm, params))
             for param, value in params.items():
+                #print("params:{}, values: {}".format(param, value))
                 self.proc.Commands[comm].CommandParameters[param].Value = value
+                #print(f"value is : {self.proc.Commands[comm].CommandParameters[param].Value}")
 
-    def whileMeasuring(self, type_):
+    async def whileMeasuring(self, type_):
         import time
         from copy import copy
         then = copy(time.monotonic())
         while self.proc.IsMeasuring:
             freq = 100  # not to cause an exception
             sleep(0.5)
+            now = copy(time.monotonic())
+            t = now-then
             if type_ == 'impedance':
                 try:
-                    freq = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_Frequency()
-                    hreal = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Real()
-                    imag = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Imaginary()
-                    phase = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Phase()
-                    modulus = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().get_H_Modulus()
+                    freq = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().Frequency
+                    hreal = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().H_Real
+                    imag = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().H_Imaginary
+                    phase = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().H_Phase
+                    modulus = self.proc.FraCommands['FIAScan'].get_FIAMeasurement().H_Modulus
                     print('_freq:{}_real:{}_imag:{}_phase:{}_modulus:{}'.format(freq, hreal, imag, phase, modulus))
-                    await self.q.put([t, hreal, 0.0, imag])
+                    await self.q.put([t, freq, 0.0, 0.0, hreal, imag, phase, modulus, 0.0])
                 except:
                     pass
-                sleep(0.5)
+                await asyncio.sleep(0.6)
             elif type_ == 'tCV':
-                now = copy(time.monotonic())
-                t = now-then
+                
                 j = self.current()
                 v = self.potential()
                 print('_time:{}_potential:{}_current: {}'.format(t,j,v))
-                await self.q.put([t, v, 0.0, j])
-                sleep(0.1)
+                await self.q.put([t, 0.0, v, 0.0, 0.0, 0.0, 0.0, 0.0, j])
+                await asyncio.sleep(0.4)
 
     def CellOnOff(self, onoff):
         if onoff == 'on':
@@ -138,7 +141,7 @@ class Autolab:
             pass
 
     def parseNox(self, conf):
-        # this function will read in a .nox and eport the data as a json
+        # this function will read in a .nox and report the data as a json
         path = os.path.join(conf['safepath'],conf['filename'])
         self.finishedProc = self.inst.LoadProcedure(path)
         self.data = {}
@@ -147,8 +150,49 @@ class Autolab:
             self.data[comm] = {n: [float(f) for f in self.finishedProc.Commands[comm].Signals.get_Item(n).Value] for n in names}
         with open(path.replace('.nox', '_data.json'), 'w') as f:
             json.dump(self.data, f)
+         
+        return self.data
 
-    def performMeasurement(self, procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction):
+    def parseFRA(self,conf):
+        path = os.path.join(conf['safepath'],conf['filename'])
+        self.finishedProc = self.inst.LoadProcedure(path)
+
+        self.data = {} 
+        comm = 'FHLevel'   
+        names = [str(n) for n in self.finishedProc.Commands[comm].Signals.Names]
+        self.data[comm] = {n: [float(f) for f in self.finishedProc.Commands[comm].Signals.get_Item(n).Value] for n in names}
+        
+        self.fradata = {i:[] for i in range(578)} #2537 #7337
+        for o in range(578):
+            myComm = self.finishedProc.FraCommands.get_Item(o)
+            sig_names = [n for n in myComm.Signals.Names]    
+            for n in sig_names:
+                if not type(myComm.Signals.get_Item(n).Value) == None:
+                    try:
+                        if type(myComm.Signals.get_Item(n).Value)==float:
+                            self.fradata[o].append({n:myComm.Signals.get_Item(n).Value})
+                        else:
+                            self.fradata[o].append({n:[float(f) for f in myComm.Signals.get_Item(n).Value]})
+                    except:
+                        print('.')
+        self.analyse_data = {i: [] for i in range(220)}
+        j = 0
+        for i in range(578):
+            if len(self.fradata[i]) > 7:
+                #if len(data[i][1]['Frequency']) == 1: 
+                self.analyse_data[j].append(self.fradata[i])
+                j += 1
+
+        self.final_result = self.analyse_data.copy()
+        self.final_result.update(self.data)
+
+        with open(path.replace('.nox', '_data.json'), 'w') as f:
+            json.dump(self.final_result, f)
+
+        return self.final_result
+
+
+    async def performMeasurement(self, procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction):
         conf = dict(procedure=procedure,setpoints=setpoints,
                      plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename,parseinstructions=parseinstruction)
         #LOAD PROCEDURE
@@ -158,11 +202,17 @@ class Autolab:
         #MEASURE
         self.proc.Measure()
         #PLOT LIVE
-        self.whileMeasuring(conf['plot'])
+        await self.whileMeasuring(conf['plot'])
         #CELL ON/OFF
         self.CellOnOff(conf['onoffafter'])
         #SAVE
         sleep(0.1) #give the potentiostat some time to stwich everything off and save the data
         self.proc.SaveAs(os.path.join(conf['safepath'],conf['filename']))
         json.dump(conf,open(os.path.join(conf['safepath'],conf['filename'].replace('.nox','_conf.json')),'w'))
-        self.parseNox(conf)
+        
+        if conf['procedure'] == 'ms':
+            data = self.parseFRA(conf)    
+        else: 
+            data = self.parseNox(conf)
+
+        return data

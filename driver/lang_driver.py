@@ -6,13 +6,11 @@ sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
 sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
 sys.path.append(r"../config")
 sys.path.append(r"../driver")
-
- # this does not exit
 from mischbares_small import config
 # r"C:\Users\SDC_1\Documents\git\pyLang\API\LStepAPI"
 #ls2 = clr.AddReference('CClassLStep')
 #ls = clr.AddReference('CClassLStep64') #CClassStep
-#import CClassLStep
+
 
 
 
@@ -23,12 +21,9 @@ class langNet():
         self.dllconfigpath = config['dllconfig']
         clr.AddReference(self.dllpath)
         import CClassLStep
-        self.LS = CClassLStep.LStep() #.LSX_CreateLSID(0) -> this is actually wrong
+        self.LS = CClassLStep.LStep() #.LSX_CreateLSID(0)
         self.connected = False
         self.connect()
-        #self.mX = 20 #4
-        #self.mY = 20 #20
-        #self.mZ = 20 #4
         self.LS.SetVel(config['vx'],config['vy'],config['vz'],0)
 
     def connect(self):
@@ -82,10 +77,6 @@ class langNet():
             self.moveAbsZ2(dz)
             self.moveAbsXY(dx,dy)
 
-
-    #def getMaxVel(self,XD= 1000, YD= 1000, ZD= 500, AD= 250): #motor speed or velocity in rpm for rotary motor in mm/s for linear motor
-    #    return self.LS.GetVel(1000, 1000, 500, 250)[1:4]
-
     def setMaxVel(self,xvel,yvel,zvel):
         self.LS.SetVel(xvel,yvel,zvel,0)
 
@@ -93,34 +84,6 @@ class langNet():
     def moveAbsZ2(self,z,wait=True):
         self.moveRelZ(z-self.getPos()[2],wait)
 
-    def moveToHome(self):
-        self.moveAbsFar(config['lang']['safe_home_pos'][0], config['lang']['safe_home_pos'][1], config['lang']['safe_home_pos'][2])
-        self.getPos()
-    
-    def moveToWaste(self, x, y, z): #these three coordinates define the home position. This helps us to align the positions based on the reference point 
-        self.moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['safe_waste_pos'][2])
-        self.getPos()
-    
-    def moveToSample(self, x, y, z):
-        self.moveAbsFar(x + config['lang']['safe_sample_pos'][0], y + config['lang']['safe_sample_pos'][1], z + config['lang']['safe_sample_pos'][2])
-        self.getPos()
-    
-    def removeDrop(self, x, y, z):
-        #self.moveRelFar()
-        self.moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['remove_drop'][2]) # because referene will start from 2 
-        self.moveAbsFar(x + config['lang']['remove_drop'][0], y + config['lang']['remove_drop'][1], z + config['lang']['remove_drop'][2])
-        self.getPos()
-
     def stopMove(self):
         self.LS.StopAxes()
 
-'''
-# setting of maximum motor speed or velocity 
-LS.SetMotorMaxVel(1000, 1000, 500, 250) # the max speed is 4006
-LS.GetVel(20, 20 , 20 ,1) # read velocity values based of X, Y, Z, A
-LS.SetVel(X, Y, Z, A)
-# A -> Axis is calibrated and ready
-LS.GetStopAccel(XD, YD, ZD, AD) # the parameters show decceleration in m/S^2
-LS.SetAccelSingleAxisTVRO(2, 50.0) # means Z_axis is accelerated with 50 rp^2 # so we can set acceleration for a single TVRO axis by givving two parameters: Axis and Accel
-LS.SetAccel(X, Y, Z, A)
-'''

@@ -23,19 +23,18 @@ class return_class(BaseModel):
 @app.get("/motor/getPos")
 def getPos():
     pos = requests.get("{}/lang/getPos".format(url)).json()
-    retc = return_class(measurement_type='position', parameters= None, data={'pos':pos})
+    retc = return_class(parameters= None, data=res)
     return retc
 
 @app.get("/motor/moveRel")
 def moveRelFar( dx: float, dy: float, dz: float):
     requests.get("{}/lang/moveRelFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
-    retc = return_class(measurement_type='Move_relative', parameters= {"dx": dx, "dy": dy, "dz": dz})
+    retc =  return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
     return retc
 
 @app.get("/motor/moveDown") #24 is the maximum amount that it can gp down (24 - 2(initial) = 22)
 def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
     steps = int(steps)
-    #threshold = 0.5
     force_value = []
     for i in range(steps):
         url_sens = url = "http://{}:{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'])
@@ -45,8 +44,9 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
             if abs(res['data']['data']['data']['value']) > maxForce:
                 print('Max force reached!')
 
+            elif not abs(res['data']['data']['data']['value'])> maxForce:
             #requests.get("{}/lang/stopMove".format(url)).json()
-            moveRelFar(dx= 0, dy=0, dz = threshold)
+                moveRelFar(dx= 0, dy=0, dz = threshold)
             print('axis are out of the range')
 
         else:
@@ -57,40 +57,48 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
                 #requests.get("{}/lang/stopMove".format(url), params= None).json()
                 print('Max force reached!')
 
-        pos = getPos()
-    retc = return_class(measurement_type='Move_relative', parameters= {"dz": dz,"steps":steps,"maxForce":maxForce},data={'pos':pos, 'force_value': force_value})
+        pos = requests.get("{}/lang/getPos".format(url)).json()
+    retc = return_class(parameters= {"dz": dz,"steps":steps,"maxForce":maxForce,'units':{'dz':'mm','maxforce':'internal units [-1.05,1.05]'}},
+                        data={'raw':[force_value,pos], 'res':{'force_value':force_value['data']['data']['value'],'pos':pos['data']['pos'],
+                              'units':{'force_value':force_value['data']['data']['units'],'pos':pos['data']['units']}}})
     return retc
 
 @app.get("/motor/moveAbs")
 def moveAbsFar(dx: float, dy: float, dz: float):
     requests.get("{}/lang/moveAbsFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
-    retc = return_class(measurement_type='Move_absolut', parameters= {"dx": dx, "dy": dy, "dz": dz})
+    retc =  return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
     return retc
 
 @app.get("/motor/moveHome")
 def moveHome():
-    requests.get("{}/lang/moveToHome".format(url)).json()
-    retc = return_class(measurement_type='Move_Home')
+    res = moveAbsFar(config['lang']['safe_home_pos'][0], config['lang']['safe_home_pos'][1], config['lang']['safe_home_pos'][2])
+    retc = return_class(parameters=None,data=res)
     return retc
 
 @app.get("/motor/moveWaste")
-def moveWaste(x: float=0, y: float=0, z: float=0):
-    requests.get("{}/lang/moveToWaste".format(url), params= {"x": x, "y": y, "z": z}).json()
-    retc = return_class(measurement_type='Move_Waste', parameters= {"x": x, "y": y, "z": z})
+def moveWaste(x: float=0, y: float=0, z: float=0): #these three coordinates define the home position. This helps us to align the positions based on the reference point 
+    res = moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['safe_waste_pos'][2])
+    retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data=res)
     return retc
 
 @app.get("/motor/moveSample")
 def moveToSample(x: float=0, y: float=0, z: float=0):
-    requests.get("{}/lang/moveToSample".format(url), params= {"x": x, "y": y, "z": z}).json()
-    retc = return_class(measurement_type='Move_Sample', parameters= {"x": x, "y": y, "z": z})
+    res = moveAbsFar(x + config['lang']['safe_sample_pos'][0], y + config['lang']['safe_sample_pos'][1], z + config['lang']['safe_sample_pos'][2])
+    retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data=res)
     return retc
 
 @app.get("/motor/RemoveDroplet")
 def removeDrop(x: float=0, y: float=0, z: float=0):
-    requests.get("{}/lang/removeDrop".format(url), params= {"x": x, "y": y, "z": z}).json()
-    retc = return_class(measurement_type='Remove_Droplet', parameters= {"x": x, "y": y, "z": z})
+    res = []
+    res.append(moveAbsFar(x + config['lang']['safe_waste_pos'][0], y + config['lang']['safe_waste_pos'][1], z + config['lang']['remove_drop'][2])) # because referene will start from 2 
+    res.append(moveAbsFar(x + config['lang']['remove_drop'][0], y + config['lang']['remove_drop'][1], z + config['lang']['remove_drop'][2]))
+    res.append(getPos())
+    retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data=res)
     return retc
 
+@app.on_event("shutdown")
+def shutDown():
+    moveHome()
 
 
 if __name__ == "__main__":

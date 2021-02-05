@@ -5,3 +5,5 @@ __pycache__/*
 *.DS_Store
 settings.json
 config/mischbares_small.py
+*.nox
+*.json

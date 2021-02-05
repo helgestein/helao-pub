@@ -32,7 +32,8 @@ class ocean:
         self.device.f.spectrometer.get_intensities()
         #first two lines should clear buffer so that spectrometer doesn't pull any data collected before this function was called
         self.device.f.spectrometer.set_integration_time_micros(t)
-        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':self.device.f.spectrometer.get_intensities().tolist()}
+        data = {'wavelengths':self.device.f.spectrometer.get_wavelengths().tolist(),'intensities':self.device.f.spectrometer.get_intensities().tolist(),
+                'units':{'wavelengths':'nm','intensities':'counts'}}
         with open(filename,'w') as outfile: 
             json.dump(data,outfile)
         #time.sleep(t/1000000)

@@ -21,41 +21,33 @@ class return_class(BaseModel):
 @app.get("/minipump/stopPump")
 def stopPump(read:bool=False):
     ret = p.stopPump(read)
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "stopPump","parameters": {"read":read}},
-                        data={'serial_response': ret})
+    retc = return_class(parameters={"read":read},data={'serial_response':ret})
     return retc
 
 @app.get("/minipump/primePump")
 def primePump(volume:int, speed:int, direction:int=1, read:bool=False):
     ret = p.primePump(volume, speed, direction, read)
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "primePump","parameters": {"volume": volume,"speed": speed,"direction": direction,"read": read}},
-                        data={'serial_response': ret})
+    retc = return_class(parameters={"volume": volume,"speed": speed,"direction": direction,"read": read,
+                                    "units":{'volume':'µL','speed':'µL/s'}},
+                        data={'serial_response':ret})
     return retc
 
 @app.get("/minipump/runPump")
 def runPump(read:bool=False):
     ret = p.runPump(read)
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "runPump","parameters": {"read":read}},
-                        data={'serial_response': ret})
+    retc = return_class(parameters={"read":read},data={'serial_response':ret})
     return retc
 
 @app.get("/minipump/readPump")
 def readPump():
     ret = p.readPump()
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "readPump","parameters": None},
-                        data=ret)
+    retc = return_class(parameters=None,data={'serial_response':ret})
     return retc
 
 @app.get("/minipump/read")
 def read():
     ret = p.read()
-    retc = return_class(measurement_type="pump_command",
-                        parameters={"command": "read"},
-                        data={'data':ret})
+    retc = return_class(parameters=None,data={'serial_response':ret})
     return retc
 
 

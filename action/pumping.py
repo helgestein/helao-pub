@@ -39,19 +39,16 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
     for p in pumps:
         requests.get("{}/pump/runPump".format(pumpurl),params={'pump':p}).json()
     retl.append(flushSerial()) #it is good to keep the buffer clean
-    retc = return_class(measurement_type='pumping',
-                        parameters= {'command':'measure',
-                                    'parameters':{'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol,'direction':direction}},
-                        data = {'data':retl})
+    retc = return_class(parameters= {'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol,'direction':direction,
+                                     'units': {'speed':'µl/min','totalvol':'µL'}},
+                        data = retl)
     time.sleep(60*totalvol/speed)
     return retc
 
 @app.get("/pumping/flushSerial/")
 def flushSerial():
     res = requests.get("{}/pump/read".format(pumpurl)).json()
-    retc = return_class(measurement_type='pumping',
-                        parameters= {'command':'flushSerial','parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data = res)
     return retc
 
 

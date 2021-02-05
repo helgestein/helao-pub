@@ -5,12 +5,13 @@ sys.path.append("../driver")
 from autolab_driver import Autolab
 from mischbares_small import config
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, WebSocket
 from pydantic import BaseModel
 import json
 from typing import List
 import os
 import time
+import datetime
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",
     version="1.0",)
@@ -29,55 +30,37 @@ class ItemList(BaseModel):
 @app.get("/potentiostat/ismeasuring")
 def ismeasuring():
     ret = a.ismeasuring()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'ismeasuring',
-                                    'parameters':None},
-                        data = {'ismeasuring':ret})
+    retc = return_class(parameters= None,data = {'ismeasuring':ret})
     return retc
 
 @app.get("/potentiostat/potential")
 def potential():
     ret = a.potential()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'getpotential',
-                                    'parameters':None},
-                        data = {'potential':ret})
+    retc = return_class(parameters= None,data = {'potential':ret,'units':'??'})
     return retc
 
 @app.get("/potentiostat/current")
 def current():
     ret = a.current()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'getcurrent',
-                                    'parameters':None},
-                        data = {'current':ret})
+    retc = return_class(parameters= None,data = {'current':ret,'units':'??'})
     return retc
 
 @app.get("/potentiostat/setcurrentrange")
 def setCurrentRange(crange: str):
     a.setCurrentRange(crange)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'setcurrentrange',
-                                    'parameters':crange},
-                        data = {'currentrange':crange})
+    retc = return_class(parameters= {'parameters':crange,'units':'??'},data = None)
     return retc
 
 @app.get("/potentiostat/setstability")
 def setStability(stability:str):
     a.setStability(stability)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'setStability',
-                                    'parameters':stability},
-                        data = {'currentrange':stability})
+    retc = return_class(parameters={'stability':stability},data = None)
     return retc
 
 @app.get("/potentiostat/appliedpotential")
 def appliedPotential():
     ret = a.appliedPotential()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'appliedpotential',
-                                    'parameters':None},
-                        data = {'appliedpotential':ret})
+    retc = return_class(parameters= None,data = {'appliedpotential':ret,'units':'??'})
     return retc
 
 @app.websocket("/ws")
@@ -86,26 +69,20 @@ async def websocket_messages(websocket: WebSocket):
     while True:
         data = await a.q.get()
         data = {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
-        await websocket.send_text(json.dumps(time.time.now()))
+        await websocket.send_text(json.dumps(datetime.datetime.now()))
         await websocket.send_text(json.dumps(data))
 
 
 @app.get("/potentiostat/abort")
 def abort():
-    ret = a.abort()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'abort',
-                                    'parameters':None},
-                        data = {'abort':True})
+    a.abort()
+    retc = return_class(parameters= None,data= None)
     return retc
 
 @app.get("/potentiostat/cellonoff")
 def CellOnOff(onoff:str):
     a.CellOnOff(onoff)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'cellonoff',
-                                    'parameters':onoff},
-                        data = {'onoff':onoff})
+    retc = return_class(parameters= {'onoff':onoff},data = None)
     return retc
 '''
 @app.get("/potentiostat/measure")
@@ -133,11 +110,9 @@ def performMeasurement(procedure: str,setpointjson: str ,plot:str,onoffafter:str
 
     parseinstruction = [parseinstructions]
     a.performMeasurement(procedure,setpoints,plot,onoffafter,safepath,filename, parseinstruction)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                    parameters= {'command':'measure',
-                                'parameters':dict(procedure=procedure,setpointjson= setpointjson,
-                                                  plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction)},
-                    data = {'data':None})
+    retc = return_class(parameters= dict(procedure=procedure,setpointjson= setpointjson,
+                                         plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction),
+                        data = None)
     return retc
 
 
@@ -147,20 +122,13 @@ def retrieve(safepath:str,filename:str):
     path = os.path.join(conf['safepath'],conf['filename'])
     with open(path.replace('.nox', '_data.json'), 'r') as f:
         ret = json.load(f)
-    retc = return_class(measurement_type='potentiostat_autolab',
-                    parameters= {'command':'retrieve',
-                                'parameters':conf},
-                    data = {'appliedpotential':ret})
+    retc = return_class(parameters= {'safepath':safepath,'filename':filename},
+                        data = {'appliedpotential':ret})
     return retc
 
 @app.on_event("shutdown")
 def disconnect():
     a.disconnect()
-    retc = return_class(measurement_type='potentiostat_autolab',
-                        parameters= {'command':'disconnect',
-                                    'parameters':None},
-                        data = {'data':None})
-    return retc
 
 if __name__ == "__main__":
     autolab_conf = config['autolab']

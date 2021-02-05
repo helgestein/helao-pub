@@ -24,17 +24,13 @@ class return_class(BaseModel):
 @app.get("/oceanAction/read")
 def read(t:int,filename:str):
     data = requests.get("{}/ocean/readSpectrum".format(url),params={'t':t,'filename':filename}).json()
-    retc = return_class(measurement_type='raman_measure', 
-                        parameters={"filename":filename,"t":t}, 
-                        data=data)
+    retc = return_class(parameters={"filename":filename,"t":t,'units':{'t':'µs'}}, data=data)
     return retc
 
 @app.get("/oceanAction/loadFile")
 def loadFile(filename:str):
     data = requests.get("{}/ocean/loadFile".format(url),params={'filename':filename}).json()
-    retc = return_class(measurement_type='raman_measure', 
-                        parameters={'filename':filename}, 
-                        data=data)
+    retc = return_class(parameters={'filename':filename}, data=data)
     return retc
 
 

@@ -20,15 +20,15 @@ def test_fnc(action, params):
 
 
 test_fnc('getPos', None)
-test_fnc('moveRel', dict(dx=-10, dy=-10, dz=-10))
+test_fnc('moveRel', dict(dx=0, dy=0, dz=0))
 test_fnc('moveAbs', dict(dx=2, dy=0, dz=0))
 test_fnc('moveWaste', dict(x=0, y=0, z=0))
 test_fnc('moveHome', None)
-test_fnc('moveDown', dict(dz=0.250, steps=20, maxForce=0.08, threshold= 0.252)) #maximum length that you can go down is 5 
+test_fnc('moveDown', dict(dz=0.170, steps=80, maxForce=0.44, threshold= 0.175)) #maximum length that you can go down is 5  #dz=0.321, steps=20, maxForce=0.08, threshold= 0.322
 test_fnc('moveSample', dict(x=0, y=0, z=0))
 test_fnc('RemoveDroplet', dict(x=0, y=0, z=0))
 
-
+# 0.020
 import numpy as np
 import matplotlib.pyplot as plt
 x, y = np.meshgrid([4 * i for i in range(8)], [4 * i for i in range(8)])
@@ -48,58 +48,3 @@ for j in range(64):
     
 
     
-     
-
-
-'''
-server = 'motor'
-action = 'getPos'
-params = None
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action),
-    params= params,timeout=1).json()
-
-
-
-server = 'motor'
-action = 'moveRel'
-params = dict(dx=-10, dy=-10, dz=-10)
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action),
-    params= params).json()
-
-
-server = 'motor'
-action = 'moveAbs'
-params = dict(dx=2, dy=0, dz=0)
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action),
-    params= params).json()
-
-server = 'motor'
-action = 'moveWaste'
-params = None
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action)).json()
-
-
-server = 'motor'
-action = 'moveHome'
-params = None
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action)).json()
-
-
-server = 'motor'
-action = 'moveDown'
-params = dict(dz=1, steps=10, maxForce=0.05)
-requests.get("http://{}:{}/{}/{}".format(
-    config['servers']['motorServer']['host'], 
-    config['servers']['motorServer']['port'],server , action),params=params).json()
-
-'''

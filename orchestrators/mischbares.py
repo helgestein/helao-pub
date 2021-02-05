@@ -88,7 +88,27 @@ def doMeasurement(experiment: str):
         elif server == 'orchestrator':
             experiment = process_native_command(action,experiment)
             continue
+<<<<<<< HEAD
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
+=======
+        elif server == 'analysis':
+            #should be able to input either the current session or a dataset from elsewhere.
+            #i reckon that we should be able to access multiple runs
+            #how does it know what to grab from what files?
+            #does the analysis go into the session, or does it go somewhere else?
+            #so, will analysis always be on just one substrate, or multiple?
+            #
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server, action),
+                        params= params).json()
+            continue
+        elif server == 'learning':
+            #needs to know where to find the preceding analysis.
+            #will also always take the current experiment
+            #will return the experiment
+            experiment = json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
+            continue
+        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({action_str:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
+>>>>>>> d34e6799a7cbec99139ec16f1a747110c16cd097
         #provisionally dumping every time until I get clean shutdown and proper backup implemented
         hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:

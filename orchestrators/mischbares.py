@@ -1,3 +1,4 @@
+# In order to run the orchestrator which is at the highest level of Helao, all servers should be started. 
 import requests
 import sys
 import os
@@ -36,8 +37,8 @@ async def infl():
 
 def doMeasurement(experiment: str):
     global session,sessionname
+    print('experiment: '+experiment)
     experiment = json.loads(experiment)
-    print(experiment)
     experiment['meta'].update(dict(path=os.path.join(config['orchestrator']['path'],f"substrate_{experiment['meta']['substrate']}")))
     #get the provisional run and measurement number
     if session == None:
@@ -46,28 +47,27 @@ def doMeasurement(experiment: str):
         experiment['meta'].update(dict(run=int(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys()))))[4:])))
         measurement = highestName(list(filter(lambda k: k != 'meta',session[f"run_{experiment['meta']['run']}"].keys())))
         #don't add a new measurement if last measurement was empty
-        if list(measurement.keys()) == ['meta']:
+        if list(session[f"run_{experiment['meta']['run']}"][measurement].keys()) == ['meta']:
             experiment['meta'].update(dict(measurement_number=int(measurement[15:])))
         else:
             experiment['meta'].update(dict(measurement_number=int(measurement[15:])+1))
     experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     if experiment['meta']['measurement_number'] != None:
-        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
+        session[f"run_{experiment['meta']['run']}"].update({f"measurement_no_{experiment['meta']['measurement_number']}":{'meta':{'measurement_areas':experiment['meta']['measurement_areas']}}})
     for action_str in experiment['soe']:
+        print(f'action: {action_str}')
         experiment['meta'].update(dict(current_action=action_str))
-        #print(action_str)
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
-        #print(server)
-        #print(fnc)
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
-        #print(action)
-        #print(params)
         if server == 'movement':
             res = requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
                             params= params).json()
         elif server == 'motor':
             res = requests.get("http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server , action),
+                            params= params).json()
+        elif server == 'minipumping':
+            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['minipumpingServer']['host'], config['servers']['minipumpingServer']['port'],server , action),
                             params= params).json()
         elif server == 'pumping':
             res = requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
@@ -106,7 +106,7 @@ def doMeasurement(experiment: str):
             #needs to know where to find the preceding analysis.
             #will also always take the current experiment
             #will return the experiment
-            experiment = json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
+            #experiment = json.loads(requests.get(params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({action_str:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         #provisionally dumping every time until I get clean shutdown and proper backup implemented
@@ -143,18 +143,19 @@ def process_native_command(command: str,experiment: dict):
             session = dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y")))
         #adds a new run to session to receive incoming data
         if "run_0" not in list(session.keys()):
-            session.update(dict(run_0=dict(measurement_number_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
+            session.update(dict(run_0=dict(measurement_no_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])))
             run = 0
         else:
             run = incrementName(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys())))))
-            session.update({run:dict(measurement_number_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
+            session.update({run:dict(measurement_no_0={},meta=experiment['params'][experiment['meta']['current_action'].split('/')[1]])})
             run = int(run[4:])
         #don't put any keys in here that have length less than 4 i guess
         experiment['meta']['run'] = run
         experiment['meta']['measurement_number'] = 0
         session[f"run_{run}"][f"measurement_no_0"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
     elif command == "finish":
-        hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        print('attempting to upload session')
         try:
             print(requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
                             params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path'])).json())
@@ -228,3 +229,4 @@ def disconnect():
             
 if __name__ == "__main__":
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
+    # run an example with

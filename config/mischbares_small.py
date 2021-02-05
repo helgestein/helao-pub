@@ -5,7 +5,7 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          pumpingServer = dict(host="127.0.0.1", port=13371),
                          mecademicServer = dict(host="127.0.0.1", port=13372),
                          movementServer = dict(host="127.0.0.1", port=13373),
-                         autolabServer = dict(host="127.0.0.1", port=13374),
+                         autolabServer = dict(host="127.0.0.1", port=13394),
                          echemServer = dict(host="127.0.0.1", port=13375),
                          kadiServer = dict(host="127.0.0.1", port=13376),
                          dataServer = dict(host="127.0.0.1", port=13377), 
@@ -44,19 +44,19 @@ config['pump']['pumpAddr']['all'] = 20
 
 ## Configuration of the potensiostat
 config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
-                    procp = r"C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures",
+                    procp = r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures",
                     #hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
                     hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88078.xml",
                     micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
-                    proceuduresd = {'cp': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\CP.nox',      
-                                    'ca': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\CA.nox',
-                                    'cv': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\CV.nox',
-                                    'eis': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\eis_fast_final.nox',
-                                    'ocp': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\ocp_signal.nox',
-                                    'on': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\ON.nox',
-                                    'off': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\OFF.nox',
-                                    'ocp_rf': r"C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\ocp_rf_v12.nox",
-                                    'ms': r'C:\Users\LaborRatte23-3\Documents\helao-dev\config\echemprocedures\mott_schotky_no_osc.nox'})
+                    proceuduresd = {'cp': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CP.nox',      
+                                    'ca': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CA.nox',
+                                    'cv': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CV.nox',
+                                    'eis': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\eis_fast_final.nox',
+                                    'ocp': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\ocp_signal.nox',
+                                    'on': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\ON.nox',
+                                    'off': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\OFF.nox',
+                                    'ocp_rf': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\ocp_rf_v12.nox",
+                                    'ms': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\mott_schotky_no_osc.nox'})
 
                                     
 ## Configuration of the electrochemical experiments
@@ -67,7 +67,7 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                          'recordsignal': {'Duration': 1000}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'ca.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -80,7 +80,7 @@ config['echem']['procedures']['ocp'] = {'procedure': 'ocp',
            'setpoints': {'FHLevel': {'Duration':20}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'ocp.nox',
            'parseinstructions': ['FHLevel']}
 
@@ -89,7 +89,7 @@ config['echem']['procedures']['ms'] = {'procedure': 'ms',
            'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
            'plot': 'impedance',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'ms.nox',
            'parseinstructions': ["FIAMeasurement", "FHLevel"]}
 
@@ -98,7 +98,7 @@ config['echem']['procedures']['ocp_rf'] = {'procedure': 'ocp_rf',
            'setpoints': {'FHRefDetermination' : {'Timeout': 20}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'ocp_rf.nox',
            'parseinstructions': ['OCP determination']}
 
@@ -108,7 +108,7 @@ config['echem']['procedures']['cp'] = {'procedure': 'cp',
                          'recordsignal': {'Duration': 600}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'cp.nox',
            'parseinstructions': ['recordsignal']}
 
@@ -123,7 +123,7 @@ config['echem']['procedures']['cv'] = {'procedure': 'cv',
                                       'ScanRate': 0.02}},
            'plot': 'tCV',
            'onoffafter': 'off',
-           'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+           'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
            'filename': 'cv.nox',
            'parseinstructions': ['CVLinearScanAdc164']}
 
@@ -131,7 +131,7 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
             'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
             'plot': 'impedance',
             'onoffafter': 'off',
-            'safepath': r"C:\Users\LaborRatte23-3\Documents\helao-dev\temp",
+            'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
             'filename': 'eis.nox',
             'parseinstructions': ['FIAMeasPotentiostatic']}
 

@@ -40,4 +40,4 @@ pump_test('getPrimings', None)
 pump_test('refreshPrimings', None)
 
 #mini pump
-mini_pump_test('formulation', params=dict(speed= 80, volume= 3000, direction= 1))                      
+mini_pump_test('formulation', params=dict(speed= 80, volume= 500, direction= 1))                      

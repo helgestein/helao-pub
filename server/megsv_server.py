@@ -16,7 +16,6 @@ app = FastAPI(title="MEGSV driver",
 
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 

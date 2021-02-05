@@ -17,7 +17,6 @@ app = FastAPI(title="Autolab server V1",
     version="1.0",)
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
@@ -84,7 +83,7 @@ async def websocket_messages(websocket: WebSocket):
 
 @app.get("/potentiostat/abort")
 def abort():
-    ret = a.abort()
+    a.abort()
     retc = return_class(parameters= None,data= None)
     return retc
 
@@ -126,6 +125,4 @@ def disconnect():
     a.disconnect()
 
 if __name__ == "__main__":
-    autolab_conf = config['autolab']
-    a = Autolab(config['autolab'])
     uvicorn.run(app, host=config['servers']['autolabServer']['host'], port=config['servers']['autolabServer']['port'])

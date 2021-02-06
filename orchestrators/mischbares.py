@@ -33,9 +33,9 @@ async def sendMeasurement(experiment: str):
 async def infl():
     while True:
         experiment = await experiment_queue.get()
-        doMeasurement(experiment)
+        await doMeasurement(experiment)
 
-def doMeasurement(experiment: str):
+async def doMeasurement(experiment: str):
     global session,sessionname
     print('experiment: '+experiment)
     experiment = json.loads(experiment)
@@ -159,6 +159,8 @@ def process_native_command(command: str,experiment: dict):
             print('automatic upload of completed session failed')
         hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementName(sessionname)+'.hdf5'),mode='w')
         #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
+    elif command == "dummy":
+        time.sleep(2)
     else:
         print("error: native command not recognized")
     return experiment

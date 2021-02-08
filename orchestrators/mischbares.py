@@ -60,23 +60,25 @@ async def doMeasurement(experiment: str):
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
         if server == 'movement':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server,action),params=params)
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server,action),params=params).json()
         elif server == 'motor':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server,action),params=params)
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server,action),params=params).json()
         elif server == 'pumping':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server,action),params=params)
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server,action),params=params).json()
+        elif server == 'minipumping':
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['minipumpingServer']['host'], config['servers']['minipumpingServer']['port'],server,action),params=params).json()
         elif server == 'echem':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server,action),params=params)
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server,action),params=params).json()
         elif server == 'forceAction':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server,action),params=params)
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server,action),params=params).json()
             print(res)
+        elif server == 'table':
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server,action),params=params).json()
+        elif server == 'oceanAction':
+            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server,action),params=params).json()
         elif server == 'data':
             await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server,action),params=params)
             continue
-        elif server == 'table':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server,action),params=params)
-        elif server == 'oceanAction':
-            res = await loop.run_in_executor(None,requests.get,"http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server,action),params=params)
         elif server == 'orchestrator':
             experiment = await loop.run_in_executor(None,process_native_command,action,experiment)
             continue
@@ -98,7 +100,7 @@ async def doMeasurement(experiment: str):
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({action_str:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         #provisionally dumping every time until I get clean shutdown and proper backup implemented
-        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        #hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 

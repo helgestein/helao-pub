@@ -81,10 +81,4 @@ class kadi():
 
     def isFileInRecord(self,ident,filename):
         record = Record(identifier=ident)
-        response = record.get_filelist(per_page=100).json()
-        for i in range(response['_pagination']['total_pages']):
-            page = record.get_filelist(page=i,per_page=100).json()
-            for item in page['items']:
-                if item['name'] == filename:
-                    return True
-        return False
+        return record.has_file(filename)

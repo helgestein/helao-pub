@@ -2,7 +2,7 @@ import numpy
 from scipy.ndimage import correlate
 from math import sin,cos
 from scipy.optimize import minimize
-from julia import Julia
+from julia import BackgroundSubtraction
 
 def kernel(d):
     #returns a dxd matrix with value 1 for all values i,j within radius d/2 of matrix center, 0 otherwise
@@ -10,28 +10,26 @@ def kernel(d):
 
 def list_to_matrix(l):
     #list contains a length 3 list for each spectrum
-    #index 0 is x-position of spectrum
-    #index 1 is y-position of spectrum
+    #index 0 is list containing x-position and y-position
     #index 2 is grayscale value or color vector, should typically be non-background share of spectrum intensity
 
     #matrix format stores position in indices i and j in matrix
     #currently, a rectangular grid of samples is assumed
     #i = (x-x0)/dx, j = (y-y0)/dy
     #value at i,j is grayscale value or color vector, should typically be non-background share of spectrum intensity
-    xs = [i[0] for i in l]
-    ys = [i[1] for i in l]
+    xs = [i[0][0] for i in l]
+    ys = [i[0][1] for i in l]
     minx = min(xs)
     miny = min(ys)
     maxx = max(xs)
     maxy = max(ys)
     dx = (maxx-minx)/len(xs)
     dy = (maxy-miny)/len(ys)
-    mat = numpy.empty((dx,dy))
+    mat = numpy.empty((round((maxx-minx)/dx),round((maxy-miny)/dy)))
     for i in l:
-        mat[round((i[1]-minx)/dx)][round((i[2]-miny)/dy)] = i[2]
+        mat[round((i[1]-minx)/dx)][round((i[2]-miny)/dy)] = i[1]
     return [mat,minx,miny,dx,dy]
     
-
 def matrix_to_list(mat,x0,y0,dx,dy):
     pass
 
@@ -78,10 +76,12 @@ def optimize_lattice(peaks,a1,a2):
     fit_func = lambda x: fitness(peaks,x[:2],x[2],a1,a2)
     return minimize(fit_func,numpy.array([0,0,0]),method='nelder-mead')
 
-
-def make_image():
-    j = Julia().include('C:/Users/jkflowers/BackgroundSubtraction.jl-master/src/background.jl')
-    #lol
+def get_background(Agrid):
+    A = numpy.array([i[1] for i in Agrid]).T
+    k = 2
+    l = .02
+    x = numpy.array([i/1000 for i in range(1044)])
+    return BackgroundSubtraction.mcbl(A, k, x, l)
 
 #so next: implement the background subtraction
 #function to take in a basis and a grid, or just a list of weights...

@@ -33,10 +33,10 @@ async def sendMeasurement(experiment: str):
 async def infl():
     while True:
         experiment = await experiment_queue.get()
-        doMeasurement(experiment)
+        await doMeasurement(experiment)
 
-def doMeasurement(experiment: str):
-    global session,sessionname
+async def doMeasurement(experiment: str):
+    global session,sessionname,loop
     print('experiment: '+experiment)
     experiment = json.loads(experiment)
     experiment['meta'].update(dict(path=os.path.join(config['orchestrator']['path'],f"substrate_{experiment['meta']['substrate']}")))
@@ -60,33 +60,27 @@ def doMeasurement(experiment: str):
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
         if server == 'movement':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server , action),
-                            params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'],server,action))
         elif server == 'motor':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server , action),
-                            params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'],server,action))
         elif server == 'pumping':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server, action),
-                        params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'],server,action))
+        elif server == 'minipumping':
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['minipumpingServer']['host'], config['servers']['minipumpingServer']['port'],server,action))
         elif server == 'echem':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server, action),
-                        params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['echemServer']['host'], config['servers']['echemServer']['port'],server,action))
         elif server == 'forceAction':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server, action),
-                        params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['sensingServer']['host'], config['servers']['sensingServer']['port'],server,action))
             print(res)
-        elif server == 'data':
-            requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server, action),
-                        params= params)
-            continue
         elif server == 'table':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server, action),
-                        params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['tableServer']['host'], config['servers']['tableServer']['port'],server,action))
         elif server == 'oceanAction':
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server, action),
-                        params= params).json()
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),"http://{}:{}/{}/{}".format(config['servers']['smallRamanServer']['host'], config['servers']['smallRamanServer']['port'],server,action))
+        elif server == 'data':
+            await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server,action))
+            continue
         elif server == 'orchestrator':
-            experiment = process_native_command(action,experiment)
+            experiment = await loop.run_in_executor(None,process_native_command,action,experiment)
             continue
         elif server == 'analysis':
             #should be able to input either the current session or a dataset from elsewhere.
@@ -95,18 +89,18 @@ def doMeasurement(experiment: str):
             #does the analysis go into the session, or does it go somewhere else?
             #so, will analysis always be on just one substrate, or multiple?
             #
-            res = requests.get("http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server, action),
-                        params= params).json()
+            #res = await requests.get("http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server, action),
+            #            params= params).json()
             continue
         elif server == 'learning':
             #needs to know where to find the preceding analysis.
             #will also always take the current experiment
             #will return the experiment
-            experiment = json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
+            #experiment = await json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
             continue
-        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({action_str:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
+        session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         #provisionally dumping every time until I get clean shutdown and proper backup implemented
-        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        #hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
@@ -159,6 +153,9 @@ def process_native_command(command: str,experiment: dict):
             print('automatic upload of completed session failed')
         hdfdict.dump(dict(meta=dict()),os.path.join(experiment['meta']['path'],incrementName(sessionname)+'.hdf5'),mode='w')
         #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
+    elif command == "dummy":
+        print("executing 2 second dummy experiment")
+        time.sleep(2)
     else:
         print("error: native command not recognized")
     return experiment
@@ -213,6 +210,8 @@ async def memory():
     global experiment_queue
     experiment_queue = asyncio.Queue()
     asyncio.create_task(infl())
+    global loop
+    loop = asyncio.get_event_loop()
 
 @app.on_event("shutdown")
 def disconnect():
@@ -225,88 +224,3 @@ def disconnect():
             
 if __name__ == "__main__":
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
-    # run an example with
-    # json.dumps({"soe": ["movement/moveToHome_0", "movement/moveUp_0", "movement/moveUp_1"], "params": {"moveToHome_0": None, "moveUp_0": {"z": 50}, "moveUp_1": {"z": -60}}})
-    # {"soe": ["movement/moveToHome_0", "movement/moveUp_0"], "params": {"moveToHome_0": null, "moveUp_0": {"z": 50}}}
-    #  {"soe": ["movement/moveToHome_0"], "params": {"moveToHome_0": null}}
-    '''
-    B = dict(
-        soe=['movement/moveToHome_0','movement/alignment_0','movement/mvToWaste_0','pumping/formulation_0',
-        'movement/removeDrop_0','movement/moveToHome_1','movement/mvToSample_0',
-        'echem/measure_0','pump/formulation_1','movement/moveToHome_2','movement/mvToWaste_1',
-        'pumping/formulation_2','movement/removeDrop_1','movement/moveToHome_3','movement/mvToSample_1',
-        'echem/measure_1','pump/formulation_3'], 
-        params = dict(  moveToHome_0 = None,
-                        alignment_0 = None,
-                        mvToWaste_0 = dict(x= 0.0,y= 0.0),
-                        formulation_0 = dict(formulation= [0.2,0.2,0.2,0.2,0.2],
-                                            pumps= [0,1,2,3,4],
-                                            speed= 1000,
-                                            direction= -1,
-                                            stage= True,
-                                            totalVol= 2000),
-                        removeDrop_0 = dict(y= -20),
-                        moveToHome_1 = None,
-                        mvToSample_0 = dict(x= 20, y= 10),
-                        measure_0= dict(procedure= 'ca',
-                                        setpoints= dict(applypotential = {'Setpoint value': -0.5},
-                                                        recordsignal= {'Duration': 300}),
-                                    plot= False,
-                                    onoffafter= 'off'),
-                        formulation_1 = dict(formulation=[1],
-                                            pumps=[5],
-                                            speed=4000,
-                                            direction=1,
-                                            stage=True,
-                                            totalVol=2000),
-                        moveToHome_2 = None,
-                        mvToWaste_1 = dict(position= {'x':0.0,'y':0.0}),
-                        formulation_2 = dict(formulation= [2],
-                                            pumps= [5],
-                                            speed= 4000,
-                                            direction= 1,
-                                            stage= True,
-                                            totalVol= 2000), 
-                        removeDrop_1 = dict(y = -20), 
-                        moveToHome_3 = None,
-                        mvToSample_1 = dict(x= 18, y= 8), 
-                        measure_1= dict(procedure= 'ca',
-                                        setpoints= dict(applypotential = {'Setpoint value': -0.5},
-                                                        recordsignal= {'Duration': 300}),
-                                        plot= False,
-                                        onoffafter= 'off'),
-                        formulation_3 = dict(formulation=[1],
-                                            pumps=[5],
-                                            speed=4000,
-                                            direction=1,
-                                            stage=True,
-                                            totalVol=2000)),
-        exp_name = 'B')
-
-    
-
-
-    global_experiment_list = [A]
-    #addrecord_0= dict(ident= 1,title= 'electrodeposition', filed= 'cu-No3', visibility='private',meta=None)
-        
-    #experiment = json.dumps(experiment_spec)
-
-    uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])
-    print("orchestrator is instantiated. ")
-
-    
-
-    {"soe": ["movement/moveToHome_0", "movement/alignment_0", "movement/mvToWaste_0", "pumping/formulation_0", "movement/removeDrop_0", 
-    "movement/moveToHome_1", "movement/mvToSample_0", "echem/measure_0", "pump/formulation_1", "movement/moveToHome_2", "movement/mvToWaste_1", 
-    "pumping/formulation_2", "movement/removeDrop_1", "movement/moveToHome_4", "movement/mvToSample_1", "echem/measure_1", "pump/formulation_3"], 
-    "params": {"moveToHome_0": null, "alignment_0": null, "mvToWaste_0": {"x": 0.0, "y": 0.0}, "formulation_0": {"formulation": [0.2, 0.2, 0.2, 0.2, 0.2], 
-    "pumps": [0, 1, 2, 3, 4], "speed": 1000, "direction": -1, "stage": true, "totalVol": 2000}, "removeDrop_0": {"y": -20}, 
-    "moveToHome_1": null, "mvToSample_0": {"x": 20, "y": 10}, "measure_0": {"procedure": "ca", "setpoints": {"applypotential": {"Setpoint value": -0.5}, 
-    "recordsignal": {"Duration": 300}}, "plot": false, "onoffafter": "off"}, "fomulation_1": {"formulation": [1], "pumps": [5], "speed": 4000, "direction": 1, 
-    "stage": true, "totalVol": 2000}, "moveToHome_2": null, "mvToWaste_1": {"position": {"x": 0.0, "y": 0.0}}, 
-    "fomulation_2": {"formulation": [1], "pumps": [5], "speed": 4000, "direction": 1, "stage": true, "totalVol": 2000}, 
-    "removeDrop_1": {"y": -20}, "moveToHome_3": null, "mvToSample_1": {"x": 18, "y": 8}, "measure_1": {"procedure": "ca", 
-    "setpoints": {"applypotential": {"Setpoint value": -0.5}, "recordsignal": {"Duration": 300}}, "plot": false, "onoffafter": "off"}, 
-    "fomulation_3": {"formulation": [1], "pumps": [5], "speed": 4000, "direction": 1, "stage": true, "totalVol": 2000}}}
-
-    '''

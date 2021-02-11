@@ -177,25 +177,30 @@ def highestName(names:list):
     #take in a list of strings which differ only by an integer, and return the one for which that integer is highest
     #another function I am performing often enough that it deserves it's own tool
     #used for finding the most recent run, measurement number, and session
+    print(f"names: {names}")
     if len(names) == 1:
         return names[0]
     else:
-        slen = len(names[0])
+        slen = min([len(i) for i in names])
         leftindex = None
         rightindex = None
         for i in range(slen):
             for s in names:
                 if s[i] != names[0][i]:
+                    print(f"1:{s[i]},2:{names[0][i]},i:{i}")
                     leftindex = i
-                    i = slen
                     break
+            if leftindex != None:
+                break
         for i in range(-1,-slen-1,-1):
             for s in names:
                 if s[i] != names[0][i]:
                     rightindex = i
                     i = -slen-1
                     break
-        #assert leftindex < slen - rightindex
+            if rightindex != None:
+                break
+        print(f"l: {leftindex}, r: {rightindex}")
         numbers = [int(s[leftindex:rightindex+1] if rightindex != -1 else s[leftindex:]) for s in names]
         return names[numbers.index(max(numbers))]
 

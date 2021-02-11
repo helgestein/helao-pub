@@ -180,7 +180,6 @@ if __name__ == "__main__":
         soe.append("table/configure_1")
         params.update({"configure_1":dict(motor=1)})
         experiment = dict(soe=soe,params=params,meta=dict(substrate=0,ma=[4,4],r=.1))
-        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
         
         i = 0
@@ -191,7 +190,7 @@ if __name__ == "__main__":
         with open('C:/Users/Operator/Desktop/Hgrid.json','r') as infile:
             data = json.load(infile)
         grid = [i[0] for i in data]
-        grid = [[4,4],[5,5],[6,6]]
+        grid = [[4,4],[5,5],[6,6],[7,7],[8,8],[9,9],[10,10],[11,11],[12,12],[13,13],[14,14],[15,15],[16,16],[17,17],[18,18],[19,19],[20,20]]
         for loc in grid:
             soe = []
             params = {}

@@ -23,8 +23,8 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          minipumpServer = dict(host= "127.0.0.1", port= 13389),
                          minipumpingServer = dict(host= "127.0.0.1", port= 13390))
 
-config['kadi'] = dict(host = r"https://kadi4mat.iam-cms.kit.edu",
-            PAT = r"98d7dfbcd77a9163dde2e8ca34867a4998ecf68bc742cf4e",group='12')
+config['kadi'] = dict(host = r"https://polis-kadi4mat.iam-cms.kit.edu",
+            PAT = r"78ac200f0379afb4873c7b0ee71f5489946158fe882466a9",group='2')
 
 config['movement'] = dict(
     safe_sample_joints = [-56.0, 30.0, 40.0, 5.0, -72.0, 0.0],
@@ -49,7 +49,7 @@ config['autolab'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 
                     hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88078.xml",
                     micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
                     proceuduresd = {'cp': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CP.nox',      
-                                    'ca': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CA.nox',
+                                    'ca': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CA_corrected.nox',
                                     'cv': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\CV.nox',
                                     'eis': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\eis_fast_final.nox',
                                     'ocp': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\ocp_signal.nox',
@@ -143,7 +143,7 @@ config['lang'] = dict(vx = 5, vy = 5, vz = 5, port = 'COM3',
                       safe_home_pos = [0.0, 0.0, 0.0], 
                       safe_waste_pos = [30.0, 100.0, 0.0], # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                       safe_sample_pos = [9.0, 10.0, 0.0], 
-                      remove_drop= [30.0, 80.0, 9.75]) #1.3 #4.5
+                      remove_drop= [30.0, 75.0, 12.26]) #1.3 #4.5 #30.0, 80.0, 9.75
  
 #Configuration of the Arcoptix FTIR
 #config['arcoptix'] = dict(dll = r'C:\Users\jkflowers\Desktop\arcoptix\API\Rocket_2_4_9_LabVIEWDrivers\200-LabVIEWDrivers\ARCsoft.ARCspectroMd')

@@ -106,7 +106,7 @@ async def performMeasurement(procedure: str,setpointjson: str ,plot:str,onoffaft
                     parameters= {'command':'measure',
                                 'parameters':dict(procedure=procedure,setpointjson= setpointjson,
                                                   plot=plot,onoffafter=onoffafter,safepath=safepath,filename=filename, parseinstruction= parseinstruction)},
-                    data = {'data':data})
+                    data = data)
     return retc
 
 

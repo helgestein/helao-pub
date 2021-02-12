@@ -47,6 +47,36 @@ def collectionExists(ident:str):
     #determine whether a collection with the given identifier exists
     return requests.get("{}/kadi/collectionexists".format(url),params={'ident':ident}).json()
 
+@app.get("/data/downloadfilesfromrecord")
+def downloadFilesFromRecord(ident:str,filepath:str):
+    #download all files from record
+    requests.get("{}/kadi/downloadfilesfromrecord".format(url),params={'ident':ident,'filepath':filepath})
+
+@app.get("/data/downloadfilesfromcollection")
+def downloadFilesFromCollection(ident:str,filepath:str):
+    #download all files from all records in collection
+    requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filepath})
+    
+@app.get("/data/isfileinrecord")
+def isFileInRecord(ident:str,filename:str):
+    return requests.get("{}/kadi/isfileinrecord".format(url),params={'ident':ident,'filename':filename}).json()
+
+@app.get("/data/uploadhdf5")
+def uploadHDF5(filename:str,filepath:str):
+    #check if proper collection exists
+    cname = "stein_substrate_"+filename.split('_')[1]
+    if not collectionExists(cname):
+        addCollection(cname,cname[7:])
+    #create proper record
+    addRecord('filename','filename')
+    addRecordToCollection(cname,filename)
+    #upload hdf5 to record
+    addFileToRecord(filename,os.path.join(filepath,filename))
+    #i will need to add metadata capability for this, 
+    #but want to have another conversation with helge and fuzhan first
+    #so probably will not implement this feature on the first pass
+    return "upload successful"
+
 @app.get("/data/reformatmetadata")
 def reformatMetadata(metadata:dict):
     #take a metadata dictionary as input, and convert it into a format amenable to kadi.
@@ -64,7 +94,7 @@ def reformatMetadata(metadata:dict):
 @app.get("/data/extractdata")
 def extractData(metadata:dict):
     #pull out whatever is under the lowest key called "data" in a nested set of dictionaries and lists of dictionaries
-    #obsoleted by the fact that records will now comprise multiple actions
+    #obsoleted by the fact that records will now comprise multiple actions (october 2020?)
     if 'data' in metadata:
         if type(metadata['data']) == dict:
             return extractData(metadata['data'])
@@ -76,6 +106,8 @@ def extractData(metadata:dict):
 @app.get("/data/findfilepath")
 def findFilepath(metadata:dict):
     #search dictionary for filepaths
+    #obsoleted by the significant changes to our data management system made in january 2021
+    #though actually i think i stopped using this function in like december
     safepaths = []
     filenames = []
     for key,val in metadata.items():
@@ -105,7 +137,7 @@ def findFilepath(metadata:dict):
 
 @app.get("/data/makerecordfromfile")
 def makeRecordFromFile(filename:str,filepath:str,visibility:str='private'):
-    #obsoleted by the fact that records will now comprise multiple actions
+    #obsoleted by the fact that records will now comprise multiple actions (october 2020?)
     data = json.load(open(os.path.join(filepath,filename),'r'))
     filed = json.dumps(extractData(data))
     meta = json.dumps(reformatMetadata(data))
@@ -121,23 +153,10 @@ def makeRecordFromFile(filename:str,filepath:str,visibility:str='private'):
     else:
         print("record already exists")
 
-@app.get("/data/downloadfilesfromrecord")
-def downloadFilesFromRecord(ident:str,filepath:str):
-    #download all files from record
-    requests.get("{}/kadi/downloadfilesfromrecord".format(url),params={'ident':ident,'filepath':filepath})
-
-@app.get("/data/downloadfilesfromcollection")
-def downloadFilesFromCollection(ident:str,filepath:str):
-    #download all files from all records in collection
-    requests.get("{}/kadi/downloadfilesfromcollection".format(url),params={'ident':ident,'filepath':filepath})
-    
-@app.get("/data/isfileinrecord")
-def isFileInRecord(ident:str,filename:str):
-    return requests.get("{}/kadi/isfileinrecord".format(url),params={'ident':ident,'filename':filename}).json()
-
 @app.get("/data/assimilatefile")
 def assimilateFile(filename:str,filepath:str):
 #assimilate file into our kadi system, defined such that each measurement area is a record and each substrate is a collection
+#obsoleted by the significant changes to our data management system made in january 2021
     substrate,ma = filename.split("_")[1:3]
     recordname = substrate+"_"+ma
     collectionname = "stein_substrate_"+substrate
@@ -159,11 +178,3 @@ if __name__ == "__main__":
 
     uvicorn.run(app, host=config['servers']['dataServer']['host'], port=config['servers']['dataServer']['port'])
     print("instantiated kadi action")
-
-
-
-
-
-
-
-

@@ -1,5 +1,5 @@
 # HELAO-dev repository
-Helao is deploys Hierachical Experimental Laboratory Orchestration
+Helao deploys Hierachical Experimental Laboratory Orchestration
 
 
 ## getting started

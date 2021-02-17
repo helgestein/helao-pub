@@ -23,7 +23,7 @@ def test_fnc(sequence):
     print("requesting")
     requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,server ,action),params= params).json()
 
-substrate = 19
+
 # real run 
 x, y= np.meshgrid([5 * i for i in range(8)], [5 * i for i in range(8)])
 x, y = x.flatten(), y.flatten()
@@ -34,7 +34,8 @@ uppervort = [x+0.2 for x in cv_pot]
 lowervort = [x-0.2 for x in cv_pot]
 eis_pot = [i for i in np.arange(-0.2, 0.2, 0.04)]
 
-def ca_exp(dx, dy, dz, ca_time, j , pot, substrate):
+
+def ca_exp(dx, dy, dz, ca_time, j , pot, substrate, procedure):
     run_sequence= dict(soe=['motor/moveWaste_0', 'minipumping/formulation_0', 'motor/RemoveDroplet_0','motor/moveSample_0', 
                         'motor/moveAbs_1','motor/moveDown_0','echem/setcurrentrange_0',
                         'echem/measure_0', 'motor/moveRel_0', 'motor/moveWaste_1'],
@@ -50,15 +51,15 @@ def ca_exp(dx, dy, dz, ca_time, j , pot, substrate):
                                                     plot="tCV",
                                                     onoffafter="off",
                                                     safepath="C:/Users/LaborRatte23-3/Documents/GitHub/helao-dev/temp",
-                                                    filename="substrate_{}_ca_{}_{}.nox".format(substrate, j, ca_time),
+                                                    filename="substrate_{}_{}_{}_{}.nox".format(substrate, procedure, j, ca_time),
                                                     parseinstructions='recordsignal'), 
                                     moveRel_0= dict(dx=0, dy=0, dz=-4),
                                     moveWaste_1= dict(x=0, y=0, z=0)),
-                                    meta=dict(substrate=15, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
+                                    meta=dict(substrate=substrate, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
     return run_sequence
 
 
-def cp_exp(dx, dy, dz, cp_time, j , cur, substrate):
+def cp_exp(dx, dy, dz, cp_time, j , cur, substrate, procedure):
     run_sequence= dict(soe=['motor/moveWaste_0', 'minipumping/formulation_0', 'motor/RemoveDroplet_0','motor/moveSample_0', 
                     'motor/moveAbs_1','motor/moveDown_0','echem/setcurrentrange_0',
                     'echem/measure_0', 'motor/moveRel_0', 'motor/moveWaste_1'],
@@ -74,15 +75,15 @@ def cp_exp(dx, dy, dz, cp_time, j , cur, substrate):
                                                 plot="tCV",
                                                 onoffafter="off",
                                                 safepath="C:/Users/LaborRatte23-3/Documents/GitHub/helao-dev/temp",
-                                                filename="substarte_{}_cp_{}_{}.nox".format(substrate, j, cp_time),
+                                                filename="substarte_{}_{}_{}_{}.nox".format(substrate, procedure, j, cp_time),
                                                 parseinstructions='recordsignal'), 
                                 moveRel_0= dict(dx=0, dy=0, dz=-4),
                                 moveWaste_1= dict(x=0, y=0, z=0)),
-                                meta=dict(substrate=15, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
+                                meta=dict(substrate=substrate, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
     return run_sequence
 
 
-def cv_exp(dx, dy, dz, uppervort, lowervort, j, substrate):
+def cv_exp(dx, dy, dz, uppervort, lowervort, j, substrate, procedure):
     run_sequence= dict(soe=['motor/moveWaste_0', 'minipumping/formulation_0', 'motor/RemoveDroplet_0','motor/moveSample_0', 
                         'motor/moveAbs_1','motor/moveDown_0','echem/setcurrentrange_0',
                         'echem/measure_0', 'motor/moveRel_0', 'motor/moveWaste_1'],
@@ -99,43 +100,52 @@ def cv_exp(dx, dy, dz, uppervort, lowervort, j, substrate):
                                                     plot="tCV",
                                                     onoffafter="off",
                                                     safepath="C:/Users/LaborRatte23-3/Documents/GitHub/helao-dev/temp",
-                                                    filename="substrate_{}_cv_{}.nox".format(substrate, j),
+                                                    filename="substrate_{}_{}_{}.nox".format(substrate, procedure, j),
                                                     parseinstructions='CVLinearScanAdc164'), 
                                     moveRel_0= dict(dx=0, dy=0, dz=-4),
                                     moveWaste_1= dict(x=0, y=0, z=0)),
-                                    meta=dict(substrate=15, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
+                                    meta=dict(substrate=substrate, ma=[round(dx* 100)*10, round(dy * 100)*10],  r=0.005))
     return run_sequence
 
 
 # plan of the experiment
 all_seq = {}
+exp_seq = []
 time_exp = [300, 600, 900, 1200]
 substrate = 19
+seed_num = 4
 time_exp = list(itertools.chain.from_iterable(itertools.repeat(x, 8) for x in time_exp))
+for i in range(32):
+    exp_seq.append(('ca', time_exp[i]))
+    exp_seq.append(('cp', time_exp[i]))
+random.seed(seed_num)
+random.shuffle(exp_seq)
 
-for j, ca_time in zip(range(32), time_exp):
+test_fnc(dict(soe=['orchestrator/start'],params={'start':None},meta=dict(substrate=substrate, ma=[config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=0.005)))
+
+
+for j in range(64):
     print("{}, {}".format(x[j], y[j]))
     dx = config['lang']['safe_sample_pos'][0] + x[j]
     dy = config['lang']['safe_sample_pos'][1] + y[j]
     dz = config['lang']['safe_sample_pos'][2]
-    all_seq.update({j:  ca_exp(dx, dy, dz, ca_time, j , pot[j%8], substrate)})
+    print(exp_seq[j])
+    if exp_seq[j][0] == 'ca':
+        soe = ca_exp(dx, dy, dz, exp_seq[j][1], j , pot[j%8], substrate, exp_seq[j][0])
+    
+    else: 
+        soe = cp_exp(dx, dy, dz, exp_seq[j][1], j , cur[j%8], substrate, exp_seq[j][0])
 
-for j, cp_time in zip(range(32, 64, 1), time_exp):
-    print("{}, {}".format(x[j], y[j]))
-    dx = config['lang']['safe_sample_pos'][0] + x[j]
-    dy = config['lang']['safe_sample_pos'][1] + y[j]
-    dz = config['lang']['safe_sample_pos'][2]
-    all_seq.update({j: cp_exp(dx, dy, dz, cp_time, j , cur[j%8], substrate)})
+    all_seq.update({j : exp_seq[j]})
+    test_fnc(soe)
 
-# Randomizing the experiment for avoiding overfitting 
-random.seed(4)
-random.shuffle(all_seq)
+with open('process_{}.json'.format(substrate), 'w') as f:
+    json.dump(all_seq, f)
 
-test_fnc(dict(soe=['orchestrator/start'],params={'start':None},meta=dict(substrate=15, ma=[config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=0.005)))
 
-test_fnc(run_sequence)
+test_fnc(dict(soe=['orchestrator/finish'],params={'finish':None},meta=dict(substrate=substrate, ma=[config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=0.005)))
 
-test_fnc(dict(soe=['orchestrator/finish'],params={'finish':None},meta=dict(substrate=15, ma=[config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=1)))
+
 
 
 

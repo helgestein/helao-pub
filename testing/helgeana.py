@@ -1,19 +1,11 @@
 import json
 import numpy as np
 import matplotlib.pyplot as plot
-import julia
-julia.install()
-from julia import LinearAlgebra
-from julia import LinearAlgebraExtensions
-from julia import CovarianceFunctions
-from julia import KroneckerProducts
-from julia import LazyInverse
-from julia import WoodburyIdentity
 from julia import BackgroundSubtraction
 from sklearn.decomposition import NMF
 
 #load the data
-with open('C:/Users/jkflowers/Downloads/Xgridmini.json') as json_file:
+with open('C:/Users/Operator/Desktop/Xgridmini.json') as json_file:
     data = json.load(json_file)
 
 #make a matrix for the data and a list for position

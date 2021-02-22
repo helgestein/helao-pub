@@ -99,8 +99,8 @@ async def doMeasurement(experiment: str):
             #experiment = await json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
-        #provisionally dumping every time until I get clean shutdown and proper backup implemented
-        #hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        #provisionally dumping every time until proper backup implemented
+        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 

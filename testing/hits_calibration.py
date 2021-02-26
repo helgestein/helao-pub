@@ -1,4 +1,6 @@
 from math import sin,cos,ceil,floor,pi
+import os
+import time
 import json
 import numpy
 from scipy.ndimage import correlate
@@ -23,17 +25,18 @@ def list_to_matrix(l):
     #currently, a rectangular grid of samples is assumed
     #i = (x-x0)/dx, j = (y-y0)/dy
     #value at i,j is grayscale value or color vector, should typically be non-background share of spectrum intensity
-    xs = [i[0][0] for i in l]
-    ys = [i[0][1] for i in l]
+    xs = list(dict.fromkeys([i[0][0] for i in l]))
+    ys = list(dict.fromkeys([i[0][1] for i in l]))
     minx = min(xs)
     miny = min(ys)
     maxx = max(xs)
     maxy = max(ys)
-    dx = (maxx-minx)/len(xs)
-    dy = (maxy-miny)/len(ys)
-    mat = numpy.empty((round((maxx-minx)/dx),round((maxy-miny)/dy)))
+    dx = (maxx-minx)/(len(xs)-1)
+    dy = (maxy-miny)/(len(ys)-1)
+    mat = numpy.empty((round((maxx-minx)/dx)+1,round((maxy-miny)/dy)+1))
+    #print(f"minx: {minx}, maxx: {maxx}, miny: {miny}, maxy: {maxy}, shape: {mat.shape}")
     for i in l:
-        mat[round((i[1]-minx)/dx)][round((i[2]-miny)/dy)] = i[1]
+        mat[round((i[0][0]-minx)/dx)][round((i[0][1]-miny)/dy)] = i[1]
     return (mat,minx,miny,dx,dy)
     
 def matrix_to_list(mat,x0=0,y0=0,dx=1,dy=1):
@@ -95,8 +98,8 @@ def optimize_lattice(peaks,a1,a2):
 def get_background(Agrid,k=2,l=.02):
     A = numpy.array([i[1] for i in Agrid]).T
     x = numpy.array([i/1000 for i in range(1044)])
-    bg = BackgroundSubtraction.mcbl(A, k, x, l).T.tolist()
-    return [[A[i][0],bg[i]] for i in range(len(A))]
+    bg = numpy.transpose(BackgroundSubtraction.mcbl(A, k, x, l)).tolist()
+    return [[Agrid[i][0],bg[i]] for i in range(len(Agrid))]
 
 def nnmf_basis(Xgrid,n,bg=None):
     X = list_to_matrix(Xgrid).T
@@ -131,6 +134,83 @@ def greyscale_basis(Hgrid,i,neg=True):
     #return Image.fromarray(inflatedgreymatrix,mode='I') #imshow? how do i look at it
 
 
+async def constant_refresh(window):
+    while len(asyncio.all_tasks()) == 2:
+        window.refresh()
+    return None
+
+#refresh the gui while awaiting a long calculation, so that is does not freak out
+async def await_calculation(window,f,params):
+    keylist = []
+    for item in window.layout:
+        if not item.disabled and item.key != 'cancel':
+            keylist.append(item.key)
+            window[item.key].update(disabled=True)
+    res = await asyncio.gather(asyncio.run_in_executor(None,f,params),constant_refresh(window))
+    for key in keylist:
+        window[key].update(disabled=False)
+    return res[0]
+
+#take in a greyscale list tied to positions and change each pixel value x to 1-x
+def negate(l):
+    return [[l[0],1-l[1]] for i in l]
+
+#get the indices of all elements in a list 'l' that meet a condition 'c' 
+def index_conditional(c,l):
+    c2 = lambda x: c(x[1])
+    return [i[0] for i in filter(c2,enumerate(l))]
+
+#a key function to convert my lists of positions + image data to PIL images with all other necessary information superimposed
+#image should be grayscale, color will be used to superimpose peaks and lat
+def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Documents/calibration'):
+    mat,x0,y0,dx,dy = list_to_matrix(contrast(l))
+    mat = numpy.repeat(numpy.repeat(mat,inflation,axis=0),inflation,axis=1)
+    cmat = numpy.zeros((mat.shape[0],mat.shape[1],3))
+    for i in range(cmat.shape[0]):
+        for j in range(cmat.shape[1]):
+            cmat[i][j] = numpy.repeat(mat[i][j],3)
+    h = (inflation+1)/2 if inflation%4 == 1 else (inflation-1)/2 if inflation%4 == 3 else 2*ceil(inflation/4)
+    d = (inflation-h)/2
+    if peaks != None:
+        for peak in peaks:
+            c = numpy.round((numpy.array(peak)-numpy.array([x0,y0]))/numpy.array([dx,dy]))
+            for i in range(cmat.shape[0]):
+                for j in range(cmat.shape[1]):
+                    if i in range(c[0]*inflation+d,c[0]*inflation+inflation-d) and j in range(c[1]*inflation+d,c[1]*inflation+inflation-d):
+                        cmat[i][j] = numpy.array([0,0,1])
+    if lat != None:
+        lx,ly,theta = lat
+        xf,yf = x0+dx*len(l),y0+dy*len(l)
+        ij = lambda x,y: [cos(theta)*(x-lx)/dx+sin(theta)*(y-ly)/dy,cos(theta)*(y-ly)/dy-sin(theta)*(x-lx)/dx]
+        cs = [ij(x0,y0),ij(x0,yf),ij(xf,y0),ij(xf,yf)]
+        cis = [i[0] for i in cs]
+        cjs = [j[1] for j in cs]
+        cimin = floor(min(cis))
+        cimax = ciel(max(cis))
+        cjmin = floor(min(cjs))
+        cjmax = ciel(max(cjs))
+        grid = numpy.array(filter(lambda x: max(x0,lx)-lx <= x[0] <= xf+lx and max(y0,ly)-ly <= x[1] <= yf+ly,[[lx+i*cos(theta)*dx-j*sin(theta)*dy,ly+i*sin(theta)*dx+j*cos(theta)*dy] for i in range(cimin,cimax+1) for j in range(cjmin,cjmax+1)]))
+        basegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/numpy.array([dx,dy])) for loc in grid])
+        finegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/(numpy.array([dx,dy])/inflation)) for loc in grid])
+        mindexi = numpy.amin(basegrid[:,0])-1
+        maxdexi = numpy.amax(basegrid[:,0])+1
+        mindexj = numpy.amin(basegrid[:,1])-1
+        maxdexj = numpy.amax(basegrid[:,1])+1
+        bigmat = numpy.zeroes(((maxdexi-mindexi+1)*inflation,(maxdexj-mindexj+1)*inflation,3))
+        for i in range(cmat.shape[0]):
+            for j in range(cmat.shape[1]):
+                bigmat[i-mindexi*inflation][j-mindexj*inflation] = cmat[i][j]
+        r = floor((inflation-1)/4)
+        for loc in finegrid:
+            for i in range(bigmat.shape[0]):
+                for j in range(bigmat.shape[1]):
+                    if i in range(loc[0]-r,loc[0]+r+1) and j in range(loc[1]-r,loc[1]+r+1):
+                        bigmat[i][j] = numpy.array([1,0,0])
+        cmat = bigmat
+    filename = 'calibration_'+str(time.time())+'.png'
+    Image.fromarray(cmat,mode='RGB').save(os.path.join(filepath,filename))
+    return os.path.join(filepath,filename)
+
 #so next: implement the background subtraction
 #function to take in a basis and a grid, or just a list of weights...
 #well, it might be a lot of things, but at any rate, need a function to make the grayscale image
@@ -138,32 +218,45 @@ def greyscale_basis(Hgrid,i,neg=True):
 def calibration_gui(Xgrid,a1,a2):
     bg = get_background(Xgrid)
     calcs = [{'bg':bg,'H':None,'W':None,'l':bg,'peaks':None,'lat':None,'cor':None}]
-    ims = [greyscale_background(Xgrid,calcs[0]['bg'])]
+    ims = [to_image(greyscale_background(Xgrid,calcs[0]['l']))]
     params = [{'phase':1,'mode':1,'bases':None,'basis':None,'neg':True,'cor':None}]
+    exvals = params[0]
     layout = [[PySimpleGUI.Text("Spectral Image Confirmation",k="phase")],
               [PySimpleGUI.Image(ims[0],k="im")],
-              [PySimpleGUI.Radio("Image based on Background Subtraction","ops",k="ops1",default=True),PySimpleGUI.Radio("Image based on NNMF","ops",k="ops2"),PySimpleGUI.Radio("Image based on NNMF after Background Subtraction","ops",k="ops3"),
-               PySimpleGUI.Spin(list(range(3,17),k="bases"),disabled=True),PySimpleGUI.Text("# basis spectra",k="basest"),PySimpleGUI.Spin([],k="basis",disabled=True),PySimpleGUI.Text("key spectrum",k="basist"),
-               PySimpleGUI.Checkbox("Negative",k="neg",default=True),PySimpleGUI.Spin(list(range(1,30)),k="cor",disabled=True),PySimpleGUI.Text("Correlation Kernel Size",k="cort",disabled=True)],
-              [PySimpleGUI.Button("Confirm",k="confirm"),PySimpleGUI.Button("Apply",k="apply"),PySimpleGUI.Button("Cancel",k="cancel"),PySimpleGUI.Button("Back",k="back",disabled=True)]]
-    window = PySimpleGui.Window('HITS Calibration',layout)
+              [PySimpleGUI.Radio("Image based on Background Subtraction","ops",k="ops1",default=True,enable_events=True),PySimpleGUI.Radio("Image based on NNMF","ops",k="ops2",enable_events=True),PySimpleGUI.Radio("Image based on NNMF after Background Subtraction","ops",k="ops3",enable_events=True),
+               PySimpleGUI.Spin(list(range(3,17)),k="bases",disabled=True,enable_events=True),PySimpleGUI.Text("# basis spectra",k="basest"),PySimpleGUI.Spin([0,1,2],k="basis",disabled=True,enable_events=True),PySimpleGUI.Text("key spectrum",k="basist"),
+               PySimpleGUI.Checkbox("Negative",k="neg",default=True,enable_events=True),PySimpleGUI.Spin(list(range(1,31)),k="cor",disabled=True,enable_events=True),PySimpleGUI.Text("Correlation Kernel Size",k="cort")],
+              [PySimpleGUI.Button("Confirm",k="confirm",enable_events=True),PySimpleGUI.Button("Apply",k="apply",enable_events=True),PySimpleGUI.Button("Cancel",k="cancel",enable_events=True),PySimpleGUI.Button("Back",k="back",disabled=True,enable_events=True)]]
+    window = PySimpleGUI.Window('HITS Calibration',layout)
     while True:
         event, values = window.read()
+        print(event)
+        print(values)
         mode = 1 if values['ops1'] else 2 if values['ops2'] else 3 if values['ops3'] else None
         window['apply'].update(disabled=params[-1]['mode']==mode and params[-1]['bases'] in (None,values['bases']) and params[-1]['basis'] in (None,values['basis']) and params[-1]['neg']==values['neg'] and params[-1]['cor'] in (None,values['cor']))
         if event == 'ops1':
-            window['bases'].update(initial_value=None,disabled=True)
-            window['basis'].update(initial_value=None,disabled=True)
-        if event in ('ops2','ops3') and values['bases'] == None:
-            window['bases'].update(initial_value=3,disabled=False)
-            window['basis'].update(initial_value=0,disabled=False)
-        elif event == PySimpleGui.WIN_CLOSED:
+            params['mode'] = 1
+            window['bases'].update(disabled=True)
+            window['basis'].update(disabled=True)
+        elif event in ('ops2','ops3'):
+            exvals['mode'] = int(event[3:])
+            window['bases'].update(disabled=False)
+            window['basis'].update(values=list(range(values['bases'])),disabled=False)
+        elif event == 'bases':
+            exvals['bases'] = values['bases']
+        elif event == 'basis':
+            exvals['basisv'] = values['basis']
+        elif event == 'neg':
+            exvals['neg'] = values['neg']
+        elif event == 'cor':
+            exvals['cor'] = values['cor']
+        elif event == PySimpleGUI.WIN_CLOSED:
             break
         elif event == 'cancel':
             break
         elif event == 'apply':
             l,bg,H,W,cor,peaks
-            if values['phase'] == "Spectral Image Confirmation":
+            if exvals['phase'] == 1:
                 #first figure out what needs to be changed
                     #options: grab an old image, negate an old image, create a new image, do a new analysis and create a new image
                     #if a previous image shares mode, bases, basis, and neg with the current settings, you can grab an old image
@@ -171,7 +264,7 @@ def calibration_gui(Xgrid,a1,a2):
                     #if a previous image shares mode and basis with the current settings, you must create a new image
                     #otherwise, you must do a new analysis
                 indices = index_conditional(lambda d: d['mode']==mode,params)
-                if indices != []
+                if indices != []:
                     indices2 = index_conditional(lambda d: d['mode']==mode and d['bases']==values['bases'],params)
                     if indices2 != []:
                         indices3 = index_conditional(lambda d: d['mode']==mode and d['bases']==values['bases'] and d['basis']==values['basis'],params)
@@ -197,7 +290,7 @@ def calibration_gui(Xgrid,a1,a2):
                         elif mode == 3:
                             bg = get_background(Xgrid)
                             H,W = nnmf_basis(Xgrid,bg=bg)
-                            l = greyscale_basis(H,values['bases']),values['basis'],neg=values['neg'])
+                            l = greyscale_basis(H,values['bases'],neg=values['neg'])
                 else:                        
                     if mode == 1:
                         bg,H,W = get_background(Xgrid),None,None
@@ -209,12 +302,12 @@ def calibration_gui(Xgrid,a1,a2):
                     elif mode == 3:
                         bg = get_background(Xgrid)
                         H,W = nnmf_basis(Xgrid,bg=bg)
-                        l = greyscale_basis(H,values['bases']),values['basis'],neg=values['neg'])
+                        l = greyscale_basis(H,values['bases'],neg=values['neg'])
                 #update tracking information: ims, params, intermediate calculation results
                 calcs.append({'bg':bg,'H':H,'W':W,'l':l,'peaks':None,'lat':None,'cor':None})
                 ims.append(to_image(l))
                 params.append({'phase':1,'mode':mode,'bases':values['bases'],'basis':values['basis'],'neg':values['neg'],'cor':values['cor']})
-                window['im'].update(data=ims[-1])
+                window['im'].update(ims[-1])
             if values['phase'] == "Sample Center Confirmation":
                 indices = index_conditional(lambda d: d['mode']==mode and d['bases']==values['bases'] and d['basis']==values['basis'] and d['neg']==values['neg'] and d['cor']==values['cor'],params)
                 if indices != None:
@@ -225,61 +318,63 @@ def calibration_gui(Xgrid,a1,a2):
                 calcs.append({'bg':calcs[-1]['bg'],'H':calcs[-1]['H'],'W':calcs[-1]['W'],'l':calcs[-1]['l'],'peaks':peaks,'lat':None,'cor':cor})
                 ims.append(to_image(cor,peaks=peaks))
                 params.append({'phase':1,'mode':mode,'bases':values['bases'],'basis':values['basis'],'neg':values['neg'],'cor':values['cor']})
-                window['im'].update(data=ims[-1])
+                window['im'].update(ims[-1])
         elif event == 'confirm':
-            if values['phase'] == "Spectral Image Confirmation":
+            if exvals['phase'] == 1:
                 cor,peaks = list_correlate(calcs[-1]['l'],k=kernel(values['cor']))
                 calcs.append(calcs[-1].update({'cor':values['cor'],'peaks':peaks}))
                 params.append(params[-1].update({'cor':values['cor']}))
                 ims.append(to_image(cor,peaks=peaks))
-                window['phase'].update(text="Sample Center Confirmation")
-                window['im'].update(data=ims[-1])
-                window['ops'].update(disabled=True)
-                window['bases1'].update(disabled=True)
-                window['bases2'].update(disabled=True)
-                window['basest1'].update(disabled=True)
-                window['basest2'].update(disabled=True)
-                window['neg'].update(disabled=True)
-                window['cor'].update(disabled=False,initial_value=11)
-                window['cort'].update(disabled=False)
-                window['back'].update(disabled=False)
-            if values['phase'] == "Sample Center Confirmation":
+                #window['phase'].update(text="Sample Center Confirmation")
+                #window['im'].update(ims[-1])
+                #window['ops'].update(disabled=True)
+                #window['bases1'].update(disabled=True)
+                #window['bases2'].update(disabled=True)
+                #window['basest1'].update(disabled=True)
+                #window['basest2'].update(disabled=True)
+                #window['neg'].update(disabled=True)
+                #window['cor'].update(disabled=False,initial_value=11)
+                #window['cort'].update(disabled=False)
+                #window['back'].update(disabled=False)
+            if exvals['phase'] == 2:
                 lat = optimize_lattice(calcs[-1]['peaks'],a1,a2)
                 calcs.append(calcs[-1].update({'lat':lat}))
                 params.append(params[-1])
                 ims.append(to_image(calcs[-1]['l'],peaks=calcs[-1]['peaks'],lat=lat))
-                window['phase'].update(text="Sample Grid Confirmation")
-                window['im'].update(data=ims[-1])
-                window['cor'].update(disabled=True)
-                window['cort'].update(disabled=True)
-                window['apply'].update(disabled=True)
-            if values['phase'] == "Sample Grid Confirmation":
+                #window['phase'].update(text="Sample Grid Confirmation")
+                #window['im'].update(ims[-1])
+                #window['cor'].update(disabled=True)
+                #window['cort'].update(disabled=True)
+                #window['apply'].update(disabled=True)
+            if exvals['phase'] == 3:
                 break
+            exvals['phase'] += 1
         elif event == 'back':
-            if values['phase'] == "Sample Center Confirmation":
+            if values['phase'] == 2:
                 calcs.append(calcs[-1])
                 params.append(params[-1].update({'cor':None}))
                 ims.append(to_image(calcs[-1]['l']))
-                window['phase'].update(text="Spectral Image Confirmation")
-                window['im'].update(data=ims[-1])
-                window['ops'].update(disabled=False)
-                window['bases1'].update(disabled=False)
-                window['bases2'].update(disabled=False)
-                window['basest1'].update(disabled=False)
-                window['basest2'].update(disabled=False)
-                window['neg'].update(disabled=False)
-                window['cor'].update(disabled=True,initial_value=None)
-                window['cort'].update(disabled=True)
-                window['back'].update(disabled=True)
-            if values['phase'] == "Sample Grid Confirmation":
+                #window['phase'].update(text="Spectral Image Confirmation")
+                #window['im'].update(ims[-1])
+                #window['ops'].update(disabled=False)
+                #window['bases1'].update(disabled=False)
+                #window['bases2'].update(disabled=False)
+                #window['basest1'].update(disabled=False)
+                #window['basest2'].update(disabled=False)
+                #window['neg'].update(disabled=False)
+                #window['cor'].update(disabled=True,initial_value=None)
+                #window['cort'].update(disabled=True)
+                #window['back'].update(disabled=True)
+            if values['phase'] == 3:
                 calcs.append(calcs[-1])
                 params.append(params[-1])
                 ims.append(to_image(calcs[-1]['l'],peaks=calcs[-1]['peaks']))
-                window['phase'].update(text="Sample Center Confirmation")
-                window['im'].update(data=ims[-1])
-                window['cor'].update(disabled=False)
-                window['cort'].update(disabled=False)
-                window['apply'].update(disabled=False)
+                #window['phase'].update(text="Sample Center Confirmation")
+                #window['im'].update(ims[-1])
+                #window['cor'].update(disabled=False)
+                #window['cort'].update(disabled=False)
+                #window['apply'].update(disabled=False)
+            exvals['phase'] -= 1
     window.close()
     #write all the images makers for all the windows
     #get window image updates
@@ -302,77 +397,9 @@ def calibration_gui(Xgrid,a1,a2):
     #first task complete, second in progress, also need to add similar logic to reuse old images in correlation menu
         #i have discovered that my logic was bad. i do, in fact, think i need to keep the values and the params fully synchronized. will do that update next and then the rest above.
     
-    #refresh the gui while awaiting a long calculation, so that is does not freak out
-    def await_calculation(window,f,params):
-        keylist = []
-        res = None
-        for item in window.layout:
-            if not item.disabled and item.key != 'cancel':
-                keylist.append(item.key)
-                window[item.key].update(disabled=True)
-        while res == None:
-            window.refresh()
-            f(**params)
-        return f(**params)
-        for key in keylist:
-            window[key].update(disabled=False)
 
-    #take in a greyscale list tied to positions and change each pixel value x to 1-x
-    def negate(l):
-        return [[l[0],1-l[1]] for i in l]
+#back to work: keep the window from timing out and add the second image pane, then test
 
-    #get the indices of all elements in a list 'l' that meet a condition 'c' 
-    def index_conditional(c,l):
-        c2 = lambda x: c(x[1])
-        return [i[0] for i in filter(c2,enumerate(l))]
-
-    #a key function to convert my lists of positions + image data to PIL images with all other necessary information superimposed
-    #image should be grayscale, color will be used to superimpose peaks and lat
-    def to_image(l,peaks=None,lat=None,inflation=10):
-        mat,x0,y0,dx,dy = list_to_matrix(contrast(l))
-        mat = numpy.repeat(numpy.repeat(mat,inflation,axis=0),inflation,axis=1)
-        cmat = mat[:,:,numpy.newaxis]
-        for i in range(cmat.shape[0]):
-            for j in range(cmat.shape[1]):
-                cmat[i][j] = numpy.repeat(mat[i][j],3)
-        h = (inflation+1)/2 if inflation%4 == 1 else (inflation-1)/2 if inflation%4 == 3 else 2*ceil(inflation/4)
-        d = (inflation-h)/2
-        for peak in peaks:
-            c = numpy.round((numpy.array(peak)-numpy.array([x0,y0]))/numpy.array([dx,dy]))
-            for i in range(cmat.shape[0]):
-                for j in range(cmat.shape[1]):
-                    if i in range(c[0]*inflation+d,c[0]*inflation+inflation-d) and j in range(c[1]*inflation+d,c[1]*inflation+inflation-d):
-                        cmat[i][j] = numpy.array([0,0,1])
-        if lat != None:
-            lx,ly,theta = lat
-            xf,yf = x0+dx*len(l),y0+dy*len(l)
-            ij(x,y) = lambda x,y: [cos(theta)*(x-lx)/dx+sin(theta)*(y-ly)/dy,cos(theta)*(y-ly)/dy-sin(theta)*(x-lx)/dx]
-            cs = [ij(x0,y0),ij(x0,yf),ij(xf,y0),ij(xf,yf)]
-            cis = [i[0] for i in cs]
-            cjs = [j[1] for j in cs]
-            cimin = floor(min(cis))
-            cimax = ciel(max(cis))
-            cjmin = floor(min(cjs))
-            cjmax = ciel(max(cjs))
-            grid = numpy.array(filter(lambda x: max(x0,lx)-lx <= x[0] <= xf+lx and max(y0,ly)-ly <= x[1] <= yf+ly,[[lx+i*cos(theta)*dx-j*sin(theta)*dy,ly+i*sin(theta)*dx+j*cos(theta)*dy] for i in range(cimin,cimax+1) for j in range(cjmin,cjmax+1)]))
-            basegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/numpy.array([dx,dy])) for loc in grid])
-            finegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/(numpy.array([dx,dy])/inflation)) for loc in grid])
-            mindexi = numpy.amin(basegrid[:,0])-1
-            maxdexi = numpy.amax(basegrid[:,0])+1
-            mindexj = numpy.amin(basegrid[:,1])-1
-            maxdexj = numpy.amax(basegrid[:,1])+1
-            bigmat = numpy.zeroes(((maxdexi-mindexi+1)*inflation,(maxdexj-mindexj+1)*inflation,3))
-            for i in range(cmat.shape[0]):
-                for j in range(cmat.shape[1]):
-                    bigmat[i-mindexi*inflation][j-mindexj*inflation] = cmat[i][j]
-            r = floor((inflation-1)/4)
-            for loc in finegrid:
-                for i in range(bigmat.shape[0]):
-                    for j in range(bigmat.shape[1]):
-                        if i in range(loc[0]-r,loc[0]+r+1) and j in range(loc[1]-r,loc[1]+r+1):
-                            bigmat[i][j] = numpy.array([1,0,0])
-            cmat = bigmat
-        return Image.fromarray(cmat,mode='RGB')
 
 
 if __name__ == "__main__":
@@ -385,7 +412,7 @@ if __name__ == "__main__":
         #optimize lattice
 
     #todo: test all, figure out if you can do expert-fitted background, learn to make and modify image
-
-    Xgrid = None
-    calibration_gui(Xgrid)
+    with open('C:/Users/Operator/Desktop/Xgrid.json','r') as infile:
+        Xgrid = json.load(infile)
+    calibration_gui(Xgrid,[2.5,0],[0,2.5])
 

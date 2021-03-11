@@ -430,6 +430,9 @@ def calibration_gui(Xgrid,ax,ay):
 #from there: figure out why background subtraction is bugged, add second image pane, double check everything, allow secondary basis to be imposed.
 #if i do all that, i will then need to evaluate how well this works, but i should be pretty much finished. probably some optimization to do.
 
+
+#get all lattice points to display, then add second im window, then fix minimization
+
 if __name__ == "__main__":
     #get peaks
         #take in data of whatever format

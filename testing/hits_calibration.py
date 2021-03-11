@@ -4,6 +4,7 @@ import time
 from copy import copy
 import json
 import numpy
+from matplotlib import pyplot
 from scipy.ndimage import correlate
 from scipy.optimize import minimize
 from sklearn.decomposition import NMF
@@ -141,6 +142,7 @@ async def constant_refresh(window):
     return None
 
 #refresh the gui while awaiting a long calculation, so that is does not freak out
+#turns out i don't really need it, so it isn't implemented
 async def await_calculation(window,f,params):
     keylist = []
     for item in window.layout:
@@ -186,17 +188,17 @@ def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Docu
         lx,ly,theta,ax,ay = lat
         print(mat.shape)
         xf,yf = x0+dx*(mat.shape[0]-1),y0+dy*(mat.shape[1]-1)
-        ij = lambda x,y: [cos(theta)*(x-lx)/ax+sin(theta)*(y-ly)/ay,cos(theta)*(y-ly)/ay-sin(theta)*(x-lx)/ax]
+        ij = lambda x,y: [cos(theta)*(x-lx)/ax+sin(theta)*(y-ly)/ax,cos(theta)*(y-ly)/ay-sin(theta)*(x-lx)/ay]
         cs = [ij(x0,y0),ij(x0,yf),ij(xf,y0),ij(xf,yf)]
         print([x0,y0,xf,yf])
         print(cs)
         cis = [i[0] for i in cs]
         cjs = [j[1] for j in cs]
-        cimin = floor(min(cis))
-        cimax = ceil(max(cis))
-        cjmin = floor(min(cjs))
-        cjmax = ceil(max(cjs))
-        grid = numpy.array(list(filter(lambda x: max(x0,lx)-ax <= x[0] <= xf+ax and max(y0,ly)-ay <= x[1] <= yf+ay,[[lx+i*cos(theta)*ax-j*sin(theta)*ay,ly+i*sin(theta)*ax+j*cos(theta)*ay] for i in range(cimin,cimax+1) for j in range(cjmin,cjmax+1)])))
+        cimin = ceil(min(cis))-1
+        cimax = floor(max(cis))+1
+        cjmin = ceil(min(cjs))-1
+        cjmax = floor(max(cjs))+1
+        grid = numpy.array(list(filter(lambda x: x0-ax <= x[0] <= xf+ax and y0-ay <= x[1] <= yf+ay,[[lx+i*cos(theta)*ax-j*sin(theta)*ay,ly+i*sin(theta)*ax+j*cos(theta)*ay] for i in range(cimin,cimax+1) for j in range(cjmin,cjmax+1)])))
         print(len(grid))
         basegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/numpy.array([dx,dy])).astype(numpy.int) for loc in grid])
         finegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/(numpy.array([dx,dy])/inflation)).astype(numpy.int) for loc in grid])
@@ -224,14 +226,15 @@ def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Docu
 #function to take in a basis and a grid, or just a list of weights...
 #well, it might be a lot of things, but at any rate, need a function to make the grayscale image
 
-def calibration_gui(Xgrid,ax,ay):
+def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
+    fig,ax = pyplot.subplots()
     bg = get_background(Xgrid)
     calcs = [{'bg':bg,'H':None,'W':None,'l':bg,'peaks':None,'lat':None,'cor':None}]
     ims = [to_image(greyscale_background(Xgrid,calcs[0]['l']))]
     params = [{'phase':1,'mode':1,'bases':None,'basis':None,'neg':True,'cor':None}]
     exvals = copy(params[0])
     layout = [[PySimpleGUI.Text("Spectral Image Confirmation",k="phase")],
-              [PySimpleGUI.Image(ims[0],k="im")],
+              [PySimpleGUI.Image(ims[0],k="im"),PySimpleGUI.Image(None,k="im2")],
               [PySimpleGUI.Radio("Image based on Background Subtraction","ops",k="ops1",default=True,enable_events=True),PySimpleGUI.Radio("Image based on NNMF","ops",k="ops2",enable_events=True),PySimpleGUI.Radio("Image based on NNMF after Background Subtraction","ops",k="ops3",enable_events=True),
                PySimpleGUI.Spin(list(range(2,17)),k="bases",disabled=True,enable_events=True,initial_value=3),PySimpleGUI.Text("# basis spectra",k="basest"),PySimpleGUI.Spin([0,1,2],k="basis",disabled=True,enable_events=True),PySimpleGUI.Text("key spectrum",k="basist"),
                PySimpleGUI.Checkbox("Negative",k="neg",default=True,enable_events=True),PySimpleGUI.Spin(list(range(1,31)),initial_value=11,k="cor",disabled=True,enable_events=True),PySimpleGUI.Text("Correlation Kernel Size",k="cort")],
@@ -258,6 +261,12 @@ def calibration_gui(Xgrid,ax,ay):
             window['basis'].update(values=list(range(values['bases'])))
         elif event == 'basis':
             exvals['basis'] = values['basis']
+            for i in range(len(W)):
+                if exvals['basis'] == i:
+                    ax.plot(wavelengths,W[i],linewidth=6)
+                else:
+                    ax.plot(wavelengths,W[i])
+            window['im2'].update(Image.frombytes('RGB',fig.canvas.get_width_height(),fig.canvas.tostring_rgb()))
         elif event == 'neg':
             exvals['neg'] = values['neg']
         elif event == 'cor':
@@ -331,6 +340,15 @@ def calibration_gui(Xgrid,ax,ay):
                 ims.append(to_image(cor,peaks=peaks))
                 params.append(copy(exvals))
                 window['im'].update(ims[-1])
+            if exvals['mode'] in (2,3) and (params[-2]['mode'] == 1 or exvals['bases'] != params[-2]['bases']):
+                for i in range(len(W)):
+                    if exvals['basis'] == i:
+                        ax.plot(wavelengths,W[i],linewidth=6)
+                    else:
+                        ax.plot(wavelengths,W[i])
+                window['im2'].update(Image.frombytes('RGB',fig.canvas.get_width_height(),fig.canvas.tostring_rgb()))
+            elif exvals['mode'] == 1 and params[-2]['mode'] in (2,3):
+                window['im'].update(None)
         elif event == 'confirm':
             if exvals['phase'] == 1:
                 exvals['phase'] += 1
@@ -341,6 +359,7 @@ def calibration_gui(Xgrid,ax,ay):
                 ims.append(to_image(cor,peaks=peaks))
                 window['phase'].update("Sample Center Confirmation")
                 window['im'].update(ims[-1])
+                window['im2'].update(to_image(calcs[-1]['l'],peaks=peaks))
                 window['ops1'].update(disabled=True)
                 window['ops2'].update(disabled=True)
                 window['ops3'].update(disabled=True)
@@ -359,6 +378,7 @@ def calibration_gui(Xgrid,ax,ay):
                 ims.append(to_image(calcs[-1]['l'],peaks=calcs[-1]['peaks'],lat=lat))
                 window['phase'].update("Sample Grid Confirmation")
                 window['im'].update(ims[-1])
+                window['im2'].update(None)
                 window['cor'].update(disabled=True)
                 window['apply'].update(disabled=True)
             elif exvals['phase'] == 3:

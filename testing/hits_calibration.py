@@ -166,7 +166,6 @@ def index_conditional(c,l):
 #a key function to convert my lists of positions + image data to PIL images with all other necessary information superimposed
 #image should be grayscale, color will be used to superimpose peaks and lat
 def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Documents/calibration'):
-    print(peaks)
     mat,x0,y0,dx,dy = list_to_matrix(contrast(l))
     bmat = numpy.repeat(numpy.repeat(mat,inflation,axis=0),inflation,axis=1)
     cmat = numpy.zeros((bmat.shape[0],bmat.shape[1],3),dtype=numpy.uint8)
@@ -186,12 +185,9 @@ def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Docu
                         cmat[i][j] = numpy.uint8(numpy.array([0,0,255]))
     if str(type(lat)) != "<class 'NoneType'>":
         lx,ly,theta,ax,ay = lat
-        print(mat.shape)
         xf,yf = x0+dx*(mat.shape[0]-1),y0+dy*(mat.shape[1]-1)
         ij = lambda x,y: [cos(theta)*(x-lx)/ax+sin(theta)*(y-ly)/ax,cos(theta)*(y-ly)/ay-sin(theta)*(x-lx)/ay]
         cs = [ij(x0,y0),ij(x0,yf),ij(xf,y0),ij(xf,yf)]
-        print([x0,y0,xf,yf])
-        print(cs)
         cis = [i[0] for i in cs]
         cjs = [j[1] for j in cs]
         cimin = ceil(min(cis))-1
@@ -199,15 +195,13 @@ def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Docu
         cjmin = ceil(min(cjs))-1
         cjmax = floor(max(cjs))+1
         grid = numpy.array(list(filter(lambda x: x0-ax <= x[0] <= xf+ax and y0-ay <= x[1] <= yf+ay,[[lx+i*cos(theta)*ax-j*sin(theta)*ay,ly+i*sin(theta)*ax+j*cos(theta)*ay] for i in range(cimin,cimax+1) for j in range(cjmin,cjmax+1)])))
-        print(len(grid))
         basegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/numpy.array([dx,dy])).astype(numpy.int) for loc in grid])
-        finegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/(numpy.array([dx,dy])/inflation)).astype(numpy.int) for loc in grid])
         mindexi = numpy.amin(basegrid[:,0])-1
         maxdexi = numpy.amax(basegrid[:,0])+1
         mindexj = numpy.amin(basegrid[:,1])-1
-        maxdexj = numpy.amax(basegrid[:,1])+1
+        maxdexj = numpy.amax(basegrid[:,1])+1        
+        finegrid = numpy.array([numpy.round((loc-numpy.array([x0,y0]))/(numpy.array([dx,dy])/inflation)).astype(numpy.int) for loc in grid])-numpy.array([mindexi*inflation,mindexj*inflation])
         bigmat = numpy.zeros(((maxdexi-mindexi+1)*inflation,(maxdexj-mindexj+1)*inflation,3),dtype=numpy.uint8)
-        print(bigmat.shape)
         for i in range(cmat.shape[0]):
             for j in range(cmat.shape[1]):
                 bigmat[i-mindexi*inflation][j-mindexj*inflation] = cmat[i][j]
@@ -226,11 +220,22 @@ def to_image(l,peaks=None,lat=None,inflation=10,filepath='C:/Users/Operator/Docu
 #function to take in a basis and a grid, or just a list of weights...
 #well, it might be a lot of things, but at any rate, need a function to make the grayscale image
 
+def basisplot(W,b,filepath='C:/Users/Operator/Documents/calibration'):
+    fig,axe = pyplot.subplots()
+    for i in range(len(W)):
+        if i == b:
+            axe.plot(wavelengths,W[i],linewidth=6)
+        else:
+            axe.plot(wavelengths,W[i])
+    filename = 'calibration_'+str(time.time())+'.png'
+    fig.canvas.draw()
+    Image.frombytes('RGB',fig.canvas.get_width_height(),fig.canvas.tostring_rgb()).save(os.path.join(filepath,filename))
+    return os.path.join(filepath,filename)
+
 def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
-    fig,ax = pyplot.subplots()
     bg = get_background(Xgrid)
-    calcs = [{'bg':bg,'H':None,'W':None,'l':bg,'peaks':None,'lat':None,'cor':None}]
-    ims = [to_image(greyscale_background(Xgrid,calcs[0]['l']))]
+    calcs = [{'bg':bg,'H':None,'W':None,'l':greyscale_background(Xgrid,bg),'peaks':None,'lat':None,'cor':None}]
+    ims = [to_image(calcs[0]['l'])]
     params = [{'phase':1,'mode':1,'bases':None,'basis':None,'neg':True,'cor':None}]
     exvals = copy(params[0])
     layout = [[PySimpleGUI.Text("Spectral Image Confirmation",k="phase")],
@@ -238,7 +243,7 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
               [PySimpleGUI.Radio("Image based on Background Subtraction","ops",k="ops1",default=True,enable_events=True),PySimpleGUI.Radio("Image based on NNMF","ops",k="ops2",enable_events=True),PySimpleGUI.Radio("Image based on NNMF after Background Subtraction","ops",k="ops3",enable_events=True),
                PySimpleGUI.Spin(list(range(2,17)),k="bases",disabled=True,enable_events=True,initial_value=3),PySimpleGUI.Text("# basis spectra",k="basest"),PySimpleGUI.Spin([0,1,2],k="basis",disabled=True,enable_events=True),PySimpleGUI.Text("key spectrum",k="basist"),
                PySimpleGUI.Checkbox("Negative",k="neg",default=True,enable_events=True),PySimpleGUI.Spin(list(range(1,31)),initial_value=11,k="cor",disabled=True,enable_events=True),PySimpleGUI.Text("Correlation Kernel Size",k="cort")],
-              [PySimpleGUI.Button("Confirm",k="confirm",enable_events=True),PySimpleGUI.Button("Apply",k="apply",enable_events=True),PySimpleGUI.Button("Cancel",k="cancel",enable_events=True),PySimpleGUI.Button("Back",k="back",disabled=True,enable_events=True)]]
+              [PySimpleGUI.Button("Confirm",k="confirm",enable_events=True),PySimpleGUI.Button("Apply",k="apply",enable_events=True,disabled=True),PySimpleGUI.Button("Cancel",k="cancel",enable_events=True),PySimpleGUI.Button("Back",k="back",disabled=True,enable_events=True)]]
     window = PySimpleGUI.Window('HITS Calibration',layout)
     while True:
         event, values = window.read()
@@ -261,12 +266,7 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
             window['basis'].update(values=list(range(values['bases'])))
         elif event == 'basis':
             exvals['basis'] = values['basis']
-            for i in range(len(W)):
-                if exvals['basis'] == i:
-                    ax.plot(wavelengths,W[i],linewidth=6)
-                else:
-                    ax.plot(wavelengths,W[i])
-            window['im2'].update(Image.frombytes('RGB',fig.canvas.get_width_height(),fig.canvas.tostring_rgb()))
+            window['im2'].update(basisplot(calcs[-1]['W'],exvals['basis']))
         elif event == 'neg':
             exvals['neg'] = values['neg']
         elif event == 'cor':
@@ -341,12 +341,7 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
                 params.append(copy(exvals))
                 window['im'].update(ims[-1])
             if exvals['mode'] in (2,3) and (params[-2]['mode'] == 1 or exvals['bases'] != params[-2]['bases']):
-                for i in range(len(W)):
-                    if exvals['basis'] == i:
-                        ax.plot(wavelengths,W[i],linewidth=6)
-                    else:
-                        ax.plot(wavelengths,W[i])
-                window['im2'].update(Image.frombytes('RGB',fig.canvas.get_width_height(),fig.canvas.tostring_rgb()))
+                window['im2'].update(basisplot(calcs[-1]['W'],exvals['basis']))
             elif exvals['mode'] == 1 and params[-2]['mode'] in (2,3):
                 window['im'].update(None)
         elif event == 'confirm':
@@ -392,6 +387,10 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
                 ims.append(to_image(calcs[-1]['l']))
                 window['phase'].update("Spectral Image Confirmation")
                 window['im'].update(ims[-1])
+                if exvals['mode'] in (2,3):
+                    window['im2'].update(basisplot(calcs[-1]['W'],exvals['basis']))
+                else:
+                    window['im2'].update(None)
                 window['ops1'].update(disabled=False)
                 window['ops2'].update(disabled=False)
                 window['ops3'].update(disabled=False)
@@ -407,6 +406,7 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
                 ims.append(to_image(calcs[-1]['l'],peaks=calcs[-1]['peaks']))
                 window['phase'].update("Sample Center Confirmation")
                 window['im'].update(ims[-1])
+                window['im2'].update(to_image(calcs[-1]['l'],peaks=calcs[-1]['peaks']))
                 window['cor'].update(disabled=False)
                 window['apply'].update(disabled=False)
         if exvals != params[-1]:
@@ -453,6 +453,8 @@ def calibration_gui(Xgrid,ax,ay,wavelengths,bigW=None):
 
 #get all lattice points to display, then add second im window, then fix minimization
 
+#get all lattice points to display, fix background subtraction bug, fix minimization
+
 if __name__ == "__main__":
     #get peaks
         #take in data of whatever format
@@ -465,5 +467,7 @@ if __name__ == "__main__":
     #todo: test all, figure out if you can do expert-fitted background, learn to make and modify image
     with open('C:/Users/Operator/Desktop/Xgridmini.json','r') as infile:
         Xgrid = json.load(infile)
-    calibration_gui(Xgrid,2.5,2.5)
+    with open('C:/Users/Operator/Desktop/Wavelengths.json','r') as infile:
+        wavelengths = json.load(infile)
+    calibration_gui(Xgrid,2.5,2.5,wavelengths)
 

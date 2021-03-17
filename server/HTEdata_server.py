@@ -18,6 +18,9 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 
+import asyncio
+import time
+
 
 
 
@@ -26,6 +29,7 @@ servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
+
 
 
 # check if 'mode' setting is present
@@ -44,6 +48,11 @@ else:
     print("Unknown data mode")
 #    from HTEdata_dummy import HTEdata
 
+
+# local buffer of motor websocket data
+data_wsdata = dict()
+# timecode for last ws data fetch
+data_wsdata_TC = 0
 
 
 app = FastAPI(title="HTE data management server",
@@ -88,6 +97,24 @@ def status_wrapper():
     )
 
 
+# broadcast platemap and id etc
+@app.websocket(f"/{servKey}/ws_data")
+async def websocket_data(mywebsocket: WebSocket):
+    await mywebsocket.accept()
+    global data_wsdata_TC, data_wsdata
+    # local timecode to check against buffered data timecode
+    localTC = 0
+    while True:
+        try:
+            if localTC < data_wsdata_TC:
+                localTC = data_wsdata_TC
+                await mywebsocket.send_text(json.dumps(data_wsdata))
+            await asyncio.sleep(1)
+        except WebSocket.exceptions.ConnectionClosedError:
+                print('Websocket connection unexpectedly closed. Retrying in 3 seconds.')
+                await asyncio.sleep(3)
+
+
 @app.post(f"/{servKey}/get_elements_plateid")
 async def get_elements_plateid(plateid: str):
     """Gets the elements from the screening print in the info file"""
@@ -103,13 +130,17 @@ async def get_elements_plateid(plateid: str):
 
 @app.post(f"/{servKey}/get_platemap_plateid")
 async def get_platemap_plateid(plateid: str):
+    global data_wsdata, data_wsdata_TC
     """gets platemap"""
     await stat.set_run()
+    retval = dataserv.get_platemap_plateidstr(plateid)
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "get_platemap_plateid"},
-        data={"map": dataserv.get_platemap_plateidstr(plateid)},
+        data={"map": retval},
     )
+    data_wsdata['map'] = json.loads(retval)
+    data_wsdata_TC = time.time_ns()
     await stat.set_idle()
     return retc
 

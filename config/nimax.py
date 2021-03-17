@@ -83,11 +83,21 @@ config["servers"] = dict(
                 'Error':'PXI-6284/port2/line6'                
                 },
             dev_RSHTTLhandshake = {
-                '1':'PXI-6284/ctr0'
+                'port':'PXI-6284/ctr0',
+                'term':'/PXI-6284/PFI8'
                 }
         )
     ),
-
+    exp_vis=dict(#simple dumb modular visualizer
+        host="127.0.0.1",
+        port=5008,
+        group="visualizer",
+        bokeh="bokeh_modular_visualizer",
+        params = dict(
+            doc_name = "ANEC2 visualizer",
+            ws_nidaqmx="nimax",
+        )
+    ),
     orchestrator=dict(
         host="127.0.0.1",
         port=8010,

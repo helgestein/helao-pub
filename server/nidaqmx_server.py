@@ -5,11 +5,12 @@
 
 
 # TODO:
-# - add wsdata with buffering for visualizers
+# done - add wsdata with buffering for visualizers
 # - add wsstatus
 # - test what happens if NImax broswer has nothing configured and only lists the device
-# - Current and voltage stream with interrut handler?
+# done - Current and voltage stream with interrut handler?
 # - create tasks for action library
+# - handshake as stream with interrupt
 
 import os
 import sys
@@ -28,6 +29,8 @@ import asyncio
 #import aiohttp
 #from enum import Enum
 #import numpy as np
+import time
+
 
 import nidaqmx
 from nidaqmx.constants import LineGrouping
@@ -61,26 +64,102 @@ class cNIMAX:
         print('init NI-MAX')
         # seems to work by just defining the scale and then only using its name
         self.Iscale = nidaqmx.scale.Scale.create_lin_scale('NEGATE3',-1.0,0.0,UnitsPreScaled.AMPS,'AMPS')
+        self.time_stamp = time.time()
+        
+        self.qVOLT = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
+        self.qCURRENT = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
+        self.samplingrate = 10 # samples per second
+        self.buffersize = 1000 # finite samples or size of buffer depending on mode
+        
+        
+        # define the VOLT and CURRENT task as they need to stay in memory
+        self.task_CelldiffV = nidaqmx.Task()
+        for myname,mydev  in self.config_dict.dev_CelldiffV.items():
+            self.task_CelldiffV.ai_channels.add_ai_voltage_chan(mydev,
+                                                      name_to_assign_to_channel = 'Cell_'+myname,
+                                                      terminal_config=TerminalConfiguration.DIFFERENTIAL,
+                                                      min_val=-10.0,
+                                                      max_val=+10.0,
+                                                      units=VoltageUnits.VOLTS,
+                                                      )
+        # does this globally enable lowpass or only for channels in task?
+        self.task_CelldiffV.ai_channels.all.ai_lowpass_enable = True        
+        #self.task_CelldiffV.ai_lowpass_enable = True            
+        self.task_CelldiffV.timing.cfg_samp_clk_timing(self.samplingrate, 
+                                                       source="", 
+                                                       active_edge=Edge.RISING, 
+                                                       sample_mode=AcquisitionType.CONTINUOUS, 
+                                                       samps_per_chan=self.buffersize)
+        # TODO can increase the callbackbuffersize if needed
+        self.task_CelldiffV.register_every_n_samples_acquired_into_buffer_event(10,self.streamVOLT_callback)
+
+
+
+        self.task_CellCurrent = nidaqmx.Task()
+        for myname, mydev  in self.config_dict.dev_CellCurrent.items():
+            self.task_CellCurrent.ai_channels.add_ai_current_chan(mydev,
+                                                        name_to_assign_to_channel = 'Cell_'+myname,
+                                                        terminal_config=TerminalConfiguration.DIFFERENTIAL,
+                                                        min_val=-0.02,
+                                                        max_val=+0.02,
+                                                        units=VoltageUnits.FROM_CUSTOM_SCALE,
+                                                        shunt_resistor_loc=CurrentShuntResistorLocation.EXTERNAL,
+                                                        ext_shunt_resistor_val=5.0,
+                                                        custom_scale_name='NEGATE3' # TODO: this can be a per channel calibration
+                                                        )
+        self.task_CellCurrent.ai_channels.all.ai_lowpass_enable = True
+        self.task_CellCurrent.timing.cfg_samp_clk_timing(self.samplingrate, 
+                                                         source="", 
+                                                         active_edge=Edge.RISING, 
+                                                         sample_mode=AcquisitionType.CONTINUOUS, 
+                                                         samps_per_chan=self.buffersize)
+        # TODO can increase the callbackbuffersize if needed
+        self.task_CellCurrent.register_every_n_samples_acquired_into_buffer_event(10,self.streamCURRENT_callback)
+
+
+    # this signal if the buffer has a certain amount of samples
+    # still need to fetch the data from the buffer
+    def streamVOLT_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
+        # TODO: how to turn task_handle into the task object?
+        data = self.task_CelldiffV.read(number_of_samples_per_channel=number_of_samples)
+        #print(' ... NImax VOLT data: ',data)
+        if self.qVOLT.full():
+            print(' ... NImax qVOLT is full ...')
+            _ = self.qVOLT.get_nowait()
+        self.qVOLT.put_nowait(data)
+        return 0
+
+    # this signal if the buffer has a certain amount of samples
+    # still need to fetch the data from the buffer
+    def streamCURRENT_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
+        # TODO: how to turn task_handle into the task object?
+        data = self.task_CellCurrent.read(number_of_samples_per_channel=number_of_samples)
+        #print(' ... NImax CURRENT data: ',data)
+        if self.qCURRENT.full():
+            print(' ... NImax qCURRENT is full ...')
+            _ = self.qCURRENT.get_nowait()
+        self.qCURRENT.put_nowait(data)
+        return 0
 
 
     # waits for TTL handshake, e.g. high signal
     async def run_task_RSH_TTL_handshake(self):
         with nidaqmx.Task() as task_handshake:
-            if '1' in self.config_dict.dev_RSHTTLhandshake.keys():
-                task_handshake.ci_channels.add_ci_count_edges_chan(self.config_dict.dev_RSHTTLhandshake['1'],
+            if 'port' in self.config_dict.dev_RSHTTLhandshake.keys() and 'term' in self.config_dict.dev_RSHTTLhandshake.keys():
+                task_handshake.ci_channels.add_ci_count_edges_chan(self.config_dict.dev_RSHTTLhandshake['port'],
                                                                    edge=Edge.RISING,
                                                                    initial_count=0,
                                                                    count_direction=CountDirection.COUNT_UP
                                                                    )
-                task_handshake.ci_channels[0].ci_count_edges_term = "/PXI-6284/PFI8"
+                task_handshake.ci_channels[0].ci_count_edges_term = self.config_dict.dev_RSHTTLhandshake['term']
 
 
                 # TODO: need to improve this once the real hardware is ready
                 while True:
-                    print('... waiting for RSH handshake ...')
+                    print(' ... waiting for RSH handshake ...')
                     data = task_handshake.read()
                     if data:
-                        print('... got RSH handshake ...')
+                        print(' ... got RSH handshake ...')
                         break
                     await asyncio.sleep(0.5)
                 
@@ -107,7 +186,7 @@ class cNIMAX:
             for BCD in BCD_list:
                 if BCD in self.config_dict.dev_FSWBCDCmd.keys():
                     task_FSWBCD.do_channels.add_do_chan(self.config_dict.dev_FSWBCDCmd[BCD],
-                                                                line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
+                                                        line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
                     cmds.append(value)
             if cmds:
                 task_FSWBCD.write(cmds)
@@ -123,7 +202,7 @@ class cNIMAX:
             for pump in pump_list:
                 if pump in self.config_dict.dev_Pumps.keys():
                     task_Pumps.do_channels.add_do_chan(self.config_dict.dev_Pumps[pump],
-                                                                line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
+                                                       line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
                     cmds.append(value)
             if cmds:
                 task_Pumps.write(cmds)
@@ -139,8 +218,7 @@ class cNIMAX:
             for valve in valve_list:
                 if valve in self.config_dict.dev_GasFlowValves.keys():
                    task_GasFlowValves.do_channels.add_do_chan(self.config_dict.dev_GasFlowValves[valve],
-                                                                line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
-
+                                                              line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
                    cmds.append(value)
             if cmds:
                 task_GasFlowValves.write(cmds)
@@ -155,10 +233,8 @@ class cNIMAX:
         with nidaqmx.Task() as task_MasterCell:
             for cell in cell_list:
                 if cell in self.config_dict.dev_MasterCellSelect.keys():
-
                     task_MasterCell.do_channels.add_do_chan(self.config_dict.dev_MasterCellSelect[cell],
-                                                                line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
-
+                                                            line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
                     cmds.append(value)
             if cmds:
                 task_MasterCell.write(cmds)
@@ -174,7 +250,7 @@ class cNIMAX:
             for cell in cell_list:
                 if cell in self.config_dict.dev_ActiveCellsSelection.keys():
                     task_ActiveCell.do_channels.add_do_chan(self.config_dict.dev_ActiveCellsSelection[cell],
-                                                                line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
+                                                            line_grouping=LineGrouping.CHAN_FOR_ALL_LINES)
                     cmds.append(value)
             if cmds:
                 task_ActiveCell.write(cmds)
@@ -184,58 +260,27 @@ class cNIMAX:
 
 
     # TODO: test what happens if we clear all NIMax settings?
-    async def run_task_CellCurrent(self):
-        with nidaqmx.Task() as task_CellCurrent:
-            for myname, mydev  in self.config_dict.dev_CellCurrent.items():
-                task_CellCurrent.ai_channels.add_ai_current_chan(mydev,
-                                                            name_to_assign_to_channel = 'Cell_'+myname,
-                                                            terminal_config=TerminalConfiguration.DIFFERENTIAL,
-                                                            min_val=-0.02,
-                                                            max_val=+0.02,
-                                                            units=VoltageUnits.FROM_CUSTOM_SCALE,
-                                                            shunt_resistor_loc=CurrentShuntResistorLocation.EXTERNAL,
-                                                            ext_shunt_resistor_val=5.0,
-                                                            custom_scale_name='NEGATE3'
-                                                            )
+    async def run_task_CellCurrent(self, on):
+        if on:
+            self.task_CellCurrent.start()
+        else:
+            self.task_CellCurrent.stop()
 
-
-            task_CellCurrent.ai_channels.all.ai_lowpass_enable = True
-            task_CellCurrent.timing.cfg_samp_clk_timing(1000, source="", active_edge=Edge.RISING, sample_mode=AcquisitionType.FINITE, samps_per_chan=100)
-            data = task_CellCurrent.read(number_of_samples_per_channel=1)
-
-            #CelldiffV.close() # close task to free up memory again
-            return {"name":['Cell_'+key for key in self.config_dict.dev_CellCurrent.keys()],
-                    "Current":data
-                   }
+        return {"name":['Cell_'+key for key in self.config_dict.dev_CellCurrent.keys()],
+                "status":[on for _ in self.config_dict.dev_CellCurrent.keys()],
+               }
 
 
     # TODO: test what happens if we clear all NIMax settings?
-    async def run_task_CelldiffV(self):
-        # todo create callback for interrupt handeling?:
-        # register_every_n_samples_acquired_into_buffer_event(sample_interval, callback_method)
-        with nidaqmx.Task() as task_CelldiffV:
-            for myname,mydev  in self.config_dict.dev_CelldiffV.items():
-                task_CelldiffV.ai_channels.add_ai_voltage_chan(mydev,
-                                                          name_to_assign_to_channel = 'Cell_'+myname,
-                                                          terminal_config=TerminalConfiguration.DIFFERENTIAL,
-                                                          min_val=-10.0,
-                                                          max_val=+10.0,
-                                                          units=VoltageUnits.VOLTS,
-                                                          )
+    async def run_task_CelldiffV(self, on):
+        if on:
+            self.task_CelldiffV.start()
+        else:
+            self.task_CelldiffV.stop()
 
-            #CelldiffV.ai_lowpass_enable = True            
-            # does this globally enable lowpass or only for channels in task?
-            task_CelldiffV.ai_channels.all.ai_lowpass_enable = True
-            
-            # in Nimax its set to continous samples
-            # TODO: set to continuous and stream data?
-            task_CelldiffV.timing.cfg_samp_clk_timing(1000, source="", active_edge=Edge.RISING, sample_mode=AcquisitionType.FINITE, samps_per_chan=1000)
-
-            data = task_CelldiffV.read(number_of_samples_per_channel=1)
-            #CelldiffV.close() # close task to free up memory again
-            return {"name":['Cell_'+key for key in self.config_dict.dev_CelldiffV.keys()],
-                    "Voltage":data
-                   }
+        return {"name":['Cell_'+key for key in self.config_dict.dev_CelldiffV.keys()],
+                "status": [on for _ in self.config_dict.dev_CelldiffV.keys()],
+               }
 
 
     async def sep_str(self, cells):  
@@ -283,181 +328,96 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.post(f"/{servKey}/run_task_GasFlowValves_ON")
-async def run_task_GasFlowValves_ON(valves: str):
+@app.post(f"/{servKey}/run_task_GasFlowValves")
+async def run_task_GasFlowValves(valves: str, on: bool = True):
     """Provide list of Valves (number) separated by ,"""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_task_GasFlowValves_ON",
+                    "command": "run_task_GasFlowValves",
                     "parameters": {
-                        "valves": valves
+                        "valves": valves,
+                        "ON": on
                         },
                     },
-        data=await NIMAX.run_task_GasFlowValves(valves, True),
+        data=await NIMAX.run_task_GasFlowValves(valves, on),
     )
     await stat.set_idle()
     return retc
 
 
-@app.post(f"/{servKey}/run_task_GasFlowValves_OFF")
-async def run_task_GasFlowValves_OFF(valves: str):
-    """Provide list of Valves (number) separated by ,"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_task_GasFlowValves_OFF",
-                    "parameters": {
-                        "valves": valves
-                        },
-                    },
-        data=await NIMAX.run_task_GasFlowValves(valves, False),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_Master_Cell_Select_ON")
-async def run_task_Master_Cell_Select_ON(cells: str):
+@app.post(f"/{servKey}/run_task_Master_Cell_Select")
+async def run_task_Master_Cell_Select(cells: str, on: bool = True):
     """Provide list of Cells separated by ,"""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_task_Master_Cell_Select_ON",
+                    "command": "run_task_Master_Cell_Select",
                     "parameters": {
-                        "cells": cells
+                        "cells": cells,
+                        "ON": on
                         },
                     },
-        data=await NIMAX.run_task_Master_Cell_Select(cells, True),
+        data=await NIMAX.run_task_Master_Cell_Select(cells, on),
     )
     await stat.set_idle()
     return retc
 
 
-@app.post(f"/{servKey}/run_task_Master_Cell_Select_OFF")
-async def run_task_Master_Cell_Select_OFF(cells: str):
+@app.post(f"/{servKey}/run_task_Active_Cells_Selection")
+async def run_task_Active_Cells_Selection(cells: str, on: bool = True):
     """Provide list of Cells (number) separated by ,"""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_task_Master_Cell_Select_OFF",
+                    "command": "run_task_Active_Cells_Selection",
                     "parameters": {
-                        "cells": cells
+                        "cells": cells,
+                        "ON": on
                         },
                     },
-        data=await NIMAX.run_task_Master_Cell_Select(cells, False),
+        data=await NIMAX.run_task_Active_Cells_Selection(cells, on),
     )
     await stat.set_idle()
     return retc
 
 
-@app.post(f"/{servKey}/run_task_Active_Cells_Selection_ON")
-async def run_task_Active_Cells_Selection_ON(cells: str):
-    """Provide list of Cells (number) separated by ,"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_task_Active_Cells_Selection_ON",
-                    "parameters": {
-                        "cells": cells
-                        },
-                    },
-        data=await NIMAX.run_task_Active_Cells_Selection(cells, True),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_Active_Cells_Selection_OFF")
-async def run_task_Active_Cells_Selection_OFF(cells: str):
-    """Provide list of Cells (number) separated by ,"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_task_Active_Cells_Selection_OFF",
-                    "parameters": {
-                        "cells": cells
-                        },
-                    },
-        data=await NIMAX.run_task_Active_Cells_Selection(cells, False),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_Pumps_ON")
-async def run_task_Pumps_ON(pumps: str):
+@app.post(f"/{servKey}/run_task_Pumps")
+async def run_task_Pumps(pumps: str, on: bool = True):
     """Provide list of Pumps separated by ,"""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_Pumps_ON",
+                    "command": "run_Pumps",
                     "parameters": {
-                        "pumps": pumps
+                        "pumps": pumps,
+                        "ON": on
                         },
                     },
-        data=await NIMAX.run_task_Pumps(pumps, True),
+        data=await NIMAX.run_task_Pumps(pumps, on),
     )
     await stat.set_idle()
     return retc
 
 
-@app.post(f"/{servKey}/run_task_Pumps_OFF")
-async def run_task_Pumps_OFF(pumps: str):
+@app.post(f"/{servKey}/run_task_FSWBCD")
+async def run_task_FSWBCD(BCDs: str, on: bool = True):
     """Provide list of Pumps separated by ,"""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_Pumps_OFF",
+                    "command": "run_FSWBCD",
                     "parameters": {
-                        "pumps": pumps
-                        },
-                    },
-        data=await NIMAX.run_task_Pumps(pumps, False),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_FSWBCD_ON")
-async def run_task_FSWBCD_ON(BCDs: str):
-    """Provide list of Pumps separated by ,"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_FSWBCD_ON",
-                    "parameters": {
-                        "BCD": BCDs
+                        "BCD": BCDs,
+                        "ON": on
                         },
                     },
         data=await NIMAX.run_task_FSWBCD(BCDs, True),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_FSWBCD_OFF")
-async def run_task_FSWBCD_OFF(BCDs: str):
-    """Provide list of Pumps separated by ,"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_FSWBCD_OFF",
-                    "parameters": {
-                        "BCD": BCDs
-                        },
-                    },
-        data=await NIMAX.run_task_FSWBCD(BCDs, False),
     )
     await stat.set_idle()
     return retc
@@ -512,32 +472,36 @@ async def run_task_RSH_TTL_handshake():
 
 
 @app.post(f"/{servKey}/run_task_CellCurrent")
-async def run_task_CellCurrent():
+async def run_task_CellCurrent(on: bool = True):
     """Get the current for each cell."""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
                     "command": "run_task_CellCurrent",
-                    "parameters": {},
+                    "parameters": {
+                        "ON": on
+                        },
                     },
-        data=await NIMAX.run_task_CellCurrent(),
+        data=await NIMAX.run_task_CellCurrent(on),
     )
     await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/run_task_CelldiffV")
-async def run_task_CelldiffV():
+async def run_task_CelldiffV(on: bool = True):
     """Get the potential of each cell."""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
                     "command": "run_task_CelldiffV",
-                    "parameters": {},
+                    "parameters": {
+                        "ON": on
+                        },
                     },
-        data=await NIMAX.run_task_CelldiffV(),
+        data=await NIMAX.run_task_CelldiffV(on),
     )
     await stat.set_idle()
     return retc
@@ -549,6 +513,22 @@ def startup_event():
     NIMAX = cNIMAX(S.params)
     global stat
     stat = StatusHandler()
+
+
+@app.websocket(f"/{servKey}/ws_data_VOLT")
+async def websocket_data_VOLT(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await NIMAX.qVOLT.get()
+        await websocket.send_text(json.dumps(data))
+
+
+@app.websocket(f"/{servKey}/ws_data_CURRENT")
+async def websocket_data_CURRENT(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await NIMAX.qCURRENT.get()
+        await websocket.send_text(json.dumps(data))
 
 
 @app.websocket(f"/{servKey}/ws_status")

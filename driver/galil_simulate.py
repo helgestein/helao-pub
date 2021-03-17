@@ -51,6 +51,9 @@ class galil:
         
         self.config_dict["estop_motor"] = False
         self.config_dict["estop_io"] = False
+        if not "tbroadcast" in self.config_dict:
+            self.config_dict["tbroadcast"] = 2 # sec
+        self.tbroadcast = self.config_dict["tbroadcast"]
         
         # need to check if config settings exist
         # else need to create empty ones
@@ -97,15 +100,15 @@ class galil:
         # wait until buffer is changed
         while self.wsmotordata_buffer_old == self.wsmotordata_buffer:
             # reduce to increase broadcast frequeny
-            await asyncio.sleep(1)
+            await asyncio.sleep(self.tbroadcast)
         # make copy of buffer for next time to check against
         self.wsmotordata_buffer_old = copy.deepcopy(self.wsmotordata_buffer)
         # return new buffer
         return self.wsmotordata_buffer
-        
+
 
     # single axis motion, executes after building command string
-    def motor_move(self, multi_x_mm, multi_axis, speed, mode):
+    async def motor_move(self, multi_d_mm, multi_axis, speed, mode):
         stopping=False # no stopping of any movement by other actions
         # this function moves the motor by a set amount of millimeters
         # you have to specify the axis,
@@ -120,13 +123,13 @@ class galil:
         # home the motor at low speed (the distance is not used)
         # motor_move(5,'x',mode='homing',speed=10000)
         # the server call would look like:
-        # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
-        # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
+        # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=relative
+        # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=absolute
 
         # convert single axis move to list        
-        if type(multi_x_mm) is not list:
+        if type(multi_d_mm) is not list:
             multi_axis = [multi_axis]
-            multi_x_mm = [multi_x_mm]
+            multi_d_mm = [multi_d_mm]
         
         # return value arrays for multi axis movement
         ret_moved_axis = []
@@ -136,8 +139,11 @@ class galil:
         ret_err_dist = []
         ret_err_code = []
         ret_counts = []
+
+        # expected time for each move, used for axis stop check
+        timeofmove = []
         
-        for x_mm, axis in zip(multi_x_mm, multi_axis):
+        for d_mm, axis in zip(multi_d_mm, multi_axis):
        
         
             # first we check if we have the right axis specified
@@ -148,7 +154,7 @@ class galil:
                 ret_moved_axis.append(None)
                 ret_speed.append(None)
                 ret_accepted_rel_dist.append(None)
-                ret_supplied_rel_dist.append(x_mm)
+                ret_supplied_rel_dist.append(d_mm)
                 ret_err_dist.append(None)
                 ret_err_code.append("setup")
                 ret_counts.append(None)
@@ -162,7 +168,7 @@ class galil:
             #     ret_moved_axis.append(None)
             #     ret_speed.append(None)
             #     ret_accepted_rel_dist.append(None)
-            #     ret_supplied_rel_dist.append(x_mm)
+            #     ret_supplied_rel_dist.append(d_mm)
             #     ret_err_dist.append(None)
             #     ret_err_code.append("motor_in_motion")
             #     ret_counts.append(None)
@@ -171,7 +177,7 @@ class galil:
             try:
                 # print(self.config_dict["count_to_mm"][ax])
                 float_counts = (
-                    x_mm / self.config_dict["count_to_mm"][ax]
+                    d_mm / self.config_dict["count_to_mm"][ax]
                 )  # calculate float dist from self.config_dict
                 # print(self.config_dict["count_to_mm"][ax])
     
@@ -194,7 +200,7 @@ class galil:
                 ret_moved_axis.append(None)
                 ret_speed.append(None)
                 ret_accepted_rel_dist.append(None)
-                ret_supplied_rel_dist.append(x_mm)
+                ret_supplied_rel_dist.append(d_mm)
                 ret_err_dist.append(None)
                 ret_err_code.append("numerical")
                 ret_counts.append(None)
@@ -239,9 +245,13 @@ class galil:
     
                 # cmd_seq.append("BG{}".format(ax))
     
-                motion_time = 1.0*dist/speed
+                motion_time = 1.0*abs(dist/speed)
                 self.start_time = time.time()
                 self.stop_time = time.time() + motion_time
+    
+                timeofmove.append(motion_time)
+
+    
     
                 # ret = ""
                 # for cmd in cmd_seq:
@@ -251,7 +261,7 @@ class galil:
                 ret_moved_axis.append(ax)
                 ret_speed.append(speed)
                 ret_accepted_rel_dist.append(None)
-                ret_supplied_rel_dist.append(x_mm)
+                ret_supplied_rel_dist.append(d_mm)
                 ret_err_dist.append(error_distance)
                 ret_err_code.append(0)
                 ret_counts.append(counts)
@@ -261,11 +271,56 @@ class galil:
             #         "moved_axis": None,
             #         "speed": None,
             #         "accepted_rel_dist": None,
-            #         "supplied_rel_dist": x_mm,
+            #         "supplied_rel_dist": d_mm,
             #         "err_dist": None,
             #         "err_code": "motor",
             #     }
-        
+
+
+        # get max time until all axis are expected to have stopped
+        if len(timeofmove)>0:
+            tmax = max(timeofmove)
+            if tmax > 30*60:
+                tmax > 30*60 # 30min hard limit
+        else:
+            tmax = 0
+
+        # wait for expected axis move time before checking if axis stoppped
+        print('Axis expected to stop in',tmax,'sec')        
+#        await asyncio.sleep(tmax) # no real time position broadcast
+        # real time position broadcast
+        # one query to set axis move id (for real time on all axis activate in loop)
+        _ = await self.query_axis_moving(multi_axis)
+        while (time.time() < self.stop_time):
+            await asyncio.sleep(0.5)
+            _ = await self.query_axis_position(multi_axis)
+#            await asyncio.sleep(0.25)
+#            _ = await self.query_axis_moving(multi_axis)
+
+
+        # check if all axis stopped
+        tstart = time.time()
+        if "timeout" in self.config_dict:
+            tout = self.config_dict["timeout"]
+        else:
+            tout = 60
+        while (time.time()-tstart < tout) and self.config_dict["estop_motor"] == False:
+            qmove = await self.query_axis_moving(multi_axis)
+#            time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
+            await asyncio.sleep(0.5)
+            if all(qmove['err_code']):
+                break
+
+        # stop of motor movement (motor still on)
+        if time.time()-tstart > tout:
+            self.stop_axis(multi_axis)
+
+        # read final position
+        # updates ws buffer
+        _ = await self.query_axis_position(multi_axis)
+        _ = await self.query_axis_moving(multi_axis)
+
+
         # one return for all axis 
         return {
             "moved_axis": ret_moved_axis,
@@ -277,154 +332,154 @@ class galil:
             "counts": ret_counts
         }
 
-    def motor_move_live(self, x_mm, axis, speed, mode):
-        # this function moves the motor by a set amount of millimeters
-        # you have to specify the axis,
-        # if no axis is specified this function throws an error
-        # if no speed is specified we use the default slow speed
-        # as specified in the self.config_dictict
+    # def motor_move_live(self, d_mm, axis, speed, mode):
+    #     # this function moves the motor by a set amount of millimeters
+    #     # you have to specify the axis,
+    #     # if no axis is specified this function throws an error
+    #     # if no speed is specified we use the default slow speed
+    #     # as specified in the self.config_dictict
 
-        # example: move the motor 5mm to the positive direction:
-        # motor_move(5,'x')
-        # example: move the motor to absolute 0 mm
-        # motor_move(5,'x',mode='absolute')
-        # home the motor at low speed (the distance is not used)
-        # motor_move(5,'x',mode='homing',speed=10000)
-        # the server call would look like:
-        # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=relative
-        # http://127.0.0.1:8001/motor/set/move?x_mm=-20&axis=x&mode=absolute
+    #     # example: move the motor 5mm to the positive direction:
+    #     # motor_move(5,'x')
+    #     # example: move the motor to absolute 0 mm
+    #     # motor_move(5,'x',mode='absolute')
+    #     # home the motor at low speed (the distance is not used)
+    #     # motor_move(5,'x',mode='homing',speed=10000)
+    #     # the server call would look like:
+    #     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=relative
+    #     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=absolute
 
-        # first we check if we have the right axis specified
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
-        else:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "setup",
-            }
+    #     # first we check if we have the right axis specified
+    #     if axis in self.config_dict["axis_id"].keys():
+    #         ax = self.config_dict["axis_id"][axis]
+    #     else:
+    #         return {
+    #             "moved_axis": None,
+    #             "speed": None,
+    #             "accepted_rel_dist": None,
+    #             "supplied_rel_dist": d_mm,
+    #             "err_dist": None,
+    #             "err_code": "setup",
+    #         }
 
-        # check if the motors are moving if so return an error message
-        # recalculate the distance in mm into distance in counts
-        if time.time() < self.stop_time:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "motor_in_motion",
-            }
+    #     # check if the motors are moving if so return an error message
+    #     # recalculate the distance in mm into distance in counts
+    #     if time.time() < self.stop_time:
+    #         return {
+    #             "moved_axis": None,
+    #             "speed": None,
+    #             "accepted_rel_dist": None,
+    #             "supplied_rel_dist": d_mm,
+    #             "err_dist": None,
+    #             "err_code": "motor_in_motion",
+    #         }
 
-        try:
-            float_counts = (
-                x_mm / self.config_dict["count_to_mm"][ax]
-            )  # calculate float dist from self.config_dict
-            counts = int(np.floor(float_counts))  # we can only mode full counts
-            # save and report the error distance
-            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
+    #     try:
+    #         float_counts = (
+    #             d_mm / self.config_dict["count_to_mm"][ax]
+    #         )  # calculate float dist from self.config_dict
+    #         counts = int(np.floor(float_counts))  # we can only mode full counts
+    #         # save and report the error distance
+    #         error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
 
-            # check if a speed was supplied otherwise set it to standard
-            if speed == None:
-                speed = self.config_dict["def_speed_count_sec"]
-            else:
-                speed = int(np.floor(speed))
+    #         # check if a speed was supplied otherwise set it to standard
+    #         if speed == None:
+    #             speed = self.config_dict["def_speed_count_sec"]
+    #         else:
+    #             speed = int(np.floor(speed))
 
-            if speed > self.config_dict["max_speed_count_sec"]:
-                speed = self.config_dict["max_speed_count_sec"]
-            self._speed = speed
-        except:
-            # something went wrong in the numerical part so we give that as feedback
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": None,
-                "err_code": "numerical",
-            }
-        try:
-            # the logic here is that we assemble a command sequence
-            # here we decide if we move relative, home, or move absolute
-            if mode not in ["relative", "absolute", "homing"]:
-                raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
+    #         if speed > self.config_dict["max_speed_count_sec"]:
+    #             speed = self.config_dict["max_speed_count_sec"]
+    #         self._speed = speed
+    #     except:
+    #         # something went wrong in the numerical part so we give that as feedback
+    #         return {
+    #             "moved_axis": None,
+    #             "speed": None,
+    #             "accepted_rel_dist": None,
+    #             "supplied_rel_dist": d_mm,
+    #             "err_dist": None,
+    #             "err_code": "numerical",
+    #         }
+    #     try:
+    #         # the logic here is that we assemble a command sequence
+    #         # here we decide if we move relative, home, or move absolute
+    #         if mode not in ["relative", "absolute", "homing"]:
+    #             raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
 
-            # cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
-            if mode == "relative":
-                # cmd_seq.append("PR{}={}".format(ax, counts))
-                dist = counts
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] += counts
+    #         # cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
+    #         if mode == "relative":
+    #             # cmd_seq.append("PR{}={}".format(ax, counts))
+    #             dist = counts
+    #             self.axlast[ax] = self.axdict[ax]
+    #             self.axdict[ax] += counts
 
-            if mode == "homing":
-                # cmd_seq.append("HM{}".format(ax))
-                dist = np.abs(self.axdict[ax])
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] = 0
+    #         if mode == "homing":
+    #             # cmd_seq.append("HM{}".format(ax))
+    #             dist = np.abs(self.axdict[ax])
+    #             self.axlast[ax] = self.axdict[ax]
+    #             self.axdict[ax] = 0
 
-            if mode == "absolute":
-                # now we want an absolute position
-                # identify which axis we are talking about
-                # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
-                # cmd_str = "PA " + ",".join(
-                #     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
-                # )
-                # cmd_seq.append(cmd_str)
-                dist = np.abs(counts - self.axdict[ax])
-                self.axlast[ax] = self.axdict[ax]
-                self.axdict[ax] = counts
+    #         if mode == "absolute":
+    #             # now we want an absolute position
+    #             # identify which axis we are talking about
+    #             # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
+    #             # cmd_str = "PA " + ",".join(
+    #             #     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
+    #             # )
+    #             # cmd_seq.append(cmd_str)
+    #             dist = np.abs(counts - self.axdict[ax])
+    #             self.axlast[ax] = self.axdict[ax]
+    #             self.axdict[ax] = counts
 
-            # cmd_seq.append("BG{}".format(ax))
+    #         # cmd_seq.append("BG{}".format(ax))
 
-            # ret = ""
-            # for cmd in cmd_seq:
-            #     _ = self.c(cmd)
-            #     ret.join(_)
+    #         # ret = ""
+    #         # for cmd in cmd_seq:
+    #         #     _ = self.c(cmd)
+    #         #     ret.join(_)
 
-            motion_time = 1.0 * dist / speed
-            self.start_time = time.time()
-            self.stop_time = time.time() + motion_time
+    #         motion_time = 1.0 * dist / speed
+    #         self.start_time = time.time()
+    #         self.stop_time = time.time() + motion_time
 
-            while self.query_moving()["motor_status"] == "moving":
-                d = {
-                    "moved_axis": ax,
-                    "speed": speed,
-                    "accepted_rel_dist": None,
-                    "supplied_rel_dist": x_mm,
-                    "err_dist": error_distance,
-                    "err_code": 0,
-                    "position": self.query_all_axis_positions(),
-                }
-                d = json.dumps(d)
-                yield d
-            d = {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "position": self.query_all_axis_positions(),
-            }
-            d = json.dumps(d)
-            yield d
-        except:
-            d = {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": x_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "position": self.query_all_axis_positions(),
-            }
-            d = json.dumps(d)
-            yield d
+    #         while await self.query_moving()["motor_status"] == "moving":
+    #             d = {
+    #                 "moved_axis": ax,
+    #                 "speed": speed,
+    #                 "accepted_rel_dist": None,
+    #                 "supplied_rel_dist": d_mm,
+    #                 "err_dist": error_distance,
+    #                 "err_code": 0,
+    #                 "position": await self.query_all_axis_positions(),
+    #             }
+    #             d = json.dumps(d)
+    #             yield d
+    #         d = {
+    #             "moved_axis": ax,
+    #             "speed": speed,
+    #             "accepted_rel_dist": None,
+    #             "supplied_rel_dist": d_mm,
+    #             "err_dist": error_distance,
+    #             "err_code": 0,
+    #             "position": await self.query_all_axis_positions(),
+    #         }
+    #         d = json.dumps(d)
+    #         yield d
+    #     except:
+    #         d = {
+    #             "moved_axis": ax,
+    #             "speed": speed,
+    #             "accepted_rel_dist": None,
+    #             "supplied_rel_dist": d_mm,
+    #             "err_dist": error_distance,
+    #             "err_code": 0,
+    #             "position": await self.query_all_axis_positions(),
+    #         }
+    #         d = json.dumps(d)
+    #         yield d
 
-    def motor_disconnect(self):
+    async def motor_disconnect(self):
         # try:
         #     self.g.GClose()  # don't forget to close connections!
         # except gclib.GclibError as e:
@@ -433,7 +488,7 @@ class galil:
 
 
 
-    def query_axis_position(self, multi_axis):
+    async def query_axis_position(self, multi_axis):
         # this only queries the position of a single axis
         # server example:
         # http://127.0.0.1:8000/motor/query/position?axis=x
@@ -473,7 +528,7 @@ class galil:
         return {"ax": ret_ax, "position": ret_position}
 
 
-    def query_axis_moving(self, multi_axis):
+    async def query_axis_moving(self, multi_axis):
         # this function queries the galil motor controller if any of
         # it's motors are moving if so it returns moving as a
         # motor_status otherwise stopped. Stopping codes can mean different things
@@ -508,21 +563,21 @@ class galil:
         }
 
 
-    def reset(self):
+    async def reset(self):
         #The RS command resets the state of the processor to its power-on condition. 
         #The previously saved state of the controller,
         #along with parameter values, and saved sequences are restored.    
         return ""#self.c("RS")
 
 
-    def estop_axis(self, switch):
+    async def estop_axis(self, switch):
         # this will estop the axis
         # set estop: switch=true
         # release estop: switch=false
         print('Axis Estop')
         if switch == True:
-            self.stop_axis(self.get_all_axis())
-            self.motor_off(self.get_all_axis())
+            await self.stop_axis(await self.get_all_axis())
+            await self.motor_off(await self.get_all_axis())
             # set flag (move command need to check for it)
             self.config_dict["estop_motor"] = True
         else:
@@ -530,15 +585,15 @@ class galil:
             self.config_dict["estop_motor"] = False
 
 
-    def estop_io(self, switch):
+    async def estop_io(self, switch):
         # this will estop the io
         # set estop: switch=true
         # release estop: switch=false
         print('IO Estop')
         if switch == True:         
-            self.break_infinite_digital_cycles()
-            self.digital_out_off(self.get_all_digital_out())
-            self.set_analog_out(self.get_all_analoh_out(),0)
+            await self.break_infinite_digital_cycles()
+            await self.digital_out_off(await self.get_all_digital_out())
+            await self.set_analog_out(await self.get_all_analog_out(),0)
             # set flag
             self.config_dict["estop_io"] = True
         else:
@@ -546,7 +601,7 @@ class galil:
             self.config_dict["estop_io"] = False
 
 
-    def stop_axis(self, multi_axis):
+    async def stop_axis(self, multi_axis):
         # this will stop the current motion of the axis
         # but not turn off the motor
         # for stopping and turnuing off use moto_off
@@ -559,7 +614,7 @@ class galil:
             if axis in self.config_dict["axis_id"].keys():
                 #ax = self.config_dict["axis_id"][axis]
 
-                ret = self.query_axis_moving(axis)
+                ret = await self.query_axis_moving(axis)
                 if self.stop_time == self.start_time or time.time() >= self.stop_time:
                     elapsed_frac = 1
                 else:
@@ -570,12 +625,12 @@ class galil:
         self.start_time = time.time()
         self.stop_time = time.time()
         
-        ret = self.query_axis_moving(multi_axis)
-        ret.update(self.query_axis_position(multi_axis))
+        ret = await self.query_axis_moving(multi_axis)
+        ret.update(await self.query_axis_position(multi_axis))
         return ret
 
 
-    def motor_off(self, multi_axis):
+    async def motor_off(self, multi_axis):
         # sometimes it is useful to turn the motors off for manual alignment
         # this function does exactly that
         # It then returns the status
@@ -596,11 +651,11 @@ class galil:
                 continue
 
 
-        ret = self.query_axis_moving(multi_axis)
-        ret.update(self.query_axis_position(multi_axis))
+        ret = await self.query_axis_moving(multi_axis)
+        ret.update(await self.query_axis_position(multi_axis))
         return ret
 
-    def motor_on(self, multi_axis):
+    async def motor_on(self, multi_axis):
         # sometimes it is useful to turn the motors back on for manual alignment
         # this function does exactly that
         # It then returns the status
@@ -619,12 +674,12 @@ class galil:
                 continue
 
 
-        ret = self.query_axis_moving(multi_axis)
-        ret.update(self.query_axis_position(multi_axis))
+        ret = await self.query_axis_moving(multi_axis)
+        ret.update(await self.query_axis_position(multi_axis))
         return ret
 
 
-    def read_analog_in(self, multi_port):
+    async def read_analog_in(self, multi_port):
         # this reads the value of an analog in port
         # http://127.0.0.1:8000/
         # ret = self.c("MG @AN[{}]".format(port))
@@ -636,7 +691,7 @@ class galil:
         return {"port": port, "value": ret, "type": "analog_in"}
 
 
-    def read_digital_in(self, multi_port):
+    async def read_digital_in(self, multi_port):
         # this reads the value of a digital in port
         # http://127.0.0.1:8000/
 
@@ -648,7 +703,7 @@ class galil:
         return {"port": multi_port, "value": ret, "type": "digital_in"}
 
 
-    def read_digital_out(self, multi_port):
+    async def read_digital_out(self, multi_port):
         # this reads the value of an digital out port i.e. what is
         # actually being put out (for checking)
         # http://127.0.0.1:8000/
@@ -662,7 +717,7 @@ class galil:
 
 
     #def set_analog_out(self, handle: int, module: int, bitnum: int, value: float):
-    def set_analog_out(self, multi_port, multi_value):
+    async def set_analog_out(self, multi_port, multi_value):
         # this is essentially a placeholder for now since the DMC-4143 does not support
         # analog out butI believe it is worthwhile to have this in here for the RIO
         # Handle num is A-H and must be on port 502 for the modbus commons
@@ -676,7 +731,7 @@ class galil:
         return {"port": multi_port, "value": multi_value, "type": "analog_out"}
 
 
-    def digital_out_on(self, multi_port):
+    async def digital_out_on(self, multi_port):
 
 
         if type(multi_port) is not list:
@@ -685,12 +740,12 @@ class galil:
             self.doflag[port] = 1
         return {
             "port": multi_port,
-            "value": self.read_digital_out(multi_port),
+            "value": await self.read_digital_out(multi_port),
             "type": "digital_out",
         }
 
 
-    def digital_out_off(self, multi_port):
+    async def digital_out_off(self, multi_port):
         # ret = self.c("CB {}".format(port))
 
         if type(multi_port) is not list:
@@ -701,26 +756,26 @@ class galil:
 
         return {
             "port": multi_port,
-            "value": self.read_digital_out(multi_port),
+            "value": await self.read_digital_out(multi_port),
             "type": "digital_out",
         }
 
 
-    def upload_DMC(self, DMC_prog):
+    async def upload_DMC(self, DMC_prog):
         return
 
         
-    def set_digital_cycle(self, trigger_port, out_port, t_cycle):
+    async def set_digital_cycle(self, trigger_port, out_port, t_cycle):
         return
         
 
-    def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):
+    async def infinite_digital_cycles(self, on_time=0.2, off_time=0.2, port=0, init_time=0):
         self.cycle_lights = True
         time.sleep(init_time)
         while self.cycle_lights:
-            self.digital_out_on(port)
+            await self.digital_out_on(port)
             time.sleep(on_time)
-            self.digital_out_off(port)
+            await self.digital_out_off(port)
             time.sleep(off_time)
         return {
             "port": port,
@@ -729,25 +784,25 @@ class galil:
         }
 
 
-    def break_infinite_digital_cycles(
+    async def break_infinite_digital_cycles(
         self, on_time=0.2, off_time=0.2, port=0, init_time=0
     ):
         self.cycle_lights = False
 
 
-    def get_all_axis(self):
+    async def get_all_axis(self):
         return [axis for axis in self.config_dict["axis_id"].keys()]
      
     
-    def get_all_digital_out(self):
+    async def get_all_digital_out(self):
         return [port for port in self.config_dict["Dout_id"].keys()]
 
 
-    def get_all_digital_in(self):
+    async def get_all_digital_in(self):
         return [port for port in self.config_dict["Din_id"].keys()]
 
 
-    def get_all_analog_out(self):
+    async def get_all_analog_out(self):
         return [port for port in self.config_dict["Aout_id"].keys()]
 
 
@@ -755,6 +810,6 @@ class galil:
         # this gets called when the server is shut down or reloaded to ensure a clean
         # disconnect ... just restart or terminate the server
         #self.motor_stop()
-        self.motor_off(self.get_all_axis())
+        asyncio.gather(self.motor_off(asyncio.gather(self.get_all_axis())))
         # self.g.GClose()
         return {"shutdown"}

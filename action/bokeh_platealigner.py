@@ -2,7 +2,9 @@
 # http://127.0.0.1:8001/docs#/
 
 # TODO: add hotkeys via external js
-
+# TODO: 1p updates the offsets in TM and copies scale and angles
+# TODO: 2p updates the scale and angles in TM and copies offsets
+debugmode = 1 # for manual operation 
 
 ################################################################################
 # Plate aligning GUI
@@ -20,34 +22,33 @@ from importlib import import_module
 #from bokeh.models import Title, DataTable, TableColumn
 from bokeh.models.widgets import Paragraph
 from bokeh.plotting import figure, curdoc
-from tornado.ioloop import IOLoop
+#from bokeh.models.annotations import Title
+#from tornado.ioloop import IOLoop
 from munch import munchify
 
 #from bokeh.models import FileInput
 from bokeh.layouts import layout, Spacer
-from bokeh.models import Button, TextAreaInput, FileInput, TextInput, Select, CheckboxGroup, Toggle, CustomJS
+from bokeh.models import Button, TextAreaInput, TextInput, Select, CheckboxGroup, Toggle, CustomJS
 from bokeh.models.widgets import Div, Markup
 from bokeh.events import ButtonClick, DoubleTap
-from bokeh.models import TapTool, BoxSelectTool
+from bokeh.models import TapTool
 import numpy as np
+
 #import math
 #from pybase64 import b64decode
 #import io
 
-import requests
 import asyncio
-#import aiohttp
+import aiohttp
 #import time
 
-#import collections
-#from functools import partial
 
 import pathlib
 
 
 #from fastapi import FastAPI, WebSocket
 #from fastapi.openapi.utils import get_flat_params
-from pydantic import BaseModel
+#from pydantic import BaseModel
 #import uvicorn
 
 
@@ -63,6 +64,7 @@ servKey = sys.argv[2] # the server key of this script defined in config (i.e. se
 config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"] # get the config defined in config file under dict config["servers"]
 S = C[servKey] # the config for this particular server/script in config file
+
 
 ##############################################################################
 ###########################Begin Visualizer PART##############################
@@ -92,22 +94,23 @@ def clicked_addpoint(event):
     calib_ptsmotor.append(motorxy)
     print('Motorxy:',motorxy)
     print('Platexy:',MarkerXYplate[selMarker])
-    update_status("added Point:\nMotorxy:\n"+
+    alignerwebdoc.add_next_tick_callback(partial(update_status,"added Point:\nMotorxy:\n"+
                   (str)(motorxy)+"\nPlatexy:\n"+
-                  (str)(MarkerXYplate[selMarker]))
+                  (str)(MarkerXYplate[selMarker])))
 
     # remove first point from calib list
     calib_ptsplate.pop(0)
     calib_ptsmotor.pop(0)
     # display points
-    update_calpointdisplay()
+    for i in range(0,3):
+        alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
 
 
 ################################################################################
 # submit final results back to aligner server
 ################################################################################
 def clicked_submit():
-   finish_alignment(TransferMatrix,0)
+   asyncio.gather(finish_alignment(TransferMatrix,0))
 
 
 ################################################################################
@@ -120,11 +123,9 @@ def clicked_go_align():
     init_mapaligner()
     
     if g_aligning:
-        get_pm()
-        update_pm_plot()
-        update_status("PM loaded")
+        asyncio.gather(get_pm())
     else:
-        update_status("Error!\nAlign is invalid!")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
 
 
 ################################################################################
@@ -169,12 +170,12 @@ def clicked_calc():
     if len(validpts) == 3:
         # Three point alignment
         print("3P alignment")
-        update_status("3P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"3P alignment"))
         M = align_3p(platepts, motorpts)
     elif len(validpts) == 2:
         # Two point alignment
         print("2P alignment")
-        update_status("2P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"2P alignment"))
 #        # only scale and offsets, no rotation
 #        M = align_2p([platepts[validpts[0]],platepts[validpts[1]]],
 #                     [motorpts[validpts[0]],motorpts[validpts[1]]])
@@ -184,20 +185,20 @@ def clicked_calc():
     elif len(validpts) == 1:
         # One point alignment
         print("1P alignment")
-        update_status("1P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"1P alignment"))
         M = align_1p([platepts[validpts[0]]],
                      [motorpts[validpts[0]]])
     else:
         # No alignment
         print("0P alignment")
-        update_status("0P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"0P alignment"))
         M = TransferMatrix
         
     TransferMatrix = cutoffdigits(M, cutoff)
     print('new TransferMatrix:')
     print(M)
     update_TranferMatrixdisplay()
-    update_status('New Matrix:\n'+(str)(M))
+    alignerwebdoc.add_next_tick_callback(partial(update_status,'New Matrix:\n'+(str)(M)))
 
 
 ################################################################################
@@ -224,7 +225,8 @@ def clicked_calib_del_pt(idx):
     calib_ptsplate.insert(0,(None, None, 1))
     calib_ptsmotor.insert(0,(None, None, 1))
     # display points
-    update_calpointdisplay()
+    for i in range(0,3):
+        alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
 
 
 ################################################################################
@@ -283,7 +285,7 @@ def clicked_pmplot(event):
 ################################################################################
 # sends finished alignment back to FastAPI server
 ################################################################################
-def finish_alignment(newTransfermatrix,errorcode):
+async def finish_alignment(newTransfermatrix,errorcode):
     global initialTransferMatrix
     global g_aligning
     if g_aligning:    
@@ -298,11 +300,13 @@ def finish_alignment(newTransfermatrix,errorcode):
                     'errorcode':f"{errorcode}"
                     }
             )
-        response = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                        params=A['pars']).json()
-        print("Allignment response:",response)
+        url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=A['pars']) as resp:
+                response = await resp.json()
+                print("Allignment response:",response)
     else:
-        update_status("Error!\nAlign is invalid!")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
 
 
 async def motor_ismoving():
@@ -313,17 +317,21 @@ async def motor_ismoving():
             port = C[S.params.aligner_server].port,
             server = S.params.aligner_server,
             action = 'private/ismoving',
-            pars = {'axis':f"{S.params.x},{S.params.y}"}
+#            pars = {'axis':f"{C[S.params.aligner_server].params.x},{C[S.params.aligner_server].params.y}"}
+            pars = {'axis':"x,y"}
             )
-        response = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                        params=A['pars']).json()
-        status = response['data']['data']['motor_status']
-        if 'moving' in status:
-            return True
-        else:
-            return False
+
+        url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=A['pars']) as resp:
+                response = await resp.json()
+                status = response['data']['data']['motor_status']
+                if 'moving' in status:
+                    return True
+                else:
+                    return False
     else:
-        update_status("Error!\nAlign is invalid!")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
 
 
 ################################################################################
@@ -337,31 +345,29 @@ async def motor_move(mode, x, y):
     if g_aligning:
         
         # transform xy to motor movement xy
-        newxy = transform_platexy_to_motorxy(TransferMatrix, [(float)(x),(float)(y),1.0])
+        newxy = await transform_platexy_to_motorxy(TransferMatrix, [(float)(x),(float)(y),1.0])
         print('converted plate to motorxy:',newxy)
         A = dict(
             host = C[S.params.aligner_server].host,
             port = C[S.params.aligner_server].port,
             server = S.params.aligner_server,
             action = 'private/align_move',
-            pars = {'x_mm':f"{newxy[0]},{newxy[1]}",
-                    'axis':f"{S.params.x},{S.params.y}",
-                    'mode':mode}
+            pars = {'d_mm':f"{newxy[0]},{newxy[1]}",
+                    'axis':"x,y",
+                    'mode': mode}
             )
-        _ = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                        params=A['pars']).json()
-    
-        g_motor_ismoving = True
-        while g_motor_ismoving:
-            await motor_getxy() # updates g_motor_position
-            await asyncio.sleep(1)
-            g_motor_ismoving = await motor_ismoving()
-    
-        # update again to get final position
-        await motor_getxy() # updates g_motor_position
-# no message as motor_move is used initially at many positiona
-#    else:
-#        update_status("Error!\nAlign is invalid!")
+        url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=A['pars']) as resp:
+                _ = await resp.text() # todo need timeout or increase it
+                g_motor_ismoving = True
+                while g_motor_ismoving:
+                    await motor_getxy() # updates g_motor_position
+                    await asyncio.sleep(1)
+                    g_motor_ismoving = await motor_ismoving()
+            
+                # update again to get final position
+                await motor_getxy() # updates g_motor_position
 
 
 ################################################################################
@@ -378,31 +384,32 @@ async def motor_getxy():
             action = 'private/align_get_position',
             pars = {}
             )
-        response = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                        params=A['pars']).json()
-        positions = response['data']['data']
-        #print(positions)
-        if S.params.x in positions['ax']:
-            idx = positions['ax'].index(S.params.x)
-            xmotor = positions['position'][idx]
-        else:
-            xmotor = None
-    
-        if S.params.y in positions['ax']:
-            idx = positions['ax'].index(S.params.y)
-            ymotor = positions['position'][idx]
-        else:
-            ymotor = None
-        g_motor_position = [xmotor, ymotor, 1] # dim needs to be always + 1 for later transformations
+        url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=A['pars']) as resp:
+                response = await resp.json()
+                positions = response['data']['data']
+                if 'x' in positions['ax']:
+                    idx = positions['ax'].index('x')
+                    xmotor = positions['position'][idx]
+                else:
+                    xmotor = None
+            
+                if 'y' in positions['ax']:
+                    idx = positions['ax'].index('y')
+                    ymotor = positions['position'][idx]
+                else:
+                    ymotor = None
+                g_motor_position = [xmotor, ymotor, 1] # dim needs to be always + 1 for later transformations
     else:
-        update_status("Error!\nAlign is invalid!")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
     
 
 ################################################################################
 # gets plate map from aligner server
 ################################################################################
 # gets plate map from aligner server
-def get_pm():
+async def get_pm():
     global g_aligning
     if g_aligning:
         A = dict(
@@ -412,17 +419,21 @@ def get_pm():
             action = 'private/align_get_PM',
             pars = {}
             )
-        response = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                        params=A['pars']).json()
-        #TODO: check if dataserver actually send a map        
-        plateid=response['parameters']['plateid']
-        update_status("Got plateID:\n"+plateid)
-        global pmdata
-        pmdata = json.loads(response['data']['data']['map'])
-#        print(pmdata)
+        url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=A['pars']) as resp:
+                response = await resp.json()
+                #TODO: check if dataserver actually send a map        
+                plateid=response['parameters']['plateid']
+                alignerwebdoc.add_next_tick_callback(partial(update_pm_plot_title, plateid))
+                alignerwebdoc.add_next_tick_callback(partial(update_status,"Got plateID:\n"+plateid))
+                global pmdata
+                pmdata = json.loads(response['data']['data']['map'])
+                alignerwebdoc.add_next_tick_callback(partial(update_status,"PM loaded"))
+                alignerwebdoc.add_next_tick_callback(partial(update_pm_plot))
     else:
-        update_status("Error!\nAlign is invalid!")
-
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
+    
 
 ################################################################################
 # get point from pmap closest to xy
@@ -473,12 +484,15 @@ async def align_getstatus():
         action = 'align_status',
         pars = {}
         )
-    response = requests.post(f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}",
-                    params=A['pars']).json()
-    print('###### Aligner Status: ############################')
-#    g_aligning = response['data']['aligning']
-    g_aligning = True # override for testing
-    print(g_aligning)
+    url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, params=A['pars']) as resp:
+            response = await resp.json()
+            if debugmode:
+                g_aligning = True # override for testing
+            else:
+                g_aligning = response['data']['aligning']
+            print('Aligner Status:', g_aligning)
 
 
 ################################################################################
@@ -569,37 +583,42 @@ def align_uniquepts(x,y):
 ################################################################################
 # Converts plate to motor xy
 ################################################################################
-def transform_platexy_to_motorxy(M, platexy):
-    #motor = M*plate
+async def transform_platexy_to_motorxy(M, platexy):
     # M is Transformation matrix from plate to motor
-
-    # should be faster then calling numpy
-    # [][] for non numpy
-    # [ , ] for numpy
-    M = np.matrix(M)
-    return (M[0, 0]*platexy[0]+M[0, 1]*platexy[1]+M[0, 2]*platexy[2],
-            M[1, 0]*platexy[0]+M[1, 1]*platexy[1]+M[1, 2]*platexy[2],
-            M[2, 0]*platexy[0]+M[2, 1]*platexy[1]+M[2, 2]*platexy[2])
+    #motor = M*plate
+    A = dict(
+        host = C[S.params.aligner_server].host,
+        port = C[S.params.aligner_server].port,
+        server = S.params.aligner_server,
+        action = 'private/toMotorXY',
+        pars = {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
+        )
+    url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, params=A['pars']) as resp:
+            response = await resp.json()
+            return np.asarray(json.loads(response['data']['data']['MotorXY']))
 
 
 ################################################################################
 # Converts motor to plate xy
 ################################################################################
-def transform_motorxy_to_platexy(M, motorxy):
+async def transform_motorxy_to_platexy(M, motorxy):
     # M is Transformation matrix from plate to motor
     #motor = M*plate
     #Minv*motor = Minv*M*plate = plate
-    try:
-        Minv = np.matrix(M).I
-        # [][] for non numpy
-        # [ , ] for numpy
-        # should be faster then calling numpy
-        return (Minv[0, 0]*motorxy[0]+Minv[0, 1]*motorxy[1]+Minv[0, 2]*motorxy[2],
-                Minv[1, 0]*motorxy[0]+Minv[1, 1]*motorxy[1]+Minv[1, 2]*motorxy[2],
-                Minv[2, 0]*motorxy[0]+Minv[2, 1]*motorxy[1]+Minv[2, 2]*motorxy[2])
-    except:
-        print('Matrix singular')
-        return (None, None, None)
+    A = dict(
+        host = C[S.params.aligner_server].host,
+        port = C[S.params.aligner_server].port,
+        server = S.params.aligner_server,
+        action = 'private/toPlateXY',
+        pars = {'M':json.dumps(np.matrix(M).tolist()),'motorxy':json.dumps(np.array(motorxy).tolist())}
+        )
+    url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, params=A['pars']) as resp:
+            response = await resp.json()
+            return np.asarray(json.loads(response['data']['data']['PlateXY']))
 
 
 ################################################################################
@@ -615,14 +634,15 @@ def cutoffdigits(M, digits):
 ################################################################################
 # Updates the calibration point display
 ################################################################################
-def update_calpointdisplay():
+def update_calpointdisplay(ptid):
     #global calib_ptsplate
     #global calib_ptsmotor
-    for i in range(0,3):
-        calib_xplate[i].value = (str)(calib_ptsplate[i][0])
-        calib_yplate[i].value = (str)(calib_ptsplate[i][1]) 
-        calib_xmotor[i].value = (str)(calib_ptsmotor[i][0])
-        calib_ymotor[i].value = (str)(calib_ptsmotor[i][1])
+#    for i in range(0,3):
+#        alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
+        calib_xplate[ptid].value = (str)(calib_ptsplate[ptid][0])
+        calib_yplate[ptid].value = (str)(calib_ptsplate[ptid][1]) 
+        calib_xmotor[ptid].value = (str)(calib_ptsmotor[ptid][0])
+        calib_ymotor[ptid].value = (str)(calib_ptsmotor[ptid][1])
 
 ################################################################################
 # updates the web interface status field
@@ -650,6 +670,7 @@ def update_pm_plot():
     plot_mpmap.square(x, y, size=5, color=None, alpha=0.5, line_color='black',name="PMplot")
 
 
+
 ################################################################################
 # updates the Marker display elements
 ################################################################################
@@ -672,6 +693,10 @@ def update_TranferMatrixdisplay():
     calib_roty_text.value = "%.1E" % TransferMatrix[1, 0]
     
 
+def update_pm_plot_title(plateid):
+    plot_mpmap.title.text = ("PlateMap: "+plateid)
+
+
 ################################################################################
 # resets all parameters
 ################################################################################
@@ -680,6 +705,7 @@ def init_mapaligner():
     global initialTransferMatrix
     global TransferMatrix
     global gbuf_motor_position, g_motor_position
+    global gbuf_plate_position, g_plate_position
     global g_motor_ismoving
     asyncio.gather(align_getstatus())
 
@@ -692,12 +718,12 @@ def init_mapaligner():
     MarkerXYplate = [(None, None,1),(None, None,1),(None, None,1),(None, None,1),(None, None,1)]
     MarkerFraction = [None, None, None, None, None]
     for idx in range(len(MarkerNames)):
-        update_Markerdisplay(idx)
-    #update_Transferparam(TransferMatrix)
-    update_calpointdisplay()
+        alignerwebdoc.add_next_tick_callback(partial(update_Markerdisplay,idx))
+    for i in range(0,3):
+        alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
     remove_allMarkerpoints()
-    update_TranferMatrixdisplay()
-    update_status("Press ""Go"" to start alignment procedure.",reset = 1)
+    alignerwebdoc.add_next_tick_callback(partial(update_TranferMatrixdisplay))
+    alignerwebdoc.add_next_tick_callback(partial(update_status,"Press ""Go"" to start alignment procedure.",reset = 1))
     
     # initialize motor position variables
     # by simply moving relative 0
@@ -705,6 +731,7 @@ def init_mapaligner():
     
     # force redraw of cell marker
     gbuf_motor_position = -1*gbuf_motor_position
+    gbuf_plate_position = -1*gbuf_plate_position
     
 
 ################################################################################
@@ -728,8 +755,8 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
     # only update marker when positions differ
     # to remove flicker
     if not gbuf_motor_position == g_motor_position:
-        # convert motorxy to platexy
-        tmpplate = transform_motorxy_to_platexy(TransferMatrix, g_motor_position)        
+        # convert motorxy to platexy # todo, replace with wsdatapositionbuffer
+        tmpplate = await transform_motorxy_to_platexy(TransferMatrix, g_motor_position)
         # update cell marker position in plot
         # remove old Marker point
         old_point = plot_mpmap.select(name=MarkerNames[0])
@@ -745,7 +772,6 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
         PMnum = get_samples([tmpplate[0]], [tmpplate[1]])
         buf = ""
         if PMnum is not None:
- #           print('#######',PMnum[0])
             if PMnum[0] is not None: # need to check as this can also happen
                 MarkerSample[0] = pmdata[PMnum[0]]["Sample"]
                 MarkerIndex[0] = PMnum[0]
@@ -763,9 +789,50 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
 
         update_Markerdisplay(0)
 
-
     # buffer position
     gbuf_motor_position = g_motor_position
+
+
+# only as a test, will produce race condition with other loop
+# not for use to update the GUI elements in critical environment
+async def IOloop_ws_motordata(): # non-blocking coroutine, updates data source
+    global motorws_data_uri
+    async with websockets.connect(motorws_data_uri) as ws:
+        IOloop_ws_motordata_run = True
+        while IOloop_ws_motordata_run:
+            try:
+                new_data = await ws.recv()
+                new_data = json.loads(new_data)
+                print(' ... AlignerWSrcv:',new_data)
+
+
+                if 'x' in new_data['axis']:
+                    idx = new_data['axis'].index('x')
+                    xmotor = new_data['position'][idx]
+                else:
+                    xmotor = None
+            
+                if 'y' in new_data['axis']:
+                    idx = new_data['axis'].index('y')
+                    ymotor = new_data['position'][idx]
+                else:
+                    ymotor = None
+                
+                global g_motor_position
+                g_motor_position = [xmotor, ymotor, 1] # dim needs to be always + 1 for later transformations
+                
+                global g_plate_position
+                if 'PlateXY' in new_data:
+                    g_plate_position = new_data['PlateXY']
+
+                global g_motor_ismoving
+                if 'moving' in new_data['motor_status']:
+                    g_motor_ismoving = True
+                else:
+                    g_motor_ismoving = False
+                
+            except:
+                IOloop_ws_motordata_run = False
 
 
 ################################################################################
@@ -781,6 +848,8 @@ g_aligning = False
 # global motor position variable
 g_motor_position = [0,0,1] # dummy value, will be updated during init
 gbuf_motor_position = -1*g_motor_position # to force drawing of marker
+g_plate_position = [0,0,1] # dummy value, will be updated during init
+gbuf_plate_position = -1*g_plate_position # to force drawing of marker
 # global motor move flage
 g_motor_ismoving = False # will be updated during init
 
@@ -793,12 +862,13 @@ cutoff = np.array(C[S.params.aligner_server].params.cutoff)
 TransferMatrix = initialTransferMatrix
 
 
-
-
-
 alignerwebdoc = curdoc()
 uri = f"ws://{S.host}:{S.port}/ws"
 
+
+motorserv = C[S.params.aligner_server].params.motor_server
+motorws_data_uri = f"ws://{C[motorserv].host}:{C[motorserv].port}/{motorserv}/ws_motordata"
+#stat_uri = f"ws://{S.host}:{S.port}/{O.params.ws_host}/ws_status"
 
 
 MarkerColors = [(255,0,0),(0,0,255),(0,255,0),(255,165,0),(255,105,180)]
@@ -825,7 +895,7 @@ totalwidth = 800
 #### getPM group elements ###
 ##############################################################################
 
-text_1 = Div(text="<b>PlateMapFile:</b>", width=100, height=15)
+#text_1 = Div(text="<b>PlateMapFile:</b>", width=100, height=15)
 
 button_goalign = Button(label="Go", button_type="default", width=150)
 button_skipalign = Button(label="Skip this step", button_type="default", width=150)
@@ -835,7 +905,7 @@ status_align = TextAreaInput(value="", rows=8, title="Alignment Status:", disabl
 
 
 layout_getPM = layout([
-    [text_1],
+#    [text_1],
 #    [file_input],
     [button_goalign],
     [button_skipalign],
@@ -1052,3 +1122,8 @@ init_mapaligner()
 
 # add aligner IOloop which updates the visual elements
 alignerwebdoc.add_periodic_callback(IOloop_aligner,500) # time in ms
+
+# get asyncIO loop
+visoloop = asyncio.get_event_loop()
+#add websocket IO loop
+visoloop.create_task(IOloop_ws_motordata())

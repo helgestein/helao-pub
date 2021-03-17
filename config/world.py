@@ -33,7 +33,8 @@ config["servers"] = dict(
                 #u="F"
                 ),
             #axlett="ABCD", # not needed anymore
-            timeout = 60 # timeout for axis stop in sec
+            timeout = 60, # timeout for axis stop in sec
+            tbroadcast = 2, # frequency of websocket broadcast (only broadcasts if something changes but need to reduce the frequeny of that if necessary)
         )
     ),
     io=dict(
@@ -108,11 +109,8 @@ config["servers"] = dict(
             data_server = "data", # will use this to get PM_map temporaily, else need to parse it as JSON later
             motor_server = "motor", # will use this to get PM_map temporaily, else need to parse it as JSON later
             vis_server = "aligner_vis", # will use this to get PM_map temporaily, else need to parse it as JSON later
-            Transfermatrix = [[0.5,0,0],[0,0.5,0],[0,0,1]], # default Transfermatrix for instrument
+            Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
             cutoff = 6, # cutoff of digits for TransferMatrix calculation
-            x = 'x', # define which axis are used for calib
-            y = 'y', # check motor config
-            #z = 'z', # later for 3d calib if necessary        
         )
     ),
     orchestrator=dict(
@@ -138,9 +136,24 @@ config["servers"] = dict(
         bokeh="bokeh_platealigner",
         params = dict(
             aligner_server="aligner", # aligner and aligner_vis should be in tandem
-            x = 'x', # define which axis are used for calib
-            y = 'y', # check motor config
-            #z = 'z', # later for 3d calib if necessary
         )
-    )
+    ),
+    exp_vis=dict(#simple dumb modular visualizer
+        host="127.0.0.1",
+        port=5008,
+        group="visualizer",
+        bokeh="bokeh_modular_visualizer",
+        params = dict(
+            ws_potentiostat="potentiostat", # could also be a list if we have more then one (TODO)
+            ws_data="data", # for getting current platemap, id etc, TODO: add ws for dataserver
+            ws_motor="motor", # could also be a list if we have more then one (TODO)
+            ws_motor_params = dict(
+                xmin = -20,
+                xmax = 6*25.4+20,
+                ymin = -20,
+                ymax = 4*25.4+20,
+                sample_marker_type = 1 # if not defined a standard square will be used, 1 is for RSHS
+                )
+        )
+    ),
 )

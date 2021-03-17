@@ -23,7 +23,7 @@ config["servers"] = dict(
                         '8':'PXI-6289/ai23',
                         '9':'PXI-6289/ai0'
                         },
-            dev_CelldiffV = {
+            dev_CellVoltage = {
                 '1':'PXI-6284/ai16',
                 '2':'PXI-6284/ai17',
                 '3':'PXI-6284/ai18',
@@ -86,6 +86,18 @@ config["servers"] = dict(
                 'port':'PXI-6284/ctr0',
                 'term':'/PXI-6284/PFI8'
                 }
+        )
+    ),
+    potentiostat=dict(
+        host="127.0.0.1",
+        port=8003,
+        group="server",
+        fast="gamry_server",
+        simulate=False, # choose between simulator(default) or real device
+        params=dict(
+            temp_dump=".\temp",
+            path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
+            #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
         )
     ),
     exp_vis=dict(#simple dumb modular visualizer

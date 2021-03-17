@@ -15,10 +15,11 @@ from fastapi.openapi.utils import get_flat_params
 from pydantic import BaseModel
 from munch import munchify
 
-import requests
+#import requests
 import asyncio
-#import aiohttp
+import aiohttp
 from enum import Enum
+import numpy as np
 
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -99,14 +100,16 @@ class aligner:
 
         print(f'Plate Aligner web interface: http://{self.vishost}:{self.visport}/{self.visserv}')
         
-        # now wait until bokeh server will set aligning to False via API call
-        while self.aligning:
-            await asyncio.sleep(1)            
-        # should not be needed?
-        self.aligning = False
+        
+# alignement needs to be returned via status, else we get a timeout       
+#        # now wait until bokeh server will set aligning to False via API call
+#        while self.aligning:
+#            await asyncio.sleep(1)            
+#        # should not be needed?
+#        self.aligning = False
             
         return {
-            "Transfermatrix": self.newTransfermatrix,
+#            "Transfermatrix": self.newTransfermatrix,
             "err_code": self.errorcode,
             "plateid": self.plateid,
             "motor_server": self.motorserv,
@@ -114,31 +117,79 @@ class aligner:
         }
     
 
-    def is_aligning(self):
+    async def is_aligning(self):
         return self.aligning
 
 
-    def get_PM(self):
-        response = requests.post(f"http://{self.datahost}:{self.dataport}/{self.dataserv}/get_platemap_plateid",
-                        params={'plateid':self.plateid}).json()
-        return response
+    async def get_PM(self):
+
+        url = f"http://{self.datahost}:{self.dataport}/{self.dataserv}/get_platemap_plateid"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={'plateid':self.plateid}) as resp:
+                response = await resp.json()
+                return response
 
 
-    def get_position(self):
-        response = requests.post(f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/query_positions",
-                        params={}).json()
-        return response
+    async def get_position(self):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/query_positions"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={}) as resp:
+                response = await resp.json()
+                return response
 
 
-    def move(self, x_mm, axis, speed, mode):
-        response = requests.post(f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/move",
-                        params={'x_mm':x_mm,'axis':axis,'speed':speed,'mode':mode}).json()
-        return response
+    async def move(self, d_mm, axis, speed: int, mode):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/move"
+        if speed == None:
+            pars = {'d_mm':f"{d_mm}",'axis':f"{axis}",'mode':f"{mode}"}
+        else:
+            pars = {'d_mm':f"{d_mm}",'axis':f"{axis}",'speed':f"{speed}",'mode':f"{mode}"}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=pars) as resp:
+                response = await resp.json()
+                return response
 
-    def ismoving(self, axis):
-        response = requests.post(f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/query_moving",
-                        params={'axis':axis}).json()
-        return response
+
+    async def plate_to_motorxy(self, M, platexy):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/toMotorXY"
+        pars = {'M':f"{M}",'platexy':f"{platexy}"}       
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=pars) as resp:
+                response = await resp.json()
+                return response
+
+
+    async def motor_to_platexy(self, M, motorxy):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/toPlateXY"
+        pars = {'M':f"{M}",'motorxy':f"{motorxy}"}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params=pars) as resp:
+                response = await resp.json()
+                return response
+    
+
+    async def ismoving(self, axis):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/query_moving"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={'axis':axis}) as resp:
+                response = await resp.json()
+                return response
+
+
+    async def download_alignmentmatrix(self):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/download_alignmentmatrix"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={}) as resp:
+                response = await resp.json()
+                return response
+
+    async def upload_alignmentmatrix(self, newxyTransfermatrix):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/upload_alignmentmatrix"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={'newxyTransfermatrix':json.dumps(newxyTransfermatrix.tolist())}) as resp:
+                response = await resp.json()
+                return np.asmatrix(json.loads(response))
+
 
 ################## END Helper functions #######################################
 
@@ -182,7 +233,7 @@ async def private_align_get_position():
     retc = return_class(
         measurement_type="alignment_command",
         parameters={},
-        data=align.get_position(),
+        data=await align.get_position(),
     )
     await stat.set_idle()
     return retc
@@ -191,7 +242,7 @@ async def private_align_get_position():
 # only for alignment bokeh server
 @app.post(f"/{servKey}/private/align_move")
 async def private_align_move(
-    x_mm: str,
+    d_mm: str,
     axis: str,
     speed: int = None,
     mode: move_modes = "relative"
@@ -203,13 +254,43 @@ async def private_align_move(
         parameters={
             "command": "move",
 #            "motor":"def"},
-            "x_mm": x_mm,
+            "d_mm": d_mm,
             "axis": axis,
             "speed": speed,
             "mode": mode,
             "stopping": stopping,
         },
-        data=align.move(x_mm, axis, speed, mode),
+        data=await align.move(d_mm, axis, speed, mode),
+    )
+    await stat.set_idle()
+    return retc
+
+
+# only for alignment bokeh server
+@app.post(f"/{servKey}/private/toPlateXY")
+async def private_toPlateXY(M, motorxy):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="alignment_command",
+        parameters={"command": "toPlateXY",
+                    "plateid": align.plateid,
+                    },
+        data=await align.motor_to_platexy(M, motorxy),
+    )
+    await stat.set_idle()
+    return retc
+
+
+# only for alignment bokeh server
+@app.post(f"/{servKey}/private/toMotorXY")
+async def private_toMotorXY(M, platexy):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="alignment_command",
+        parameters={"command": "toMotorXY",
+                    "plateid": align.plateid,
+                    },
+        data=await align.plate_to_motorxy(M, platexy),
     )
     await stat.set_idle()
     return retc
@@ -225,7 +306,7 @@ async def private_align_get_PM():
         parameters={"command": "get_PM",
                     "plateid": align.plateid,
                     },
-        data=align.get_PM(),
+        data=await align.get_PM(),
     )
     await stat.set_idle()
     return retc
@@ -233,7 +314,7 @@ async def private_align_get_PM():
 
 # only for alignment bokeh server
 @app.post(f"/{servKey}/private/ismoving")
-async def private_align_ismoving(axis: str):
+async def private_align_ismoving(axis: str = 'xy'):
     """check if motor is moving"""
     await stat.set_run()
     retc = return_class(
@@ -241,7 +322,7 @@ async def private_align_ismoving(axis: str):
         parameters={"command": "align_ismoving",
                     "axis": axis
                     },
-        data=align.ismoving(axis),
+        data=await align.ismoving(axis),
     )
     await stat.set_idle()
     return retc
@@ -325,6 +406,11 @@ async def get_alignment(plateid: str,
     return retc
 
 
+
+# gets status and Transfermatrix
+# for new Matrix, a new alignment process needs to be started via
+# get_alignment
+# when align_status is then true the Matrix is valid, else it will return the initial one
 @app.post(f"/{servKey}/align_status")
 async def align_status():
     """Return status of current alignment"""
@@ -334,7 +420,13 @@ async def align_status():
         measurement_type="alignment_command",
         parameters={"command": "get_PM",
                     },
-        data={"aligning": align.is_aligning()},
+        data={"aligning": await align.is_aligning(), # true when in progress, false otherwise
+              "Transfermatrix": align.newTransfermatrix,
+              "plateid": align.plateid,
+              "err_code": align.errorcode,
+              "motor_server": align.motorserv,
+              "data_server": align.dataserv
+              },
     )
     await stat.set_idle()
     return retc

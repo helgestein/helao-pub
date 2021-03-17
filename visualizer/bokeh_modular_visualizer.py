@@ -123,47 +123,43 @@ class C_nidaqmxvis:
         self.config = config
 
         self.config = config
-        self.dataVOLT_url = config['wsdataVOLT_url']
-        self.dataCURRENT_url = config['wsdataCURRENT_url']
+        self.data_url = config['wsdata_url']
+#        self.dataVOLT_url = config['wsdataVOLT_url']
+#        self.dataCURRENT_url = config['wsdataCURRENT_url']
         self.stat_url = config['wsstat_url']
         self.IOloop_data_run = False
 
         self.time_stamp = 0
-        self.time_stampV = 0
-        self.time_stampI = 0
-        self.VOLTlist = {}
-        self.CURRENTlist = {}
+        self.IVlist = {}
 
-        self.sourceVOLT = ColumnDataSource(data=dict(t_s=[],
-                                                     Cell_1=[],
-                                                     Cell_2=[],
-                                                     Cell_3=[],
-                                                     Cell_4=[],
-                                                     Cell_5=[],
-                                                     Cell_6=[],
-                                                     Cell_7=[],
-                                                     Cell_8=[],
-                                                     Cell_9=[]))
-        self.sourceCURRENT = ColumnDataSource(data=dict(t_s=[],
-                                                     Cell_1=[],
-                                                     Cell_2=[],
-                                                     Cell_3=[],
-                                                     Cell_4=[],
-                                                     Cell_5=[],
-                                                     Cell_6=[],
-                                                     Cell_7=[],
-                                                     Cell_8=[],
-                                                     Cell_9=[]))
+        self.sourceIV = ColumnDataSource(data=dict(t_s=[],
+                                                     ICell_1=[],
+                                                     ICell_2=[],
+                                                     ICell_3=[],
+                                                     ICell_4=[],
+                                                     ICell_5=[],
+                                                     ICell_6=[],
+                                                     ICell_7=[],
+                                                     ICell_8=[],
+                                                     ICell_9=[],
+                                                     VCell_1=[],
+                                                     VCell_2=[],
+                                                     VCell_3=[],
+                                                     VCell_4=[],
+                                                     VCell_5=[],
+                                                     VCell_6=[],
+                                                     VCell_7=[],
+                                                     VCell_8=[],
+                                                     VCell_9=[]))
 
         # create visual elements
         self.layout = []
         colors = small_palettes['Viridis'][9]                
         self.plot_VOLT = figure(title="CELL VOLTs", height=300)
-        for i in range(9):
-            _ = self.plot_VOLT.line(x='t_s', y=f'Cell_{i}', source=self.sourceVOLT, name=f'VCell{i}', line_color=colors[i])#str(self.time_stamp))
         self.plot_CURRENT = figure(title="CELL CURRENTs", height=300)
         for i in range(9):
-            _ = self.plot_CURRENT.line(x='t_s', y=f'Cell_{i}', source=self.sourceCURRENT, name=f'ICell{i}', line_color=colors[i])#str(self.time_stamp))
+            _ = self.plot_VOLT.line(x='t_s', y=f'VCell_{i+1}', source=self.sourceIV, name=f'VCell{i+1}', line_color=colors[i])
+            _ = self.plot_CURRENT.line(x='t_s', y=f'ICell_{i+1}', source=self.sourceIV, name=f'ICell{i+1}', line_color=colors[i])
 
         # combine all sublayouts into a single one
         self.layout = layout([
@@ -175,59 +171,30 @@ class C_nidaqmxvis:
             ],background="#C0C0C0")
 
 
-    def updateVOLT(self, new_data):
-        self.sourceVOLT.data = {k: [] for k in self.sourceVOLT.data}
-        self.sourceVOLT.stream(new_data)
-        # for i in range(9):
-        #     old_point = self.plot_VOLT.select(name=f'VCell{i}')
-        #     if len(old_point)>0:
-        #         self.plot_VOLT.renderers.remove(old_point[0])
-        #     colors = small_palettes['Viridis'][9]
-        #     _ = self.plot_VOLT.line(x='t_s', y=f'Cell_{i}', source=self.sourceVOLT, name=f'VCell{i}', line_color=colors[i])
+    def updateIV(self, new_data):
+        self.sourceIV.data = {k: [] for k in self.sourceIV.data}
+        self.sourceIV.stream(new_data)
 
 
-    def updateCURRENT(self, new_data):
-        self.sourceCURRENT.data = {k: [] for k in self.sourceCURRENT.data}
-        self.sourceCURRENT.stream(new_data)
-    #     for i in range(9):
-    #         old_point = self.plot_CURRENT.select(name=f'ICell{i}')
-    #         if len(old_point)>0:
-    #             self.plot_CURRENT.renderers.remove(old_point[0])
-    #         colors = small_palettes['Viridis'][9]
-    #         _ = self.plot_CURRENT.line(x='t_s', y=f'Cell_{i}', source=self.sourceCURRENT, name=f'ICell{i}', line_color=colors[i])
-
-
-    async def IOloop_dataVOLT(self): # non-blocking coroutine, updates data source
+    async def IOloop_dataIV(self): # non-blocking coroutine, updates data source
         global doc
-        async with websockets.connect(self.dataVOLT_url) as ws:
+        async with websockets.connect(self.data_url) as ws:
             self.IOloop_data_run = True
             while self.IOloop_data_run:
                 try:
                     data = json.loads(await ws.recv())
-                    self.VOLTlist = {f"Cell_{idx+1}":data[idx] for idx in range(len(data))}
-                    self.VOLTlist['t_s'] = [self.time_stampV+i for i in range(len(data[0]))]
-                    self.time_stampV = self.time_stampV + 1
+                    datalen = len(data[0])
+                    self.IVlist = {'t_s':[self.time_stamp+i for i in range(len(data[0][0]))]}
+                    for idx in range(datalen):
+                        self.IVlist[f"ICell_{idx+1}"] = data[0][idx]
+                        self.IVlist[f"VCell_{idx+1}"] = data[1][idx]
+                        
+                    self.time_stamp = self.time_stamp + 1
                     #print(" ... VisulizerWSrcv:",data)
-                    doc.add_next_tick_callback(partial(self.updateVOLT, self.VOLTlist))
+                    #print(" ... VisulizerWSrcv:",self.IVlist)
+                    doc.add_next_tick_callback(partial(self.updateIV, self.IVlist))
                 except:
                     self.IOloop_data_run = False
-
-
-    async def IOloop_dataCURRENT(self): # non-blocking coroutine, updates data source
-        global doc
-        async with websockets.connect(self.dataCURRENT_url) as ws:
-            self.IOloop_data_run = True
-            while self.IOloop_data_run:
-                try:
-                    data = json.loads(await ws.recv())
-                    self.CURRENTlist = {f"Cell_{idx+1}":data[idx] for idx in range(len(data))}                    
-                    self.CURRENTlist['t_s'] = [self.time_stampI+i for i in range(len(data[0]))]
-                    self.time_stampI = self.time_stampI + 1
-                    #print(" ... VisulizerWSrcv:",data)
-                    doc.add_next_tick_callback(partial(self.updateCURRENT, self.CURRENTlist))
-                except:
-                    self.IOloop_data_run = False
-
 
 
 ##############################################################################
@@ -377,8 +344,7 @@ if 'ws_motor' in S.params:
 if 'ws_nidaqmx' in S.params:
     tmpserv = S.params.ws_nidaqmx
     NImaxserv['serv'] = tmpserv
-    NImaxserv['wsdataVOLT_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data_VOLT"
-    NImaxserv['wsdataCURRENT_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data_CURRENT"
+    NImaxserv['wsdata_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data"
     NImaxserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
 
         
@@ -428,8 +394,7 @@ if datavis:
     
 if NImaxvis:
     doc.add_root(layout([NImaxvis.layout]))
-    visoloop.create_task(NImaxvis.IOloop_dataVOLT())
-    visoloop.create_task(NImaxvis.IOloop_dataCURRENT())
+    visoloop.create_task(NImaxvis.IOloop_dataIV())
     
 
 # web interface update loop

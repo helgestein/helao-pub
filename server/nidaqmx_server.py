@@ -41,6 +41,8 @@ from nidaqmx.constants import VoltageUnits
 from nidaqmx.constants import CurrentShuntResistorLocation
 from nidaqmx.constants import UnitsPreScaled
 from nidaqmx.constants import CountDirection
+from nidaqmx.constants import TaskMode
+from nidaqmx.constants import SyncType
 
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -66,35 +68,19 @@ class cNIMAX:
         self.Iscale = nidaqmx.scale.Scale.create_lin_scale('NEGATE3',-1.0,0.0,UnitsPreScaled.AMPS,'AMPS')
         self.time_stamp = time.time()
         
-        self.qVOLT = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
-        self.qCURRENT = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
+        self.qIV = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
         self.samplingrate = 10 # samples per second
         self.buffersize = 1000 # finite samples or size of buffer depending on mode
         
         
-        # define the VOLT and CURRENT task as they need to stay in memory
-        self.task_CelldiffV = nidaqmx.Task()
-        for myname,mydev  in self.config_dict.dev_CelldiffV.items():
-            self.task_CelldiffV.ai_channels.add_ai_voltage_chan(mydev,
-                                                      name_to_assign_to_channel = 'Cell_'+myname,
-                                                      terminal_config=TerminalConfiguration.DIFFERENTIAL,
-                                                      min_val=-10.0,
-                                                      max_val=+10.0,
-                                                      units=VoltageUnits.VOLTS,
-                                                      )
-        # does this globally enable lowpass or only for channels in task?
-        self.task_CelldiffV.ai_channels.all.ai_lowpass_enable = True        
-        #self.task_CelldiffV.ai_lowpass_enable = True            
-        self.task_CelldiffV.timing.cfg_samp_clk_timing(self.samplingrate, 
-                                                       source="", 
-                                                       active_edge=Edge.RISING, 
-                                                       sample_mode=AcquisitionType.CONTINUOUS, 
-                                                       samps_per_chan=self.buffersize)
-        # TODO can increase the callbackbuffersize if needed
-        self.task_CelldiffV.register_every_n_samples_acquired_into_buffer_event(10,self.streamVOLT_callback)
+        self.task_CellCurrent = None
+        self.task_CellVoltage = None
+        self.task_IV_run = False
+        
 
 
-
+    def create_IVtask(self):
+        # Voltage reading is MASTER
         self.task_CellCurrent = nidaqmx.Task()
         for myname, mydev  in self.config_dict.dev_CellCurrent.items():
             self.task_CellCurrent.ai_channels.add_ai_current_chan(mydev,
@@ -114,31 +100,58 @@ class cNIMAX:
                                                          sample_mode=AcquisitionType.CONTINUOUS, 
                                                          samps_per_chan=self.buffersize)
         # TODO can increase the callbackbuffersize if needed
-        self.task_CellCurrent.register_every_n_samples_acquired_into_buffer_event(10,self.streamCURRENT_callback)
+        #self.task_CellCurrent.register_every_n_samples_acquired_into_buffer_event(10,self.streamCURRENT_callback)
+        self.task_CellCurrent.register_every_n_samples_acquired_into_buffer_event(10,self.streamIV_callback)
+
+        # Voltage reading is SLAVE
+        # we cannot combine both tasks into one as they run on different DAQs        
+        # define the VOLT and CURRENT task as they need to stay in memory
+        self.task_CellVoltage = nidaqmx.Task()
+        for myname,mydev  in self.config_dict.dev_CellVoltage.items():
+            self.task_CellVoltage.ai_channels.add_ai_voltage_chan(mydev,
+                                                      name_to_assign_to_channel = 'Cell_'+myname,
+                                                      terminal_config=TerminalConfiguration.DIFFERENTIAL,
+                                                      min_val=-10.0,
+                                                      max_val=+10.0,
+                                                      units=VoltageUnits.VOLTS,
+                                                      )
+        # does this globally enable lowpass or only for channels in task?
+        self.task_CellVoltage.ai_channels.all.ai_lowpass_enable = True        
+        #self.task_CellVoltage.ai_lowpass_enable = True            
+        self.task_CellVoltage.timing.cfg_samp_clk_timing(self.samplingrate, 
+                                                       source="", 
+                                                       active_edge=Edge.RISING, 
+                                                       sample_mode=AcquisitionType.CONTINUOUS, 
+                                                       samps_per_chan=self.buffersize)
+        # TODO can increase the callbackbuffersize if needed
+        #self.task_CellVoltage.register_every_n_samples_acquired_into_buffer_event(10,self.streamVOLT_callback)
+        self.task_CellVoltage.register_every_n_samples_acquired_into_buffer_event(10,self.streamIV_callback)
 
 
-    # this signal if the buffer has a certain amount of samples
-    # still need to fetch the data from the buffer
-    def streamVOLT_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
+        # TODO: some properties are not supported
+        # howto snycronize the tasks??
+        # master task
+        #self.task_CellCurrent.triggers.sync_type = SyncType.MASTER
+        #self.task_CellCurrent.control(TaskMode.TASK_COMMIT)
+        # slave task
+        #self.task_CellVoltage.triggers.sync_type = SyncType.SLAVE
+        #self.task_CellVoltage.triggers.start_trigger.cfg_dig_edge_start_trig(
+        #"PXI-6289/ai/StartTrigger")
+
+
+    def streamIV_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
         # TODO: how to turn task_handle into the task object?
-        data = self.task_CelldiffV.read(number_of_samples_per_channel=number_of_samples)
-        #print(' ... NImax VOLT data: ',data)
-        if self.qVOLT.full():
-            print(' ... NImax qVOLT is full ...')
-            _ = self.qVOLT.get_nowait()
-        self.qVOLT.put_nowait(data)
-        return 0
-
-    # this signal if the buffer has a certain amount of samples
-    # still need to fetch the data from the buffer
-    def streamCURRENT_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
-        # TODO: how to turn task_handle into the task object?
-        data = self.task_CellCurrent.read(number_of_samples_per_channel=number_of_samples)
-        #print(' ... NImax CURRENT data: ',data)
-        if self.qCURRENT.full():
-            print(' ... NImax qCURRENT is full ...')
-            _ = self.qCURRENT.get_nowait()
-        self.qCURRENT.put_nowait(data)
+        if self.task_IV_run:
+            try:
+                dataI = self.task_CellCurrent.read(number_of_samples_per_channel=number_of_samples)
+                dataV = self.task_CellVoltage.read(number_of_samples_per_channel=number_of_samples)
+                #print(' ... NImax VOLT data: ',data)
+                if self.qIV.full():
+                    print(' ... NImax qVOLT is full ...')
+                    _ = self.qIV.get_nowait()
+                self.qIV.put_nowait([dataI, dataV])
+            except Exception:
+                print(' ... canceling NImax IV stream')                     
         return 0
 
 
@@ -260,26 +273,23 @@ class cNIMAX:
 
 
     # TODO: test what happens if we clear all NIMax settings?
-    async def run_task_CellCurrent(self, on):
-        if on:
+    async def run_task_Cell_IV(self, on):
+        if on and not self.task_IV_run:
+            self.create_IVtask()
+            # start slave first
+            self.task_CellVoltage.start()
+            # then start master to trigger slave
             self.task_CellCurrent.start()
-        else:
-            self.task_CellCurrent.stop()
+            self.task_IV_run = True
+        elif not on and self.task_IV_run:
+            self.task_IV_run = False
+#            self.task_CellCurrent.stop()
+#            self.task_CellVoltage.stop()
+            self.task_CellCurrent.close()
+            self.task_CellVoltage.close()
 
         return {"name":['Cell_'+key for key in self.config_dict.dev_CellCurrent.keys()],
                 "status":[on for _ in self.config_dict.dev_CellCurrent.keys()],
-               }
-
-
-    # TODO: test what happens if we clear all NIMax settings?
-    async def run_task_CelldiffV(self, on):
-        if on:
-            self.task_CelldiffV.start()
-        else:
-            self.task_CelldiffV.stop()
-
-        return {"name":['Cell_'+key for key in self.config_dict.dev_CelldiffV.keys()],
-                "status": [on for _ in self.config_dict.dev_CelldiffV.keys()],
                }
 
 
@@ -471,37 +481,19 @@ async def run_task_RSH_TTL_handshake():
     return retc
 
 
-@app.post(f"/{servKey}/run_task_CellCurrent")
-async def run_task_CellCurrent(on: bool = True):
-    """Get the current for each cell."""
+@app.post(f"/{servKey}/run_task_Cell_IV")
+async def run_task_Cell_IV(on: bool = True):
+    """Get the current/voltage measurement for each cell."""
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
         parameters={
-                    "command": "run_task_CellCurrent",
+                    "command": "run_task_Cell_IV",
                     "parameters": {
                         "ON": on
                         },
                     },
-        data=await NIMAX.run_task_CellCurrent(on),
-    )
-    await stat.set_idle()
-    return retc
-
-
-@app.post(f"/{servKey}/run_task_CelldiffV")
-async def run_task_CelldiffV(on: bool = True):
-    """Get the potential of each cell."""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_task_CelldiffV",
-                    "parameters": {
-                        "ON": on
-                        },
-                    },
-        data=await NIMAX.run_task_CelldiffV(on),
+        data=await NIMAX.run_task_Cell_IV(on),
     )
     await stat.set_idle()
     return retc
@@ -513,6 +505,14 @@ def startup_event():
     NIMAX = cNIMAX(S.params)
     global stat
     stat = StatusHandler()
+
+
+@app.websocket(f"/{servKey}/ws_data")
+async def websocket_data(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await NIMAX.qIV.get()
+        await websocket.send_text(json.dumps(data))
 
 
 @app.websocket(f"/{servKey}/ws_data_VOLT")

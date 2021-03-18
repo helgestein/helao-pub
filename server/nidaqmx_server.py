@@ -63,12 +63,12 @@ class cNIMAX:
     def __init__(self, config_dict):
         self.config_dict = config_dict
         
-        print('init NI-MAX')
+        print(' ... init NI-MAX')
         # seems to work by just defining the scale and then only using its name
         self.Iscale = nidaqmx.scale.Scale.create_lin_scale('NEGATE3',-1.0,0.0,UnitsPreScaled.AMPS,'AMPS')
         self.time_stamp = time.time()
         
-        self.qIV = asyncio.Queue(maxsize=100,loop=asyncio.get_event_loop())
+        self.qIV = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
         self.samplingrate = 10 # samples per second
         self.buffersize = 1000 # finite samples or size of buffer depending on mode
         

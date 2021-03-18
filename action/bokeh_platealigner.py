@@ -550,7 +550,7 @@ def align_3p(xyplate,xymotor):
 
     try:
         M = np.dot(A,B.I)
-    except:
+    except Exception:
         # should not happen when all xyplate coordinates are unique
         # (previous function removes all duplicate xyplate points)
         # but can still produce a not valid Matrix
@@ -831,7 +831,7 @@ async def IOloop_ws_motordata(): # non-blocking coroutine, updates data source
                 else:
                     g_motor_ismoving = False
                 
-            except:
+            except Exception:
                 IOloop_ws_motordata_run = False
 
 

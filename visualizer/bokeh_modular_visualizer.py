@@ -111,7 +111,7 @@ class C_motorvis:
                 try:
                     self.data =  await ws.recv()
                     print(" ... VisulizerWSrcv:",self.data)
-                except:
+                except Exception:
                     self.IOloop_data_run = False
 
 
@@ -193,7 +193,7 @@ class C_nidaqmxvis:
                     #print(" ... VisulizerWSrcv:",data)
                     #print(" ... VisulizerWSrcv:",self.IVlist)
                     doc.add_next_tick_callback(partial(self.updateIV, self.IVlist))
-                except:
+                except Exception:
                     self.IOloop_data_run = False
 
 
@@ -226,7 +226,7 @@ class C_datavis:
                 try:
                     self.data =  await ws.recv()
                     print(" ... VisulizerWSrcv: pm data")
-                except:
+                except Exception:
                     self.IOloop_data_run = False
 
 

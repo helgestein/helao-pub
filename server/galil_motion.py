@@ -118,7 +118,7 @@ def transform_motorxy_to_platexy(M, motorxy):
     print(M)
     try:
         platexy = np.dot(np.asmatrix(json.loads(M)).I,np.asarray(json.loads(motorxy)))         
-    except:
+    except Exception:
         print('------------------------------ Matrix singular ---------------------------')
         platexy = np.array([[None, None, None]])
     retc = return_class(
@@ -164,7 +164,7 @@ async def wsdata_IOloop():
             platexy = np.asarray(json.loads(retval.data['PlateXY']))
             motor_wsdata['PlateXY'] = [platexy[0], platexy[0], 1]
             motor_wsdata_TC = time.time_ns()
-        except:
+        except Exception:
             print('Connection to motor unexpectedly lost. Retrying in 3 seconds.')
             await asyncio.sleep(3)
 

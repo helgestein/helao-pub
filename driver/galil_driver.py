@@ -209,7 +209,7 @@ class galil:
                 if speed > self.config_dict["max_speed_count_sec"]:
                     speed = self.config_dict["max_speed_count_sec"]
                 self._speed = speed
-            except:
+            except Exception:
                 # something went wrong in the numerical part so we give that as feedback
                 ret_moved_axis.append(None)
                 ret_speed.append(None)
@@ -255,7 +255,7 @@ class galil:
                 # time = counts/ counts_per_second
 
                 continue
-            except:
+            except Exception:
                 ret_moved_axis.append(None)
                 ret_speed.append(None)
                 ret_accepted_rel_dist.append(None)
@@ -403,7 +403,7 @@ class galil:
             if speed > self.config_dict["max_speed_count_sec"]:
                 speed = self.config_dict["max_speed_count_sec"]
             self._speed = speed
-        except:
+        except Exception:
             # something went wrong in the numerical part so we give that as feedback
             return {
                 "moved_axis": None,
@@ -460,7 +460,7 @@ class galil:
             }
             d = json.dumps(d)
             yield d
-        except:
+        except Exception:
             d = {
                 "moved_axis": ax,
                 "speed": speed,

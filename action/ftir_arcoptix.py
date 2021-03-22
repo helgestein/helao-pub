@@ -22,23 +22,19 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/ftir/read")
-def read(filename:str,timeMode:bool=False,wavenumbers:bool=True,av:int=1,time:float=None):
+def read(filename:str,timeMode:bool=False,av:int=1,time:float=None):
     readstring = 'Time' if timeMode else ''
     readparams = {'time':time} if timeMode else {'av':av}
-    requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
-    xformat = 'Wavenumbers' if wavenumbers else 'Wavelengths'
-    spectrum = requests.get("{}/arcoptix/spectrum{}".format(url,xformat),params={'filename':filename}).json()
-    retc = return_class(measurement_type='ftir_measure', 
-                        parameters={'timeMode':timeMode,'wavenumbers':wavenumbers,'av':av,'time':time,'filename':filename}, 
-                        data=spectrum)
+    call = requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
+    spectrum = requests.get("{}/arcoptix/spectrum".format(url),params={'filename':filename}).json()
+    retc = return_class(parameters={'timeMode':timeMode,'av':av,'time':time,'filename':filename,'units':{'time':'??'}}, 
+                        data={'raw':[call,spectrum],'res':spectrum['data']})
     return retc
 
 @app.get("/ftir/loadFile")
 def loadFile(filename:str):
     data = requests.get("{}/arcoptix/loadFile".format(url),params={'filename':filename}).json()
-    retc = return_class(measurement_type='ftir_measure', 
-                        parameters={'filename':filename}, 
-                        data=data)
+    retc = return_class(parameters={'filename':filename}, data=data)
     return retc
 
 

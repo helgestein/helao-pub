@@ -99,8 +99,8 @@ async def doMeasurement(experiment: str):
             #experiment = await json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
-        #provisionally dumping every time until I get clean shutdown and proper backup implemented
-        #hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+        #provisionally dumping every time until proper backup implemented
+        hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
@@ -177,6 +177,7 @@ def highestName(names:list):
     #take in a list of strings which differ only by an integer, and return the one for which that integer is highest
     #another function I am performing often enough that it deserves it's own tool
     #used for finding the most recent run, measurement number, and session
+    print(f"names: {names}")
     if len(names) == 1:
         return names[0]
     else:
@@ -186,6 +187,7 @@ def highestName(names:list):
         for i in range(slen):
             for s in names:
                 if s[i] != names[0][i]:
+                    print(f"1:{s[i]},2:{names[0][i]},i:{i}")
                     leftindex = i
                     break
             if leftindex != None:
@@ -195,9 +197,9 @@ def highestName(names:list):
                 if s[i] != names[0][i]:
                     rightindex = i
                     break
-            if leftindex != None:
+            if rightindex != None:
                 break
-        #assert leftindex < slen - rightindex
+        print(f"l: {leftindex}, r: {rightindex}")
         numbers = [int(s[leftindex:rightindex+1] if rightindex != -1 else s[leftindex:]) for s in names]
         return names[numbers.index(max(numbers))]
 

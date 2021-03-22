@@ -21,17 +21,15 @@ class return_class(BaseModel):
 @app.get("/table/activate")
 def activate(motor:int=0):
     res = requests.get("{}/owis/activate".format(url),params={"motor":motor}).json()
-    retc = return_class(measurement_type='owis',
-                        parameters= {'command':'activate','parameters':{"motor": motor}},
-                        data = {'data':res})
+    retc = return_class(parameters= {"motor": motor},data = res)
     return retc
 
 @app.get("/table/configure")
 def configure(motor:int=0):
     res = requests.get("{}/owis/configure".format(url),params={"motor":motor}).json()
     retc = return_class(measurement_type='owis',
-                        parameters= {'command':'configure','parameters':{"motor": motor}},
-                        data = {'data':res})
+                        parameters= {"motor": motor},
+                        data = res)
     return retc
 
 
@@ -46,9 +44,7 @@ def move(loc,absol:bool=True):
         res = []
         for i,j in zip(range(len(loc)),loc):
             res.append(requests.get("{}/owis/move".format(url),params={"count":int(j*10000),"motor":i,"absol":absol}).json())
-    retc = return_class(measurement_type='owis',
-                        parameters= {'command':'move','parameters':{"loc": loc,absol:"absol"}},
-                        data = {'data':res})
+    retc = return_class(parameters= {"loc": loc,absol:"absol",'units':{'loc':'mm'}},data = res)
     return retc
 
 @app.get("/table/getPos")
@@ -56,9 +52,7 @@ def getPos():
     res = requests.get("{}/owis/getPos".format(url)).json()
     coordinates = res['data']['coordinates']
     loc = None if coordinates == None else coordinates/10000 if type(coordinates) == int else [i/10000 for i in coordinates]
-    retc = return_class(measurement_type='owis',
-                        parameters= {'command':'getPos','parameters':None},
-                        data = {'position': loc, 'meta':res})
+    retc = return_class(parameters= None,data = {'res': {'loc':loc,'units':'mm'}, 'raw':res})
     return retc
 
 

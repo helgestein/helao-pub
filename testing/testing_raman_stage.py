@@ -155,7 +155,7 @@ if __name__ == "__main__":
         grid = [[i,j] for i in range(5,36) for j in range(10,41)]
         conv = lambda x: [46.6+x[1],79.4-x[0]]
         grid = map(conv,grid)
-        hs = [2,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5]
+        hs = [2,2.1,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3,3.1,3.2,3.3,3.4,3.5,3.6,3.7,3.8,3.9,4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5]#wtf? np.linspace(2,5,31)
         for h in hs:
             zs = json.dumps([i/10 for i in range(20,81)])
             oa.move(json.dumps(conv(x1)))
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         params.update({"configure_1":dict(motor=1)})
         experiment = dict(soe=soe,params=params,meta=dict(substrate="2",ma="none"))
         requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
-        requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"infiniteLoop"),params= None)
+        
         i = 0
         #[45,20] to [55,25]
         #grid = [[i/10,j/10] for i in range(450,501) for j in range(200,251)]
@@ -188,6 +188,7 @@ if __name__ == "__main__":
         with open('C:/Users/Operator/Desktop/Hgrid.json','r') as infile:
             data = json.load(infile)
         grid = [i[0] for i in data]
+        grid = [[4,4],[5,5],[6,6],[7,7],[8,8],[9,9],[10,10],[11,11],[12,12],[13,13],[14,14],[15,15],[16,16],[17,17],[18,18],[19,19],[20,20]]
         for loc in grid:
             soe = []
             params = {}

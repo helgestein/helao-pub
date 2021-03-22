@@ -65,13 +65,14 @@ def isFileInRecord(ident:str,filename:str):
 def uploadHDF5(filename:str,filepath:str):
     #check if proper collection exists
     cname = "stein_substrate_"+filename.split('_')[1]
+    rname = filename[:-5]
     if not collectionExists(cname):
         addCollection(cname,cname[7:])
     #create proper record
-    addRecord('filename','filename')
-    addRecordToCollection(cname,filename)
+    addRecord(rname,rname)
+    addRecordToCollection(cname,rname)
     #upload hdf5 to record
-    addFileToRecord(filename,os.path.join(filepath,filename))
+    addFileToRecord(rname,os.path.join(filepath,filename))
     #i will need to add metadata capability for this, 
     #but want to have another conversation with helge and fuzhan first
     #so probably will not implement this feature on the first pass

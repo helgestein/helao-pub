@@ -28,7 +28,7 @@ def getPos():
 @app.get("/motor/moveRel")
 def moveRelFar( dx: float, dy: float, dz: float):
     requests.get("{}/lang/moveRelFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
-    retc =  return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
+    retc = return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
     return retc
 
 @app.get("/motor/moveDown") #24 is the maximum amount that it can gp down (24 - 2(initial) = 22)
@@ -67,7 +67,7 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
 @app.get("/motor/moveAbs")
 def moveAbsFar(dx: float, dy: float, dz: float):
     requests.get("{}/lang/moveAbsFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
-    retc =  return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
+    retc = return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
     return retc
 
 @app.get("/motor/moveHome")

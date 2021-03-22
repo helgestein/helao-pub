@@ -56,7 +56,7 @@ def read():
 
 @app.on_event("shutdown")
 def shutdown():
-    ret = p.shutdown()
+    p.shutdown()
     retc = return_class(parameters=None,data=None)
     return retc
 

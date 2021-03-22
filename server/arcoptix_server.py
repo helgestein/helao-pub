@@ -21,44 +21,29 @@ class return_class(BaseModel):
 
 
 @app.get("/arcoptix/spectrumWavelengths")
-def getSpectrumWavelengths(filename:str):
+def getSpectrum(filename:str):
     data = a.getSpectrumWavelengths(filename)
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"filename" : filename},
-                    data = data)
-    return retc
-
-@app.get("/arcoptix/spectrumWavenumbers")
-def getSpectrumWavenumbers(filename:str):
-    data = a.getSpectrumWavenumbers(filename)
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"filename" : filename},
-                    data = data)
+    retc = return_class(parameters = {"filename" : filename},
+                        data = data)
     return retc
 
 @app.get("/arcoptix/read")
 def readSpectrum(av:int=1):
     a.readSpectrum(av)
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"av" : av},
-                    data = {"data" : None})
+    retc = return_class(parameters = {"av" : av},data = None)
     return retc
 
 @app.get("/arcoptix/readTime")
 def readSpectrumTime(time:float):
     a.readSpectrumTime(time)
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"time" : time},
-                    data = {"data" : None})
+    retc = return_class(parameters = {"time" : time,'units':'??'},data = None)
     return retc
 
 
 @app.get("/arcoptix/loadFile")
 def loadFile(filename:str):
     data = a.loadFile(filename)
-    retc = return_class(measurement_type = "arcoptix_ftir_command",
-                    parameters = {"filename" : filename},
-                    data = {"data" : data})
+    retc = return_class(parameters = {"filename" : filename},data = data)
     return retc
 
 if __name__ == "__main__":

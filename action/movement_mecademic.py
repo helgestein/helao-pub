@@ -35,8 +35,7 @@ def matrix_rotation(theta: float):
     R = np.array(((c, -s), (s, c)))   
     data = requests.get("{}/movement/rotation".format(url), params={"theta": theta}).json()
     
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'getmatrixrotation', "rotation_value": theta}, 
-                        data = {'data': data})
+    retc = return_class(parameters= {"rotation_value": theta}, data = data)
     return retc, R
 
 
@@ -44,8 +43,8 @@ def matrix_rotation(theta: float):
 def move_to_home():
     # this moves the robot safely to home which is defined as all joints are at 0
     paramd = {lett:val for lett,val in zip("abcdef",config['movement']['zeroj'])}
-    requests.get("{}/mecademic/dMoveJoints".format(url), params=paramd).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'move_to_home'})
+    res = requests.get("{}/mecademic/dMoveJoints".format(url), params=paramd).json()
+    retc = return_class(parameters= None, data = res)
     return retc
 
 @app.get("/movement/jogging")
@@ -95,8 +94,7 @@ def jogging(joints):
     pose = requests.get("{}/mecademic/dGetPose".format(url)).json()
     pjoint = requests.get("{}/mecademic/dGetJoints".format(url)).json()
 
-    retc = return_class(measurement_type='movement_command',
-                        parameters= {'command':'jogging', 'poses': pose, 'joints': pjoint})
+    retc = return_class(parameters= {'joints': joints})
     return retc, pose, pjoint
 
 # Alignment to sample corner
@@ -134,23 +132,25 @@ def align_waste():
 
 @app.get("/movement/alignment")
 def alignment():
+    res = []
     print(safe_points)
-    move_to_home()
+    res.append(move_to_home())
     print('Sample Alignment...')
-    align_sample()
-    move_to_home()
+    res.append(align_sample())
+    res.append(move_to_home())
     print('Reservoir Alignment...')
-    align_reservoir()
-    move_to_home()
+    res.append(align_reservoir())
+    res.append(move_to_home())
     print('Waste Alignment...')
-    align_waste()
-    move_to_home()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'alignment'})
+    res.append(align_waste())
+    res.append(move_to_home())
+    retc = return_class(parameters = None,data=res)
     print(safe_points)
     return retc
 
 @app.get("/movement/mvToSample")
 def mv2sample(x: float, y:float):
+    res = []
     if 0 <= x <= x_limit_sample and 0 <= y <= y_limit_sample:
         data, R = matrix_rotation(sample_rotation)
         p = np.dot(R, np.array((x,y)))
@@ -160,23 +160,24 @@ def mv2sample(x: float, y:float):
                             safe_points['safe_sample_corner'][5]]
         sample_pose = copy(safe_sample_pose)
         sample_pose[2] -= 20
-        move_to_home()
+        res.append(move_to_home())
         # avoid from hitting anything between home and safe sample corner
         paramd = {lett: val for lett,val in zip("abcdef", safe_points['safe_sample_joint'])}
-        requests.get("{}/mecademic/dMoveJoints".format(url), params= paramd).json()
+        res.append(requests.get("{}/mecademic/dMoveJoints".format(url), params= paramd).json())
         # avoid from hitting anything
         paramP = {lett: val for lett,val in zip("abcdef", safe_sample_pose)}
-        requests.get("{}/mecademic/dMovePose".format(url), params= paramP).json()
+        res.append(requests.get("{}/mecademic/dMovePose".format(url), params= paramP).json())
         # going straight down
-        requests.get("{}/mecademic/dqLinZ".format(url), params= {'z': -20, 'nsteps':100} ).json()  
+        res.append(requests.get("{}/mecademic/dqLinZ".format(url), params= {'z': -20, 'nsteps':100} ).json())
     else:
         raise Exception('you are out of boundary')
 
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'mv2sample', 'x': x, 'y': y})
+    retc = return_class(parameters= {'x': x, 'y': y},data=res)
     return retc
 
 @app.get("/movement/mvToReservoir")
 def mv2reservoir(x: float, y: float):
+    res = []
     if 0 <= x <= x_limit_reservoir and 0 <= y <= y_limit_reservoir:
         data, R = matrix_rotation(reservoir_rotation)
         p = np.dot(R, np.array((x,y)))
@@ -186,19 +187,19 @@ def mv2reservoir(x: float, y: float):
                             safe_points['safe_reservoir_corner'][4], safe_points['safe_reservoir_corner'][5]]
         res_pose = copy(safe_res_pose)
         res_pose[2] -= 20  # in xyzabc
-        move_to_home()
+        res.append(move_to_home())
         #avoid from hitting anything between home and safe reservoir corner
         paramd = {lett: val for lett,val in zip("abcdef", safe_points['safe_reservoir_joint'])}
-        requests.get("{}/mecademic/dMoveJoints".format(url), params= paramd).json()
+        res.append(requests.get("{}/mecademic/dMoveJoints".format(url), params= paramd).json())
         # avoid from hitting anything
         paramP = {lett: val for lett,val in zip("abcdef", safe_res_pose)}
-        requests.get("{}/mecademic/dMovePose".format(url), params= paramP).json()
+        res.append(requests.get("{}/mecademic/dMovePose".format(url), params= paramP).json())
         # going straight down
-        requests.get("{}/mecademic/dqLinZ".format(url), params= {'z': -20, 'nsteps':100} ).json()
+        res.append(requests.get("{}/mecademic/dqLinZ".format(url), params= {'z': -20, 'nsteps':100} ).json())
     else:
         raise Exception('you are out of boundary')
     
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'mv2reservoir', 'x': x, 'y': y})
+    retc = return_class(parameters= {'x': x, 'y': y},data=res)
     return retc
 
    
@@ -230,8 +231,7 @@ def mv2waste(x: float, y: float):
     else:
         raise Exception('you are out of boundary')
        
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'mv2waste', 'x': x, 'y': y}, 
-                        data= {'joints': datad, 'poses': datap, 'z': dataz})
+    retc = return_class(parameters= {'x': x, 'y': y}, data= [datad,datap,dataz])
     return retc
  
 
@@ -241,7 +241,7 @@ def moveup(z: float=50.0):
     pos[2] += z
     paramd = {lett: val for lett,val in zip("abcdef", pos)}
     data = requests.get("{}/mecademic/dMovePose".format(url), params= paramd).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'moveup', 'z': z}, data = {'data': data})
+    retc = return_class(parameters= {'z': z}, data = data)
     return retc
     
 @app.get("/movement/removeDrop")
@@ -251,7 +251,7 @@ def removedrop(y: float=-20):
     paramd = {lett: val for lett, val in zip("abcdef", pos)}
     data = requests.get("{}/mecademic/dMovePose".format(url), params= paramd).json()
     move_to_home()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'removedrop', 'y': y}, data = {'data': data})
+    retc = return_class(parameters= {'y': y}, data = data)
     return retc
  
 # move gripper to a specified position, at speed and with defined force @helge
@@ -279,7 +279,7 @@ def safe_raman():
     #these are the joints then, at which we assume the raman probe is .5mm above sample in current calibration: [-89.9993, 31.1584, -1.9319, 0.0, 34.2737, 120.0039]
     #thus, in these joints we assume we are 20mm above sample table: [-89.9993, 29.9845, -9.0722, 0.0, 42.5878, 120.0038]
     data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9993,"b":29.9845,"c":-9.0722,"d":0.0,"e":42.5878,"f":120.0038}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'safe_raman'}, data = {'data': data})
+    retc = return_class(parameters= None, data = data)
     return retc
 
 @app.get("/movement/measuringRaman")
@@ -287,10 +287,10 @@ def measuring_raman(z:float,h:float):
     #h is substrate thickness
     #z is height above substrate to measure at
     #first check if in safe position
-    safe_raman()
+    data = [safe_raman()]
     #math here assumes you are 20mm above table, and want to move to 5mm above sample for optimal raman measurement
-    data = requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z+h-20}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'measuring_raman','parameters':{'h':h,'z':z}}, data = {'data': data})
+    data.append(requests.get("{}/mecademic/dqLinZ".format(url), params={"z":z+h-20}).json())
+    retc = return_class(parameters= {'h':h,'z':z,'units':{'h':'mm','z':'mm'}}, data = data)
     return retc
 
 @app.get("/movement/calibrateRaman")
@@ -307,11 +307,14 @@ def calibrate_raman(zs:str,h:float,t:int,safepath:str):
         rcall = requests.get("http://{}:{}/ocean/readSpectrum".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port']),params={'t':t,'filename':safepath+"/raman_calibration_"+str(time.time()).replace('.','_')}).json()
         zc = z
         tot = sum(rcall['data']['intensities'])
-        data.append(dict(movement=zcall,read=rcall,z=z,int=tot))
+        data.append(zcall)
+        data.append(rcall)
         if best == {} or tot > best['int']:
             best = dict(z=z,int=tot)
     safe_raman()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'calibrate_raman','parameters':{'h':h,'t':t}}, data = {'trials': data,'best': best})
+    retc = return_class(parameters= {'zs':zs,'h':h,'t':t,'safepath':safepath,
+                                     'units':{'zs':'mm','h':'mm','t':'µs'}}, 
+                        data = {'raw':data,'res':best.update({'units':{'z':'mm','int':'intensity*nm'}})})
     return retc
 
 #used for calibration. for a given height z above substrate of thickness h, 
@@ -326,14 +329,14 @@ def safe_FTIR():
     #(5.7103, 1.7055, 55.8257, 6.7592, -57.7119, -2.8806) for .5mm above stage for FTIR
     #(5.7103, -3.6963, 51.0918, 7.7078, -48.4622, -4.4683) for 20mm above stage??? something weird happened
     data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9994,"b":30.1113,"c":-7.5789,"d":0.0,"e":40.9681,"f":120.0034}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    retc = return_class(parameters= None, data = data)
     return retc
 
 @app.get("/movement/measuringFTIR")
 def measuring_FTIR(t,d):
     #t is substrate thickness, d is probe displacement from sample
     data = requests.get("{}/mecademic/dMoveJoints".format(url), params={"a":-89.9994,"b":30.1113,"c":-7.5789,"d":0.0,"e":40.9681,"f":120.0034}).json()
-    retc = return_class(measurement_type='movement_command', parameters= {'command':'bring_raman'}, data = {'data': data})
+    retc = return_class(parameters= {'t':t,'d':d}, data = data)
     return retc
 
 

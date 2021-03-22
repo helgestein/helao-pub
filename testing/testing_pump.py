@@ -13,11 +13,22 @@ def pump_test(action, params):
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['pumpingServer']['host'], 
-        config['servers']['pumpingServer']['port'],server , action),
+        config['servers']['minipumpServer']['host'], 
+        config['servers']['minipumpServer']['port'],server , action),
         params= params).json()
     return res
 
+def mini_pump_test(action, params):
+    server = 'minipumping'
+    action = action
+    params = params
+    res = requests.get("http://{}:{}/{}/{}".format(
+        config['servers']['minipumpingServer']['host'], 
+        config['servers']['minipumpingServer']['port'],server , action),
+        params= params).json()
+    return res
+
+#pump
 pump_test('formulation', params=dict(
     comprel='[0.5]',
     pumps= '[0]',
@@ -27,3 +38,6 @@ pump_test('flushSerial', None)
 pump_test('resetPrimings', None)
 pump_test('getPrimings', None)
 pump_test('refreshPrimings', None)
+
+#mini pump
+mini_pump_test('formulation', params=dict(speed= 80, volume= 100, direction= 1))                      

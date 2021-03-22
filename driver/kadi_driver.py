@@ -1,6 +1,6 @@
-from kadi_apy.lib.core import KadiAPI
-from kadi_apy.lib.records import Record
-from kadi_apy.lib.collections import Collection
+from kadi_apy import KadiAPI
+from kadi_apy import Record
+from kadi_apy import Collection
 import json
 import time
 import pandas
@@ -81,10 +81,4 @@ class kadi():
 
     def isFileInRecord(self,ident,filename):
         record = Record(identifier=ident)
-        response = record.get_filelist(per_page=100).json()
-        for i in range(response['_pagination']['total_pages']):
-            page = record.get_filelist(page=i,per_page=100).json()
-            for item in page['items']:
-                if item['name'] == filename:
-                    return True
-        return False
+        return record.has_file(filename)

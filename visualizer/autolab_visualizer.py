@@ -15,36 +15,22 @@ from bokeh.models import Title, DataTable, TableColumn
 from bokeh.models.widgets import Paragraph
 from bokeh.plotting import figure, curdoc
 from tornado.ioloop import IOLoop
-from munch import munchify
+from mischbares_small import config
 
-# not packaging as module for now, so detect source code's root directory from CLI execution
-helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-# append config folder to path to allow dynamic config imports
-sys.path.append(os.path.join(helao_root, 'config'))
-# grab config file prefix (e.g. "world" for world.py) from CLI argument
-confPrefix = sys.argv[1]
-# grab server key from CLI argument, this is a unique name for the server instance
-servKey = sys.argv[2]
-# import config dictionary
-config = import_module(f"{confPrefix}").config
-# shorthand object-style access to config dictionary
 
-#uvicorn.run(app, host=, port=)
 
-C = config['servers']['autolabServer']['host']#munchify(config)["servers"]
-# config dict for visualization server
-#O = C[servKey]
-# config dict for websocket host
-S = config['servers']['autolabServer']['port']
+S = config['servers']['autolabServer']
+uri = f"ws://{S['host']}:{S['port']}/ws"
 
 doc = curdoc()
-uri = f"ws://{S.host}:{S.port}/ws"
 time_stamp = 0
 pids = collections.deque(10*[0], 10)
 
 def update(new_data):
+    global source
     print(new_data)
     source.stream(new_data)
+    print(source.to_json(False))
 
 def remove_line(new_time_stamp):
     global time_stamp
@@ -54,7 +40,6 @@ def remove_line(new_time_stamp):
 
     doc.remove_root(plot)
     doc.remove_root(data_table)
-    source.data = {k: [] for k in source.data}
 
     time_stamp = new_time_stamp
 
@@ -66,26 +51,59 @@ def remove_line(new_time_stamp):
         xstr = 't_s'
         plot.add_layout(Title(text="t_s", align="center"), "below")
     elif(radio_button_group.active == 1):
+        xstr = 'freq'
+        plot.add_layout(Title(text="freq", align="center"), "below")
+    elif(radio_button_group.active == 2):
         plot.add_layout(Title(text="Ewe_V", align="center"), "below")
         xstr = 'Ewe_V'
-    elif(radio_button_group.active == 2):
+    elif(radio_button_group.active == 3):
         plot.add_layout(Title(text="Ach_V", align="center"), "below")
         xstr = 'Ach_V'
+    elif(radio_button_group.active == 4):
+        plot.add_layout(Title(text="Z_real", align="center"), "below")
+        xstr = 'Z_real'
+    elif(radio_button_group.active == 5):
+        plot.add_layout(Title(text="Z_imag", align="center"), "below")
+        xstr = 'Z_imag'
+    elif(radio_button_group.active == 6):
+        plot.add_layout(Title(text="phase", align="center"), "below")
+        xstr = 'phase'
+    elif(radio_button_group.active == 7):
+        plot.add_layout(Title(text="modulus", align="center"), "below")
+        xstr = 'modulus'
     else:
         plot.add_layout(Title(text="I_A", align="center"), "below")
         xstr = 'I_A'
-    colors = ['red', 'blue', 'yellow', 'green']
+
+    colors = ['red', 'blue', 'yellow', 'green', 'pink', 'brown', 'olive', 'cyan', 'grey']
     color_count = 0
     for i in checkbox_button_group.active:
         if i == 0:
             plot.add_layout(Title(text="t_s", align="center"), "left")
+            print(source.to_json(True))
             plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=source, name=str(time_stamp))
         elif i == 1:
-            plot.add_layout(Title(text="Ewe_V", align="center"), "left")
-            plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=source, name=str(time_stamp))
+            plot.add_layout(Title(text="freq", align="center"), "left")
+            plot.line(x=xstr, y='freq', line_color=colors[color_count], source=source, name=str(time_stamp))
         elif i == 2:
+            plot.add_layout(Title(text="Ewe_V", align="center"), "left")
+            print(source.to_json(True))
+            plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 3:
             plot.add_layout(Title(text="Ach_V", align="center"), "left")
             plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 4:
+            plot.add_layout(Title(text="Z_real", align="center"), "left")
+            plot.line(x=xstr, y='Z_real', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 5:
+            plot.add_layout(Title(text="Z_imag", align="center"), "left")
+            plot.line(x=xstr, y='Z_imag', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 6:
+            plot.add_layout(Title(text="phase", align="center"), "left")
+            plot.line(x=xstr, y='phase', line_color=colors[color_count], source=source, name=str(time_stamp))
+        elif i == 7:
+            plot.add_layout(Title(text="modulus", align="center"), "left")
+            plot.line(x=xstr, y='modulus', line_color=colors[color_count], source=source, name=str(time_stamp))   
         else:
             plot.add_layout(Title(text="I_A", align="center"), "left")
             plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=source, name=str(time_stamp))
@@ -116,12 +134,12 @@ async def loop(): # non-blocking coroutine, updates data source
             else:
                 doc.add_next_tick_callback(partial(update, new_data))
 
-source = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+source = ColumnDataSource(data=dict(t_s=[], freq= [], Ewe_V=[], Ach_V=[], Z_real=[], Z_imag=[], phase=[], modulus=[], I_A=[]))
 
 paragraph1 = Paragraph(text="""x-axis:""", width=50, height=15)
-radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=0)
+radio_button_group = RadioButtonGroup(labels=["t_s", "freq", "Ewe_V", "Ach_V", "Z_real", "Z_imag", "phase", "modulus","I_A"], active=0)
 paragraph2 = Paragraph(text="""y-axis:""", width=50, height=15)
-checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[1])
+checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "freq", "Ewe_V", "Ach_V", "Z_real", "Z_imag", "phase", "modulus", "I_A"], active=[1])
 
 plot = figure(title="Title", height=300)
 line1 = plot.line(x='t_s', y='Ewe_V', source=source, name=str(time_stamp))

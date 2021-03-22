@@ -20,9 +20,7 @@ class return_class(BaseModel):
 @app.get("/owis/activate")
 def activate(motor:int=0):
     o.activate(motor)
-    retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "activate", "parameters": {"motor": motor}},
-                        data= {"status": "activated"})
+    retc = return_class(parameters={"motor": motor},data= None)
     return retc
     
     
@@ -30,26 +28,19 @@ def activate(motor:int=0):
 @app.get("/owis/configure")
 def configure(motor:int=0):
     o.configure(motor)
-    retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "configure", "parameters": {"motor": motor}},
-                        data= {"status": "configured"})
+    retc = return_class(parameters={"motor": motor},data=None)
     return retc
 
 @app.get("/owis/move")
 def move(count:int,motor:int=0,absol:bool=True):
     o.move(count,motor,absol)
-    retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "move", 
-                        "parameters": {"count": count, "motor": motor, "absol": absol}},
-                        data= None)
+    retc = return_class(parameters={"count": count, "motor": motor, "absol": absol,'units':{'count':'microsteps (about .0001mm)'}},data= None)
     return retc
 
 @app.get("/owis/getPos")
 def getPos():
     ret = o.getPos()
-    retc = return_class(measurement_type= "owis_motor_command",
-                        parameters={ "command": "getPos"},
-                        data= {"coordinates": ret})
+    retc = return_class(parameters=None,data= {"coordinates": ret,'units':{'coordinates':'microsteps (about .0001mm)'}})
     return retc
 
 if __name__ == "__main__":

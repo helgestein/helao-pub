@@ -23,36 +23,9 @@ app = FastAPI(title="Echem Action server V1",
     version="1.0")
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
-'''
-@app.get("/echem/measure/")
-def measure(procedure:str,setpoint_keys:str,setpoint_values:str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
-    """
-    Measure a recipe and manipulate the parameters:
-
-    - **measure_conf**: is explained in the echemprocedures folder
-    """
-    measure_conf = dict(procedure=procedure,
-                        setpoint_key=setpoint_keys,
-                        setpoint_value=setpoint_values,
-                        plot=plot,
-                        onoffafter=onoffafter,
-                        safepath=safepath,
-                        filename=filename,
-                        parseinstructions=parseinstructions)
-    
-    res = requests.get("{}/potentiostat/measure".format(poturl), 
-                        params=measure_conf).json()
-  
-    retc = return_class(measurement_type='echem_measure',
-                        parameters= {'command':'measure',
-                                    'parameters':measure_conf},
-                        data = {'data':res})
-    return retc
-'''
 
 @app.get("/echem/measure/")
 def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
@@ -72,67 +45,47 @@ def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str
     res = requests.get("{}/potentiostat/measure".format(poturl), 
                         params=measure_conf).json()
   
-    retc = return_class(measurement_type='echem_measure',
-                        parameters= {'command':'measure',
-                                    'parameters':measure_conf},
-                        data = {'data':res})
+    retc = return_class(parameters= measure_conf,
+                        data = res)
     return retc
 
 
 @app.get("/echem/ismeasuring/")
 def ismeasuring():
     res = requests.get("{}/potentiostat/ismeasuring".format(poturl)).json()
-    retc = return_class(measurement_type='echem_ismeasuring',
-                        parameters= {'command':'ismeasuring',
-                                    'parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data = res)
     return retc
 
 @app.get("/echem/potential/")
 def potential():
     res = requests.get("{}/potentiostat/potential".format(poturl)).json()
-    retc = return_class(measurement_type='echem_potential',
-                        parameters= {'command':'potential',
-                                    'parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data = res)
     return retc
 
 @app.get("/echem/current/")
 def current():
     res = requests.get("{}/potentiostat/current".format(poturl)).json()
-    retc = return_class(measurement_type='echem_current',
-                        parameters= {'command':'current',
-                                    'parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data = res)
     return retc
 
 @app.get("/echem/setcurrentrange/")
 def setCurrentRange(crange:str):
     res = requests.get("{}/potentiostat/setcurrentrange".format(poturl),
                         params={'crange':crange}).json()
-    retc = return_class(measurement_type='echem_setcurrentrange',
-                        parameters= {'command':'setcurrentrange',
-                                    'parameters':{'crange':crange}},
-                        data = {'data':res})
+    retc = return_class(parameters= {'crange':crange},data = res)
     return retc
 
 @app.get("/echem/appliedpotential/")
 def appliedPotential():
     res = requests.get("{}/potentiostat/appliedpotential".format(poturl)).json()
-    retc = return_class(measurement_type='echem_appliedpotential',
-                        parameters= {'command':'appliedpotential',
-                                    'parameters':None},
-                        data = {'data':res})
+    retc = return_class(parameters= None,data =res)
     return retc
 
 @app.get("/echem/cellonoff/")
 def CellOnOff(onoff:str):
     res = requests.get("{}/potentiostat/cellonoff".format(poturl),
                         params={'onoff':onoff}).json()
-    retc = return_class(measurement_type='echem_onoff',
-                        parameters= {'command':'onoff',
-                                    'parameters':{'cellonoff':onoff}},
-                        data = {'data':res})
+    retc = return_class(parameters= {'cellonoff':onoff},data = res)
     return retc
 
 @app.get("/echem/retrieve")
@@ -140,10 +93,7 @@ def retrieve(safepath: str, filename: str):
     conf = dict(safepath= safepath,filename = filename)
     res = requests.get("{}/potentiostat/retrieve".format(poturl),
                         params=conf).json()
-    retc = return_class(measurement_type='echem_retrieve',
-                        parameters= {'command':'retrieve',
-                                    'parameters':{'retrieve':conf}},
-                        data = {'data':res})
+    retc = return_class(parameters= {'safepath':safepath,'filename':filename},data = res)
     return retc
 
 if __name__ == "__main__":

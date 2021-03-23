@@ -6,6 +6,34 @@ import asyncio
 import websockets
 import requests
 from collections import deque
+from pydantic import BaseModel
+import aiofiles
+
+
+# work in progress
+class LocalDataHandler:
+    def __init__(self):
+        self.filename = ''
+        self.fileheader = ''
+        self.filepath = ''
+        self.f = None
+
+
+    async def open_file(self):
+        self.f = await aiofiles.open('data','a')
+#        self.f = await aiofiles.open('data','w')
+
+
+    async def write_header(self):
+        await self.f.write(self.fileheader + '\n')
+
+
+    async def write_data(self, data):
+        await self.f.write(data + '\n')
+
+
+    async def close_file(self):
+        await self.f.close()
 
 
 class StatusHandler:
@@ -151,3 +179,19 @@ class Action:
         self.preempt = preempt
         self.block = block
         self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
+
+
+# return class for FastAPI calls
+class return_class(BaseModel):
+    measurement_type: str = None
+    parameters: dict = None
+    data: dict = None
+    err_code: str = None
+    
+
+# return class for status ws
+class return_status(BaseModel):
+    measurement_type: str
+    parameters: dict
+    status: dict
+    

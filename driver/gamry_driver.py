@@ -7,20 +7,21 @@ configuration is read from config/config.py.
 
 import comtypes
 import comtypes.client as client
-import pickle
-import os
 import collections
-import numpy as np
-import sys
 import asyncio
-import aiofiles
 import time
+from enum import Enum
+import psutil
 
 
-# definition of error handling things from gamry
-class GamryCOMError(Exception):
-    pass
-
+class Gamry_modes(str, Enum):
+    CA = "CA"
+    CP = "CP"
+    CV = "CV"
+    LSV = "LSV"
+    EIS = "EIS"
+    OCV = "OCV"
+    
 
 def gamry_error_decoder(e):
     if isinstance(e, comtypes.COMError):
@@ -30,6 +31,11 @@ def gamry_error_decoder(e):
                 "0x{0:08x}: {1}".format(2 ** 32 + e.args[0], e.args[1])
             )
     return e
+
+
+# definition of error handling things from gamry
+class GamryCOMError(Exception):
+    pass
 
 
 class GamryDtaqEvents(object):
@@ -57,214 +63,392 @@ class GamryDtaqEvents(object):
     def _IGamryDtaqEvents_OnDataDone(self, this):
         self.cook()  # a final cook
         self.status = "done"
-        # TODO:  indicate completion to enclosing code?
 
+
+##########################################################################
+# Dummy class for when the Gamry is not used
+##########################################################################
 class dummy_sink:
     def __init__(self):
         self.status = "idle"
 
+
 class gamry:
-    # since the gamry connection uses one class and it can be switched on or off with handoff and everythong
-    # I decided to put the gamry in a class ... this puts the logic into this class and not like in the motion server
-    # where the logic is spread across the functions. TODO: Decide which way to implement this and streamline everywhere
-    def __init__(self, config_dict):        
+    def __init__(self, config_dict):
+        # save instrument config
         self.config_dict = config_dict
-        self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
+        # get Gamry object (Garmry.com)
+       
+        # TODO: a busy gamrycom can lock up the server
+        self.kill_GamryCom()
+        self.GamryCOM = client.GetModule(['{BD962F0D-A990-4823-9CF5-284D1CDD9C6D}', 1, 0])
+        #self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
 
-        self.devices = client.CreateObject("GamryCOM.GamryDeviceList")
-        # print(devices.EnumSections())
 
-        self.pstat = client.CreateObject("GamryCOM.GamryPC6Pstat")
+        self.pstat = None
 
-        # print(devices.EnumSections())
-        try:
-            self.pstat.Init(self.devices.EnumSections()[0])  # grab first pstat
-        except IndexError:
-            print("No potentiostat is connected! Have you turned it on?")
+        if not 'dev_id' in self.config_dict:
+            self.config_dict['dev_id'] = 0
+        if not 'dev_family' in self.config_dict:
+            self.config_dict['dev_family'] = 'Reference'
+        
+        self.Gamry_devid = self.config_dict['dev_id']
+        self.Gamry_family = self.config_dict['dev_family']
+
+        asyncio.gather(self.init_Gamry(self.Gamry_devid))
+
         self.temp = []
         self.buffer = dict()
         self.buffer_size = 0
-        self.q = asyncio.Queue()
-        self.dtaqsink = dummy_sink()
-
-    def open_connection(self):
-        # this just tries to open a connection with try/catch
-        try:
-            self.pstat.Open()
-            return {"potentiostat_connection": "connected"}
-        except:
-            return {"potentiostat_connection": "error"}
-
-    def close_connection(self):
-        # this just tries to close a connection with try/catch
-        try:
-            self.pstat.Close()
-            return {"potentiostat_connection": "closed"}
-        except:
-            return {"potentiostat_connection": "error"}
-
-    def measurement_setup(self, gsetup="sweep"):
-        self.open_connection()
-        if gsetup == "sweep":
-            g = "GamryCOM.GamryDtaqCpiv"
-        if gsetup == "cv":
-            g = "GamryCOM.GamryDtaqRcv"
-        if gsetup == "CA" or gsetup == "CP":
-            g = "GamryCOM.GamryDtaqChrono"
-        self.dtaqcpiv = client.CreateObject(g)
-        if gsetup == "sweep" or gsetup == "cv":
-            self.dtaqcpiv.Init(self.pstat)
-        if gsetup == "CA":
-            self.dtaqcpiv.Init(self.pstat, self.GamryCOM.ChronoAmp)
-        if gsetup == "CP":
-            self.dtaqcpiv.Init(self.pstat, self.GamryCOM.ChronoPot)
-        self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
-
         
-    async def asyncTest(self): # ADDED to test async (not needed)
-        while True:
-            print("here")
-            await asyncio.sleep(.25)
-
-    # def get_buffer(self):
-    #     for key in self.buffer:
-    #         print("key:" + str(key))
-    #         print("value:" + str(self.buffer.get(key)))
-    #     return self.buffer
-
-    # def get_buffer_from_index(self, i):
-    #     for index in range(len(list(self.buffer)) - i):
-    #         print("key:" + str(list(self.buffer.keys())[i + index]))
-    #         print("value:" + str(self.buffer.get(list(self.buffer.keys())[i + index])))
-
-    async def measure(self, sigramp, gsetup=None): 
-        print("Opening Connection")
-        ret = self.open_connection()
-        #self.pstat.SetIERange(10)
-        self.pstat.SetIERangeMode(1)
-        if gsetup=='CP':
-            self.pstat.SetCtrlMode(0)
-        else:
-            self.pstat.SetCtrlMode(1)
-        print(self.pstat.CtrlMode())
-        print(self.pstat.IERange())
-        print(ret)
-        # push the signal ramp over
-        print("Pushing")
-        self.pstat.SetSignal(sigramp)
-
-        self.pstat.SetCell(self.GamryCOM.CellOn)
-        if gsetup==None:
-            self.measurement_setup()
-        else:
-            self.measurement_setup(gsetup) #TODO: good to add gsetup?
-        self.connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
-        try:
-            self.dtaqcpiv.Run(True)
-        except Exception as e:
-            raise gamry_error_decoder(e)
+        self.wsdataq = asyncio.Queue()
+        self.dtaqsink = dummy_sink()
+        self.dtaq = None
+        
+        self.area = 1.0
+        self.output = ''
+        self.notes = ''
+        self.title = ''
+  
+        # empty the data before new one is collected
         self.data = collections.defaultdict(list)
-        client.PumpEvents(0.001)
-        sink_status = self.dtaqsink.status
-        # f = open("data.txt", "w")
-        # f.write("")
-        # f.close()
-        counter = 0
-        # f = open("data.txt", "a")
+        
+        # for global IOloop
+        self.IO_do_meas = False
+        self.IO_meas_mode = None
+        self.IO_sigramp = None
+        
+        
+        myloop = asyncio.get_event_loop()
+        #add meas IOloop
+        myloop.create_task(self.IOloop())
 
-        async with aiofiles.open('data', 'w') as f:
-            await f.write("")
 
-        while sink_status != "done":
+    ##########################################################################
+    # This is main Gamry measurement loop which always needs to run
+    # else if measurement is done in FastAPI calls we will get timeouts
+    ##########################################################################
+    async def IOloop(self):
+        while True:
+            await asyncio.sleep(0.5)
+            if self.IO_do_meas:
+                print(' ... Gramry got measurement request')
+                await self.measure()
+                # we need to close the connection else the Gamry is still is use 
+                # which can cause trouble if the script ends witout closing the connection
+                await self.close_connection()
+                self.IO_do_meas = False
+                print(' ... Gramry measurement is done')
+
+
+    def kill_GamryCom(self):
+        pyPids = {p.pid: p for p in psutil.process_iter(
+            ['name', 'connections']) if p.info['name'].startswith('GamryCom')}
+        
+        for pid in pyPids.keys():
+            print(' ... killing GamryCom on PID: ', pid)
+            p = psutil.Process(pid)
+            for _ in range(3):
+                # os.kill(p.pid, signal.SIGTERM)
+                p.terminate()
+                time.sleep(0.5)
+                if not psutil.pid_exists(p.pid):
+                    print(" ... Successfully terminated GamryCom.")
+                    return True
+            if psutil.pid_exists(p.pid):
+                print(
+                    " ... Failed to terminate server GamryCom after 3 retries.")
+                return False
+
+
+    ##########################################################################
+    # connect to a Gamry
+    ##########################################################################
+    async def init_Gamry(self, devid):
+        try:
+            self.devices = client.CreateObject('GamryCOM.GamryDeviceList')
+            print(' ... GamryDeviceList:', self.devices.EnumSections())
+
+            if len(self.devices.EnumSections()) >= devid:
+                if self.Gamry_family == 'Interface':
+                    self.pstat = client.CreateObject('GamryCOM.GamryPC6Pstat')                    
+                    print(' ... Gamry, using Interface', self.pstat)
+                elif self.Gamry_family == 'Reference':
+                    self.pstat = client.CreateObject('GamryCOM.GamryPC5Pstat')            
+                    print(' ... Gamry, using Reference', self.pstat)
+                else: # old version before Framework 7.06
+                    self.pstat = client.CreateObject('GamryCOM.GamryPstat')
+                    print(' ... Gamry, using Farmework , 7.06?', self.pstat)
+
+                self.pstat.Init(self.devices.EnumSections()[devid])
+                print(' ... ',self.pstat)
+                
+            else:
+                self.pstat = None
+                print(f' ... No potentiostat is connected on DevID {devid}! Have you turned it on?')
+
+        except Exception as e:
+            # this will lock up the potentiostat server 
+            # happens when a not activated Gamry is connected and turned on
+            # TODO: find a way to avoid it
+            print(' ... fatal error initializing Gamry:', e)
+
+    ##########################################################################
+    # Open connection to Gamry
+    ##########################################################################
+    async def open_connection(self):
+        # this just tries to open a connection with try/catch
+        await asyncio.sleep(0.001)
+        if not self.pstat:
+            await self.init_Gamry(self.Gamry_devid)
+        try:
+            if self.pstat:
+                self.pstat.Open()
+                return {"potentiostat_connection": "connected"}
+            else:
+                return {"potentiostat_connection": "not initialized"}
+                
+        except Exception:
+            #self.pstat = None
+            return {"potentiostat_connection": "error"}
+
+
+    ##########################################################################
+    # Close connection to Gamry
+    ##########################################################################
+    async def close_connection(self):
+        # this just tries to close a connection with try/catch
+        await asyncio.sleep(0.001)
+        try:
+            if self.pstat:
+                self.pstat.Close()
+                return {"potentiostat_connection": "closed"}
+            else:
+                return {"potentiostat_connection": "not initialized"}
+        except Exception:
+            #self.pstat = None
+            return {"potentiostat_connection": "error"}
+
+
+    ##########################################################################
+    # setting up the measurement parameters
+    # need to initialize and open connection to gamry first
+    ##########################################################################
+    async def measurement_setup(self, mode: Gamry_modes = None):
+        await asyncio.sleep(0.001)
+        if self.pstat:
+                        
+            if mode == Gamry_modes.CA:
+                Dtaqmode = "GamryCOM.GamryDtaqChrono"
+                Dtaqtype = self.GamryCOM.ChronoAmp
+            elif mode == Gamry_modes.CP:
+                Dtaqmode = "GamryCOM.GamryDtaqChrono"
+                Dtaqtype = self.GamryCOM.ChronoPot
+            elif mode == Gamry_modes.CV:
+                Dtaqmode = "GamryCOM.GamryDtaqRcv"
+                Dtaqtype = None
+            elif mode == Gamry_modes.LSV:
+                Dtaqmode = "GamryCOM.GamryDtaqCpiv"
+                Dtaqtype = None
+            elif mode == Gamry_modes.EIS:
+                # TODO change that
+                print(' ... will be currently done in meas function')
+            #     Dtaqmode = "GamryCOM.GamryDtaqEis"
+            #     Dtaqtype = None
+            # elif mode == Gamry_modes.OCV:
+            else:
+                return {"measurement_setup": f'mode_{mode}_not_supported'}
+
+
+            try:
+                self.dtaq=client.CreateObject(Dtaqmode)
+                if Dtaqtype:
+                    self.dtaq.Init(self.pstat,Dtaqtype)
+                else:
+                    self.dtaq.Init(self.pstat)
+            except Exception as e:
+                print(' ... Gamry Error:', gamry_error_decoder(e))
+
+
+            self.dtaqsink = GamryDtaqEvents(self.dtaq, self.wsdataq)
+            return {"measurement_setup": f'setup_{mode}'}
+        else:
+            return {"measurement_setup": "not initialized"}
+
+
+    ##########################################################################
+    # performing a measurement with the Gamry
+    # this is the main function for the instrument
+    ##########################################################################
+    async def measure(self): 
+        await asyncio.sleep(0.001)
+        if self.pstat:
+
+            #, self.IO_meas_mode
+
+    #         print(" ... Opening Connection", self.pstat)
+    #         #ret = await self.open_connection()
+    #         #self.pstat.SetIERange(10)
+    #         self.pstat.SetIERangeMode(1)
+    #         if mode=='CP':
+    #             self.pstat.SetCtrlMode(0)
+    #         else:
+    #             self.pstat.SetCtrlMode(1)
+    #         print(self.pstat.CtrlMode())
+    #         print(self.pstat.IERange())
+    #         #print(ret)
+    #        
+
+
+            # push the signal ramp over
+            self.pstat.SetSignal(self.IO_sigramp)
+            # turn on the potentiostat output
+            self.pstat.SetCell(self.GamryCOM.CellOn)
+            
+            
+            # Use the following code to discover events:
+            #client.ShowEvents(dtaqcpiv)
+            connection = client.GetEvents(self.dtaq, self.dtaqsink)
+
+            try:
+                self.dtaq.Run(True)
+            except Exception as e:
+                raise gamry_error_decoder(e)
+
+            # empty the data before new one is collected
+            self.data = collections.defaultdict(list)
+            
             client.PumpEvents(0.001)
-            while counter < len(self.dtaqsink.acquired_points):
-                await self.q.put(self.dtaqsink.acquired_points[counter])
-                async with aiofiles.open('data', 'a') as f:
-                    await f.write(str(self.dtaqsink.acquired_points[counter])+"\n")
-                counter += 1
-# =============================================================================
-#                 print(counter)
-#                 await asyncio.sleep(.25) #CHANGE SLEEP TIME
-# =============================================================================
-            sink_status = self.dtaqsink.status
-            dtaqarr = self.dtaqsink.acquired_points
-            self.data = dtaqarr
-            # self.buffer_size = self.dtaqsink.buffer_size
-            # if self.buffer_size > 5_000_000_000: #5gb #keep the memory size of the buffer under a certain amount
-            #     while self.buffer_size > 5_000_000_000:
-            #         self.buffer_size -= sys.getsizeof(self.buffer[list(self.buffer.keys())[0]])
-        f.close()
-        self.pstat.SetCell(self.GamryCOM.CellOff)
-        self.close_connection()
+            #client.PumpEvents(1)
+            
 
+            sink_status = self.dtaqsink.status
+            counter = 0
+            # TODO: open new file and write header
+
+
+            while sink_status != "done":
+            #while sink_status == "measuring":
+                client.PumpEvents(0.001)
+                # this is a temp data which gets the data point by point
+                # write this to a file so we don't loose any data
+                while counter < len(self.dtaqsink.acquired_points):
+                    tmp_datapoints = self.dtaqsink.acquired_points[counter]
+                    #print(tmp_datapoints)
+                    #print(counter)
+                    await self.wsdataq.put(tmp_datapoints)
+                    # TODO: put new data in file
+                    counter += 1
+    
+                # this copies the complete chunk of data again and again
+                # what we are going to do with this?
+                dtaqarr = self.dtaqsink.acquired_points
+                self.data = dtaqarr
+
+                sink_status = self.dtaqsink.status
+                #print(sink_status)
+
+
+            self.pstat.SetCell(self.GamryCOM.CellOff)
+            # TODO: close file
+            
+            # delete this at the very last step
+            del connection
+            # connection will be closed in IOloop
+            #self.close_connection()
+            return {"measure": f'done_{self.IO_meas_mode}'}
+        else:
+            return {"measure": "not initialized"}
+
+
+    ##########################################################################
+    #  return status of data structure
+    ##########################################################################
     async def status(self):
         await asyncio.sleep(0.001)
         return self.dtaqsink.status
 
-    def dump_data(self):
-        pickle.dump(
-            self.data, open(os.path.join(self.config_dict["temp_dump"], self.instance_id))
-        )
 
-    def signal_array(self, Cycles: int, SampleRate: float, arr):
-        arr = np.array(arr).tolist()
-        # setup the experiment specific signal ramp
-        if len(arr) > 262143:
-            raise tooLongMeasurementError
-
-        sigramp = client.CreateObject("GamryCOM.GamrySignalArray")
-        sigramp.Init(
-            self.pstat, Cycles, SampleRate, len(arr), arr, self.GamryCOM.PstatMode
-        )
-        # measure ... this will do the setup as well
-        self.measure(sigramp)
-        return {
-            "measurement_type": "potential_ramp",
-            "parameters": {
-                "Vinit": Cycles,
-                "Vfinal": SampleRate,
-                "SampleRate": SampleRate,
-                "Profile": arr,
-            },
-            "data": np.array(self.data).tolist(),
-        }
-
-    async def potential_ramp(
-        self, Vinit: float, Vfinal: float, ScanRate: float, SampleRate: float
+    ##########################################################################
+    #  LSV definition
+    ##########################################################################
+    async def technique_LSV(self, 
+        Vinit: float, 
+        Vfinal: float, 
+        ScanRate: float, 
+        SampleRate: float
     ):
-        # setup the experiment specific signal ramp
-        sigramp = client.CreateObject("GamryCOM.GamrySignalRamp")
-        sigramp.Init(
-            self.pstat, Vinit, Vfinal, ScanRate, SampleRate, self.GamryCOM.PstatMode
-        )
-        # measure ... this will do the setup as well
-        await self.measure(sigramp)
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat:
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.LSV
+            await self.measurement_setup(self.IO_meas_mode)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalRamp")
+
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat, Vinit, Vfinal, ScanRate, SampleRate, self.GamryCOM.PstatMode
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
+
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
+        else:
+            err_code = "not initialized"
+            
         return {
-            "measurement_type": "potential_ramp",
+            "measurement_type": self.IO_meas_mode,
             "parameters": {
                 "Vinit": Vinit,
                 "Vfinal": Vfinal,
                 "ScanRate": ScanRate,
                 "SampleRate": SampleRate,
             },
-            "data": self.data,
+            "err_code": err_code
         }
 
-#driver for CA tests
-#TODO: need to test this method
-    async def chrono_amp(
-        self, Vinit: float, Tinit: float, Vstep1: float, Tstep1: float, Vstep2: float, Tstep2: float, SampleRate: float
+
+    ##########################################################################
+    #  CA definition
+    ##########################################################################
+    async def technique_CA(self, 
+        Vinit: float, 
+        Tinit: float, 
+        Vstep1: float, 
+        Tstep1: float, 
+        Vstep2: float, 
+        Tstep2: float, 
+        SampleRate: float
     ):
-        # setup the experiment specific signal ramp
-        sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
-        sigramp.Init(
-            self.pstat, Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate, self.GamryCOM.PstatMode
-        )
-        # measure ... this will do the setup as well
-        gsetup='CA'
-        await self.measure(sigramp, gsetup)
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat:
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.CA
+            await self.measurement_setup(self.IO_meas_mode)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat, Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate, self.GamryCOM.PstatMode
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
+                print(' ... Gamry Error:', err_code)
+
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
+        else:
+            err_code = "not initialized"
+            
         return {
-            "measurement_type": "chrono_amp",
+            "measurement_type": self.IO_meas_mode,
             "parameters": {
                 "Vinit": Vinit,
                 "Tinit": Tinit,
@@ -274,24 +458,47 @@ class gamry:
                 "Tstep2": Tstep2,
                 "SampleRate": SampleRate
             },
-            "data": self.data,
+            "err_code": err_code
         }
 
-#driver for CP tests
-#TODO: need to test this method
-    async def chrono_pot(
-        self, Iinit: float, Tinit: float, Istep1: float, Tstep1: float, Istep2: float, Tstep2: float, SampleRate: float
+
+    ##########################################################################
+    #  CP definition
+    ##########################################################################
+    async def technique_CP(self, 
+        Iinit: float, 
+        Tinit: float, 
+        Istep1: float, 
+        Tstep1: float, 
+        Istep2: float, 
+        Tstep2: float, 
+        SampleRate: float
     ):
-        # setup the experiment specific signal ramp
-        sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
-        sigramp.Init(
-            self.pstat, Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate, self.GamryCOM.GstatMode
-        )
-        # measure ... this will do the setup as well
-        gsetup='CP'
-        await self.measure(sigramp, gsetup)
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat:
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.CP
+            await self.measurement_setup(self.IO_meas_mode)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat, Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate, self.GamryCOM.GstatMode
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
+                print(' ... Gamry Error:', err_code)
+
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
+        else:
+            err_code = "not initialized"
+            
         return {
-            "measurement_type": "chrono_pot",
+            "measurement_type": self.IO_meas_mode,
             "parameters": {
                 "Iinit": Iinit,
                 "Tinit": Tinit,
@@ -301,53 +508,62 @@ class gamry:
                 "Tstep2": Tstep2,
                 "SampleRate": SampleRate
             },
-            "data": self.data,
+            "err_code": err_code
         }
 
-    async def potential_cycle(
-        self,
+
+    async def technique_CV(self,
         Vinit: float,
-        Vfinal: float,
         Vapex1: float,
         Vapex2: float,
+        Vfinal: float,
         ScanInit: float,
         ScanApex: float,
         ScanFinal: float,
         HoldTime0: float,
         HoldTime1: float,
         HoldTime2: float,
-        Cycles: int,
         SampleRate: float,
-        control_mode: str,
+        Cycles: int,
     ):
-        if control_mode == "galvanostatic":
-            # do something
-            pass
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat:
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.CV
+            await self.measurement_setup(self.IO_meas_mode)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalRupdn")
+
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat,
+                    Vinit,
+                    Vapex1,
+                    Vapex2,
+                    Vfinal,
+                    ScanInit,
+                    ScanApex,
+                    ScanFinal,
+                    HoldTime0,
+                    HoldTime1,
+                    HoldTime2,
+                    SampleRate,
+                    Cycles,
+                    self.GamryCOM.PstatMode,
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
+
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
         else:
-            # do something else
-            pass
-        # setup the experiment specific signal ramp
-        sigramp = client.CreateObject("GamryCOM.GamrySignalRupdn")
-        sigramp.Init(
-            self.pstat,
-            Vinit,
-            Vapex1,
-            Vapex2,
-            Vfinal,
-            ScanInit,
-            ScanApex,
-            ScanFinal,
-            HoldTime0,
-            HoldTime1,
-            HoldTime2,
-            SampleRate,
-            Cycles,
-            self.GamryCOM.PstatMode,
-        )
-        # measure ... this will do the setup as well
-        await self.measure(sigramp)
+            err_code = "not initialized"
+
+
         return {
-            "measurement_type": "potential_ramp",
+            "measurement_type": self.IO_meas_mode,
             "parameters": {
                 "Vinit": Vinit,
                 "Vapex1": Vapex1,
@@ -362,199 +578,93 @@ class gamry:
                 "SampleRate": SampleRate,
                 "Cycles": Cycles,
             },
-            "data": self.data,
+            "err_code": err_code
         }
 
-    def eis(self, start_freq, end_freq, points, pot_offset=0):
-        Zreal, Zimag, Zsig, Zphz, Zfreq = [], [], [], [], []
-        is_on = False
-        self.pstat.Open()
-        for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
 
-            self.dtaqcpiv = client.CreateObject("GamryCOM.GamryDtaqEis")
-            self.dtaqcpiv.Init(self.pstat, f, 0.05, 0.5, 20)
-            self.dtaqcpiv.SetCycleMin(100)
-            self.dtaqcpiv.SetCycleMax(50000)
+    ##########################################################################
+    #  EIS definition
+    ##########################################################################
+    async def technique_EIS(self, 
+        start_freq,
+        end_freq, 
+        points, 
+        pot_offset=0
+    ):
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat:
+            
+            
+#            for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
+            
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.EIS
+            await self.measurement_setup(self.IO_meas_mode)
+            self.IO_sigramp = None
+#                self.IO_sigramp.Init(
+#                )
+            # starts the mesurement in the IOloop
+            # will be reset in that loop once meas is done
+            self.IO_do_meas = True
+                
 
-            if not is_on:
-                self.pstat.SetCell(self.GamryCOM.CellOn)
-                is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
-
-            connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
-
-            try:
-                self.dtaqcpiv.Run(True)
-            except Exception as e:
-                raise gamry_error_decoder(e)
-            if f < 10:
-                client.PumpEvents(10)
-            if f > 1000:
-                client.PumpEvents(0.1)
-            if f < 1000:
-                client.PumpEvents(1)
-
-            Zreal.append(self.dtaqsink.dtaq.Zreal())
-            Zimag.append(self.dtaqsink.dtaq.Zimag())
-            Zsig.append(self.dtaqsink.dtaq.Zsig())
-            Zphz.append(self.dtaqsink.dtaq.Zphz())
-            Zfreq.append(self.dtaqsink.dtaq.Zfreq())
-            print(self.dtaqsink.dtaq.Zfreq())
-            del connection
-        self.pstat.SetCell(self.GamryCOM.CellOff)
-        self.pstat.Close()
+            # Zreal, Zimag, Zsig, Zphz, Zfreq = [], [], [], [], []
+            # is_on = False
+            # self.pstat.Open()
+            # for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
+    
+            #     self.dtaq = client.CreateObject("GamryCOM.GamryDtaqEis")
+            #     self.dtaq.Init(self.pstat, f, 0.05, 0.5, 20)
+            #     self.dtaq.SetCycleMin(100)
+            #     self.dtaq.SetCycleMax(50000)
+    
+            #     if not is_on:
+            #         self.pstat.SetCell(self.GamryCOM.CellOn)
+            #         is_on = True
+            #     self.dtaqsink = GamryDtaqEvents(self.dtaq, self.q)
+    
+            #     connection = client.GetEvents(self.dtaq, self.dtaqsink)
+    
+            #     try:
+            #         self.dtaq.Run(True)
+            #     except Exception as e:
+            #         raise gamry_error_decoder(e)
+            #     if f < 10:
+            #         client.PumpEvents(10)
+            #     if f > 1000:
+            #         client.PumpEvents(0.1)
+            #     if f < 1000:
+            #         client.PumpEvents(1)
+    
+            #     Zreal.append(self.dtaqsink.dtaq.Zreal())
+            #     Zimag.append(self.dtaqsink.dtaq.Zimag())
+            #     Zsig.append(self.dtaqsink.dtaq.Zsig())
+            #     Zphz.append(self.dtaqsink.dtaq.Zphz())
+            #     Zfreq.append(self.dtaqsink.dtaq.Zfreq())
+            #     print(self.dtaqsink.dtaq.Zfreq())
+            #     del connection
+            # self.pstat.SetCell(self.GamryCOM.CellOff)
+            # self.pstat.Close()
+            err_code = "0"
+        else:
+            err_code = "not initialized"
+            
+            
         return {
-            "measurement_type": "eis",
+            "measurement_type": self.IO_meas_mode,
             "parameters": {
                 "tart_freq": start_freq,
                 "end_freq": end_freq,
                 "points": points,
                 "pot_offset": pot_offset,
             },
-            "data": [Zreal, Zimag, Zfreq],
-        }
-
-    def ocv(self, start_freq, end_freq, points, pot_offset=0):
-        Zreal, Zimag, Zsig, Zphz, Zfreq = [], [], [], [], []
-        is_on = False
-        self.pstat.Open()
-        if offset != 0:
-            self.pstat.SetVchOffsetEnable(True)
-            if self.pstat.VchOffsetEnable():
-                self.poti.pstat.SetVchOffset(pot_offset)
-            else:
-                print("Have offset but could not enable")
-        for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
-
-            self.dtaqcpiv = client.CreateObject("GamryCOM.GamryDtaqEis")
-            self.dtaqcpiv.Init(self.pstat, f, 0.1, 0.5, 20)
-            self.dtaqcpiv.SetCycleMin(100)
-            self.dtaqcpiv.SetCycleMax(50000)
-
-            if not is_on:
-                self.pstat.SetCell(self.GamryCOM.CellOn)
-                is_on = True
-            self.dtaqsink = GamryDtaqEvents(self.dtaqcpiv, self.q)
-
-            connection = client.GetEvents(self.dtaqcpiv, self.dtaqsink)
-
-            try:
-                self.dtaqcpiv.Run(True)
-            except Exception as e:
-                raise gamry_error_decoder(e)
-            if f < 10:
-                client.PumpEvents(10)
-            else:
-                client.PumpEvents(1)
-
-            Zreal.append(self.dtaqsink.dtaq.Zreal())
-            Zimag.append(self.dtaqsink.dtaq.Zimag())
-            Zsig.append(self.dtaqsink.dtaq.Zsig())
-            Zphz.append(self.dtaqsink.dtaq.Zphz())
-            Zfreq.append(self.dtaqsink.dtaq.Zfreq())
-            print(self.dtaqsink.dtaq.Zfreq())
-            del connection
-        self.pstat.SetCell(self.GamryCOM.CellOff)
-        self.pstat.Close()
-        return {
-            "measurement_type": "eis",
-            "parameters": {
-                "tart_freq": start_freq,
-                "end_freq": end_freq,
-                "points": points,
-                "pot_offset": pot_offset,
-            },
-            "data": [Zreal, Zimag, Zfreq],
+            "err_code": err_code
         }
 
 
-# =============================================================================
-# if __name__ == "__main__":
-# =============================================================================
+    ##########################################################################
+    #  OCV definition
+    ##########################################################################
+    # def technique_OCV(self):
 
-# potential ramp exaple:
-# g = gamry(config_dict)
-# loop = asyncio.get_event_loop() 
-# task1 = loop.create_task(g.potential_ramp(-0.2,-0.6,0.1,1))
-#task2 = loop.create_task(g.asyncTest())
-#final_task = asyncio.gather(task1, task2) 
-# final_task = asyncio.gather(task1)
-# result = loop.run_until_complete(final_task)
-# print(result)
-# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
-# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
-# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
-# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
-
-
-# CA exaple:
-# =============================================================================
-# g = gamry()
-# loop = asyncio.get_event_loop() 
-# task1 = loop.create_task(g.chrono_amp(-1.8,1,-1.8,3, -1.8,3,1 ))
-# #task2 = loop.create_task(g.asyncTest())
-# #final_task = asyncio.gather(task1, task2) 
-# final_task = asyncio.gather(task1)
-# result = loop.run_until_complete(final_task)
-# print(result)
-# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
-# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
-# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
-# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
-# 
-# =============================================================================
-
-# =============================================================================
-# # CP exaple:
-# g = gamry()
-# loop = asyncio.get_event_loop() 
-# task1 = loop.create_task(g.chrono_pot(-0.00006,1,-0.00006,3, -0.00006,3,1 ))
-# #task2 = loop.create_task(g.asyncTest())
-# #final_task = asyncio.gather(task1, task2) 
-# final_task = asyncio.gather(task1)
-# result = loop.run_until_complete(final_task)
-# print(result)
-# print('time: ', [result[0]['data'][v][0] for v in range(len(result[0]['data']))])
-# print('potential: ',[result[0]['data'][v][1] for v in range(len(result[0]['data']))])
-# print([result[0]['data'][v][2] for v in range(len(result[0]['data']))])
-# print('current: ', [result[0]['data'][v][3] for v in range(len(result[0]['data']))])
-# =============================================================================
-# =============================================================================
-# print('t', result[1])
-# print('t', result[2])
-# print('t', result[3])
-# =============================================================================
-
-
-
-
-
-#mdata = g.potential_ramp(-1,1,0.4,0.05)
-#marray = np.array(mdata['data'])
-
-"""
-import numpy as np
-poti = gamry()
-ret = poti.signal_array(1,0.0001,np.sin(np.linspace(0,np.pi*5,1000)).tolist())
-plt.plot(np.array(ret['data'])[:,1],np.array(ret['data'])[:,3])
-plt.show()
-#crazyspike
-arr = [0 if not 400<i<500 else 1 for i in range(1000)]
-ret_75 = poti.signal_array(1,7.5*10**-6,arr)
-ret_5 = poti.signal_array(1,5*10**-6,arr)
-ret_2 = poti.signal_array(1,2*10**-6,arr)
-ret_18 = poti.signal_array(1,1.8*10**-6,arr)
-ret_17 = poti.signal_array(1,1.7*10**-6,arr)
-
-plt.plot(np.array(ret_75['data'])[:,3],'o',label='7.5mus',alpha=0.2)
-plt.plot(np.array(ret_5['data'])[:,3],'o',label='5mus',alpha=0.2)
-plt.plot(np.array(ret_2['data'])[:,3],'o',label='2mus',alpha=0.2)
-plt.plot(np.array(ret_18['data'])[:,3],'o',label='1.8mus',alpha=0.2)
-plt.plot(np.array(ret_17['data'])[:,3],'o',label='1.7mus',alpha=0.2)
-
-plt.legend()
-plt.xlabel('step')
-plt.ylabel('Current [A]')
-plt.show()
-
-"""

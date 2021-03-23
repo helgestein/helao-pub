@@ -317,11 +317,12 @@ if __name__ == "__main__":
         result = wait_key()
     if result == b'\x18':
         for server in pidd.orchServs:
-            print(f'Unsubscribing {server} websockets.')
-            S = pidd.A["orchestrators"][server]
-            requests.post(f"http://{S.host}:{S.port}/shutdown")
-   
-    
+            try:
+                print(f'Unsubscribing {server} websockets.')
+                S = pidd.A["orchestrators"][server]
+                requests.post(f"http://{S.host}:{S.port}/shutdown")
+            except Exception as e:
+                print(' ... got error: ',e)
         # in case a /shutdown is added to other FastAPI servers (not the shutdown without '/')
         #KILL_ORDER = ["visualizer", "action", "server"] # orch are killed above
         # no /shutdown in visualizers
@@ -331,10 +332,13 @@ if __name__ == "__main__":
             if group in pidd.A:
                 G = pidd.A[group]
                 for server in G:
-                    print(f"Shutting down {server}.")
-                    S = G[server]
-                    # will produce a 404 if not found
-                    requests.post(f"http://{S.host}:{S.port}/shutdown")
+                    try:
+                        print(f"Shutting down {server}.")
+                        S = G[server]
+                        # will produce a 404 if not found
+                        requests.post(f"http://{S.host}:{S.port}/shutdown")
+                    except Exception as e:
+                        print(' ... got error: ',e)
 
         pidd.close()
     else:

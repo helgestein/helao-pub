@@ -124,8 +124,6 @@ class C_nidaqmxvis:
 
         self.config = config
         self.data_url = config['wsdata_url']
-#        self.dataVOLT_url = config['wsdataVOLT_url']
-#        self.dataCURRENT_url = config['wsdataCURRENT_url']
         self.stat_url = config['wsstat_url']
         self.IOloop_data_run = False
 
@@ -171,12 +169,12 @@ class C_nidaqmxvis:
             ],background="#C0C0C0")
 
 
-    def updateIV(self, new_data):
+    def update(self, new_data):
         self.sourceIV.data = {k: [] for k in self.sourceIV.data}
         self.sourceIV.stream(new_data)
 
 
-    async def IOloop_dataIV(self): # non-blocking coroutine, updates data source
+    async def IOloop_data(self): # non-blocking coroutine, updates data source
         global doc
         async with websockets.connect(self.data_url) as ws:
             self.IOloop_data_run = True
@@ -192,7 +190,7 @@ class C_nidaqmxvis:
                     self.time_stamp = self.time_stamp + 1
                     #print(" ... VisulizerWSrcv:",data)
                     #print(" ... VisulizerWSrcv:",self.IVlist)
-                    doc.add_next_tick_callback(partial(self.updateIV, self.IVlist))
+                    doc.add_next_tick_callback(partial(self.update, self.IVlist))
                 except Exception:
                     self.IOloop_data_run = False
 
@@ -205,6 +203,126 @@ class C_potvis:
         self.config = config
         self.data_url = config['wsdata_url']
         self.stat_url = config['wsstat_url']
+
+        self.IOloop_data_run = False
+        self.IOloop_stat_run = False
+
+        self.datasource = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+        self.time_stamp = 0
+#        self.pids = collections.deque(10*[0], 10)
+
+        # create visual elements
+        self.layout = []
+
+
+        self.paragraph1 = Paragraph(text="""x-axis:""", width=50, height=15)
+        self.radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=0)
+        self.paragraph2 = Paragraph(text="""y-axis:""", width=50, height=15)
+        self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[1])
+        
+        self.plot = figure(title="Title", height=300)
+        self.line1 = self.plot.line(x='t_s', y='Ewe_V', source=self.datasource, name=str(self.time_stamp))
+
+
+#        self.pid_list = dict(
+#            pids=[self.pids[i] for i in range(10)],
+#        )
+#        self.pid_source = ColumnDataSource(data=self.pid_list)
+#        self.columns = [
+#            TableColumn(field="pids", title="PIDs"),
+#        ]
+#        self.data_table = DataTable(source=self.pid_source, columns=self.columns, width=400, height=280)
+
+
+        # combine all sublayouts into a single one
+        self.layout = layout([
+            [Spacer(width=20), Div(text="<b>Potentiostat Visualizer module</b>", width=200+50, height=15)],
+            layout([self.paragraph1]),
+            layout([self.radio_button_group]),
+            layout([self.paragraph2]),
+            layout([self.checkbox_button_group]),
+            Spacer(height=10),
+            layout([self.plot]),
+#            Spacer(height=10),
+#            layout([self.data_table]),
+            Spacer(height=10)
+            ],background="#C0C0C0")
+
+
+    def update(self, new_data):
+        #print(new_data)
+        self.datasource.stream(new_data)
+
+
+    async def IOloop_data(self): # non-blocking coroutine, updates data source
+        global doc
+        async with websockets.connect(self.data_url) as ws:
+            self.IOloop_data_run = True
+            while self.IOloop_data_run:
+                try:
+                    new_data = json.loads(await ws.recv())
+                    doc.add_next_tick_callback(partial(self.update, new_data))
+                except Exception:
+                    self.IOloop_data_run = False
+
+
+    async def IOloop_stat(self):
+        global doc
+        async with websockets.connect(self.stat_url) as sws:
+            self.IOloop_stat_run = True
+            while self.IOloop_stat_run:
+                try:
+                    new_status = await sws.recv()
+                    new_status = json.loads(new_status)
+                    print(new_status)
+                    doc.add_next_tick_callback(partial(self.remove_line, new_status['last_update']))
+                except Exception:
+                    self.IOloop_stat_run = False
+
+    
+    def remove_line(self, new_time_stamp):
+        global doc
+        self.time_stamp = new_time_stamp
+    
+        self.datasource.data = {k: [] for k in self.datasource.data}
+
+#        self.pid_source.data = {k: [] for k in self.pid_source.data}
+#        self.pids.appendleft(new_time_stamp)
+#        self.pid_list = dict(
+#            pids=[self.pids[i] for i in range(10)],
+#        )
+#        self.pid_source.stream(self.pid_list)
+
+        
+        # remove all old lines
+        self.plot.renderers = []    
+
+        
+        self.plot.title.text = ("Timecode: "+str(new_time_stamp))
+        xstr = ''
+        if(self.radio_button_group.active == 0):
+            xstr = 't_s'
+        elif(self.radio_button_group.active == 1):
+            xstr = 'Ewe_V'
+        elif(self.radio_button_group.active == 2):
+            xstr = 'Ach_V'
+        else:
+            xstr = 'I_A'
+        colors = ['red', 'blue', 'yellow', 'green']
+        color_count = 0
+        for i in self.checkbox_button_group.active:
+            if i == 0:
+                self.plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+            elif i == 1:
+                self.plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+            elif i == 2:
+                self.plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+            else:
+                self.plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+            color_count += 1
+    
+
+    
 
 ##############################################################################
 # data module class
@@ -311,24 +429,51 @@ if 'doc_name' in S.params:
 else:
     doc.title = "Modular Visualizer"
 
+# is there any better way to inlcude external CSS? 
+css_styles = Div(text="""<style>%s</style>""" % pathlib.Path(os.path.join(helao_root, 'visualizer\styles.css')).read_text())
+
+doc.add_root(css_styles)
+
+visoloop = asyncio.get_event_loop()
+
+
+
 # create config for defined instrument 
 potserv = dict()
 motorserv = dict()
 dataserv = dict()
 NImaxserv = dict()
 
+# create visualizer objects for defined instruments
 if 'ws_potentiostat' in S.params:
     tmpserv = S.params.ws_potentiostat
     potserv['serv'] = tmpserv
     potserv['wsdata_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data"
     potserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
+    print(f"Create Visualizer for {potserv['serv']}")
+    potvis = C_potvis(potserv)
+    doc.add_root(layout([potvis.layout]))
+    doc.add_root(layout(Spacer(height=10)))
+    visoloop.create_task(potvis.IOloop_data())
+    visoloop.create_task(potvis.IOloop_stat())
+else:
+    print('No potentiostat visualizer configured')
+    potvis = []
+
 
 if 'ws_data' in S.params:
     tmpserv = S.params.ws_data
     dataserv['serv'] = tmpserv
     dataserv['wsdata_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data"
     dataserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
-        
+    print(f"Create Visualizer for {dataserv['serv']}")
+    datavis = C_datavis(dataserv)
+    visoloop.create_task(datavis.IOloop_data())
+else:
+    print('No data visualizer configured')
+    datavis = []
+
+
 if 'ws_motor' in S.params:    
     tmpserv = S.params.ws_motor
     motorserv['serv'] = tmpserv
@@ -338,7 +483,14 @@ if 'ws_motor' in S.params:
     motorserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
     if not 'sample_marker_type' in S.params.ws_motor_params:
         S.params.ws_motor_params.sample_marker_type = 0
-
+    print(f"Create Visualizer for {motorserv['serv']}")
+    motorvis = C_motorvis(motorserv)
+    doc.add_root(layout([motorvis.layout]))
+    doc.add_root(layout(Spacer(height=10)))
+    visoloop.create_task(motorvis.IOloop_data())
+else:
+    print('No motor visualizer configured')
+    motorvis = []
 
 
 if 'ws_nidaqmx' in S.params:
@@ -346,56 +498,16 @@ if 'ws_nidaqmx' in S.params:
     NImaxserv['serv'] = tmpserv
     NImaxserv['wsdata_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data"
     NImaxserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
-
-        
-# create visualizer objects for defined instruments
-if motorserv:
-    print(f"Create Visualizer for {motorserv['serv']}")
-    motorvis = C_motorvis(motorserv)
-else:
-    print('No motor visualizer configured')
-    motorvis = []
-
-if potserv:
-    print(f"Create Visualizer for {potserv['serv']}")
-    potvis = C_potvis(potserv)
-else:
-    print('No potentiostat visualizer configured')
-    potvis = []
-
-if dataserv:
-    print(f"Create Visualizer for {dataserv['serv']}")
-    datavis = C_datavis(dataserv)
-else:
-    print('No data visualizer configured')
-    datavis = []
-
-if NImaxserv:
     print(f"Create Visualizer for {NImaxserv['serv']}")
     NImaxvis = C_nidaqmxvis(NImaxserv)
+    doc.add_root(layout([NImaxvis.layout]))
+    doc.add_root(layout(Spacer(height=10)))
+    visoloop.create_task(NImaxvis.IOloop_data())
 else:
     print('No NImax visualizer configured')
     NImaxvis = []
-    
 
-# is there any better way to inlcude external CSS? 
-css_styles = Div(text="""<style>%s</style>""" % pathlib.Path(os.path.join(helao_root, 'visualizer\styles.css')).read_text())
-
-doc.add_root(css_styles)
-
-visoloop = asyncio.get_event_loop()
-# websockets loops
-if motorvis:
-    doc.add_root(layout([motorvis.layout]))
-    visoloop.create_task(motorvis.IOloop_data())
-
-if datavis:
-    visoloop.create_task(datavis.IOloop_data())
-    
-if NImaxvis:
-    doc.add_root(layout([NImaxvis.layout]))
-    visoloop.create_task(NImaxvis.IOloop_dataIV())
-    
 
 # web interface update loop
+# todo put his in the respective classes?
 doc.add_periodic_callback(IOloop_visualizer,500) # time in ms

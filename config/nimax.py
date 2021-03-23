@@ -95,10 +95,11 @@ config["servers"] = dict(
         fast="gamry_server",
         simulate=False, # choose between simulator(default) or real device
         params=dict(
+            dev_family = 'Interface', # 'Interface' or 'Reference'
             dev_id = 0, # (default 0) Gamry device number in Gamry Instrument Manager (i-1)
             temp_dump=".\temp",
-            path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
+            #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
         )
     ),
     exp_vis=dict(#simple dumb modular visualizer
@@ -109,6 +110,7 @@ config["servers"] = dict(
         params = dict(
             doc_name = "ANEC2 visualizer",
             ws_nidaqmx="nimax",
+            ws_potentiostat = 'potentiostat',
         )
     ),
     orchestrator=dict(

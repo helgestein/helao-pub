@@ -15,13 +15,11 @@ import time
 from enum import Enum
 from importlib import import_module
 import json
-from json import JSONEncoder
 import asyncio
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
-from pydantic import BaseModel
 from munch import munchify
 import numpy as np
 #from starlette.responses import StreamingResponse
@@ -38,6 +36,11 @@ sys.path.append(os.path.join(helao_root, 'core'))
 
 
 from classes import StatusHandler
+from classes import return_status
+from classes import return_class
+from classes import move_modes
+
+
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
@@ -69,23 +72,6 @@ if S.simulate:
 else:
     from galil_driver import galil
 
-
-class return_status(BaseModel):
-    measurement_type: str
-    parameters: dict
-    status: dict
-
-
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
-
-
-class move_modes(str, Enum):
-    homing = "homing"
-    relative = "relative"
-    absolute = "absolute"
 
 class transformation_mode(str, Enum):
     motorxy = "motorxy"

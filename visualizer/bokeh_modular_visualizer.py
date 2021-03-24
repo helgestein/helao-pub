@@ -261,7 +261,9 @@ class C_potvis:
             while self.IOloop_data_run:
                 try:
                     new_data = json.loads(await ws.recv())
-                    doc.add_next_tick_callback(partial(self.update, new_data))
+                    if new_data is not None:
+                        doc.add_next_tick_callback(partial(self.update, 
+                    {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], new_data)}))
                 except Exception:
                     self.IOloop_data_run = False
 
@@ -274,8 +276,8 @@ class C_potvis:
                 try:
                     new_status = await sws.recv()
                     new_status = json.loads(new_status)
-                    print(new_status)
-                    doc.add_next_tick_callback(partial(self.remove_line, new_status['last_update']))
+                    if new_status is not None:
+                        doc.add_next_tick_callback(partial(self.remove_line, new_status['last_update']))
                 except Exception:
                     self.IOloop_stat_run = False
 

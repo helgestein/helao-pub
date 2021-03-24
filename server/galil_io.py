@@ -27,6 +27,8 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
+from classes import return_status
+from classes import return_class
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -49,17 +51,6 @@ else:
 app = FastAPI(title=servKey,
               description="Galil I/O instrument/action server", version=1.0)
 
-class return_status(BaseModel):
-    measurement_type: str
-    parameters: dict
-    status: dict
-
-
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
-    
 
 @app.on_event("startup")
 def startup_event():

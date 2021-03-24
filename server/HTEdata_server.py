@@ -9,7 +9,6 @@ import uvicorn
 
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
-from pydantic import BaseModel
 from munch import munchify
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -17,6 +16,8 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
+from classes import return_status
+from classes import return_class
 
 import asyncio
 import time
@@ -58,19 +59,7 @@ data_wsdata_TC = 0
 app = FastAPI(title="HTE data management server",
     description="",
     version="1.0")
-    
 
-class return_status(BaseModel):
-    measurement_type: str
-    parameters: dict
-    status: dict
-
-
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
-    
 
 @app.on_event("startup")
 def startup_event():

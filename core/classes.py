@@ -8,6 +8,10 @@ import requests
 from collections import deque
 from pydantic import BaseModel
 import aiofiles
+from enum import Enum
+from fastapi import WebSocket
+import uuid
+import copy
 
 
 # work in progress
@@ -47,6 +51,7 @@ class StatusHandler:
         self.dict = {'status': self.status,
                      'last_update': self.last_update, 'procid': self.procid}
         self.q.put_nowait(self.dict)
+
 
     async def update(self, state: str):
         self.status = state
@@ -187,11 +192,71 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
     err_code: str = None
-    
+
 
 # return class for status ws
 class return_status(BaseModel):
     measurement_type: str
     parameters: dict
     status: dict
+
+
+class move_modes(str, Enum):
+    homing = "homing"
+    relative = "relative"
+    absolute = "absolute"
+
     
+class wsHandler:
+    def __init__(self, q, name):
+        self.subscribers = 0
+        self.dataq = q
+        self.lastuuid = None
+        self.lastq = None
+        self.name = name
+
+        self.IOloop_run = False
+        self.myloop = asyncio.get_event_loop()
+        #add meas IOloop
+        self.myloop.create_task(self.wsdata_IOloop())
+
+
+    async def wsdata_IOloop(self):
+        self.IOloop_run = True
+        while self.IOloop_run:
+            try:
+                if self.subscribers > 0: # > 0
+                    self.IOloop_run = True
+                    self.lastuuid = uuid.uuid4()
+                    self.lastq = await self.dataq.get()
+                    #print(f' ... {self.name} got data:')
+                    #print(self.lastq)
+                else:
+                    await asyncio.sleep(1)
+            except Exception:
+                print(f' ... Connection to {self.name} unexpectedly lost. Retrying in 3 seconds.')
+                await asyncio.sleep(3)
+                
+                
+    # use in wsapi def via 'await websocket_slave(mywebsocket)'
+    async def websocket_slave(self, mywebsocket: WebSocket):
+        await mywebsocket.accept()
+        localuuid = None
+        
+        self.subscribers = self.subscribers + 1
+        while self.IOloop_run:
+            try:
+                if localuuid != self.lastuuid:
+                    # deep copy, else id() will be the same
+                    localuuid = copy.deepcopy(self.lastuuid)
+                    #print(' ...  sending data', self.lastq)
+                    await mywebsocket.send_text(json.dumps(self.lastq))
+                else:
+                    await asyncio.sleep(1)
+            except Exception:#mywebsocket.exceptions.ConnectionClosedError:
+                    #print(f'Slave Websocket {self.name} connection unexpectedly closed. Retrying in 3 seconds.')
+                    #await asyncio.sleep(3)
+                    print(f' ... Slave Websocket {self.name} connection unexpectedly closed.')
+                    self.subscribers = self.subscribers - 1
+                    return
+        self.subscribers = self.subscribers - 1

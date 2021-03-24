@@ -50,6 +50,7 @@ sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 from classes import return_status
 from classes import return_class
+from classes import wsHandler
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -82,32 +83,42 @@ def startup_event():
     poti = gamry(S.params)
     global stat
     stat = StatusHandler()
+    global wsdata
+    wsdata = wsHandler(poti.wsdataq, 'Gamry wsdata')
+    global wsstatus
+    wsstatus = wsHandler(stat.q, 'Gamry wsstatus')
 
 
 @app.websocket(f"/{servKey}/ws_data")
 async def websocket_data(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await poti.wsdataq.get()
-        data = {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], data)}
-        await websocket.send_text(json.dumps(data))
+    await wsdata.websocket_slave(websocket)
 
 
 # as the technique calls will only start the measurment but won't return the final results
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await stat.q.get()
-        await websocket.send_text(json.dumps(data))
-        
+    await wsstatus.websocket_slave(websocket)
+  
         
 @app.post(f"/{servKey}/get_status")
-def get_status():
+def status_wrapper():
     return return_status(
         measurement_type="get_status",
         parameters={},
         status=stat.dict,
+    )
+
+
+@app.post(f"/{servKey}/get_meas_status")
+async def get_meas_status():
+    """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
+    return return_status(
+        measurement_type="gamry_command",
+    parameters={
+        "command": "get_meas_status",
+        "parameters": {},
+    },
+        status=await poti.status(),
     )
 
 

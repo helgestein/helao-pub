@@ -21,7 +21,25 @@ class Gamry_modes(str, Enum):
     LSV = "LSV"
     EIS = "EIS"
     OCV = "OCV"
-    
+
+class Gamry_Irange(str, Enum):
+    #NOTE: The ranges listed below are for 300 mA or 30 mA models. For 750 mA models, multiply the ranges by 2.5. For 600 mA models, multiply the ranges by 2.0.
+    mode0 = '3pA'
+    mode1 = '30pA' 
+    mode2 = '300pA'
+    mode3 = '3nA'
+    mode4 = '30nA'
+    mode5 = '300nA'
+    mode6 = '3μA'
+    mode7 = '30μA'
+    mode8 = '300μA'
+    mode9 = '3mA'
+    mode10 = '30mA'
+    mode11 = '300mA'
+    mode12 = '3A'
+    mode13 = '30A'
+    mode14 = '300A'
+    mode15 = '3kA'
 
 def gamry_error_decoder(e):
     if isinstance(e, comtypes.COMError):
@@ -39,7 +57,7 @@ class GamryCOMError(Exception):
 
 
 class GamryDtaqEvents(object):
-    def __init__(self, dtaq, q):
+    def __init__(self, dtaq):
         self.dtaq = dtaq
         self.acquired_points = []
         self.status = "idle"
@@ -117,11 +135,16 @@ class gamry:
         self.IO_do_meas = False
         self.IO_meas_mode = None
         self.IO_sigramp = None
-        
-        
+
         myloop = asyncio.get_event_loop()
         #add meas IOloop
         myloop.create_task(self.IOloop())
+
+
+        # for saving data localy
+        self.FIFO_header = ''
+        self.FIFO_name = ''
+        self.FIFO_dir = ''
 
 
     ##########################################################################
@@ -141,6 +164,9 @@ class gamry:
                 print(' ... Gramry measurement is done')
 
 
+    ##########################################################################
+    # script can be blocked or crash if GamryCom is still open and busy
+    ##########################################################################
     def kill_GamryCom(self):
         pyPids = {p.pid: p for p in psutil.process_iter(
             ['name', 'connections']) if p.info['name'].startswith('GamryCom')}
@@ -270,7 +296,7 @@ class gamry:
                 print(' ... Gamry Error:', gamry_error_decoder(e))
 
 
-            self.dtaqsink = GamryDtaqEvents(self.dtaq, self.wsdataq)
+            self.dtaqsink = GamryDtaqEvents(self.dtaq)
             return {"measurement_setup": f'setup_{mode}'}
         else:
             return {"measurement_setup": "not initialized"}
@@ -283,21 +309,23 @@ class gamry:
     async def measure(self): 
         await asyncio.sleep(0.001)
         if self.pstat:
+            # TODO: 
+                # - I/E range: auto, fixed
+                # - IRcomp: None, PF, CI
+                # - max current/voltage
+                # - eq time
+                # - init time delay
+                # - conditioning
+                # - sampling mode: fast, noise reject, surface
+                
 
-            #, self.IO_meas_mode
-
-    #         print(" ... Opening Connection", self.pstat)
-    #         #ret = await self.open_connection()
-    #         #self.pstat.SetIERange(10)
-    #         self.pstat.SetIERangeMode(1)
-    #         if mode=='CP':
-    #             self.pstat.SetCtrlMode(0)
-    #         else:
-    #             self.pstat.SetCtrlMode(1)
-    #         print(self.pstat.CtrlMode())
-    #         print(self.pstat.IERange())
-    #         #print(ret)
-    #        
+            # set IE range and mode
+            # mode
+            # autorange
+            self.pstat.SetIERangeMode(True)
+            # set to false and change range below
+            # range (check manual for max range):
+            #self.pstat.SetIERange(10)
 
 
             # push the signal ramp over
@@ -318,10 +346,8 @@ class gamry:
             # empty the data before new one is collected
             self.data = collections.defaultdict(list)
             
-            client.PumpEvents(0.001)
-            #client.PumpEvents(1)
             
-
+            client.PumpEvents(0.001)
             sink_status = self.dtaqsink.status
             counter = 0
             # TODO: open new file and write header
@@ -329,13 +355,20 @@ class gamry:
 
             while sink_status != "done":
             #while sink_status == "measuring":
+                # need some await points
+                await asyncio.sleep(0.001)
                 client.PumpEvents(0.001)
                 # this is a temp data which gets the data point by point
                 # write this to a file so we don't loose any data
                 while counter < len(self.dtaqsink.acquired_points):
+                    # need some await points
+                    await asyncio.sleep(0.001)
                     tmp_datapoints = self.dtaqsink.acquired_points[counter]
                     #print(tmp_datapoints)
                     #print(counter)
+                    if self.wsdataq.full():
+                        _ = await self.wsdataq.get()
+                        self.wsdataq.task_done()
                     await self.wsdataq.put(tmp_datapoints)
                     # TODO: put new data in file
                     counter += 1
@@ -378,9 +411,11 @@ class gamry:
         ScanRate: float, 
         SampleRate: float
     ):
+        # time expected for measurement to be completed
+        eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
-        if self.pstat:
+        if self.pstat and not self.IO_do_meas:
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.LSV
             await self.measurement_setup(self.IO_meas_mode)
@@ -395,8 +430,11 @@ class gamry:
             except Exception as e:
                 err_code = gamry_error_decoder(e)
 
+            eta = abs(Vfinal - Vinit)/ScanRate #+delay
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"            
         else:
             err_code = "not initialized"
             
@@ -408,7 +446,8 @@ class gamry:
                 "ScanRate": ScanRate,
                 "SampleRate": SampleRate,
             },
-            "err_code": err_code
+            "err_code": err_code,
+            "eta": eta
         }
 
 
@@ -424,9 +463,11 @@ class gamry:
         Tstep2: float, 
         SampleRate: float
     ):
+        # time expected for measurement to be completed
+        eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
-        if self.pstat:
+        if self.pstat and not self.IO_do_meas:
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CA
             await self.measurement_setup(self.IO_meas_mode)
@@ -442,8 +483,11 @@ class gamry:
                 err_code = gamry_error_decoder(e)
                 print(' ... Gamry Error:', err_code)
 
+            eta = Tinit + Tstep1 + Tstep2 #+delay
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"
         else:
             err_code = "not initialized"
             
@@ -458,7 +502,8 @@ class gamry:
                 "Tstep2": Tstep2,
                 "SampleRate": SampleRate
             },
-            "err_code": err_code
+            "err_code": err_code,
+            "eta": eta
         }
 
 
@@ -474,9 +519,11 @@ class gamry:
         Tstep2: float, 
         SampleRate: float
     ):
+        # time expected for measurement to be completed
+        eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
-        if self.pstat:
+        if self.pstat and not self.IO_do_meas:
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CP
             await self.measurement_setup(self.IO_meas_mode)
@@ -492,8 +539,11 @@ class gamry:
                 err_code = gamry_error_decoder(e)
                 print(' ... Gamry Error:', err_code)
 
+            eta = Tinit + Tstep1 + Tstep2 #+delay
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"
         else:
             err_code = "not initialized"
             
@@ -508,7 +558,8 @@ class gamry:
                 "Tstep2": Tstep2,
                 "SampleRate": SampleRate
             },
-            "err_code": err_code
+            "err_code": err_code,
+            "eta": eta
         }
 
 
@@ -526,9 +577,11 @@ class gamry:
         SampleRate: float,
         Cycles: int,
     ):
+        # time expected for measurement to be completed
+        eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
-        if self.pstat:
+        if self.pstat and not self.IO_do_meas:
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CV
             await self.measurement_setup(self.IO_meas_mode)
@@ -556,8 +609,15 @@ class gamry:
             except Exception as e:
                 err_code = gamry_error_decoder(e)
 
+            eta  = abs(Vapex1 - Vinit)/ScanInit
+            eta += abs(Vfinal - Vapex2)/ScanFinal 
+            eta += abs(Vapex2 - Vapex1)/ScanApex * Cycles
+            eta += abs(Vapex2 - Vapex1)/ScanApex * 2.0 * (Cycles-1) #+delay
+
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"
         else:
             err_code = "not initialized"
 
@@ -578,7 +638,8 @@ class gamry:
                 "SampleRate": SampleRate,
                 "Cycles": Cycles,
             },
-            "err_code": err_code
+            "err_code": err_code,
+            "eta": eta
         }
 
 
@@ -591,9 +652,11 @@ class gamry:
         points, 
         pot_offset=0
     ):
+        # time expected for measurement to be completed
+        eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
-        if self.pstat:
+        if self.pstat and not self.IO_do_meas:
             
             
 #            for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
@@ -647,6 +710,8 @@ class gamry:
             # self.pstat.SetCell(self.GamryCOM.CellOff)
             # self.pstat.Close()
             err_code = "0"
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"
         else:
             err_code = "not initialized"
             
@@ -660,6 +725,8 @@ class gamry:
                 "pot_offset": pot_offset,
             },
             "err_code": err_code
+            ,
+            "eta": eta
         }
 
 

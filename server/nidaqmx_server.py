@@ -50,6 +50,8 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
+from classes import return_status
+from classes import return_class
 
 
 
@@ -324,18 +326,6 @@ S = C[servKey]
 app = FastAPI(title="NIdaqmx server",
     description="",
     version="1.0")
-
-
-class return_status(BaseModel):
-    measurement_type: str
-    parameters: dict
-    status: dict
-
-
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
 
 
 @app.post(f"/{servKey}/run_task_GasFlowValves")

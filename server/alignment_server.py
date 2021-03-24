@@ -12,13 +12,10 @@ import uvicorn
 
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
-from pydantic import BaseModel
 from munch import munchify
 
 #import requests
-import asyncio
 import aiohttp
-from enum import Enum
 import numpy as np
 
 
@@ -27,6 +24,9 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
+from classes import return_status
+from classes import return_class
+from classes import move_modes
 
 
 ################## Helper functions ##########################################
@@ -205,22 +205,8 @@ app = FastAPI(title="Instrument alignment server",
     version="1.0")
 
 
-class move_modes(str, Enum):
-    homing = "homing"
-    relative = "relative"
-    absolute = "absolute"
+
     
-
-class return_status(BaseModel):
-    measurement_type: str
-    parameters: dict
-    status: dict
-
-
-class return_class(BaseModel):
-    measurement_type: str = None
-    parameters: dict = None
-    data: dict = None
 
 
 # only for alignment bokeh server

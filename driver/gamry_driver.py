@@ -12,6 +12,9 @@ import asyncio
 import time
 from enum import Enum
 import psutil
+from time import strftime
+from classes import LocalDataHandler
+
 
 
 class Gamry_modes(str, Enum):
@@ -145,6 +148,7 @@ class gamry:
         self.FIFO_header = ''
         self.FIFO_name = ''
         self.FIFO_dir = ''
+        self.datasubheader = ''
 
 
     ##########################################################################
@@ -267,15 +271,19 @@ class gamry:
             if mode == Gamry_modes.CA:
                 Dtaqmode = "GamryCOM.GamryDtaqChrono"
                 Dtaqtype = self.GamryCOM.ChronoAmp
+                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Q', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
             elif mode == Gamry_modes.CP:
                 Dtaqmode = "GamryCOM.GamryDtaqChrono"
                 Dtaqtype = self.GamryCOM.ChronoPot
+                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Q', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
             elif mode == Gamry_modes.CV:
                 Dtaqmode = "GamryCOM.GamryDtaqRcv"
                 Dtaqtype = None
+                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest', 'Cycle'])
             elif mode == Gamry_modes.LSV:
                 Dtaqmode = "GamryCOM.GamryDtaqCpiv"
                 Dtaqtype = None
+                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
             elif mode == Gamry_modes.EIS:
                 # TODO change that
                 print(' ... will be currently done in meas function')
@@ -350,8 +358,18 @@ class gamry:
             client.PumpEvents(0.001)
             sink_status = self.dtaqsink.status
             counter = 0
-            # TODO: open new file and write header
 
+            # TODO: open new file and write header
+            datafile = LocalDataHandler()
+            datafile.filename = f'{strftime("%Y%m%d_%H%M%S%z")}'
+            await datafile.open_file()
+            # TODO: can also just use write_data to write header
+            # or header will automatically added in filehandler??
+            datafile.fileheader = '%testheader'
+            await datafile.write_header()
+            await datafile.write_data('%Column_headings='+self.datasubheader)
+            
+            
 
             while sink_status != "done":
             #while sink_status == "measuring":
@@ -371,6 +389,7 @@ class gamry:
                         self.wsdataq.task_done()
                     await self.wsdataq.put(tmp_datapoints)
                     # TODO: put new data in file
+                    await datafile.write_data("\t".join([str(num) for num in tmp_datapoints]))
                     counter += 1
     
                 # this copies the complete chunk of data again and again
@@ -383,8 +402,12 @@ class gamry:
 
 
             self.pstat.SetCell(self.GamryCOM.CellOff)
+
             # TODO: close file
-            
+            await datafile.close_file()
+            # not needed if we always use same file and have global header etc
+            del datafile
+
             # delete this at the very last step
             del connection
             # connection will be closed in IOloop

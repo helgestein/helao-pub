@@ -12,6 +12,7 @@ from enum import Enum
 from fastapi import WebSocket
 import uuid
 import copy
+import os
 
 
 # work in progress
@@ -19,13 +20,27 @@ class LocalDataHandler:
     def __init__(self):
         self.filename = ''
         self.fileheader = ''
-        self.filepath = ''
+        self.filepath = 'C:\\temp' # some default value
+        self.fileext = '.txt' # some default value
         self.f = None
 
 
     async def open_file(self):
-        self.f = await aiofiles.open('data','a')
-#        self.f = await aiofiles.open('data','w')
+        # (1) check if path exists, else create it
+        if not os.path.exists(self.filepath):
+            os.makedirs(self.filepath)
+        # (2) check if file already exists
+        # append to file if exists, else create a new one
+        # does fileextension contain a period?
+        if self.fileext.find('.',0,1) == -1:
+           self.fileext = '.'+self.fileext
+           
+        if os.path.exists(os.path.join(self.filepath, self.filename+self.fileext)):
+            # file exists, append to file
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename+self.fileext),'a')
+        else:
+            # file does not exists, create file
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename+self.fileext),'w')
 
 
     async def write_header(self):
@@ -217,7 +232,7 @@ class wsHandler:
 
         self.IOloop_run = False
         self.myloop = asyncio.get_event_loop()
-        #add meas IOloop
+        #add IOloop
         self.myloop.create_task(self.wsdata_IOloop())
 
 

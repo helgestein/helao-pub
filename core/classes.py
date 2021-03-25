@@ -13,6 +13,7 @@ from fastapi import WebSocket
 import uuid
 import copy
 import os
+from typing import List, Optional
 
 
 # work in progress
@@ -26,6 +27,8 @@ class LocalDataHandler:
 
 
     async def open_file(self):
+        # TODO: how to replace the \ in variables (replace did not work)???
+            
         # (1) check if path exists, else create it
         if not os.path.exists(self.filepath):
             os.makedirs(self.filepath)
@@ -41,7 +44,8 @@ class LocalDataHandler:
         else:
             # file does not exists, create file
             self.f = await aiofiles.open(os.path.join(self.filepath, self.filename+self.fileext),'w')
-
+            if len(self.fileheader)>0:
+                await self.write_header()
 
     async def write_header(self):
         await self.f.write(self.fileheader + '\n')
@@ -214,6 +218,18 @@ class return_status(BaseModel):
     measurement_type: str
     parameters: dict
     status: dict
+
+
+# class for sample parameters
+# everything except plateid needs to be a list as ANEC2 will do parallel measurements
+class sample_class(BaseModel):
+    plateid: str = None
+    sampleid: List[str] = []
+    x: List[str] = []
+    y: List[str] = []
+    elements: List[str] = []
+    composition: List[str] = []
+    code: List[str] = []
 
 
 class move_modes(str, Enum):

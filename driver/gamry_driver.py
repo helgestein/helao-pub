@@ -14,7 +14,8 @@ from enum import Enum
 import psutil
 from time import strftime
 from classes import LocalDataHandler
-
+from classes import sample_class
+import os
 
 
 class Gamry_modes(str, Enum):
@@ -95,7 +96,7 @@ class dummy_sink:
 
 
 class gamry:
-    def __init__(self, config_dict):
+    def __init__(self, config_dict, stat):
         # save instrument config
         self.config_dict = config_dict
         # get Gamry object (Garmry.com)
@@ -107,14 +108,21 @@ class gamry:
 
 
         self.pstat = None
+         # will get the statushandler from the server to set the idle status after measurment
+        self.stat = stat
 
         if not 'dev_id' in self.config_dict:
             self.config_dict['dev_id'] = 0
-        if not 'dev_family' in self.config_dict:
-            self.config_dict['dev_family'] = 'Reference'
+        # if not 'dev_family' in self.config_dict:
+        #     self.config_dict['dev_family'] = 'Reference'
+        
+        if not 'local_data_dump' in self.config_dict:
+            self.config_dict['local_data_dump'] = 'C:\\temp'
+        
+        self.local_data_dump = self.config_dict['local_data_dump']
         
         self.Gamry_devid = self.config_dict['dev_id']
-        self.Gamry_family = self.config_dict['dev_family']
+        # self.Gamry_family = self.config_dict['dev_family']
 
         asyncio.gather(self.init_Gamry(self.Gamry_devid))
 
@@ -132,12 +140,14 @@ class gamry:
         self.title = ''
   
         # empty the data before new one is collected
-        self.data = collections.defaultdict(list)
+        #self.data = collections.defaultdict(list)
         
         # for global IOloop
         self.IO_do_meas = False
         self.IO_meas_mode = None
         self.IO_sigramp = None
+        self.IO_TTLwait = -1
+        self.IO_TTLsend = -1
 
         myloop = asyncio.get_event_loop()
         #add meas IOloop
@@ -145,11 +155,16 @@ class gamry:
 
 
         # for saving data localy
+        self.FIFO_epoch = None
         self.FIFO_header = ''
+        self.FIFO_gamryheader = '' # measuement specific, will be reset each measurement
         self.FIFO_name = ''
         self.FIFO_dir = ''
-        self.datasubheader = ''
-
+        self.FIFO_column_headings = []
+        self.FIFO_Gamryname = ''
+        # holds all sample information
+        self.FIFO_sample = sample_class()
+        
 
     ##########################################################################
     # This is main Gamry measurement loop which always needs to run
@@ -165,6 +180,7 @@ class gamry:
                 # which can cause trouble if the script ends witout closing the connection
                 await self.close_connection()
                 self.IO_do_meas = False
+                await self.stat.set_idle()
                 print(' ... Gramry measurement is done')
 
 
@@ -200,18 +216,21 @@ class gamry:
             print(' ... GamryDeviceList:', self.devices.EnumSections())
 
             if len(self.devices.EnumSections()) >= devid:
-                if self.Gamry_family == 'Interface':
+                self.FIFO_Gamryname = self.devices.EnumSections()[devid]
+                                
+                if self.FIFO_Gamryname.find('IFC') == 0:
                     self.pstat = client.CreateObject('GamryCOM.GamryPC6Pstat')                    
                     print(' ... Gamry, using Interface', self.pstat)
-                elif self.Gamry_family == 'Reference':
+                elif self.FIFO_Gamryname.find('REF') == 0:
                     self.pstat = client.CreateObject('GamryCOM.GamryPC5Pstat')            
                     print(' ... Gamry, using Reference', self.pstat)
-                else: # old version before Framework 7.06
-                    self.pstat = client.CreateObject('GamryCOM.GamryPstat')
-                    print(' ... Gamry, using Farmework , 7.06?', self.pstat)
+                # else: # old version before Framework 7.06
+                #     self.pstat = client.CreateObject('GamryCOM.GamryPstat')
+                #     print(' ... Gamry, using Farmework , 7.06?', self.pstat)
 
                 self.pstat.Init(self.devices.EnumSections()[devid])
                 print(' ... ',self.pstat)
+                
                 
             else:
                 self.pstat = None
@@ -264,32 +283,39 @@ class gamry:
     # setting up the measurement parameters
     # need to initialize and open connection to gamry first
     ##########################################################################
-    async def measurement_setup(self, mode: Gamry_modes = None):
+    async def measurement_setup(self, mode: Gamry_modes = None, *argv):
         await asyncio.sleep(0.001)
         if self.pstat:
                         
+            # the format of the data array is dependent upon the specific Dtaq
+            # e.g. which subheader to use
+
             if mode == Gamry_modes.CA:
                 Dtaqmode = "GamryCOM.GamryDtaqChrono"
                 Dtaqtype = self.GamryCOM.ChronoAmp
-                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Q', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
+                self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vu', 'I_A', 'Q', 'Vsig', 'Ach_V', 'IERange', 'Overload_HEX', 'StopTest']
             elif mode == Gamry_modes.CP:
                 Dtaqmode = "GamryCOM.GamryDtaqChrono"
                 Dtaqtype = self.GamryCOM.ChronoPot
-                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Q', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
+                self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vu', 'I_A', 'Q', 'Vsig', 'Ach_V', 'IERange', 'Overload_HEX', 'StopTest']
             elif mode == Gamry_modes.CV:
                 Dtaqmode = "GamryCOM.GamryDtaqRcv"
                 Dtaqtype = None
-                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest', 'Cycle'])
+                self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vu', 'I_A', 'Vsig', 'Ach_V', 'IERange', 'Overload_HEX', 'StopTest', 'Cycle', 'unknown1']
             elif mode == Gamry_modes.LSV:
                 Dtaqmode = "GamryCOM.GamryDtaqCpiv"
                 Dtaqtype = None
-                self.datasubheader = "\t".join(['Time', 'Vf', 'Vu', 'Im', 'Vsig', 'Ach', 'IERange', 'Overload', 'StopTest'])
+                self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vu', 'I_A', 'Vsig', 'Ach_V', 'IERange', 'Overload_HEX', 'StopTest', 'unknown1']
             elif mode == Gamry_modes.EIS:
-                # TODO change that
-                print(' ... will be currently done in meas function')
-            #     Dtaqmode = "GamryCOM.GamryDtaqEis"
-            #     Dtaqtype = None
-            # elif mode == Gamry_modes.OCV:
+#                Dtaqmode = "GamryCOM.GamryReadZ"
+                Dtaqmode = "GamryCOM.GamryDtaqEis"
+                Dtaqtype = None
+                # this needs to be manualy extended, default are only I and V (hope that this is Ewe_V)
+                self.FIFO_column_headings = ['I_A', 'Ewe_V', 'Zreal', 'Zimag', 'Zsig', 'Zphz', 'Zfreq', 'Zmod']
+            elif mode == Gamry_modes.OCV:
+                Dtaqmode = "GamryCOM.GamryDtaqOcv"
+                Dtaqtype = None
+                self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vm', 'Vsig', 'Ach_V', 'Overload_HEX', 'StopTest', 'unknown1', 'unknown2', 'unknown3']
             else:
                 return {"measurement_setup": f'mode_{mode}_not_supported'}
 
@@ -297,9 +323,9 @@ class gamry:
             try:
                 self.dtaq=client.CreateObject(Dtaqmode)
                 if Dtaqtype:
-                    self.dtaq.Init(self.pstat,Dtaqtype)
+                    self.dtaq.Init(self.pstat, Dtaqtype, *argv)
                 else:
-                    self.dtaq.Init(self.pstat)
+                    self.dtaq.Init(self.pstat, *argv)
             except Exception as e:
                 print(' ... Gamry Error:', gamry_error_decoder(e))
 
@@ -331,6 +357,7 @@ class gamry:
             # mode
             # autorange
             self.pstat.SetIERangeMode(True)
+            self.FIFO_gamryheader += '\n%ierangemode=auto'
             # set to false and change range below
             # range (check manual for max range):
             #self.pstat.SetIERange(10)
@@ -338,6 +365,57 @@ class gamry:
 
             # push the signal ramp over
             self.pstat.SetSignal(self.IO_sigramp)
+            
+            
+            # TODO:
+            # send or wait for trigger
+            # Sets the voltage of the auxiliary DAC output.
+            # self.pstat.SetAnalogOut
+            # Sets the digital output setting.
+            # self.pstat.SetDigitalOut
+            # self.pstat.DigitalIn
+            
+            
+            # first, wait for trigger
+            if self.IO_TTLwait >= 0:
+                while self.IO_do_meas:
+                    bits = self.pstat.DigitalIn()
+                    print(' ... Gamry DIbits', bits)
+                    if self.IO_TTLwait == 0:
+                        #0001
+                        if (bits & 0x01):
+                            break
+                    elif self.IO_TTLwait == 1:
+                        #0010
+                        if (bits & 0x02):
+                            break
+                    elif self.IO_TTLwait == 2:
+                        #0100
+                        if (bits & 0x04):
+                            break
+                    elif self.IO_TTLwait == 3:
+                        #1000
+                        if (bits & 0x08):
+                            break
+                    break # for testing, we don't want to wait forever
+                    await asyncio.sleep(0.001)
+                    
+            # second, send a trigger
+            if self.IO_TTLsend >= 0:
+                if self.IO_TTLsend == 0:
+                    #0001
+                    self.pstat.SetDigitalOut(1,1)
+                elif self.IO_TTLsend == 1:
+                    #0010
+                    self.pstat.SetDigitalOut(2,2)
+                elif self.IO_TTLsend == 2:
+                    #0100
+                    self.pstat.SetDigitalOut(4,4)
+                elif self.IO_TTLsend == 3:
+                    #1000
+                    self.pstat.SetDigitalOut(8,8)
+
+            
             # turn on the potentiostat output
             self.pstat.SetCell(self.GamryCOM.CellOn)
             
@@ -347,12 +425,14 @@ class gamry:
             connection = client.GetEvents(self.dtaq, self.dtaqsink)
 
             try:
+                self.FIFO_epoch =  time.time_ns()
+                # TODO: stop and estop
                 self.dtaq.Run(True)
             except Exception as e:
                 raise gamry_error_decoder(e)
 
             # empty the data before new one is collected
-            self.data = collections.defaultdict(list)
+            #self.data = collections.defaultdict(list)
             
             
             client.PumpEvents(0.001)
@@ -361,13 +441,36 @@ class gamry:
 
             # TODO: open new file and write header
             datafile = LocalDataHandler()
-            datafile.filename = f'{strftime("%Y%m%d_%H%M%S%z")}'
+            datafile.filename = self.FIFO_name
+            datafile.filepath = self.FIFO_dir
+            #datafile.fileheader = ''
             await datafile.open_file()
             # TODO: can also just use write_data to write header
             # or header will automatically added in filehandler??
-            datafile.fileheader = '%testheader'
-            await datafile.write_header()
-            await datafile.write_data('%Column_headings='+self.datasubheader)
+            #datafile.fileheader = '%testheader'
+#            await datafile.write_header() # header will be written when file does not exist
+
+            
+
+            # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
+            await datafile.write_data('%plate='+str(self.FIFO_sample.plateid))
+            await datafile.write_data('%sample='+'\t'.join([str(sample) for sample in self.FIFO_sample.sampleid]))
+            await datafile.write_data('%x='+'\t'.join([str(x) for x in self.FIFO_sample.x]))
+            await datafile.write_data('%y='+'\t'.join([str(y) for y in self.FIFO_sample.y]))
+            await datafile.write_data('%elements='+'\t'.join([str(element) for element in self.FIFO_sample.elements]))
+            await datafile.write_data('%composition='+'\t'.join([str(comp) for comp in self.FIFO_sample.composition]))
+            await datafile.write_data('%code='+'\t'.join([str(code) for code in self.FIFO_sample.code]))
+
+            await datafile.write_data('%gamry='+str(self.FIFO_Gamryname))
+            await datafile.write_data(self.FIFO_gamryheader)
+            await datafile.write_data('%techniqueparamsname=')
+            await datafile.write_data('%techniquename='+str(self.IO_meas_mode.name))
+            await datafile.write_data('%epoch_ns='+str(self.FIFO_epoch))
+            await datafile.write_data('%version=0.1')
+            await datafile.write_data('%column_headings='+'\t'.join(self.FIFO_column_headings))
+            
+            
+            
             
             
 
@@ -387,15 +490,32 @@ class gamry:
                     if self.wsdataq.full():
                         _ = await self.wsdataq.get()
                         self.wsdataq.task_done()
-                    await self.wsdataq.put(tmp_datapoints)
+                    #print(' ... ',tmp_datapoints)
+                    
+                    # Need to get additional data for EIS
+                    if self.IO_meas_mode == Gamry_modes.EIS:
+                        test = list(tmp_datapoints)
+                        test.append(self.dtaqsink.dtaq.Zreal())
+                        test.append(self.dtaqsink.dtaq.Zimag())
+                        test.append(self.dtaqsink.dtaq.Zsig())
+                        test.append(self.dtaqsink.dtaq.Zphz())
+                        test.append(self.dtaqsink.dtaq.Zfreq())
+                        test.append(self.dtaqsink.dtaq.Zmod())
+                        tmp_datapoints = tuple(test)
+#                    else:
+
+                    #await self.wsdataq.put({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
+                    #await self.wsdataq.put(tmp_datapoints)
+                    
+                    
                     # TODO: put new data in file
-                    await datafile.write_data("\t".join([str(num) for num in tmp_datapoints]))
+                    await datafile.write_data('\t'.join([str(num) for num in tmp_datapoints]))
                     counter += 1
     
                 # this copies the complete chunk of data again and again
                 # what we are going to do with this?
-                dtaqarr = self.dtaqsink.acquired_points
-                self.data = dtaqarr
+                #dtaqarr = self.dtaqsink.acquired_points
+                #self.data = dtaqarr
 
                 sink_status = self.dtaqsink.status
                 #print(sink_status)
@@ -432,8 +552,12 @@ class gamry:
         Vinit: float, 
         Vfinal: float, 
         ScanRate: float, 
-        SampleRate: float
+        SampleRate: float,
+        TTLwait: int = -1,
+        TTLsend: int = -1
     ):
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
@@ -454,6 +578,18 @@ class gamry:
                 err_code = gamry_error_decoder(e)
 
             eta = abs(Vfinal - Vinit)/ScanRate #+delay
+            
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Vinit={Vinit}\n'
+            self.FIFO_gamryheader += f'%Vinit={Vfinal}\n'
+            self.FIFO_gamryheader += f'%scanrate={ScanRate}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+            
+            
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+            
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
         elif self.IO_do_meas:
@@ -470,7 +606,8 @@ class gamry:
                 "SampleRate": SampleRate,
             },
             "err_code": err_code,
-            "eta": eta
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
 
 
@@ -478,14 +615,14 @@ class gamry:
     #  CA definition
     ##########################################################################
     async def technique_CA(self, 
-        Vinit: float, 
-        Tinit: float, 
-        Vstep1: float, 
-        Tstep1: float, 
-        Vstep2: float, 
-        Tstep2: float, 
-        SampleRate: float
+        Vval: float, 
+        Tval: float, 
+        SampleRate: float,
+        TTLwait: int = -1,
+        TTLsend: int = -1
     ):
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
@@ -495,18 +632,28 @@ class gamry:
             self.IO_meas_mode = Gamry_modes.CA
             await self.measurement_setup(self.IO_meas_mode)
             # setup the experiment specific signal ramp
-            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
 
             try:
                 self.IO_sigramp.Init(
-                    self.pstat, Vinit, Tinit, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate, self.GamryCOM.PstatMode
+                    self.pstat, Vval, Tval, SampleRate, self.GamryCOM.PstatMode
                 )
                 err_code = "0"
             except Exception as e:
                 err_code = gamry_error_decoder(e)
                 print(' ... Gamry Error:', err_code)
 
-            eta = Tinit + Tstep1 + Tstep2 #+delay
+            eta = Tval #+delay
+
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Vval={Vval}\n'
+            self.FIFO_gamryheader += f'%Tval={Tval}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
         elif self.IO_do_meas:
@@ -517,16 +664,13 @@ class gamry:
         return {
             "measurement_type": self.IO_meas_mode,
             "parameters": {
-                "Vinit": Vinit,
-                "Tinit": Tinit,
-                "Vstep1": Vstep1,
-                "Tstep1": Tstep1,
-                "Vstep2": Vstep2,
-                "Tstep2": Tstep2,
+                "Vval": Vval,
+                "Tval": Tval,
                 "SampleRate": SampleRate
             },
             "err_code": err_code,
-            "eta": eta
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
 
 
@@ -534,14 +678,14 @@ class gamry:
     #  CP definition
     ##########################################################################
     async def technique_CP(self, 
-        Iinit: float, 
-        Tinit: float, 
-        Istep1: float, 
-        Tstep1: float, 
-        Istep2: float, 
-        Tstep2: float, 
-        SampleRate: float
+        Ival: float, 
+        Tval: float, 
+        SampleRate: float,
+        TTLwait: int = -1,
+        TTLsend: int = -1
     ):
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
@@ -551,18 +695,28 @@ class gamry:
             self.IO_meas_mode = Gamry_modes.CP
             await self.measurement_setup(self.IO_meas_mode)
             # setup the experiment specific signal ramp
-            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalDstep")
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
 
             try:
                 self.IO_sigramp.Init(
-                    self.pstat, Iinit, Tinit, Istep1, Tstep1, Istep2, Tstep2, SampleRate, self.GamryCOM.GstatMode
+                    self.pstat, Ival, Tval, SampleRate, self.GamryCOM.GstatMode
                 )
                 err_code = "0"
             except Exception as e:
                 err_code = gamry_error_decoder(e)
                 print(' ... Gamry Error:', err_code)
 
-            eta = Tinit + Tstep1 + Tstep2 #+delay
+            eta = Tval  #+delay
+
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Ival={Ival}\n'
+            self.FIFO_gamryheader += f'%Tval={Tval}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
         elif self.IO_do_meas:
@@ -573,16 +727,13 @@ class gamry:
         return {
             "measurement_type": self.IO_meas_mode,
             "parameters": {
-                "Iinit": Iinit,
-                "Tinit": Tinit,
-                "Istep1": Istep1,
-                "Tstep1": Tstep1,
-                "Istep2": Istep2,
-                "Tstep2": Tstep2,
+                "Ival": Ival,
+                "Tval": Tval,
                 "SampleRate": SampleRate
             },
             "err_code": err_code,
-            "eta": eta
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
 
 
@@ -599,7 +750,11 @@ class gamry:
         HoldTime2: float,
         SampleRate: float,
         Cycles: int,
+        TTLwait: int = -1,
+        TTLsend: int = -1
     ):
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend        
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
@@ -637,6 +792,24 @@ class gamry:
             eta += abs(Vapex2 - Vapex1)/ScanApex * Cycles
             eta += abs(Vapex2 - Vapex1)/ScanApex * 2.0 * (Cycles-1) #+delay
 
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Vinit={Vinit}\n'
+            self.FIFO_gamryheader += f'%Vapex1={Vapex1}\n'
+            self.FIFO_gamryheader += f'%Vapex2={Vapex2}\n'
+            self.FIFO_gamryheader += f'%Vfinal={Vfinal}\n'
+            self.FIFO_gamryheader += f'%scaninit={ScanInit}\n'
+            self.FIFO_gamryheader += f'%scanapex={ScanApex}\n'
+            self.FIFO_gamryheader += f'%scanfinal={ScanFinal}\n'
+            self.FIFO_gamryheader += f'%holdtime0={HoldTime0}\n'
+            self.FIFO_gamryheader += f'%holdtime1={HoldTime1}\n'
+            self.FIFO_gamryheader += f'%holdtime2={HoldTime2}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%cycles={Cycles}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+
             # signal the IOloop to start the measrurement
             self.IO_do_meas = True
         elif self.IO_do_meas:
@@ -662,7 +835,8 @@ class gamry:
                 "Cycles": Cycles,
             },
             "err_code": err_code,
-            "eta": eta
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
 
 
@@ -670,91 +844,132 @@ class gamry:
     #  EIS definition
     ##########################################################################
     async def technique_EIS(self, 
-        start_freq,
-        end_freq, 
-        points, 
-        pot_offset=0
+        Vval,
+        Tval,
+        Freq,
+        RMS,
+        Precision,
+        SampleRate,
+        TTLwait: int = -1,
+        TTLsend: int = -1
     ):
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
-            
-            
-#            for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
-            
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.EIS
-            await self.measurement_setup(self.IO_meas_mode)
-            self.IO_sigramp = None
-#                self.IO_sigramp.Init(
-#                )
-            # starts the mesurement in the IOloop
-            # will be reset in that loop once meas is done
-            self.IO_do_meas = True
-                
+            argv = (Freq, RMS, Precision)
+            await self.measurement_setup(self.IO_meas_mode, *argv)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat, Vval, Tval, SampleRate, self.GamryCOM.PstatMode
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
 
-            # Zreal, Zimag, Zsig, Zphz, Zfreq = [], [], [], [], []
-            # is_on = False
-            # self.pstat.Open()
-            # for f in np.logspace(np.log10(start_freq), np.log10(end_freq), points):
-    
-            #     self.dtaq = client.CreateObject("GamryCOM.GamryDtaqEis")
-            #     self.dtaq.Init(self.pstat, f, 0.05, 0.5, 20)
-            #     self.dtaq.SetCycleMin(100)
-            #     self.dtaq.SetCycleMax(50000)
-    
-            #     if not is_on:
-            #         self.pstat.SetCell(self.GamryCOM.CellOn)
-            #         is_on = True
-            #     self.dtaqsink = GamryDtaqEvents(self.dtaq, self.q)
-    
-            #     connection = client.GetEvents(self.dtaq, self.dtaqsink)
-    
-            #     try:
-            #         self.dtaq.Run(True)
-            #     except Exception as e:
-            #         raise gamry_error_decoder(e)
-            #     if f < 10:
-            #         client.PumpEvents(10)
-            #     if f > 1000:
-            #         client.PumpEvents(0.1)
-            #     if f < 1000:
-            #         client.PumpEvents(1)
-    
-            #     Zreal.append(self.dtaqsink.dtaq.Zreal())
-            #     Zimag.append(self.dtaqsink.dtaq.Zimag())
-            #     Zsig.append(self.dtaqsink.dtaq.Zsig())
-            #     Zphz.append(self.dtaqsink.dtaq.Zphz())
-            #     Zfreq.append(self.dtaqsink.dtaq.Zfreq())
-            #     print(self.dtaqsink.dtaq.Zfreq())
-            #     del connection
-            # self.pstat.SetCell(self.GamryCOM.CellOff)
-            # self.pstat.Close()
-            err_code = "0"
+            eta = Tval
+            
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Vval={Vval}\n'
+            self.FIFO_gamryheader += f'%Tval={Tval}\n'
+            self.FIFO_gamryheader += f'%freq={Freq}\n'
+            self.FIFO_gamryheader += f'%rms={RMS}\n'
+            self.FIFO_gamryheader += f'%precision={Precision}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+            
+            
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+            
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
         elif self.IO_do_meas:
-            err_code = "meas already in progress"
+            err_code = "meas already in progress"            
         else:
             err_code = "not initialized"
-            
             
         return {
             "measurement_type": self.IO_meas_mode,
             "parameters": {
-                "tart_freq": start_freq,
-                "end_freq": end_freq,
-                "points": points,
-                "pot_offset": pot_offset,
+                'Vval':Vval,
+                'Tval':Tval,
+                'freq':Freq,
+                'RMS':RMS,
+                'precision':Precision,
+                'samplerate':SampleRate
             },
-            "err_code": err_code
-            ,
-            "eta": eta
+            "err_code": err_code,
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
 
 
     ##########################################################################
     #  OCV definition
     ##########################################################################
-    # def technique_OCV(self):
+    async def technique_OCV(self, 
+        Tval: float, 
+        SampleRate: float,
+        TTLwait: int = -1,
+        TTLsend: int = -1
+    ):
+        """The OCV class manages data acquisition for a Controlled Voltage I-V curve. However, it is a special purpose curve
+        designed for measuring the open circuit voltage over time. The measurement is made in the Potentiostatic mode but with the Cell
+        Switch open. The operator may set a voltage stability limit. When this limit is met the Ocv terminates."""
+        self.IO_TTLwait = TTLwait
+        self.IO_TTLsend = TTLsend
+        # time expected for measurement to be completed
+        eta = 0.0
+        # open connection, will be closed after measurement in IOloop
+        await self.open_connection()
+        if self.pstat and not self.IO_do_meas:
+            # set parameters for IOloop meas
+            self.IO_meas_mode = Gamry_modes.OCV
+            await self.measurement_setup(self.IO_meas_mode)
+            # setup the experiment specific signal ramp
+            self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
 
+            try:
+                self.IO_sigramp.Init(
+                    self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.GstatMode
+                )
+                err_code = "0"
+            except Exception as e:
+                err_code = gamry_error_decoder(e)
+                print(' ... Gamry Error:', err_code)
+
+            eta = Tval #+delay
+
+            self.FIFO_gamryheader = ''
+            self.FIFO_gamryheader += f'%Tval={Tval}\n'
+            self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
+            self.FIFO_gamryheader += f'%eta={eta}'
+
+            self.FIFO_name = f'{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+            self.FIFO_dir = self.local_data_dump
+
+            # signal the IOloop to start the measrurement
+            self.IO_do_meas = True
+        elif self.IO_do_meas:
+            err_code = "meas already in progress"
+        else:
+            err_code = "not initialized"
+            
+        return {
+            "measurement_type": self.IO_meas_mode,
+            "parameters": {
+                "Tval": Tval,
+                "SampleRate": SampleRate
+            },
+            "err_code": err_code,
+            "eta": eta,
+            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+        }

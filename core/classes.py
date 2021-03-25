@@ -22,7 +22,7 @@ class LocalDataHandler:
         self.filename = ''
         self.fileheader = ''
         self.filepath = 'C:\\temp' # some default value
-        self.fileext = '.txt' # some default value
+        #self.fileext = '.txt' # some default value
         self.f = None
 
 
@@ -35,15 +35,18 @@ class LocalDataHandler:
         # (2) check if file already exists
         # append to file if exists, else create a new one
         # does fileextension contain a period?
-        if self.fileext.find('.',0,1) == -1:
-           self.fileext = '.'+self.fileext
+        #if self.fileext.find('.',0,1) == -1:
+        #   self.fileext = '.'+self.fileext
            
-        if os.path.exists(os.path.join(self.filepath, self.filename+self.fileext)):
+        if os.path.exists(os.path.join(self.filepath, self.filename)):
             # file exists, append to file
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename+self.fileext),'a')
+            # will be used for example for Gamry EIS where measurement needs to run multiple times
+            # and just appends new data to excisting file
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'a')
+            
         else:
             # file does not exists, create file
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename+self.fileext),'w')
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w')
             if len(self.fileheader)>0:
                 await self.write_header()
 
@@ -382,5 +385,5 @@ class _QueueContext(object):
         self.parent.remove(self.queue)
 
 class IOhelper:
-    def __init__():
+    def __init__(self):
         self.subscribers = 0

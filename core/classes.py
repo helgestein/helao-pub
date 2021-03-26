@@ -26,6 +26,7 @@ class LocalDataHandler:
         self.f = None
 
 
+
     async def open_file(self):
         # TODO: how to replace the \ in variables (replace did not work)???
             
@@ -53,6 +54,16 @@ class LocalDataHandler:
     async def write_header(self):
         await self.f.write(self.fileheader + '\n')
 
+
+    async def write_sampleinfo(self, sample):
+            await self.write_data('%plate='+str(sample.plateid))
+            await self.write_data('%sample='+'\t'.join([str(sample) for sample in sample.sampleid]))
+            await self.write_data('%x='+'\t'.join([str(x) for x in sample.x]))
+            await self.write_data('%y='+'\t'.join([str(y) for y in sample.y]))
+            await self.write_data('%elements='+'\t'.join([str(element) for element in sample.elements]))
+            await self.write_data('%composition='+'\t'.join([str(comp) for comp in sample.composition]))
+            await self.write_data('%code='+'\t'.join([str(code) for code in sample.code]))
+        
 
     async def write_data(self, data):
         await self.f.write(data + '\n')

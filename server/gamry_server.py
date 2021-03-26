@@ -394,25 +394,29 @@ async def run_OCV(
 
 @app.post(f"/{servKey}/stop")
 async def stop():
+    """Stops measurement in a controlled way."""
     await stat.set_run()
     retc = return_class(
-        #measurement_type="motion_command",
-        #parameters={"command": "stop"},
-        #data = motion.motor_off(motion.get_all_axis()),
+        measurement_type="gamry_command",
+        parameters={"command": "stop"},
+        data = await poti.stop(),
     )
-    await stat.set_idle()
+    # will be set within the driver
+    #await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/estop")
 async def estop(switch: bool = True):
+    """Same as stop, but also sets estop flag."""
     await stat.set_run()
     retc = return_class(
-        #measurement_type="motion_command",
-        #parameters={"command": "estop", "parameters": switch},
-        #data = motion.estop_axis(switch),
+        measurement_type="gamry_command",
+        parameters={"command": "estop"},
+        data = await poti.estop(switch),
     )
-    await stat.set_estop()
+    # will be set within the driver
+    #await stat.set_estop()
     return retc
 
 

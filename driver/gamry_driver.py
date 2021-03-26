@@ -7,7 +7,6 @@ configuration is read from config/config.py.
 
 import comtypes
 import comtypes.client as client
-import collections
 import asyncio
 import time
 from enum import Enum
@@ -101,7 +100,7 @@ class gamry:
         self.config_dict = config_dict
         # get Gamry object (Garmry.com)
        
-        # TODO: a busy gamrycom can lock up the server
+        # a busy gamrycom can lock up the server
         self.kill_GamryCom()
         self.GamryCOM = client.GetModule(['{BD962F0D-A990-4823-9CF5-284D1CDD9C6D}', 1, 0])
         #self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
@@ -126,19 +125,11 @@ class gamry:
 
         asyncio.gather(self.init_Gamry(self.Gamry_devid))
 
-        self.temp = []
-        self.buffer = dict()
-        self.buffer_size = 0
         
+        # for Dtaq
         self.wsdataq = asyncio.Queue()
         self.dtaqsink = dummy_sink()
         self.dtaq = None
-        
-        self.area = 1.0
-        self.output = ''
-        self.notes = ''
-        self.title = ''
-  
         # empty the data before new one is collected
         #self.data = collections.defaultdict(list)
         
@@ -148,6 +139,7 @@ class gamry:
         self.IO_sigramp = None
         self.IO_TTLwait = -1
         self.IO_TTLsend = -1
+        self.IO_estop = False
 
         myloop = asyncio.get_event_loop()
         #add meas IOloop
@@ -174,14 +166,26 @@ class gamry:
         while True:
             await asyncio.sleep(0.5)
             if self.IO_do_meas:
-                print(' ... Gramry got measurement request')
-                await self.measure()
-                # we need to close the connection else the Gamry is still is use 
-                # which can cause trouble if the script ends witout closing the connection
-                await self.close_connection()
-                self.IO_do_meas = False
-                await self.stat.set_idle()
-                print(' ... Gramry measurement is done')
+                # are we in estop?
+                if not self.IO_estop:
+                    print(' ... Gramry got measurement request')
+                    await self.measure()
+                    # we need to close the connection else the Gamry is still is use 
+                    # which can cause trouble if the script ends witout closing the connection
+                    await self.close_connection()
+                    self.IO_do_meas = False
+                    # need to check here again in case estop was triggered during
+                    # measurement
+                    if self.IO_estop:
+                        print(' ... Gramry is in estop.')
+                        await self.stat.set_estop()
+                    else:
+                        await self.stat.set_idle()
+                    print(' ... Gramry measurement is done')
+                else:
+                    self.IO_do_meas = False
+                    print(' ... Gramry is in estop.')
+                    await self.stat.set_estop()
 
 
     ##########################################################################
@@ -310,7 +314,7 @@ class gamry:
 #                Dtaqmode = "GamryCOM.GamryReadZ"
                 Dtaqmode = "GamryCOM.GamryDtaqEis"
                 Dtaqtype = None
-                # this needs to be manualy extended, default are only I and V (hope that this is Ewe_V)
+                # this needs to be manualy extended, default are only I and V (I hope that this is Ewe_V)
                 self.FIFO_column_headings = ['I_A', 'Ewe_V', 'Zreal', 'Zimag', 'Zsig', 'Zphz', 'Zfreq', 'Zmod']
             elif mode == Gamry_modes.OCV:
                 Dtaqmode = "GamryCOM.GamryDtaqOcv"
@@ -401,6 +405,9 @@ class gamry:
                     await asyncio.sleep(0.001)
                     
             # second, send a trigger
+            # TODO: need to reset trigger first during init to high/low
+            # if its in different state
+            # and reset it after meas
             if self.IO_TTLsend >= 0:
                 if self.IO_TTLsend == 0:
                     #0001
@@ -425,8 +432,8 @@ class gamry:
             connection = client.GetEvents(self.dtaq, self.dtaqsink)
 
             try:
+                # get current time and start measurement
                 self.FIFO_epoch =  time.time_ns()
-                # TODO: stop and estop
                 self.dtaq.Run(True)
             except Exception as e:
                 raise gamry_error_decoder(e)
@@ -439,28 +446,20 @@ class gamry:
             sink_status = self.dtaqsink.status
             counter = 0
 
-            # TODO: open new file and write header
+            # open new file and write header
             datafile = LocalDataHandler()
             datafile.filename = self.FIFO_name
             datafile.filepath = self.FIFO_dir
+            # if header is != '' then it will be written when file is opened first time
+            # not if the file already exists
             #datafile.fileheader = ''
             await datafile.open_file()
-            # TODO: can also just use write_data to write header
-            # or header will automatically added in filehandler??
-            #datafile.fileheader = '%testheader'
-#            await datafile.write_header() # header will be written when file does not exist
-
-            
+          
 
             # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
-            await datafile.write_data('%plate='+str(self.FIFO_sample.plateid))
-            await datafile.write_data('%sample='+'\t'.join([str(sample) for sample in self.FIFO_sample.sampleid]))
-            await datafile.write_data('%x='+'\t'.join([str(x) for x in self.FIFO_sample.x]))
-            await datafile.write_data('%y='+'\t'.join([str(y) for y in self.FIFO_sample.y]))
-            await datafile.write_data('%elements='+'\t'.join([str(element) for element in self.FIFO_sample.elements]))
-            await datafile.write_data('%composition='+'\t'.join([str(comp) for comp in self.FIFO_sample.composition]))
-            await datafile.write_data('%code='+'\t'.join([str(code) for code in self.FIFO_sample.code]))
-
+            await datafile.write_sampleinfo(self.FIFO_sample)
+            
+            # write Gamry specific data
             await datafile.write_data('%gamry='+str(self.FIFO_Gamryname))
             await datafile.write_data(self.FIFO_gamryheader)
             await datafile.write_data('%techniqueparamsname=')
@@ -468,20 +467,15 @@ class gamry:
             await datafile.write_data('%epoch_ns='+str(self.FIFO_epoch))
             await datafile.write_data('%version=0.1')
             await datafile.write_data('%column_headings='+'\t'.join(self.FIFO_column_headings))
-            
-            
-            
-            
-            
 
-            while sink_status != "done":
+            while sink_status != "done" and self.IO_do_meas:
             #while sink_status == "measuring":
                 # need some await points
                 await asyncio.sleep(0.001)
                 client.PumpEvents(0.001)
                 # this is a temp data which gets the data point by point
                 # write this to a file so we don't loose any data
-                while counter < len(self.dtaqsink.acquired_points):
+                while counter < len(self.dtaqsink.acquired_points) and self.IO_do_meas:
                     # need some await points
                     await asyncio.sleep(0.001)
                     tmp_datapoints = self.dtaqsink.acquired_points[counter]
@@ -502,13 +496,17 @@ class gamry:
                         test.append(self.dtaqsink.dtaq.Zfreq())
                         test.append(self.dtaqsink.dtaq.Zmod())
                         tmp_datapoints = tuple(test)
-#                    else:
 
-                    #await self.wsdataq.put({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
-                    #await self.wsdataq.put(tmp_datapoints)
+                    # TODO: add data quality control here
+
+
+
+                    
+                    # send data with asigned headings to wsqueue
+                    await self.wsdataq.put({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
                     
                     
-                    # TODO: put new data in file
+                    # put new data in file
                     await datafile.write_data('\t'.join([str(num) for num in tmp_datapoints]))
                     counter += 1
     
@@ -518,12 +516,11 @@ class gamry:
                 #self.data = dtaqarr
 
                 sink_status = self.dtaqsink.status
-                #print(sink_status)
 
 
             self.pstat.SetCell(self.GamryCOM.CellOff)
 
-            # TODO: close file
+            # close file
             await datafile.close_file()
             # not needed if we always use same file and have global header etc
             del datafile
@@ -544,6 +541,26 @@ class gamry:
         await asyncio.sleep(0.001)
         return self.dtaqsink.status
 
+    ##########################################################################
+    #  stops measurement, writes all data and returns from meas loop
+    ##########################################################################
+    async def stop(self):
+        # turn off cell and run before stopping meas loop
+        self.pstat.SetCell(self.GamryCOM.CellOff)
+        self.dtaq.Run(False)
+        # file and Gamry connection will be closed with the meas loop
+        self.IO_do_meas = False
+
+        
+    ##########################################################################
+    #  same as estop, but also sets flag
+    ##########################################################################
+    async def estop(self, switch):
+        # should be the same as stop()
+        self.IO_estop = switch
+        if switch:
+            await self.stop()
+
 
     ##########################################################################
     #  LSV definition
@@ -556,13 +573,13 @@ class gamry:
         TTLwait: int = -1,
         TTLsend: int = -1
     ):
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.LSV
             await self.measurement_setup(self.IO_meas_mode)
@@ -621,13 +638,13 @@ class gamry:
         TTLwait: int = -1,
         TTLsend: int = -1
     ):
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CA
             await self.measurement_setup(self.IO_meas_mode)
@@ -684,13 +701,13 @@ class gamry:
         TTLwait: int = -1,
         TTLsend: int = -1
     ):
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CP
             await self.measurement_setup(self.IO_meas_mode)
@@ -753,13 +770,13 @@ class gamry:
         TTLwait: int = -1,
         TTLsend: int = -1
     ):
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend        
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.CV
             await self.measurement_setup(self.IO_meas_mode)
@@ -853,13 +870,13 @@ class gamry:
         TTLwait: int = -1,
         TTLsend: int = -1
     ):
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.EIS
             argv = (Freq, RMS, Precision)
@@ -924,13 +941,13 @@ class gamry:
         """The OCV class manages data acquisition for a Controlled Voltage I-V curve. However, it is a special purpose curve
         designed for measuring the open circuit voltage over time. The measurement is made in the Potentiostatic mode but with the Cell
         Switch open. The operator may set a voltage stability limit. When this limit is met the Ocv terminates."""
-        self.IO_TTLwait = TTLwait
-        self.IO_TTLsend = TTLsend
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         await self.open_connection()
         if self.pstat and not self.IO_do_meas:
+            self.IO_TTLwait = TTLwait
+            self.IO_TTLsend = TTLsend
             # set parameters for IOloop meas
             self.IO_meas_mode = Gamry_modes.OCV
             await self.measurement_setup(self.IO_meas_mode)

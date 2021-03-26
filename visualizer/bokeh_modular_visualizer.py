@@ -207,7 +207,7 @@ class C_potvis:
         self.IOloop_data_run = False
         self.IOloop_stat_run = False
 
-        self.datasource = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+        self.datasource = ColumnDataSource(data=dict(pt=[], t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
         self.time_stamp = 0
 #        self.pids = collections.deque(10*[0], 10)
 
@@ -250,10 +250,31 @@ class C_potvis:
 
 
     def update(self, new_data):
-        self.datasource.stream({"t_s":new_data["t_s"],
-                                "Ewe_V":new_data["Ewe_V"],
-                                "Ach_V":new_data["Ach_V"],
-                                "I_A":new_data["I_A"]})
+        tmpdata = {'pt':[0]}
+        # for some techniques not all data is present
+        # we should only get one data point at the time
+        if 't_s' in new_data:
+            tmpdata['t_s'] = new_data['t_s']
+        else:
+            tmpdata['t_s'] = [0]
+        if 'Ewe_V' in new_data:
+            tmpdata['Ewe_V'] = new_data['Ewe_V']
+        else:
+            tmpdata['Ewe_V'] = [0]
+        if 'Ach_V' in new_data:
+            tmpdata['Ach_V'] = new_data['Ach_V']
+        else:
+            tmpdata['Ach_V'] = [0]
+        if 'I_A' in new_data:
+            tmpdata['I_A'] = new_data['I_A']
+        else:
+            tmpdata['I_A'] = [0]
+        self.datasource.stream(tmpdata)
+        
+        # self.datasource.stream({"t_s":new_data["t_s"],
+        #                         "Ewe_V":new_data["Ewe_V"],
+        #                         "Ach_V":new_data["Ach_V"],
+        #                         "I_A":new_data["I_A"]})
 
     async def IOloop_data(self): # non-blocking coroutine, updates data source
         global doc

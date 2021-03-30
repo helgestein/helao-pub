@@ -15,13 +15,13 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
     for api in apis:
         if api == "server":
             for s in server:
-                cmd = ["python", f"{api}/{s}.py"]
+                cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
                 print(f"Starting {api}/{s}")
                 subprocess.Popen(cmd, cwd=helao_root, shell=True)
             #ppid = p.pid
         elif api == "action":
             for a in action:
-                cmd = ["python", f"{api}/{a}.py"]
+                cmd = ["python", f"{api}/{a}.py", sys.argv[1]]
                 print(f"Starting {api}/{a}")
                 subprocess.Popen(cmd, cwd=helao_root)
         elif api == "orchestrators":

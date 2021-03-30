@@ -1,13 +1,17 @@
 import sys
-sys.path.append(r"..\config")
-sys.path.append(r"..\driver")
-from ocean_driver import ocean
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel
 import json
 import asyncio
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+from ocean_driver import ocean
+config = import_module(sys.argv[1]).config
+
 
 app = FastAPI(title="ocean driver", 
             description= " this is a fancy ocean optics raman spectrometer driver server",

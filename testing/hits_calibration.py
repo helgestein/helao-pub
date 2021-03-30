@@ -106,6 +106,7 @@ def get_background(Agrid,k=2,l=.02):
 def nnmf_basis(Xgrid,n,bg=None):
     X = numpy.array([i[1] for i in Xgrid])
     if bg != None:
+        assert [i[0] for i in Xgrid] == [i[0] for i in bg]
         bg = numpy.array([i[1] for i in bg])
         X = X - bg
     X = X.T

@@ -1,12 +1,15 @@
 import sys
-sys.path.append(r"..\config")
-sys.path.append(r"..\driver")
-from arcoptix_driver import arcoptix
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+from arcoptix_driver import arcoptix
+config = import_module(sys.argv[1]).config
 
 app = FastAPI(title="ocean driver", 
             description= " this is a fancy arctoptix ftir spectrometer driver server",

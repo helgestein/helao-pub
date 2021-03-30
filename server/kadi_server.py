@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 import json
 import sys
-sys.path.append('../config')
-sys.path.append('../driver')
-from kadi_driver import kadi
-from mischbares_small import config
 import uvicorn
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+from kadi_driver import kadi
+config = import_module(sys.argv[1]).config
+
 
 #currently it seems like server needs to be restarted if there is an input error in any of your requests
 

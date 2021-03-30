@@ -1,13 +1,15 @@
 import sys
-sys.path.append('../driver')
-sys.path.append('../config')
-sys.path.append('../server')
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
-from mischbares_small import config
 import json
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+
 
 app = FastAPI(title="Owis action server V1",
     description="This is a very fancy Owis motor server",

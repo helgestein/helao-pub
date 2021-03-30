@@ -1,14 +1,16 @@
 #implement the action-server for ocean optics raman
 import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../config')
-sys.path.append(r'../server')
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+
 
 app = FastAPI(title="ocean optics raman server V1", 
     description="This is a fancy ocean optics raman spectrometer action server", 
@@ -37,5 +39,5 @@ def loadFile(filename:str):
 
 if __name__ == "__main__":
     url = "http://{}:{}".format(config['servers']['oceanServer']['host'],config['servers']['oceanServer']['port'])
-    uvicorn.run(app,host=config['servers']['smallRamanServer']['host'],port=config['servers']['smallRamanServer']['port'])
+    uvicorn.run(app,host=config['servers']['ramanServer']['host'],port=config['servers']['ramanServer']['port'])
     print("instantiated ocean optics raman action")

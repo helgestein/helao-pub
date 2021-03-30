@@ -1,12 +1,16 @@
 import sys
-sys.path.append(r"..\config")
-sys.path.append(r"..\driver")
-from owis_driver import owis
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+from owis_driver import owis
+config = import_module(sys.argv[1]).config
+
 
 app = FastAPI(title="owis driver", 
             description= " this is a fancy owis driver server",

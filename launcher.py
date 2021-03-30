@@ -52,8 +52,6 @@ if __name__ == '__main__':
     orchestrator = config['launcher']['mischbares']
     visualizer = config['launcher']['visualizer']
     process = config['launcher']['process']
-
-    config
     launcher(LAUNCH_ORDER, server, action, orchestrator, visualizer, process)
     
     

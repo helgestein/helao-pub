@@ -148,7 +148,7 @@ class gamry:
 
         # for saving data localy
         self.FIFO_epoch = None
-        self.FIFO_header = ''
+        #self.FIFO_header = ''
         self.FIFO_gamryheader = '' # measuement specific, will be reset each measurement
         self.FIFO_name = ''
         self.FIFO_dir = ''
@@ -379,28 +379,31 @@ class gamry:
             # self.pstat.SetDigitalOut
             # self.pstat.DigitalIn
             
-            
+            print('.... DigiOut:', self.pstat.DigitalOut())
+            print('.... DigiIn:', self.pstat.DigitalIn())
             # first, wait for trigger
             if self.IO_TTLwait >= 0:
                 while self.IO_do_meas:
                     bits = self.pstat.DigitalIn()
                     print(' ... Gamry DIbits', bits)
-                    if self.IO_TTLwait == 0:
-                        #0001
-                        if (bits & 0x01):
-                            break
-                    elif self.IO_TTLwait == 1:
-                        #0010
-                        if (bits & 0x02):
-                            break
-                    elif self.IO_TTLwait == 2:
-                        #0100
-                        if (bits & 0x04):
-                            break
-                    elif self.IO_TTLwait == 3:
-                        #1000
-                        if (bits & 0x08):
-                            break
+                    if self.IO_TTLwait & bits:
+                        break
+                    # if self.IO_TTLwait == 0:
+                    #     #0001
+                    #     if (bits & 0x01):
+                    #         break
+                    # elif self.IO_TTLwait == 1:
+                    #     #0010
+                    #     if (bits & 0x02):
+                    #         break
+                    # elif self.IO_TTLwait == 2:
+                    #     #0100
+                    #     if (bits & 0x04):
+                    #         break
+                    # elif self.IO_TTLwait == 3:
+                    #     #1000
+                    #     if (bits & 0x08):
+                    #         break
                     break # for testing, we don't want to wait forever
                     await asyncio.sleep(0.001)
                     
@@ -409,18 +412,21 @@ class gamry:
             # if its in different state
             # and reset it after meas
             if self.IO_TTLsend >= 0:
-                if self.IO_TTLsend == 0:
-                    #0001
-                    self.pstat.SetDigitalOut(1,1)
-                elif self.IO_TTLsend == 1:
-                    #0010
-                    self.pstat.SetDigitalOut(2,2)
-                elif self.IO_TTLsend == 2:
-                    #0100
-                    self.pstat.SetDigitalOut(4,4)
-                elif self.IO_TTLsend == 3:
-                    #1000
-                    self.pstat.SetDigitalOut(8,8)
+#                self.pstat.SetDigitalOut(self.IO_TTLsend,self.IO_TTLsend)
+                print(self.pstat.SetDigitalOut(self.IO_TTLsend,self.IO_TTLsend)) # bitmask on
+#                print(self.pstat.SetDigitalOut(0,self.IO_TTLsend)) # bitmask off
+                # if self.IO_TTLsend == 0:
+                #     #0001
+                #     self.pstat.SetDigitalOut(1,1)
+                # elif self.IO_TTLsend == 1:
+                #     #0010
+                #     self.pstat.SetDigitalOut(2,2)
+                # elif self.IO_TTLsend == 2:
+                #     #0100
+                #     self.pstat.SetDigitalOut(4,4)
+                # elif self.IO_TTLsend == 3:
+                #     #1000
+                #     self.pstat.SetDigitalOut(8,8)
 
             
             # turn on the potentiostat output
@@ -453,20 +459,20 @@ class gamry:
             # if header is != '' then it will be written when file is opened first time
             # not if the file already exists
             #datafile.fileheader = ''
-            await datafile.open_file()
+            await datafile.open_file_async()
           
 
             # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
-            await datafile.write_sampleinfo(self.FIFO_sample)
+            await datafile.write_sampleinfo_async(self.FIFO_sample)
             
             # write Gamry specific data
-            await datafile.write_data('%gamry='+str(self.FIFO_Gamryname))
-            await datafile.write_data(self.FIFO_gamryheader)
-            await datafile.write_data('%techniqueparamsname=')
-            await datafile.write_data('%techniquename='+str(self.IO_meas_mode.name))
-            await datafile.write_data('%epoch_ns='+str(self.FIFO_epoch))
-            await datafile.write_data('%version=0.1')
-            await datafile.write_data('%column_headings='+'\t'.join(self.FIFO_column_headings))
+            await datafile.write_data_async('%gamry='+str(self.FIFO_Gamryname))
+            await datafile.write_data_async(self.FIFO_gamryheader)
+            await datafile.write_data_async('%techniqueparamsname=')
+            await datafile.write_data_async('%techniquename='+str(self.IO_meas_mode.name))
+            await datafile.write_data_async('%epoch_ns='+str(self.FIFO_epoch))
+            await datafile.write_data_async('%version=0.1')
+            await datafile.write_data_async('%column_headings='+'\t'.join(self.FIFO_column_headings))
 
             while sink_status != "done" and self.IO_do_meas:
             #while sink_status == "measuring":
@@ -507,7 +513,7 @@ class gamry:
                     
                     
                     # put new data in file
-                    await datafile.write_data('\t'.join([str(num) for num in tmp_datapoints]))
+                    await datafile.write_data_async('\t'.join([str(num) for num in tmp_datapoints]))
                     counter += 1
     
                 # this copies the complete chunk of data again and again
@@ -521,7 +527,7 @@ class gamry:
             self.pstat.SetCell(self.GamryCOM.CellOff)
 
             # close file
-            await datafile.close_file()
+            await datafile.close_file_async()
             # not needed if we always use same file and have global header etc
             del datafile
 

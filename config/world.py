@@ -80,17 +80,17 @@ config["servers"] = dict(
                 ),
         )
     ),
-    potentiostat=dict(
-        host="127.0.0.1",
-        port=8003,
-        group="server",
-        fast="gamry_server",
-        simulate=True, # choose between simulator(default) or real device
-        params=dict(
-            temp_dump=".\temp",
-            path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
-        )
-    ),
+    # potentiostat=dict(
+    #     host="127.0.0.1",
+    #     port=8003,
+    #     group="server",
+    #     fast="gamry_server",
+    #     simulate=True, # choose between simulator(default) or real device
+    #     params=dict(
+    #         temp_dump=".\temp",
+    #         path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
+    #     )
+    # ),
     data=dict(
         host="127.0.0.1",
         port=8004,
@@ -120,15 +120,15 @@ config["servers"] = dict(
         fast="async_orch",
         path="."
     ),
-    potentiostat_vis=dict(
-        host="127.0.0.1",
-        port=5006,
-        group="visualizer",
-        bokeh="bokeh_test",
-        params = dict(
-            ws_host="potentiostat"
-        )
-    ),
+    # potentiostat_vis=dict(
+    #     host="127.0.0.1",
+    #     port=5006,
+    #     group="visualizer",
+    #     bokeh="bokeh_test",
+    #     params = dict(
+    #         ws_host="potentiostat"
+    #     )
+    # ),
     aligner_vis=dict(
         host="127.0.0.1",
         port=5007,
@@ -144,7 +144,9 @@ config["servers"] = dict(
         group="visualizer",
         bokeh="bokeh_modular_visualizer",
         params = dict(
-            ws_potentiostat="potentiostat", # could also be a list if we have more then one (TODO)
+            doc_name = "World TEST",
+#            ws_nidaqmx="nimax",
+#            ws_potentiostat="potentiostat", # could also be a list if we have more then one (TODO)
             ws_data="data", # for getting current platemap, id etc, TODO: add ws for dataserver
             ws_motor="motor", # could also be a list if we have more then one (TODO)
             ws_motor_params = dict(

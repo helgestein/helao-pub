@@ -39,7 +39,9 @@ from classes import StatusHandler
 from classes import return_status
 from classes import return_class
 from classes import move_modes
-
+from classes import wsConnectionManager
+from classes import sample_class
+from classes import transformxy
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -52,13 +54,6 @@ app = FastAPI(title=servKey,
 
 galil_motion_running = True
 
-
-# local buffer of motor websocket data
-motor_wsdata = []
-# timecode for last ws data fetch
-motor_wsdata_TC = 0
-
-xyTransfermatrix = np.matrix([[0.5,0,10],[0,0.5,20],[0,0,1]])
 
 
 # check if 'simulate' settings is present
@@ -82,13 +77,11 @@ class transformation_mode(str, Enum):
 @app.post(f"/{servKey}/toMotorXY")
 def transform_platexy_to_motorxy(M, platexy):
     """Converts plate to motor xy"""
-    # M is Transformation matrix from plate to motor
-    #motor = M*plate
-    motorxy = np.dot(np.asmatrix(json.loads(M)),np.asarray(json.loads(platexy)))
+    motorxy = transformxy.transform_platexy_to_motorxy(json.loads(M), json.loads(platexy))
     retc = return_class(
         measurement_type="motion_calculation",
         parameters={"command": "toMotorXY"},
-        data={"MotorXY":json.dumps(np.asarray(motorxy)[0].tolist())}
+        data={"motorxy":json.dumps(np.asarray(motorxy)[0].tolist())}
     )
     return retc
 
@@ -97,20 +90,11 @@ def transform_platexy_to_motorxy(M, platexy):
 @app.post(f"/{servKey}/toPlateXY")
 def transform_motorxy_to_platexy(M, motorxy):
     """Converts motor to plate xy"""
-    # M is Transformation matrix from plate to motor
-    #motor = M*plate
-    #Minv*motor = Minv*M*plate = plate
-    print(np.asarray(json.loads(motorxy)))
-    print(M)
-    try:
-        platexy = np.dot(np.asmatrix(json.loads(M)).I,np.asarray(json.loads(motorxy)))         
-    except Exception:
-        print('------------------------------ Matrix singular ---------------------------')
-        platexy = np.array([[None, None, None]])
+    platexy = transformxy.transform_platexy_to_motorxy(json.loads(M), json.loads(motorxy))
     retc = return_class(
         measurement_type="motion_calculation",
         parameters={"command": "toPlateXY"},
-        data={"PlateXY":json.dumps(np.asarray(platexy)[0].tolist())}
+        data={"platexy":json.dumps(np.asarray(platexy)[0].tolist())}
     )
     return retc
 
@@ -122,79 +106,36 @@ def startup_event():
     global stat
     stat = StatusHandler()
 
-    myloop = asyncio.get_event_loop()
-    #add websocket IO loop
-    myloop.create_task(wsdata_IOloop())
+    # myloop = asyncio.get_event_loop()
+    # #add websocket IO loop
+    # myloop.create_task(wsdata_IOloop())
+    
+    global wsstatus
+    wsstatus = wsConnectionManager()
+    global wsdata
+    wsdata = wsConnectionManager()
 
 
-async def wsdata_IOloop():
-    global motor_wsdata_TC, motor_wsdata
-    global galil_motion_running
-    global xyTransfermatrix
-    while galil_motion_running:
-        try:
-            motor_wsdata = await motion.ws_getmotordata()
-            # add some extra data
-            if 'x' in motor_wsdata['axis']:
-                idx = motor_wsdata['axis'].index('x')
-                xmotor = motor_wsdata['position'][idx]
-            else:
-                xmotor = None
-        
-            if 'y' in motor_wsdata['axis']:
-                idx = motor_wsdata['axis'].index('y')
-                ymotor = motor_wsdata['position'][idx]
-            else:
-                ymotor = None
-            retval = transform_motorxy_to_platexy(json.dumps(xyTransfermatrix.tolist()), json.dumps(np.array([xmotor, ymotor, 1]).tolist()))
-            platexy = np.asarray(json.loads(retval.data['PlateXY']))
-            motor_wsdata['PlateXY'] = [platexy[0], platexy[0], 1]
-            motor_wsdata_TC = time.time_ns()
-        except Exception:
-            print('Connection to motor unexpectedly lost. Retrying in 3 seconds.')
-            await asyncio.sleep(3)
-
-
-# stream the a buffered version
-# buffer will be updated by all regular queries
-# don't use for critical application, the low broadcast frequency can miss events
 @app.websocket(f"/{servKey}/ws_motordata")
-async def websocket_data(mywebsocket: WebSocket):  
-    await mywebsocket.accept()
-    global motor_wsdata_TC, motor_wsdata
-    # local timecode to check against buffered data timecode
-    localTC = 0
-    while galil_motion_running:
-        try:
-            if localTC < motor_wsdata_TC:
-                localTC = motor_wsdata_TC
-                await mywebsocket.send_text(json.dumps(motor_wsdata))
-            await asyncio.sleep(1)
-        except WebSocket.exceptions.ConnectionClosedError:
-                print('Websocket connection unexpectedly closed. Retrying in 3 seconds.')
-                await asyncio.sleep(3)
+async def websocket_data(websocket: WebSocket):
+    await wsdata.send(websocket, motion.qdata, 'galil_motion_data')
 
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await websocket.accept()
-    while galil_motion_running:
-        data = await stat.q.get()
-        await websocket.send_text(json.dumps(data))
+    await wsstatus.send(websocket, stat.q, 'galil_motion_status')
 
 
 @app.post(f"/{servKey}/upload_alignmentmatrix")
 async def upload_alignmentmatrix(newxyTransfermatrix):
     """Get current in use Alignment from motion server"""
-    global xyTransfermatrix
-    xyTransfermatrix = np.asmatrix(json.loads(newxyTransfermatrix))
+    motion.xyTransfermatrix = np.asmatrix(json.loads(newxyTransfermatrix))
 
 
 @app.post(f"/{servKey}/download_alignmentmatrix")
 async def download_alignmentmatrix():
     """Send new Alignment to motion server"""
-    global xyTransfermatrix
-    return json.dumps(xyTransfermatrix.tolist())
+    return json.dumps(motion.xyTransfermatrix.tolist())
 
 
 @app.post(f"/{servKey}/get_status")
@@ -258,7 +199,7 @@ async def move(
         # transformation works on absolute coordinates
         #coordinates are given in plate xy system
         print(xyvec)
-        new_xyvec=transform_platexy_to_motorxy(xyTransfermatrix, xyvec)
+        new_xyvec=transform_platexy_to_motorxy(motion.xyTransfermatrix, xyvec)
         print(new_xyvec)
 #        mode = "absolute"
         

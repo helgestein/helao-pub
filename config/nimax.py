@@ -12,6 +12,9 @@ config["servers"] = dict(
         group="server",
         fast="nidaqmx_server",
         params = dict(
+            local_data_dump="C:\\temp", # dont foeget to use \\ instead of \
+            dev_CellCurrent_trigger = 'PFI1', #P1.1
+            dev_CellVoltage_trigger = 'PFI1', #P1.1
             dev_CellCurrent = {
                         '1':'PXI-6289/ai16',
                         '2':'PXI-6289/ai17',
@@ -35,56 +38,59 @@ config["servers"] = dict(
                 '9':'PXI-6284/ai0'
                 },
             dev_ActiveCellsSelection = {
-                '1':'PXI-6289/port0/line23',
-                '2':'PXI-6289/port0/line24',
-                '3':'PXI-6289/port0/line25',
-                '4':'PXI-6289/port0/line26',
-                '5':'PXI-6289/port0/line27',	
-                '6':'PXI-6289/port0/line28',
-                '7':'PXI-6289/port0/line29',
-                '8':'PXI-6289/port0/line30',
-                '9':'PXI-6289/port0/line31'
+                '1':'PXI-6289/port0/line23', #P0.23
+                '2':'PXI-6289/port0/line24', #P0.24
+                '3':'PXI-6289/port0/line25', #P0.25
+                '4':'PXI-6289/port0/line26', #P0.26
+                '5':'PXI-6289/port0/line27', #P0.27
+                '6':'PXI-6289/port0/line28', #P0.28
+                '7':'PXI-6289/port0/line29', #P0.29
+                '8':'PXI-6289/port0/line30', #P0.30
+                '9':'PXI-6289/port0/line31'  #P0.31
                 },
             dev_FSWBCDCmd = {
-                '1':'PXI-6284/port0/line0',
-                '2':'PXI-6284/port0/line1',
-                '3':'PXI-6284/port0/line2',
-                '4':'PXI-6284/port0/line3'
+                '1':'PXI-6284/port0/line5', #P0.5
+                '2':'PXI-6284/port0/line1', #P0.1
+                '3':'PXI-6284/port0/line2', #P0.2
+                '4':'PXI-6284/port0/line3'  #P0.3
                 },
             dev_GasFlowValves = {
-                '1':'PXI-6284/port1/line2',
-                '2':'PXI-6284/port1/line3',	
-                '3':'PXI-6284/port1/line4',
-                '4':'PXI-6284/port1/line5',
-                '5':'PXI-6284/port1/line6',
-                '6':'PXI-6284/port1/line7',
-                '7':'PXI-6284/port2/line7',
-                '8':'PXI-6284/port2/line1',
-                '9':'PXI-6284/port2/line2'
+                '1':'PXI-6284/port1/line2', #P1.2
+                '2':'PXI-6284/port1/line3', #P1.3
+                '3':'PXI-6284/port1/line4', #P1.4
+                '4':'PXI-6284/port1/line5', #P1.5
+                '5':'PXI-6284/port1/line6', #P1.6
+                '6':'PXI-6284/port1/line7', #P1.7
+                '7':'PXI-6284/port2/line0', #P2.0
+                '8':'PXI-6284/port2/line1', #P2.1
+                '9':'PXI-6284/port2/line2'  #P2.2
                 },
             dev_MasterCellSelect = {
-                '1':'PXI-6284/port0/line23',
-                '2':'PXI-6284/port0/line24',
-                '3':'PXI-6284/port0/line25',
-                '4':'PXI-6284/port0/line26',
-                '5':'PXI-6284/port0/line27',
-                '6':'PXI-6284/port0/line28',
-                '7':'PXI-6284/port0/line29',
-                '8':'PXI-6284/port0/line30',
-                '9':'PXI-6284/port0/line31',
-                'X':'PXI-6284/port0/line22'              
+                '1':'PXI-6284/port0/line23', #P0.23
+                '2':'PXI-6284/port0/line24', #P0.24
+                '3':'PXI-6284/port0/line25', #P0.25
+                '4':'PXI-6284/port0/line26', #P0.26
+                '5':'PXI-6284/port0/line27', #P0.27
+                '6':'PXI-6284/port0/line28', #P0.28
+                '7':'PXI-6284/port0/line29', #P0.29
+                '8':'PXI-6284/port0/line30', #P0.30
+                '9':'PXI-6284/port0/line31', #P0.31
+                'X':'PXI-6284/port0/line22'  #P0.22, two electrode
                 },
             dev_Pumps = {
-                'PeriPump':'PXI-6284/port1/line0	',
-                'MultiPeriPump':'PXI-6284/port1/line1'
+                'PeriPump':'PXI-6284/port0/line4	', #P0.4
+                'MultiPeriPump':'PXI-6284/port0/line0' #P0.0
                 },
             dev_FSW = {
-                'Done':'PXI-6284/port2/line4',
-                'Error':'PXI-6284/port2/line6'                
+                'Done':'PXI-6284/port2/line4',  #P2.4
+                'Error':'PXI-6284/port2/line6'  #P2.6
                 },
             dev_RSHTTLhandshake = {
-                'port':'PXI-6284/ctr0',
-                'term':'/PXI-6284/PFI8'
+                'RSH1':'PXI-6284/port2/line5',  #P2.5
+                'RSH2':'PXI-6284/port2/line7',  #P2.7
+                'RSH3':'PXI-6284/port2/line3',  #P2.3
+#                'port':'PXI-6284/ctr0',
+#                'term':'/PXI-6284/PFI8' #P2.0
                 }
         )
     ),

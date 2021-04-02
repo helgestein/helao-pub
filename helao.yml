@@ -90,3 +90,4 @@ dependencies:
   - zlib
   - pybase64
   - nidaqmx-python
+  

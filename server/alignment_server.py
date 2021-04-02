@@ -27,6 +27,7 @@ from classes import StatusHandler
 from classes import return_status
 from classes import return_class
 from classes import move_modes
+from classes import wsConnectionManager
 
 
 ################## Helper functions ##########################################
@@ -347,13 +348,13 @@ def startup_event():
     global stat
     stat = StatusHandler()
 
+    global wsstatus
+    wsstatus = wsConnectionManager()
+
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await stat.q.get()
-        await websocket.send_text(json.dumps(data))
+    await wsstatus.send(websocket, stat.q, 'aligner_status')
 
 
 @app.post(f"/{servKey}/get_status")

@@ -9,11 +9,13 @@ from collections import deque
 from pydantic import BaseModel
 import aiofiles
 from enum import Enum
-from fastapi import WebSocket
+from fastapi import WebSocket, WebSocketDisconnect
 import uuid
 import copy
 import os
 from typing import List, Optional, Any
+import numpy as np
+
 
 
 # work in progress
@@ -25,52 +27,71 @@ class LocalDataHandler:
         #self.fileext = '.txt' # some default value
         self.f = None
 
+        
+    # helper function        
+    def sample_to_header(self, sample):
+        sampleheader  = '%plate='+str(sample.plateid)
+        sampleheader += '\n%sample='+'\t'.join([str(sample) for sample in sample.sampleid])
+        sampleheader += '\n%x='+'\t'.join([str(x) for x in sample.x])
+        sampleheader += '\n%y='+'\t'.join([str(y) for y in sample.y])
+        sampleheader += '\n%elements='+'\t'.join([str(element) for element in sample.elements])
+        sampleheader += '\n%composition='+'\t'.join([str(comp) for comp in sample.composition])
+        sampleheader += '\n%code='+'\t'.join([str(code) for code in sample.code])
+        return sampleheader
+        
 
 
-    async def open_file(self):
-        # TODO: how to replace the \ in variables (replace did not work)???
-            
-        # (1) check if path exists, else create it
+    async def open_file_async(self):
         if not os.path.exists(self.filepath):
             os.makedirs(self.filepath)
-        # (2) check if file already exists
-        # append to file if exists, else create a new one
-        # does fileextension contain a period?
-        #if self.fileext.find('.',0,1) == -1:
-        #   self.fileext = '.'+self.fileext
            
         if os.path.exists(os.path.join(self.filepath, self.filename)):
-            # file exists, append to file
-            # will be used for example for Gamry EIS where measurement needs to run multiple times
-            # and just appends new data to excisting file
             self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'a')
             
         else:
-            # file does not exists, create file
             self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w')
             if len(self.fileheader)>0:
-                await self.write_header()
-
-    async def write_header(self):
-        await self.f.write(self.fileheader + '\n')
+                await self.write_data_async(self.write_header)
 
 
-    async def write_sampleinfo(self, sample):
-            await self.write_data('%plate='+str(sample.plateid))
-            await self.write_data('%sample='+'\t'.join([str(sample) for sample in sample.sampleid]))
-            await self.write_data('%x='+'\t'.join([str(x) for x in sample.x]))
-            await self.write_data('%y='+'\t'.join([str(y) for y in sample.y]))
-            await self.write_data('%elements='+'\t'.join([str(element) for element in sample.elements]))
-            await self.write_data('%composition='+'\t'.join([str(comp) for comp in sample.composition]))
-            await self.write_data('%code='+'\t'.join([str(code) for code in sample.code]))
+    async def write_sampleinfo_async(self, sample):
+            await self.write_data_async(self.sample_to_header(sample))
         
 
-    async def write_data(self, data):
+    async def write_data_async(self, data):
         await self.f.write(data + '\n')
 
 
-    async def close_file(self):
+    async def close_file_async(self):
         await self.f.close()
+        
+        
+    def open_file_sync(self):
+
+        if not os.path.exists(self.filepath):
+            os.makedirs(self.filepath)
+           
+        if os.path.exists(os.path.join(self.filepath, self.filename)):
+            # and just appends new data to excisting file
+            self.f = open(os.path.join(self.filepath, self.filename),'a')
+            
+        else:
+            # file does not exists, create file
+            self.f = open(os.path.join(self.filepath, self.filename),'w')
+            if len(self.fileheader)>0:
+                self.write_data_sync(self.write_header)
+
+
+    def write_sampleinfo_sync(self, sample):
+            self.write_data_sync(self.sample_to_header(sample))
+
+
+    def write_data_sync(self, data):
+        self.f.write(data + '\n')
+
+        
+    def close_file_sync(self):
+        self.f.close()
 
 
 class StatusHandler:
@@ -219,6 +240,23 @@ class Action:
         self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
 
 
+
+class transformxy():
+    def transform_platexy_to_motorxy(M, platexy):
+        motorxy = np.dot(np.asmatrix(M),np.asarray(platexy))
+        return motorxy
+
+    def transform_motorxy_to_platexy(M, motorxy):
+        print(np.asarray(motorxy))
+        print(M)
+        try:
+            platexy = np.dot(np.asmatrix(M).I,np.asarray(motorxy))
+        except Exception:
+            print('------------------------------ Matrix singular ---------------------------')
+            platexy = np.array([[None, None, None]])
+        return platexy
+
+
 # return class for FastAPI calls
 class return_class(BaseModel):
     measurement_type: str = None
@@ -251,60 +289,38 @@ class move_modes(str, Enum):
     relative = "relative"
     absolute = "absolute"
 
-    
-class wsHandler:
-    def __init__(self, q, name):
-        self.subscribers = 0
-        self.dataq = q
-        self.lastuuid = None
-        self.lastq = None
-        self.name = name
 
-        self.IOloop_run = False
-        self.myloop = asyncio.get_event_loop()
-        #add IOloop
-        self.myloop.create_task(self.wsdata_IOloop())
+class wsConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
 
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
 
-    async def wsdata_IOloop(self):
-        self.IOloop_run = True
-        while self.IOloop_run:
-            try:
-                if self.subscribers > 0: # > 0
-                    self.IOloop_run = True
-                    self.lastuuid = uuid.uuid4()
-                    self.lastq = await self.dataq.get()
-                    #print(f' ... {self.name} got data:')
-                    #print(self.lastq)
-                else:
-                    await asyncio.sleep(1)
-            except Exception:
-                print(f' ... Connection to {self.name} unexpectedly lost. Retrying in 3 seconds.')
-                await asyncio.sleep(3)
-                
-                
-    # use in wsapi def via 'await websocket_slave(mywebsocket)'
-    async def websocket_slave(self, mywebsocket: WebSocket):
-        await mywebsocket.accept()
-        localuuid = None
-        
-        self.subscribers = self.subscribers + 1
-        while self.IOloop_run:
-            try:
-                if localuuid != self.lastuuid:
-                    # deep copy, else id() will be the same
-                    localuuid = copy.deepcopy(self.lastuuid)
-                    #print(' ...  sending data', self.lastq)
-                    await mywebsocket.send_text(json.dumps(self.lastq))
-                else:
-                    await asyncio.sleep(1)
-            except Exception:#mywebsocket.exceptions.ConnectionClosedError:
-                    #print(f'Slave Websocket {self.name} connection unexpectedly closed. Retrying in 3 seconds.')
-                    #await asyncio.sleep(3)
-                    print(f' ... Slave Websocket {self.name} connection unexpectedly closed.')
-                    self.subscribers = self.subscribers - 1
-                    return
-        self.subscribers = self.subscribers - 1
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+    async def send(self, websocket: WebSocket, q, name):
+        await self.connect(websocket)
+        try:
+            while True:
+                data = await q.get()
+                # only send to one
+                #await wsdata.send_personal_message(json.dumps(data), websocket)
+                # send to all
+                await self.broadcast(json.dumps(data))
+        except WebSocketDisconnect:
+            self.disconnect(websocket)
+            await self.broadcast(" ...  Websocket {name} connection unexpectedly closed.")
+
 
 # multisubscriber queue by Kyle Smith
 # https://github.com/smithk86/asyncio-multisubscriber-queue

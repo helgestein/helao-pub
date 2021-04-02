@@ -50,7 +50,7 @@ sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 from classes import return_status
 from classes import return_class
-from classes import wsHandler
+from classes import wsConnectionManager
 from classes import sample_class
 
 confPrefix = sys.argv[1]
@@ -85,20 +85,20 @@ def startup_event():
     global poti
     poti = gamry(S.params, stat)
     global wsdata
-    wsdata = wsHandler(poti.wsdataq, 'Gamry wsdata')
+    wsdata = wsConnectionManager()
     global wsstatus
-    wsstatus = wsHandler(stat.q, 'Gamry wsstatus')
+    wsstatus = wsConnectionManager()
 
 
 @app.websocket(f"/{servKey}/ws_data")
 async def websocket_data(websocket: WebSocket):
-    await wsdata.websocket_slave(websocket)
+    await wsdata.send(websocket, poti.wsdataq, 'Gamry_data')
 
 
 # as the technique calls will only start the measurment but won't return the final results
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await wsstatus.websocket_slave(websocket)
+    await wsstatus.send(websocket, stat.q, 'Gamry_status')
   
         
 @app.post(f"/{servKey}/get_status")
@@ -197,7 +197,7 @@ async def run_LSV(
     TTLwait: int = -1,          # -1 disables, else select TTL 0-3
     TTLsend: int = -1           # -1 disables, else select TTL 0-3
 ):
-    """Linear Sweep Voltammetry (unlike CV no backward scan is done)"""
+    """Linear Sweep Voltammetry (unlike CV no backward scan is done), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -228,7 +228,7 @@ async def run_CA(
 #    EQDelay: float = 5.0
 ):
 
-    """Chronoamperometry (current response on amplied potential)"""
+    """Chronoamperometry (current response on amplied potential), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -257,7 +257,7 @@ async def run_CP(
 #    Vlimit: float = 10.0,
 #    EQDelay: float = 5.0
 ):
-    """Chronopotentiometry (Potential response on controlled current)"""
+    """Chronopotentiometry (Potential response on controlled current), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -288,7 +288,7 @@ async def run_CV(
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1 # -1 disables, else select TTL 0-3
 ):
-    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)"""
+    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -344,7 +344,7 @@ async def run_EIS(
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1 # -1 disables, else select TTL 0-3
 ):
-    """"""
+    """use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -374,7 +374,7 @@ async def run_OCV(
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1 # -1 disables, else select TTL 0-3
 ):
-    """"""
+    """use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",

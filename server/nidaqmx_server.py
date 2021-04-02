@@ -64,10 +64,12 @@ class cNIMAX:
     # in principle we can also just call predefined tasks from NImax app,
     # but I define my own here to be more flexible
     
-    def __init__(self, config_dict):
+    def __init__(self, config_dict, stat):
         self.config_dict = config_dict
         print(' ... init NI-MAX')
- 
+        # will get the statushandler from the server to set the idle status after measurment
+        self.stat = stat
+
         if not 'local_data_dump' in self.config_dict:
             self.config_dict['local_data_dump'] = 'C:\\temp'
 
@@ -90,6 +92,7 @@ class cNIMAX:
         self.task_CellCurrent = None
         self.task_CellVoltage = None
         self.task_IV_run = False
+        self.IO_estop = False
         self.activeCell = [False for _ in range(9)]
 
 
@@ -108,7 +111,9 @@ class cNIMAX:
         self.FIFO_sample = sample_class()
 
 
-    def create_IVtask(self):
+    def create_IVtask(self, tstep):
+        self.samplingrate = 1.0/tstep
+
         # Voltage reading is MASTER
         self.task_CellCurrent = nidaqmx.Task()
         for myname, mydev  in self.config_dict.dev_CellCurrent.items():
@@ -169,7 +174,7 @@ class cNIMAX:
 
     def streamIV_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
         # TODO: how to turn task_handle into the task object?
-        if self.task_IV_run:
+        if self.task_IV_run and not self.IO_estop:
             try:
                 # start seq: V then current, so read current first then Volt
                 # put callback only on current (Volt should the always have enough points)
@@ -209,7 +214,25 @@ class cNIMAX:
                                                str(new_data['E_V'][8][i])
                                                )
             except Exception:
-                print(' ... canceling NImax IV stream')                     
+                print(' ... canceling NImax IV stream')
+
+        elif self.IO_estop and self.task_IV_run:
+            dataI = self.task_CellCurrent.read(number_of_samples_per_channel=number_of_samples)
+            dataV = self.task_CellVoltage.read(number_of_samples_per_channel=number_of_samples)
+            self.task_CellCurrent.close()
+            self.task_CellVoltage.close()
+
+        else:
+            # NImax has data but measurement was already turned off
+            # just pull data from buffer and turn task off
+            dataI = self.task_CellCurrent.read(number_of_samples_per_channel=number_of_samples)
+            dataV = self.task_CellVoltage.read(number_of_samples_per_channel=number_of_samples)
+            # task should be already off or should be closed soon
+            print(' ... meas was turned off but NImax IV task is still running ...')
+            #self.task_CellCurrent.close()
+            #self.task_CellVoltage.close()
+            
+            
         return 0
 
 
@@ -345,56 +368,100 @@ class cNIMAX:
 
 
     # TODO: test what happens if we clear all NIMax settings?
-    async def run_task_Cell_IV(self, on):
-        if on and not self.task_IV_run:
+    async def run_task_Cell_IV(self, on, tstep = 1.0, ):
+        errcode = "Error"
+        if not self.IO_estop:
+            if on and not self.task_IV_run:
+    
+    
+                ### save to file start settings
+                self.FIFO_epoch =  time.time_ns()
+                self.FIFO_name = f'NImax_{time.strftime("%Y%m%d_%H%M%S%z.txt")}'
+                self.FIFO_dir = self.local_data_dump
+                # open new file and write header
+                self.datafile.filename = self.FIFO_name
+                self.datafile.filepath = self.FIFO_dir
+                # if header is != '' then it will be written when file is opened first time
+                # not if the file already exists
+                #datafile.fileheader = ''
+                self.datafile.open_file_sync()         
+                # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
+                self.datafile.write_sampleinfo_sync(self.FIFO_sample)        
+                # NImax specific data
+                #self.datafile.write_data_sync(self.FIFO_NImaxheader)
+                self.datafile.write_data_sync('%epoch_ns='+str(self.FIFO_epoch))
+                self.datafile.write_data_sync('%version=0.1')
+                self.datafile.write_data_sync('%column_headings='+'\t'.join(self.FIFO_column_headings))
+                ### save to file end settings
+    
+    
+    
+                self.create_IVtask(tstep)
+                # start slave first
+                self.task_CellVoltage.start()
+                # then start master to trigger slave
+                self.task_CellCurrent.start()
+                self.task_IV_run = True
+                errcode = 0
 
-
-            ### save to file start settings
-            self.FIFO_epoch =  time.time_ns()
-            self.FIFO_name = f'NImax_{time.strftime("%Y%m%d_%H%M%S%z.txt")}'
-            self.FIFO_dir = self.local_data_dump
-            # open new file and write header
-            self.datafile.filename = self.FIFO_name
-            self.datafile.filepath = self.FIFO_dir
-            # if header is != '' then it will be written when file is opened first time
-            # not if the file already exists
-            #datafile.fileheader = ''
-            self.datafile.open_file_sync()         
-            # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
-            self.datafile.write_sampleinfo_sync(self.FIFO_sample)        
-            # NImax specific data
-            #self.datafile.write_data_sync(self.FIFO_NImaxheader)
-            self.datafile.write_data_sync('%epoch_ns='+str(self.FIFO_epoch))
-            self.datafile.write_data_sync('%version=0.1')
-            self.datafile.write_data_sync('%column_headings='+'\t'.join(self.FIFO_column_headings))
-            ### save to file end settings
-
-
-
-            self.create_IVtask()
-            # start slave first
-            self.task_CellVoltage.start()
-            # then start master to trigger slave
-            self.task_CellCurrent.start()
-            self.task_IV_run = True
-
-
-        elif not on and self.task_IV_run:
-            self.task_IV_run = False
-#            self.task_CellCurrent.stop()
-#            self.task_CellVoltage.stop()
-            self.task_CellCurrent.close()
-            self.task_CellVoltage.close()
-            # close file
-            self.datafile.close_file_sync()
+            elif not on and self.task_IV_run:
+                self.task_IV_run = False
+    #            self.task_CellCurrent.stop()
+    #            self.task_CellVoltage.stop()
+                self.task_CellCurrent.close()
+                self.task_CellVoltage.close()
+                # close file
+                self.datafile.close_file_sync()
+    
+                await self.stat.set_idle()
+                errcode = 0
+        else:
+            errcode = 'estop'
+            on = False
+            await self.stat.set_estop()
 
         return {
             "meas": self.task_IV_run,
             "name":['Cell_'+key for key in self.config_dict.dev_CellCurrent.keys()],
             "status":[on for _ in self.config_dict.dev_CellCurrent.keys()],
-            "err_code": 0,
+            "err_code": errcode,
             "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
+
+
+    ##########################################################################
+    #  stops measurement, writes all data and returns from meas loop
+    ##########################################################################
+    async def stop(self):
+        # turn off cell and run before stopping meas loop
+        if self.task_IV_run:
+            await run_task_Cell_IV(False)
+            # file and Gamry connection will be closed with the meas loop
+            self.task_IV_run = False
+        else:
+            #was already stopped so need to set to idle here
+            await self.stat.set_idle()
+
+
+    ##########################################################################
+    #  same as estop, but also sets flag
+    ##########################################################################
+    async def estop(self, switch):
+        # should be the same as stop()
+
+        if self.task_IV_run:
+            if switch:
+                await self.stop()
+            # will stop in 'stream_IV_callback
+            self.IO_estop = switch
+            await self.stat.set_estop()
+        else:
+            #was already stopped so need to set to idle here
+            if switch:
+                await self.stat.set_estop()
+            else:
+                await self.stat.set_idle()
+
 
 
 
@@ -575,7 +642,7 @@ async def run_task_RSH_TTL_handshake():
 
 
 @app.post(f"/{servKey}/run_task_Cell_IV")
-async def run_task_Cell_IV(on: bool = True):
+async def run_task_Cell_IV(on: bool = True,tstep: float = 1.0):
     """Get the current/voltage measurement for each cell.
     Only active cells are plotted in visualizer."""
     await stat.set_run()
@@ -584,21 +651,50 @@ async def run_task_Cell_IV(on: bool = True):
         parameters={
                     "command": "run_task_Cell_IV",
                     "parameters": {
+                        "tstep": tstep,
                         "ON": on
                         },
                     },
-        data=await NIMAX.run_task_Cell_IV(on),
+        data=await NIMAX.run_task_Cell_IV(on, tstep),
     )
     await stat.set_idle()
     return retc
 
 
+@app.post(f"/{servKey}/stop")
+async def stop():
+    """Stops measurement in a controlled way."""
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="gamry_command",
+        parameters={"command": "stop"},
+        data = await NIMAX.stop(),
+    )
+    # will be set within the driver
+    #await stat.set_idle()
+    return retc
+
+
+@app.post(f"/{servKey}/estop")
+async def estop(switch: bool = True):
+    """Same as stop, but also sets estop flag."""
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="gamry_command",
+        parameters={"command": "estop"},
+        data = await NIMAX.estop(switch),
+    )
+    # will be set within the driver
+    #await stat.set_estop()
+    return retc
+
+
 @app.on_event("startup")
 def startup_event():
-    global NIMAX
-    NIMAX = cNIMAX(S.params)
     global stat
     stat = StatusHandler()
+    global NIMAX
+    NIMAX = cNIMAX(S.params, stat)
     # websockets
     global wsdata
     wsdata = wsConnectionManager()

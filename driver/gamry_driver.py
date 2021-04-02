@@ -552,20 +552,32 @@ class gamry:
     ##########################################################################
     async def stop(self):
         # turn off cell and run before stopping meas loop
-        self.pstat.SetCell(self.GamryCOM.CellOff)
-        self.dtaq.Run(False)
-        # file and Gamry connection will be closed with the meas loop
-        self.IO_do_meas = False
+        if self.IO_do_meas:
+            self.pstat.SetCell(self.GamryCOM.CellOff)
+            self.dtaq.Run(False)
+            # file and Gamry connection will be closed with the meas loop
+            self.IO_do_meas = False
+        else:
+            #was already stopped so need to set to idle here
+            await self.stat.set_idle()
 
-        
+
     ##########################################################################
     #  same as estop, but also sets flag
     ##########################################################################
     async def estop(self, switch):
         # should be the same as stop()
-        self.IO_estop = switch
-        if switch:
-            await self.stop()
+
+        if self.IO_do_meas:
+            self.IO_estop = switch
+            if switch:
+                await self.stop()
+        else:
+            #was already stopped so need to set to idle here
+            if switch:
+                await self.stat.set_estop()
+            else:
+                await self.stat.set_idle()
 
 
     ##########################################################################

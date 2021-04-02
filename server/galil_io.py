@@ -29,6 +29,7 @@ sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 from classes import return_status
 from classes import return_class
+from classes import wsConnectionManager
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -58,13 +59,13 @@ def startup_event():
     motion = galil(S.params)
     global stat
     stat = StatusHandler()
+    global wsstatus
+    wsstatus = wsConnectionManager()
+
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await stat.q.get()
-        await websocket.send_text(json.dumps(data))
+    await wsstatus.send(websocket, stat.q, 'IO_status')
         
 
 @app.post(f"/{servKey}/get_status")

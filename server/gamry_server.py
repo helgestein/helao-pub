@@ -50,7 +50,8 @@ sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 from classes import return_status
 from classes import return_class
-from classes import wsHandler
+from classes import wsConnectionManager
+from classes import sample_class
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -79,25 +80,25 @@ app = FastAPI(title=servKey,
 
 @app.on_event("startup")
 def startup_event():
-    global poti
-    poti = gamry(S.params)
     global stat
     stat = StatusHandler()
+    global poti
+    poti = gamry(S.params, stat)
     global wsdata
-    wsdata = wsHandler(poti.wsdataq, 'Gamry wsdata')
+    wsdata = wsConnectionManager()
     global wsstatus
-    wsstatus = wsHandler(stat.q, 'Gamry wsstatus')
+    wsstatus = wsConnectionManager()
 
 
 @app.websocket(f"/{servKey}/ws_data")
 async def websocket_data(websocket: WebSocket):
-    await wsdata.websocket_slave(websocket)
+    await wsdata.send(websocket, poti.wsdataq, 'Gamry_data')
 
 
 # as the technique calls will only start the measurment but won't return the final results
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await wsstatus.websocket_slave(websocket)
+    await wsstatus.send(websocket, stat.q, 'Gamry_status')
   
         
 @app.post(f"/{servKey}/get_status")
@@ -122,19 +123,14 @@ async def get_meas_status():
     )
 
 
-@app.post(f"/{servKey}/set_measparams")
-async def set_characteristics(
-    Output: str = '', 
-    area: float = 1.0, 
-    notes: str = '', 
-    title: str = ''
-    #RefE: 
+@app.post(f"/{servKey}/set_sample")
+async def set_sample(
+    samples: sample_class
 ):
     """setup the experiment desciption to be included in the output file"""
     await stat.set_run()
+    poti.FIFO_sample = samples
     await stat.set_idle()
-
-
 
 # these will work, but we should not call them alone 
 # as it might cause issues if not done peroperly
@@ -197,71 +193,85 @@ async def run_LSV(
     Vinit: float = 0.0,         # Initial value in volts or amps.
     Vfinal: float = 1.0,        # Final value in volts or amps.
     ScanRate: float = 1.0,      # Scan rate in volts/second or amps/second.
-    SampleRate: float = 0.01    # Time between data acquisition samples in seconds.
+    SampleRate: float = 0.01,   # Time between data acquisition samples in seconds.
+    TTLwait: int = -1,          # -1 disables, else select TTL 0-3
+    TTLsend: int = -1           # -1 disables, else select TTL 0-3
 ):
-    """Linear Sweep Voltammetry (unlike CV no backward scan is done)"""
+    """Linear Sweep Voltammetry (unlike CV no backward scan is done), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
     parameters={
         "command": "run_LSV",
-        "parameters": {},
+        "parameters": {
+            'Vinit':Vinit,
+            'Vfinal':Vfinal,
+            'scanrate':ScanRate,
+            'samplerate':SampleRate
+            },
     },
-    data=await poti.technique_LSV(Vinit, Vfinal, ScanRate, SampleRate)
+    data=await poti.technique_LSV(Vinit, Vfinal, ScanRate, SampleRate, TTLwait, TTLsend)
     )
+    # will be set within the driver
     #await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/run_CA")
 async def run_CA(
-    Vprestep: float = 0.0,        # Initial value in volts or amps.
-    Tprestep: float = 0.0,        # Initial time in seconds
-    Vstep1: float = 0.0,          # Step 1 voltage in volts or amps.
-    Tstep1: float = 0.0,          # Step 1 time in seconds
-    Vstep2: float = 1.0,          # Final value in volts or amps.
-    Tstep2: float = 10.0,          # Final time in seconds
+    Vval: float = 0.0,
+    Tval: float = 10.0,
     SampleRate: float = 0.01,    # Time between data acquisition samples in seconds.
+    TTLwait: int = -1, # -1 disables, else select TTL 0-3
+    TTLsend: int = -1 # -1 disables, else select TTL 0-3
 #    Vlimit: float = 10.0,
 #    EQDelay: float = 5.0
 ):
 
-    """Chronoamperometry (current response on amplied potential)"""
+    """Chronoamperometry (current response on amplied potential), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
     parameters={
         "command": "run_CA",
-        "parameters": {},
+        "parameters": {
+            'Vval': Vval,
+            'Tval': Tval,
+            'samplerate':SampleRate
+            },
     },
-    data=await poti.technique_CA(Vprestep, Tprestep, Vstep1, Tstep1, Vstep2, Tstep2, SampleRate)
+    data=await poti.technique_CA(Vval, Tval, SampleRate, TTLwait, TTLsend)
     )
+    # will be set within the driver
     #await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/run_CP")
 async def run_CP(
-    Iprestep: float = 0.0,        # Initial value in volts or amps.
-    Tprestep: float = 0.0,        # Initial time in seconds
-    Istep1: float = 0.0,          # Step 1 voltage in volts or amps.
-    Tstep1: float = 0.0,          # Step 1 time in seconds
-    Istep2: float = 0.0,          # Final value in volts or amps.
-    Tstep2: float = 10.0,         # Final time in seconds
+    Ival: float = 0.0,
+    Tval: float = 10.0,
     SampleRate: float = 1.0,      # Time between data acquisition samples in seconds.
+    TTLwait: int = -1, # -1 disables, else select TTL 0-3
+    TTLsend: int = -1 # -1 disables, else select TTL 0-3
 #    Vlimit: float = 10.0,
 #    EQDelay: float = 5.0
 ):
-    """Chronopotentiometry (Potential response on controlled current)"""
+    """Chronopotentiometry (Potential response on controlled current), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
     parameters={
         "command": "run_CP",
-        "parameters": {},
+        "parameters": {
+            'Ival':Ival,
+            'Tval':Tval,
+            'samplerate':SampleRate
+            },
     },
-    data=await poti.technique_CP(Iprestep, Tprestep, Istep1, Tstep1, Istep2, Tstep2, SampleRate)
+    data=await poti.technique_CP(Ival, Tval, SampleRate, TTLwait, TTLsend, TTLwait, TTLsend)
     )
+    # will be set within the driver
     #await stat.set_idle()
     return retc
 
@@ -274,9 +284,11 @@ async def run_CV(
     Vfinal: float = 0.0,          # Final value in volts or amps.
     ScanRate: float = 1.0,        # Apex scan rate in volts/second or amps/second.
     SampleRate: float = 0.01,     # Time between data acquisition steps.
-    Cycles: int = 1
+    Cycles: int = 1,
+    TTLwait: int = -1, # -1 disables, else select TTL 0-3
+    TTLsend: int = -1 # -1 disables, else select TTL 0-3
 ):
-    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)"""
+    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions), use 4bit bitmask for triggers."""
     await stat.set_run()
     retc = return_class(
     measurement_type="gamry_command",
@@ -312,46 +324,99 @@ async def run_CV(
         0.0,
         SampleRate,
         Cycles,
+        TTLwait,
+        TTLsend
         )
     )
+    # will be set within the driver
     #await stat.set_idle()
     return retc
 
 
-# @app.post(f"/{servKey}/run_OCV")
-# async def run_OCV(
-#     SampleRate: float,
-# ):
-#     """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)"""
-#     await stat.set_run()
-#     value = await poti.technique_OCV(
-#         SampleRate,
-#     )
-#     await stat.set_idle()
-#     return return_class(**value)
+@app.post(f"/{servKey}/run_EIS")
+async def run_EIS(
+    Vval: float = 0.0,
+    Tval: float = 10.0,
+    Freq: float = 1000.0,
+    RMS: float = 0.02, 
+    Precision: float = 0.001, #The precision is used in a Correlation Coefficient (residual power) based test to determine whether or not to measure another cycle.
+    SampleRate: float = 0.01,
+    TTLwait: int = -1, # -1 disables, else select TTL 0-3
+    TTLsend: int = -1 # -1 disables, else select TTL 0-3
+):
+    """use 4bit bitmask for triggers."""
+    await stat.set_run()
+    retc = return_class(
+    measurement_type="gamry_command",
+    parameters={
+        "command": "run_EIS",
+        "parameters": {
+            'Vval':Vval,
+            'Tval':Tval,
+            'freq':Freq,
+            'RMS':RMS,
+            'precision':Precision,
+            'samplerate':SampleRate
+            },
+    },
+    data=await poti.technique_EIS(Vval, Tval, Freq, RMS, Precision, SampleRate, TTLwait, TTLsend) 
+    )
+    # will be set within the driver
+    #await stat.set_idle()
+    return retc
+
+
+
+@app.post(f"/{servKey}/run_OCV")
+async def run_OCV(
+    Tval: float = 10.0,
+    SampleRate: float = 0.01,
+    TTLwait: int = -1, # -1 disables, else select TTL 0-3
+    TTLsend: int = -1 # -1 disables, else select TTL 0-3
+):
+    """use 4bit bitmask for triggers."""
+    await stat.set_run()
+    retc = return_class(
+    measurement_type="gamry_command",
+    parameters={
+        "command": "run_OCV",
+        "parameters": {
+            'Tval':Tval,
+            'samplerate':SampleRate
+                },
+    },
+    data=await poti.technique_OCV(Tval, SampleRate, TTLwait, TTLsend) 
+    )
+    # will be set within the driver
+    #await stat.set_idle()
+    return retc
 
 
 @app.post(f"/{servKey}/stop")
 async def stop():
+    """Stops measurement in a controlled way."""
     await stat.set_run()
     retc = return_class(
-        #measurement_type="motion_command",
-        #parameters={"command": "stop"},
-        #data = motion.motor_off(motion.get_all_axis()),
+        measurement_type="gamry_command",
+        parameters={"command": "stop"},
+        data = await poti.stop(),
     )
-    await stat.set_idle()
+    # will be set within the driver
+    #await stat.set_idle()
     return retc
 
 
 @app.post(f"/{servKey}/estop")
 async def estop(switch: bool = True):
+    """Same as stop, but also sets estop flag."""
     await stat.set_run()
     retc = return_class(
-        #measurement_type="motion_command",
-        #parameters={"command": "estop", "parameters": switch},
-        #data = motion.estop_axis(switch),
+        measurement_type="gamry_command",
+        parameters={"command": "estop"},
+        data = await poti.estop(switch),
     )
-    await stat.set_estop()
+    # will be set within the driver
+    #await stat.set_estop()
     return retc
 
 

@@ -11,8 +11,10 @@ import numpy as np
 import json
 import time
 import pathlib
-import copy
+# import copy
 import asyncio
+from classes import transformxy
+
 
 driver_path = os.path.dirname(__file__)
 
@@ -70,6 +72,10 @@ class galil:
         if "Ain_id" not in self.config_dict:
             self.config_dict["Ain_id"] = dict()
 
+        if "Transfermatrix" not in self.config_dict:
+            self.config_dict["Transfermatrix"] = [[1,0,0],[0,1,0],[0,0,1]]
+        self.xyTransfermatrix = np.matrix(self.config_dict["Transfermatrix"])
+
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -79,6 +85,9 @@ class galil:
         self.c = self.g.GCommand  # alias the command callable
         self.cycle_lights = False
 
+
+        self.qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
+
         # local buffer for motion data streaming
         # nees to be upated by every motion function
         self.wsmotordata_buffer = dict(
@@ -86,17 +95,24 @@ class galil:
            axisid = [axisid for _, axisid in self.config_dict["axis_id"].items()],
            motor_status = ["stopped" for axis in self.config_dict["axis_id"].keys()],
            err_code = [0 for axis in self.config_dict["axis_id"].keys()],
-           position = ["" for axis in self.config_dict["axis_id"].keys()],
+           position = [0.0 for axis in self.config_dict["axis_id"].keys()],
+           platexy =  [0.0,0.0,1],
            )
-
-        # we check against previous version for streaming event
-        self.wsmotordata_buffer_old =copy.deepcopy(self.wsmotordata_buffer)
 
 
     def update_wsmotorbufferall(self, datakey, dataitems):
         if datakey in self.wsmotordata_buffer.keys():
             self.wsmotordata_buffer[datakey] = dataitems
- 
+
+        #update plateposition
+        if datakey == 'position':
+            self.motor_to_plate_calc()
+
+        if self.qdata.full():
+            print(' ... motion q is full ...')
+            _ = self.qdata.get_nowait()
+        self.qdata.put_nowait(self.wsmotordata_buffer)
+
  
     def update_wsmotorbuffersingle(self, datakey, ax, item):
         if datakey in self.wsmotordata_buffer.keys():
@@ -104,17 +120,31 @@ class galil:
                 idx = self.wsmotordata_buffer['axis'].index(ax)
                 self.wsmotordata_buffer[datakey][idx] = item
 
+        #update plateposition
+        if datakey == 'position':
+            self.motor_to_plate_calc()
 
-    # for streaming a local buffer to the ws
-    async def ws_getmotordata(self):
-        # wait until buffer is changed
-        while self.wsmotordata_buffer_old == self.wsmotordata_buffer:
-            # reduce to increase broadcast frequeny
-            await asyncio.sleep(self.tbroadcast)
-        # make copy of buffer for next time to check against
-        self.wsmotordata_buffer_old = copy.deepcopy(self.wsmotordata_buffer)
-        # return new buffer
-        return self.wsmotordata_buffer
+        if self.qdata.full():
+            print(' ... motion q is full ...')
+            _ = self.qdata.get_nowait()
+        self.qdata.put_nowait(self.wsmotordata_buffer)
+
+
+    def motor_to_plate_calc(self):
+        # add some extra data
+        if 'x' in self.wsmotordata_buffer['axis']:
+            idx = self.wsmotordata_buffer['axis'].index('x')
+            xmotor = self.wsmotordata_buffer['position'][idx]
+        else:
+            xmotor = None
+    
+        if 'y' in self.wsmotordata_buffer['axis']:
+            idx = self.wsmotordata_buffer['axis'].index('y')
+            ymotor = self.wsmotordata_buffer['position'][idx]
+        else:
+            ymotor = None
+        platexy = transformxy.transform_platexy_to_motorxy(self.xyTransfermatrix,[xmotor, ymotor, 1])
+        self.wsmotordata_buffer['platexy'] = [platexy[0,0], platexy[0,1], 1]
 
 
     async def motor_move(self, multi_d_mm, multi_axis, speed, mode):

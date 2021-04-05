@@ -92,8 +92,8 @@ def clicked_addpoint(event):
     motorxy = g_motor_position # gets the displayed position    
     # (4) add new motorxy to motor point list
     calib_ptsmotor.append(motorxy)
-    print('Motorxy:',motorxy)
-    print('Platexy:',MarkerXYplate[selMarker])
+    print('motorxy:',motorxy)
+    print('platexy:',MarkerXYplate[selMarker])
     alignerwebdoc.add_next_tick_callback(partial(update_status,"added Point:\nMotorxy:\n"+
                   (str)(motorxy)+"\nPlatexy:\n"+
                   (str)(MarkerXYplate[selMarker])))
@@ -596,8 +596,9 @@ async def transform_platexy_to_motorxy(M, platexy):
     url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
     async with aiohttp.ClientSession() as session:
         async with session.post(url, params=A['pars']) as resp:
-            response = await resp.json()
-            return np.asarray(json.loads(response['data']['data']['MotorXY']))
+            response = await resp.text()
+            response = json.loads(response)
+            return np.asarray(json.loads(response['data']['data']['motorxy']))
 
 
 ################################################################################
@@ -617,8 +618,10 @@ async def transform_motorxy_to_platexy(M, motorxy):
     url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
     async with aiohttp.ClientSession() as session:
         async with session.post(url, params=A['pars']) as resp:
-            response = await resp.json()
-            return np.asarray(json.loads(response['data']['data']['PlateXY']))
+            # response = await resp.json()
+            response = await resp.text()
+            response = json.loads(response)
+            return np.asarray(json.loads(response['data']['data']['platexy']))
 
 
 ################################################################################
@@ -765,8 +768,6 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
         # plot new Marker point
         plot_mpmap.square(tmpplate[0], tmpplate[1], size=7,line_width=2, color=None, alpha=1.0, line_color=MarkerColors[0], name=MarkerNames[0])
 
-
-
         MarkerXYplate[0] = (tmpplate[0],tmpplate[1],1)
         # get rest of values from nearest point 
         PMnum = get_samples([tmpplate[0]], [tmpplate[1]])
@@ -822,8 +823,8 @@ async def IOloop_ws_motordata(): # non-blocking coroutine, updates data source
                 g_motor_position = [xmotor, ymotor, 1] # dim needs to be always + 1 for later transformations
                 
                 global g_plate_position
-                if 'PlateXY' in new_data:
-                    g_plate_position = new_data['PlateXY']
+                if 'platexy' in new_data:
+                    g_plate_position = new_data['platexy']
 
                 global g_motor_ismoving
                 if 'moving' in new_data['motor_status']:

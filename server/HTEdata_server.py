@@ -18,6 +18,7 @@ sys.path.append(os.path.join(helao_root, 'core'))
 from classes import StatusHandler
 from classes import return_status
 from classes import return_class
+from classes import wsConnectionManager
 
 import asyncio
 import time
@@ -52,8 +53,9 @@ else:
 
 # local buffer of motor websocket data
 data_wsdata = dict()
-# timecode for last ws data fetch
-data_wsdata_TC = 0
+
+qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
+
 
 
 app = FastAPI(title="HTE data management server",
@@ -68,13 +70,15 @@ def startup_event():
     global stat
     stat = StatusHandler()
 
+    global wsdata
+    wsdata = wsConnectionManager()
+    global wsstatus
+    wsstatus = wsConnectionManager()
+
 
 @app.websocket(f"/{servKey}/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await stat.q.get()
-        await websocket.send_text(json.dumps(data))
+    await wsstatus.send(websocket, stat.q, 'data_status')
 
 
 @app.post(f"/{servKey}/get_status")
@@ -88,20 +92,8 @@ def status_wrapper():
 
 # broadcast platemap and id etc
 @app.websocket(f"/{servKey}/ws_data")
-async def websocket_data(mywebsocket: WebSocket):
-    await mywebsocket.accept()
-    global data_wsdata_TC, data_wsdata
-    # local timecode to check against buffered data timecode
-    localTC = 0
-    while True:
-        try:
-            if localTC < data_wsdata_TC:
-                localTC = data_wsdata_TC
-                await mywebsocket.send_text(json.dumps(data_wsdata))
-            await asyncio.sleep(1)
-        except WebSocket.exceptions.ConnectionClosedError:
-                print('Websocket connection unexpectedly closed. Retrying in 3 seconds.')
-                await asyncio.sleep(3)
+async def websocket_data(websocket: WebSocket):
+    await wsdata.send(websocket, qdata, 'data_data')
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
@@ -119,7 +111,6 @@ async def get_elements_plateid(plateid: str):
 
 @app.post(f"/{servKey}/get_platemap_plateid")
 async def get_platemap_plateid(plateid: str):
-    global data_wsdata, data_wsdata_TC
     """gets platemap"""
     await stat.set_run()
     retval = dataserv.get_platemap_plateidstr(plateid)
@@ -128,8 +119,13 @@ async def get_platemap_plateid(plateid: str):
         parameters={"command": "get_platemap_plateid"},
         data={"map": retval},
     )
+
     data_wsdata['map'] = json.loads(retval)
-    data_wsdata_TC = time.time_ns()
+    if qdata.full():
+        print(' ... data q is full ...')
+        _ = qdata.get_nowait()
+    qdata.put_nowait(data_wsdata)
+
     await stat.set_idle()
     return retc
 

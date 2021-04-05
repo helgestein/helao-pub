@@ -125,10 +125,13 @@ class C_nidaqmxvis:
         self.config = config
         self.data_url = config['wsdata_url']
         self.stat_url = config['wsstat_url']
+        self.dataset_url = config['wsdataset_url']
         self.IOloop_data_run = False
+        self.IOloop_dataset_run = False
 
         self.time_stamp = 0
         self.IVlist = {}
+        self.activeCell = [False for _ in range(9)]
 
         self.sourceIV = ColumnDataSource(data=dict(t_s=[],
                                                      ICell_1=[],
@@ -152,12 +155,10 @@ class C_nidaqmxvis:
 
         # create visual elements
         self.layout = []
-        colors = small_palettes['Viridis'][9]                
         self.plot_VOLT = figure(title="CELL VOLTs", height=300)
         self.plot_CURRENT = figure(title="CELL CURRENTs", height=300)
-        for i in range(9):
-            _ = self.plot_VOLT.line(x='t_s', y=f'VCell_{i+1}', source=self.sourceIV, name=f'VCell{i+1}', line_color=colors[i])
-            _ = self.plot_CURRENT.line(x='t_s', y=f'ICell_{i+1}', source=self.sourceIV, name=f'ICell{i+1}', line_color=colors[i])
+
+        self.reset_plot()
 
         # combine all sublayouts into a single one
         self.layout = layout([
@@ -169,7 +170,7 @@ class C_nidaqmxvis:
             ],background="#C0C0C0")
 
 
-    def update(self, new_data):
+    def add_points(self, new_data):
         self.sourceIV.data = {k: [] for k in self.sourceIV.data}
         self.sourceIV.stream(new_data)
 
@@ -181,19 +182,47 @@ class C_nidaqmxvis:
             while self.IOloop_data_run:
                 try:
                     data = json.loads(await ws.recv())
-                    datalen = len(data[0])
-                    self.IVlist = {'t_s':[self.time_stamp+i for i in range(len(data[0][0]))]}
-                    for idx in range(datalen):
-                        self.IVlist[f"ICell_{idx+1}"] = data[0][idx]
-                        self.IVlist[f"VCell_{idx+1}"] = data[1][idx]
-                        
-                    self.time_stamp = self.time_stamp + 1
-                    #print(" ... VisulizerWSrcv:",data)
-                    #print(" ... VisulizerWSrcv:",self.IVlist)
-                    doc.add_next_tick_callback(partial(self.update, self.IVlist))
+                    self.IVlist = {'t_s':data['t_s']}
+                    for cell in range(9): # nine cells, but len(data['t_s']) datapoints for each cell
+                        self.IVlist[f"ICell_{cell+1}"] = data['I_A'][cell]
+                        self.IVlist[f"VCell_{cell+1}"] = data['E_V'][cell]
+                    doc.add_next_tick_callback(partial(self.add_points, self.IVlist))
                 except Exception:
                     self.IOloop_data_run = False
 
+
+    async def IOloop_datasettings(self): # non-blocking coroutine, updates data source
+        global doc
+        async with websockets.connect(self.dataset_url) as ws:
+            self.IOloop_dataset_run = True
+            while self.IOloop_dataset_run:
+                try:
+                    data = json.loads(await ws.recv())
+                    if 'activeCell' in data:
+                        self.activeCell = data['activeCell']
+                        doc.add_next_tick_callback(partial(self.reset_plot))
+                except Exception:
+                    self.IOloop_dataset_run = False
+
+
+    def reset_plot(self):
+        global doc
+        # remove all old lines and clear legend
+        if self.plot_VOLT.renderers:
+            self.plot_VOLT.legend.items = []
+
+        if self.plot_CURRENT.renderers:
+            self.plot_CURRENT.legend.items = []
+            
+        self.plot_VOLT.renderers = []
+        self.plot_CURRENT.renderers = []
+        
+        colors = small_palettes['Category10'][9]
+        for i,val in enumerate(self.activeCell):
+            # only plot active cells
+            if val:
+                _ = self.plot_VOLT.line(x='t_s', y=f'VCell_{i+1}', source=self.sourceIV, name=f'VCell{i+1}', line_color=colors[i], legend_label=f'VCell{i+1}')
+                _ = self.plot_CURRENT.line(x='t_s', y=f'ICell_{i+1}', source=self.sourceIV, name=f'ICell{i+1}', line_color=colors[i], legend_label=f'ICell{i+1}')
 
 ##############################################################################
 # potentiostat module class
@@ -207,7 +236,7 @@ class C_potvis:
         self.IOloop_data_run = False
         self.IOloop_stat_run = False
 
-        self.datasource = ColumnDataSource(data=dict(t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+        self.datasource = ColumnDataSource(data=dict(pt=[], t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
         self.time_stamp = 0
 #        self.pids = collections.deque(10*[0], 10)
 
@@ -216,9 +245,9 @@ class C_potvis:
 
 
         self.paragraph1 = Paragraph(text="""x-axis:""", width=50, height=15)
-        self.radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=0)
+        self.radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=1)
         self.paragraph2 = Paragraph(text="""y-axis:""", width=50, height=15)
-        self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[1])
+        self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[3])
         
         self.plot = figure(title="Title", height=300)
         self.line1 = self.plot.line(x='t_s', y='Ewe_V', source=self.datasource, name=str(self.time_stamp))
@@ -248,11 +277,47 @@ class C_potvis:
             Spacer(height=10)
             ],background="#C0C0C0")
 
+        # to check if selection changed during ploting
+        self.xselect = self.radio_button_group.active
+        self.yselect = self.checkbox_button_group.active
 
-    def update(self, new_data):
-        #print(new_data)
-        self.datasource.stream(new_data)
 
+
+    def add_points(self, new_data):
+        # detect if plot selection changed
+        if  (self.xselect != self.radio_button_group.active) or (self.yselect != self.checkbox_button_group.active):
+            self.xselect = self.radio_button_group.active
+            self.yselect = self.checkbox_button_group.active
+            # use current(old) timestamp but force update via optional
+            # second parameter
+            self.reset_plot(self.time_stamp, True)
+        
+        
+        tmpdata = {'pt':[0]}
+        # for some techniques not all data is present
+        # we should only get one data point at the time
+        if 't_s' in new_data:
+            tmpdata['t_s'] = new_data['t_s']
+        else:
+            tmpdata['t_s'] = [0]
+        if 'Ewe_V' in new_data:
+            tmpdata['Ewe_V'] = new_data['Ewe_V']
+        else:
+            tmpdata['Ewe_V'] = [0]
+        if 'Ach_V' in new_data:
+            tmpdata['Ach_V'] = new_data['Ach_V']
+        else:
+            tmpdata['Ach_V'] = [0]
+        if 'I_A' in new_data:
+            tmpdata['I_A'] = new_data['I_A']
+        else:
+            tmpdata['I_A'] = [0]
+        self.datasource.stream(tmpdata)
+        
+        # self.datasource.stream({"t_s":new_data["t_s"],
+        #                         "Ewe_V":new_data["Ewe_V"],
+        #                         "Ach_V":new_data["Ach_V"],
+        #                         "I_A":new_data["I_A"]})
 
     async def IOloop_data(self): # non-blocking coroutine, updates data source
         global doc
@@ -262,8 +327,7 @@ class C_potvis:
                 try:
                     new_data = json.loads(await ws.recv())
                     if new_data is not None:
-                        doc.add_next_tick_callback(partial(self.update, 
-                    {k: [v] for k, v in zip(["t_s", "Ewe_V", "Ach_V", "I_A"], new_data)}))
+                        doc.add_next_tick_callback(partial(self.add_points, new_data))
                 except Exception:
                     self.IOloop_data_run = False
 
@@ -276,55 +340,70 @@ class C_potvis:
                 try:
                     new_status = await sws.recv()
                     new_status = json.loads(new_status)
-                    if new_status is not None:
-                        doc.add_next_tick_callback(partial(self.remove_line, new_status['last_update']))
+                    # only reset graph at the beginning of a measurement and 
+                    # not at every status change
+                    if new_status is not None and new_status['status'] == 'running':
+                        doc.add_next_tick_callback(partial(self.reset_plot, new_status['last_update']))
                 except Exception:
                     self.IOloop_stat_run = False
 
     
-    def remove_line(self, new_time_stamp):
+    def reset_plot(self, new_time_stamp, forceupdate: bool = False):
         global doc
-        self.time_stamp = new_time_stamp
+        if (new_time_stamp != self.time_stamp) or forceupdate:
+            print(' ... reseting Gamry graph')
+            self.time_stamp = new_time_stamp
+        
+            self.datasource.data = {k: [] for k in self.datasource.data}
     
-        self.datasource.data = {k: [] for k in self.datasource.data}
-
-#        self.pid_source.data = {k: [] for k in self.pid_source.data}
-#        self.pids.appendleft(new_time_stamp)
-#        self.pid_list = dict(
-#            pids=[self.pids[i] for i in range(10)],
-#        )
-#        self.pid_source.stream(self.pid_list)
-
-        
-        # remove all old lines
-        self.plot.renderers = []    
-
-        
-        self.plot.title.text = ("Timecode: "+str(new_time_stamp))
-        xstr = ''
-        if(self.radio_button_group.active == 0):
-            xstr = 't_s'
-        elif(self.radio_button_group.active == 1):
-            xstr = 'Ewe_V'
-        elif(self.radio_button_group.active == 2):
-            xstr = 'Ach_V'
-        else:
-            xstr = 'I_A'
-        colors = ['red', 'blue', 'yellow', 'green']
-        color_count = 0
-        for i in self.checkbox_button_group.active:
-            if i == 0:
-                self.plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
-            elif i == 1:
-                self.plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
-            elif i == 2:
-                self.plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+    #        self.pid_source.data = {k: [] for k in self.pid_source.data}
+    #        self.pids.appendleft(new_time_stamp)
+    #        self.pid_list = dict(
+    #            pids=[self.pids[i] for i in range(10)],
+    #        )
+    #        self.pid_source.stream(self.pid_list)
+    
+            
+            # remove all old lines
+            self.plot.renderers = []
+    
+            
+            self.plot.title.text = ("Timecode: "+str(new_time_stamp))
+            xstr = ''
+            if(self.radio_button_group.active == 0):
+                xstr = 't_s'
+            elif(self.radio_button_group.active == 1):
+                xstr = 'Ewe_V'
+            elif(self.radio_button_group.active == 2):
+                xstr = 'Ach_V'
             else:
-                self.plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
-            color_count += 1
-    
+                xstr = 'I_A'
+            colors = ['red', 'blue', 'yellow', 'green']
+            color_count = 0
+            for i in self.checkbox_button_group.active:
+                if i == 0:
+                    self.plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                elif i == 1:
+                    self.plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                elif i == 2:
+                    self.plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                else:
+                    self.plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                color_count += 1
+   
 
-    
+
+##############################################################################
+# job queue module class
+# for visualizing the content of the orch queue (with params), just a simple table
+# TODO: work in progress
+##############################################################################
+class C_jobvis:
+    def __init__(self, config):
+        self.config = config
+        self.data_url = config['wsdata_url']
+        self.stat_url = config['wsstat_url']
+
 
 ##############################################################################
 # data module class
@@ -387,13 +466,13 @@ async def IOloop_visualizer():
                 pangle = 0.0
                 if 's' in tmpmotordata['axis']:
                     pangle = tmpmotordata['position'][tmpmotordata['axis'].index('s')]
-                    pangle = math.pi/180.0*pangle
+                    pangle = math.pi/180.0*pangle # TODO
 #                if 'x' in tmpmotordata['axis'] and 'y' in tmpmotordata['axis']:
 #                    ptx = tmpmotordata['position'][tmpmotordata['axis'].index('x')]
 #                    pty = tmpmotordata['position'][tmpmotordata['axis'].index('y')]
-                if 'PlateXY' in tmpmotordata:
-                    ptx = tmpmotordata['PlateXY'][0]
-                    pty = tmpmotordata['PlateXY'][1]
+                if 'platexy' in tmpmotordata:
+                    ptx = tmpmotordata['platexy'][0]
+                    pty = tmpmotordata['platexy'][1]
                     
                     # update plot
                     old_point = motorvis.plot_motor.select(name='motor_xy')
@@ -499,12 +578,14 @@ if 'ws_nidaqmx' in S.params:
     tmpserv = S.params.ws_nidaqmx
     NImaxserv['serv'] = tmpserv
     NImaxserv['wsdata_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data"
+    NImaxserv['wsdataset_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_data_settings"
     NImaxserv['wsstat_url'] = f"ws://{C[tmpserv].host}:{C[tmpserv].port}/{tmpserv}/ws_status"
     print(f"Create Visualizer for {NImaxserv['serv']}")
     NImaxvis = C_nidaqmxvis(NImaxserv)
     doc.add_root(layout([NImaxvis.layout]))
     doc.add_root(layout(Spacer(height=10)))
     visoloop.create_task(NImaxvis.IOloop_data())
+    visoloop.create_task(NImaxvis.IOloop_datasettings())
 else:
     print('No NImax visualizer configured')
     NImaxvis = []

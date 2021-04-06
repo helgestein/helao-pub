@@ -19,7 +19,7 @@ import json
 import h5py
 import hdfdict
 import datetime
-from ae_helper_fcns import getCircularMA
+from util import *
 import asyncio
 
 app = FastAPI(title = "orchestrator", description = "A fancy complex server",version = 1.0)
@@ -83,16 +83,9 @@ async def doMeasurement(experiment: str):
             experiment = await loop.run_in_executor(None,process_native_command,action,experiment)
             continue
         elif server == 'analysis':
-            #should be able to input either the current session or a dataset from elsewhere.
-            #i reckon that we should be able to access multiple runs
-            #how does it know what to grab from what files?
-            #does the analysis go into the session, or does it go somewhere else?
-            #so, will analysis always be on just one substrate, or multiple?
-            #
-            #res = await requests.get("http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server, action),
-            #            params= params).json()
-            continue
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server,action))
         elif server == 'learning':
+
             #needs to know where to find the preceding analysis.
             #will also always take the current experiment
             #will return the experiment
@@ -160,48 +153,6 @@ def process_native_command(command: str,experiment: dict):
         print("error: native command not recognized")
     return experiment
 
-def incrementName(s:str):
-    #i am incrementing names of runs, sessions, substrates, and measurement numbers numbers enough
-    #go from run_1 to run_2 or from substrate_1_session_1.hdf5 to substrate_1_session_2.hdf5, etc...
-    segments = s.split('_')
-    if '.' in segments[-1]:
-        #so that we can increment filenames too
-        subsegment = segments[-1].split('.') 
-        subsegment[0] = str(int(subsegment[0])+1)
-        segments[-1] = '.'.join(subsegment)
-    else:
-        segments[-1] = str(int(segments[-1])+1)
-    return '_'.join(segments)
-
-def highestName(names:list):
-    #take in a list of strings which differ only by an integer, and return the one for which that integer is highest
-    #another function I am performing often enough that it deserves it's own tool
-    #used for finding the most recent run, measurement number, and session
-    print(f"names: {names}")
-    if len(names) == 1:
-        return names[0]
-    else:
-        slen = min([len(i) for i in names])
-        leftindex = None
-        rightindex = None
-        for i in range(slen):
-            for s in names:
-                if s[i] != names[0][i]:
-                    print(f"1:{s[i]},2:{names[0][i]},i:{i}")
-                    leftindex = i
-                    break
-            if leftindex != None:
-                break
-        for i in range(-1,-slen-1,-1):
-            for s in names:
-                if s[i] != names[0][i]:
-                    rightindex = i
-                    break
-            if rightindex != None:
-                break
-        print(f"l: {leftindex}, r: {rightindex}")
-        numbers = [int(s[leftindex:rightindex+1] if rightindex != -1 else s[leftindex:]) for s in names]
-        return names[numbers.index(max(numbers))]
 
 @app.on_event("startup")
 async def memory():

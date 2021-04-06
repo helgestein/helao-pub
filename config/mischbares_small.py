@@ -21,7 +21,10 @@ config['servers'] = dict(pumpServer = dict(host="127.0.0.1", port=13370),
                          owisServer = dict(host= "127.0.0.1", port= 13387),
                          tableServer = dict(host= "127.0.0.1", port= 13388),
                          minipumpServer = dict(host= "127.0.0.1", port= 13389),
-                         minipumpingServer = dict(host= "127.0.0.1", port= 13390))
+                         minipumpingServer = dict(host= "127.0.0.1", port= 13390), 
+                         measureServer = dict(host= "127.0.0.1", port= 13368),
+                         analysisServer = dict(host= "127.0.0.1", port= 13369),
+                         learningServer = dict(host= "127.0.0.1", port= 13364))
 
 config['kadi'] = dict(host = r"https://polis-kadi4mat.iam-cms.kit.edu",
             PAT = r"78ac200f0379afb4873c7b0ee71f5489946158fe882466a9",group='2')

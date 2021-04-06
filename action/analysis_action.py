@@ -35,7 +35,7 @@ def bridge(exp_num: float, key_y: float):
     # We need to get the index of the perfomed experiment
 
     retc = return_class(parameters={'exp_num': exp_num, 'key_y': key_y}, data={
-                        'pos': exp_num['meta']['ma'], 'key_y': key_y})
+                        'key_x': exp_num['meta']['ma'], 'key_y': key_y})
     return retc
 
 

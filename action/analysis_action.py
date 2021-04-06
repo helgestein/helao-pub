@@ -1,41 +1,48 @@
-#implement the analysis action
-import sys
-sys.path.append('../driver')
-sys.path.append('../config')
-sys.path.append('../server')
-from mischbares_small import config
+from measure_driver import dataAnalysis
+from celery import group
 import uvicorn
 from fastapi import FastAPI
+from pydantic import BaseModel
 import json
-import requests
-import os
+import sys
+sys.append(r'../driver')
+sys.append(r'../action')
 
-app = FastAPI(title="Analysis server V1", 
-description="This is a fancy analysis server", 
-version="1.0")
 
-@app.get("analysis/demo")
-def demo(sources:str):
-    data = interpret_input(sources)
+app = FastAPI(title="analysis action server",
+              description="This is a test measure action",
+              version="1.0")
 
-def interpret_input(sources:str):
-    #possible inputs: list of or individual kadi records, local files, the current session, pure data
-    #but on this end, the session and pure data will look similar?
-    
-    #figure out whether you are working with one or multiple data sources
-    #i need rules to distinguish list of data sources from actual data lists. 
-    #or could always package things in a list? would rather not.
-    sources = json.loads(sources)
-    #for each data source, figure out what type it is and treat it accordingly
 
-def build_dataset(data):
-    #we should have something that takes in a dictionary or a reference to one of our .hdf5's
-    #and builds it into some kind of data matrix more appropriate for analysis.
-    #I guess that the details of this will be different for each analysis, but that there will be some code common to all.
-    pass
+class return_class(BaseModel):
+    parameters: dict = None
+    data: dict = None
+
+
+@app.get("/analysis/dummy")
+def bridge(exp_num: float, key_y: float):
+    """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
+
+    Args:
+        exp_num (float): [this is the experimental number]
+        key_y (float): [This is the result that we get from schwefel function, calculated in the measure action] 
+
+    Returns:
+        [dictionaty]: [measurement area (x_pos, y_pos) and the schwefel function result]
+    """
+    # here we need to return the key_y which is the schwefel function result and the corresponded measurement area
+    # i.e pos: (dx, dy) -> schwefel(dx, dy)
+    # We need to get the index of the perfomed experiment
+
+    retc = return_class(parameters={'exp_num': exp_num, 'key_y': key_y}, data={
+                        'pos': exp_num['meta']['ma'], 'key_y': key_y})
+    return retc
+
 
 if __name__ == "__main__":
-    #url = "http://{}:{}".format(config['servers']['kadiServer']['host'], config['servers']['kadiServer']['port'])
-
-    uvicorn.run(app, host=config['servers']['analysisServer']['host'], port=config['servers']['analysisServer']['port'])
-    print("instantiated analysis action")
+    d = dataAnalysis()
+    port = 13369
+    host = "127.0.0.1"
+    print('Port of analysis Server: {}')
+    uvicorn.run(app, host=host, port=port)
+    print("instantiated analysis server")

@@ -8,7 +8,7 @@ from importlib import import_module
 
 helao_root = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(helao_root, 'config'))
-config = import_module(sys.argv[1]).config
+config = import_module(sys.argv[1][:-3]).config
 
 
 def launcher(apis, server, action, orchestrator, visualizer, process):
@@ -47,11 +47,11 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
 if __name__ == '__main__':
     
     LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer", "process"]
-    server = config['launcher']['server']
-    action = config['launcher']['action']
-    orchestrator = config['launcher']['mischbares']
-    visualizer = config['launcher']['visualizer']
-    process = config['launcher']['process']
+    server = config['launch']['server']
+    action = config['launch']['action']
+    orchestrator = config['launch']['orchestrator']
+    visualizer = config['launch']['visualizer']
+    process = config['launch']['process']
     launcher(LAUNCH_ORDER, server, action, orchestrator, visualizer, process)
     
     

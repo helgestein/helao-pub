@@ -2,27 +2,49 @@
 import sys
 sys.path.append('..')
 sys.path.append('../config')
+sys.path.append('../driver')
+sys.path.append('../action')
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI,BaseModel
 import json
 import requests
 import os
 import hdfdict
 from util import highestName,dict_address
+from measure_driver import dataAnalysis
+from celery import group
 
 app = FastAPI(title="Analysis server V1", 
 description="This is a fancy analysis server", 
 version="1.0")
 
+
+class return_class(BaseModel):
+    parameters: dict = None
+    data: dict = None
+
 kadiurl = None
 filepath = "C:/Users/jkflowers/Downloads"
 
-@app.get("analysis/demo")
-def demo(sources:str,types:str):
-    data = interpret_input(sources,types,None)
-    #do analysis (insert Fuzhan code here)
-    analyzed_data = None
-    return analyzed_data
+@app.get("/analysis/dummy")
+def bridge(exp_num: float, key_y: float):
+    """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
+
+    Args:
+        exp_num (float): [this is the experimental number]
+        key_y (float): [This is the result that we get from schwefel function, calculated in the measure action] 
+
+    Returns:
+        [dictionaty]: [measurement area (x_pos, y_pos) and the schwefel function result]
+    """
+    # here we need to return the key_y which is the schwefel function result and the corresponded measurement area
+    # i.e pos: (dx, dy) -> schwefel(dx, dy)
+    # We need to get the index of the perfomed experiment
+
+    retc = return_class(parameters={'exp_num': exp_num, 'key_y': key_y}, data={
+                        'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
+    return retc
+
 
 def interpret_input(sources:str,types:str,addresses:str,experiment_numbers=None):
     #sources is a single data source (jsonned object or file address) or a jsonned list of data sources
@@ -103,10 +125,10 @@ def interpret_input(sources:str,types:str,addresses:str,experiment_numbers=None)
             datas += source
     return datas
 
-
-
-#if __name__ == "__main__":
-    #url = "http://{}:{}".format(config['servers']['kadiServer']['host'], config['servers']['kadiServer']['port'])
-
-   # uvicorn.run(app, host=config['servers']['analysisServer']['host'], port=config['servers']['analysisServer']['port'])
-   # print("instantiated analysis action")
+if __name__ == "__main__":
+    d = dataAnalysis()
+    port = 13369
+    host = "127.0.0.1"
+    print('Port of analysis Server: {}')
+    uvicorn.run(app, host=host, port=port)
+    print("instantiated analysis server")

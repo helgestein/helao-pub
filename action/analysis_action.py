@@ -132,8 +132,11 @@ def interpret_input(sources:str,types:str,addresses:str,experiment_numbers=None)
 
 if __name__ == "__main__":
     d = dataAnalysis()
+    url = "http://{}:{}".format(config['servers']['analysisServer ']['host'], config['servers']['analysisServer ']['port'])
     port = 13369
     host = "127.0.0.1"
     print('Port of analysis Server: {}')
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host=config['servers']['analysisServer']['host'], port=config['servers']['analysisServer']['port'])
     print("instantiated analysis server")
+
+

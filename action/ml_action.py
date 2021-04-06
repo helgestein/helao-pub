@@ -42,8 +42,9 @@ def active_learning_random_forest_simulation(key_x: dict, key_y: dict, x_query: 
 
 if __name__ == "__main__":
     d = DataUtilSim()
+    url = "http://{}:{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'])
     port = 13364
     host = "127.0.0.1"
     print('Port of ml Server: {}')
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host=config['servers']['learningServer']['host'], port=config['servers']['learningServer']['port'])
     print("instantiated ml server")

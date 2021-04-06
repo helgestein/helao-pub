@@ -22,7 +22,7 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/analysis/make_grid")
+@app.get("/measure/make_grid")
 def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end: float, y_step: float, save_data_to: str = "../data/grid.json"):
     make_grid = d.make_grid.delay(x_start, x_end, x_step, y_start,
                                   y_end, y_step, save_data_to)
@@ -32,7 +32,7 @@ def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end
     return retc
 
 
-@app.get("/analysis/make_n_nary")
+@app.get("/measure/make_n_nary")
 def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
     n_nary_task = d.make_n_nary.delay(n, steps, save_data_to)
     comp = n_nary_task.get()
@@ -40,7 +40,7 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
     return retc
 
 
-@app.get("/analysis/schwefel_function")
+@app.get("/measure/schwefel_function")
 def schwefel_function_single(exp_num: str, save_data_to: str = "../data/schwefel_fnc.json"):
     f = d.schwefel_function.delay(exp_num, save_data_to)
     result = f.get()
@@ -49,7 +49,7 @@ def schwefel_function_single(exp_num: str, save_data_to: str = "../data/schwefel
     return retc
 
 
-@app.get("/analysis/schwefel_function_group")
+@app.get("/measure/schwefel_function_group")
 def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_end: float = None, x_step: float = None, y_start: float = None,
                             y_end: float = None, y_step: float = None, save_data_to: str = "../data/schwefel_fnc_group.json"):
     if n == 2:

@@ -86,6 +86,6 @@ if __name__ == "__main__":
     d = dataAnalysis()
     port = 13368
     host = "127.0.0.1"
-    print('Port of analysis Server: {}')
+    print('Port of measurement Server: {}')
     uvicorn.run(app, host=host, port=port)
-    print("instantiated analysis server")
+    print("instantiated measurement server")

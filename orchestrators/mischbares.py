@@ -83,9 +83,11 @@ async def doMeasurement(experiment: str):
             experiment = await loop.run_in_executor(None,process_native_command,action,experiment)
             continue
         elif server == 'analysis':
+            #if params['sources'] == "session":
+            #   params['sources'] == session
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server,action))
         elif server == 'learning':
-
+            #res, experiment = run(experiment)
             #needs to know where to find the preceding analysis.
             #will also always take the current experiment
             #will return the experiment

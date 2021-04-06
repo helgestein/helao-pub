@@ -27,7 +27,7 @@ kadiurl = None
 filepath = "C:/Users/jkflowers/Downloads"
 
 @app.get("/analysis/dummy")
-def bridge(exp_num: float, key_y: float):
+def bridge(exp_num: float, key_y: float, session: str):
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
     Args:
@@ -41,8 +41,13 @@ def bridge(exp_num: float, key_y: float):
     # i.e pos: (dx, dy) -> schwefel(dx, dy)
     # We need to get the index of the perfomed experiment
 
-    retc = return_class(parameters={'exp_num': exp_num, 'key_y': key_y}, data={
-                        'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
+    session = json.loads(session)
+    data = interpret_input(session,"session","schwefel_function/data/key_y",experiment_number = int(exp_num))[0]
+
+
+    #data = interpret_input(session,"session","dummy/data/key_y")
+    retc = return_class(parameters={'exp_num': exp_num, 'key_y': key_y}, data=data)
+    #{'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
     return retc
 
 

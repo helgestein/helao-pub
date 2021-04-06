@@ -84,8 +84,10 @@ def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_
 
 if __name__ == "__main__":
     d = dataAnalysis()
+    url = "http://{}:{}".format(config['servers']['measureServer']['host'], config['servers']['measureServer']['port'])
     port = 13368
     host = "127.0.0.1"
-    print('Port of measurement Server: {}')
-    uvicorn.run(app, host=host, port=port)
-    print("instantiated measurement server")
+    print('Port of analysis Server: {}')
+    uvicorn.run(app, host=config['servers']['measureServer']['host'], port=config['servers']['measureServer']['port'])
+    print("instantiated analysis server")
+

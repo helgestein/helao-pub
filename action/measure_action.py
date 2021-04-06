@@ -45,7 +45,7 @@ def schwefel_function_single(exp_num: str, save_data_to: str = "../data/schwefel
     f = d.schwefel_function.delay(exp_num, save_data_to)
     result = f.get()
     retc = return_class(parameters={'exp_num': exp_num}, data={
-                        'schwefel': result})
+                        'key_y': result})
     return retc
 
 

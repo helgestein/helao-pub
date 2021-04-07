@@ -38,7 +38,7 @@ def active_learning_random_forest_simulation(session: str, x_query: str, save_da
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
     retc = return_class(parameters={'x_query': x_query}, data={
-                        'next_exp_pos': next_exp_pos})
+                        'next_exp_pos': next_exp_pos, 'prediction': prediction})
 
     return retc
 

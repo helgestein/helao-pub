@@ -63,7 +63,7 @@ class dataAnalysis:
 
         return comp
 
-    def schwefel_function(self, exp_num, save_data_to="../data/schwefel_fnc.json"):
+    def schwefel_function(self, measurement_area, save_data_to="../data/schwefel_fnc.json"):
 
         # you need to feed the meta[ma] in the format of string (since list is not readble by fastapi) .
         # upon aggrement the ma needs to change to experiment number (exp_num)

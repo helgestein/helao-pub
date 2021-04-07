@@ -8,6 +8,8 @@ from celery_conf import app
 from time import sleep
 
 # for the test we just need active_learning_random_forest_simulation function
+kadiurl = None
+filepath = "C:/Users/jkflowers/Downloads"
 
 
 class DataUtilSim:
@@ -64,11 +66,11 @@ class DataUtilSim:
 
     @staticmethod
     @app.task(name='machine_learning_analysis.ml_analysis.gaussian_simulation')
-    def active_learning_random_forest_simulation(key_x, key_y, x_query, y_query, save_data_path='ml_data/ml_analysis.json'):
+    def active_learning_random_forest_simulation(session, x_query, save_data_path='ml_data/ml_analysis.json', addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
         """[summary]
 
         Args:
-            key_x ([type]): [the last position that machine was there]
+            key_x ([type]): [the accumulated position that machine was there]
             key_y ([type]): [the last value of schwefel function that we got]
             x_query ([type]): [list of all postions that we need to evaluate]
             y_query ([type]): [list of all calculated schwefel values according to x_query]
@@ -77,11 +79,17 @@ class DataUtilSim:
         Returns:
             [x_suggest]: [position of the next experiment]
         """
+        session = json.loads(session)
+        data = interpret_input(
+            session, "session", json.loads(addresses))
 
+        key_x = [[d[0]['dx'], d[0]['dy']] for d in data]
+        # accumulated result at every step (n+1)
+        y_query = [d[1] for d in data]
         # we still need to check the format of the data
         # if x_query and y_query are string then:
-        x_query = eval(x_query)
-        y_query = eval(y_query)
+        x_query = eval(x_query)  # all the points of exp
+
         # the key_x should be in following [[4, 5], [4, 6]...]
         #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
 
@@ -126,5 +134,92 @@ class DataUtilSim:
         # next position that motor needs to go
         print(x_query[train_ix[-1]])
         next_exp = x_query[train_ix[-1]]
-        prediction = pred
+        prediction = {}
+        for i in test_ix:
+            prediction.update({str(x_query[i]): pred[i]})
         return next_exp, prediction
+
+
+def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):
+    # sources is a single data source (jsonned object or file address) or a jsonned list of data sources
+    # type is a string or jsonned list of strings telling you what data format(s) you are reading in
+    # possible inputs: list of or individual kadi records, local files, the current session, pure data
+    # source values for these: kadi id's, filepaths strings, a dictionary, a list or dictionary or whatever
+    # type values for these: "kadi","file","session","pure"
+    # well, actually, there will be no "file" type, instead, will need different codes for different file extensions ("json", "hdf5", etc.) (right now "hdf5" is the only one that works)
+    # addresses tells you where in an HDF5 file to pull the data from, will be a single address or list of addresses
+    # if data type is "pure", addresses will be None, as no processing is required.
+    # if data is neither preprocessed nor in our standardized .hdf5 format, I guess I will have to modify this to accommodate later.
+    # when we are working with an HDF5, as we should be in most cases, we will automatically iterate over every measurement number in the most recent session
+    # addresses will tell us how to get from the measurment number root to each value we want
+    # addresses will be a string of keys separated by /'s. the topmost key (action name) will ignore trailing numbers + underscore
+    # if multiple of a single type of action are in the measurment, it will by default grab the lowest number; add "_i" to specify the (i+1)th lowest
+
+    # we need the ability to only grab certain measurements from the input data source(s).
+    # currently, I am going to have the choice defined by the integer "measurement_no" in the names of the given dictionary keys.
+    # thus, the input "experiment_numbers", will comprise an integer or jsonned list thereof.
+    # this means that this feature probably won't be compatible with using multiple data sources at once, but for now, I do not think it needs to be.
+    # when I have finished code which I can demonstrate, it should be easier to get intelligent feedback as to what would be a better standard.
+
+    try:
+        sources = json.loads(sources)
+    except:
+        pass
+    try:
+        types = json.loads(types)
+    except:
+        pass
+    try:
+        addresses = json.loads(addresses)
+    except:
+        pass
+    try:
+        experiment_numbers = json.loads(experiment_numbers)
+    except:
+        pass
+
+    if isinstance(types, str):
+        sources, types = [sources], [types]
+    if isinstance(addresses, str):
+        addresses = [addresses]
+    if isinstance(experiment_numbers, int) or experiment_numbers == None:
+        experiment_numbers = [experiment_numbers]
+
+    datas = []
+    for source, typ in zip(sources, types):
+        if typ == "kadi":
+            requests.get(f"{kadiurl}/data/downloadfilesfromrecord",
+                         params={'ident': source, 'filepath': filepath})
+            source = os.path.join(filepath, source+".hdf5")
+        if typ in ("kadi", "hdf5"):
+            source = dict(hdfdict.load(source, lazy=False, mode="r+"))
+        if typ in ("kadi", "hdf5", "session"):
+            data = []
+            run = highestName(
+                list(filter(lambda k: k != 'meta', source.keys())))
+            # maybe it would be better to sort keys before iterating over them
+            for key in source[run].keys():
+                if key != 'meta' and (experiment_numbers == [None] or key.split('_')[-1] in experiment_numbers):
+                    datum = []
+                    for address in addresses:
+                        # possibilities: address has no number and key(s) do
+                        #               multiple numbered addresses and keys
+                        topadd = address.split('/')[0].split('_')
+                        actions = sorted(list(filter(lambda a: a.split('_')[
+                                         0] == topadd[0], source[run][key].keys())), key=lambda a: int(a.split('_')[1]))
+                        try:
+                            if len(topadd) > 1:
+                                action = actions[int(topadd[1])]
+                            else:
+                                action = actions[0]
+                            datum.append(dict_address(
+                                '/'.join(address.split('/')[1:]), source[run][key][action]))
+                        except:
+                            print(
+                                f"item {key} does not have what we are looking for")
+                    if datum != []:
+                        data.append(datum)
+            source = data
+        if typ in ("kadi", "hdf5", "session", "pure"):
+            datas += source
+    return datas

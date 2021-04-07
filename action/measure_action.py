@@ -1,11 +1,13 @@
+import sys
+sys.path.append(r"../driver")
+sys.path.append(r"../config")
+from mischbares_small import config
 from measure_driver import dataAnalysis
 from celery import group
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
-import sys
-sys.append(r'../driver')
 
 if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
     sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
@@ -41,10 +43,10 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 
 
 @app.get("/measure/schwefel_function")
-def schwefel_function_single(exp_num: str, save_data_to: str = "../data/schwefel_fnc.json"):
-    f = d.schwefel_function.delay(exp_num, save_data_to)
+def schwefel_function_single(measurement_area: str, save_data_to: str = "../data/schwefel_fnc.json"):
+    f = d.schwefel_function.delay(measurement_area, save_data_to)
     result = f.get()
-    retc = return_class(parameters={'exp_num': exp_num}, data={
+    retc = return_class(parameters={'measurement_area': measurement_area}, data={
                         'key_y': result})
     return retc
 
@@ -84,10 +86,11 @@ def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['measureServer']['host'], config['servers']['measureServer']['port'])
+    url = "http://{}:{}".format(config['servers']['measureServer']
+                                ['host'], config['servers']['measureServer']['port'])
     port = 13368
     host = "127.0.0.1"
     print('Port of analysis Server: {}')
-    uvicorn.run(app, host=config['servers']['measureServer']['host'], port=config['servers']['measureServer']['port'])
+    uvicorn.run(app, host=config['servers']['measureServer']
+                ['host'], port=config['servers']['measureServer']['port'])
     print("instantiated analysis server")
-

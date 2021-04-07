@@ -31,20 +31,25 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(key_x: dict, key_y: dict, x_query: str, y_query: str, save_data_path: str = 'ml_data/ml_analysis.json'):
+def active_learning_random_forest_simulation(session: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
     next_exp_pos, prediction = d.active_learning_random_forest_simulation(
-        key_x, key_y, x_query, y_query, save_data_path)
+        session, x_query, save_data_path, addresses)
 
-    retc = return_class(parameters={'key_x': key_x, 'key_y': key_y, 'x_query': x_query, 'y_query': y_query}, data={
+    # next_exp_pos : would be a [dx, dy] of the next move
+    # prediction : list of predicted schwefel function for the remaning positions
+    retc = return_class(parameters={'x_query': x_query}, data={
                         'next_exp_pos': next_exp_pos, 'prediction': prediction})
+
     return retc
 
 
 if __name__ == "__main__":
     d = DataUtilSim()
-    url = "http://{}:{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'])
+    url = "http://{}:{}".format(config['servers']['learningServer']
+                                ['host'], config['servers']['learningServer']['port'])
     port = 13364
     host = "127.0.0.1"
     print('Port of ml Server: {}')
-    uvicorn.run(app, host=config['servers']['learningServer']['host'], port=config['servers']['learningServer']['port'])
+    uvicorn.run(app, host=config['servers']['learningServer']
+                ['host'], port=config['servers']['learningServer']['port'])
     print("instantiated ml server")

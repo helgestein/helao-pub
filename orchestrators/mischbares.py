@@ -95,6 +95,16 @@ async def doMeasurement(experiment: str):
                     pass
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server,action))
         elif server == 'learning':
+            if params['sources'] == "session":
+                params['sources'] == session
+            else:
+                try:
+                    sources = json.loads(params['sources'])
+                    if "session" in sources:
+                        sources[sources.index("session")] = session
+                        params['sources'] = json.dumps(sources)
+                except:
+                    pass
             try:
                 pointers = json.loads(params['pointers'])
             except:

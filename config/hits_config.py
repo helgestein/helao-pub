@@ -17,7 +17,7 @@ config['arcoptix'] = dict(dll = r'..\..\..\arcoptix\API\Rocket_2_4_9_LabVIEWDriv
 
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data')
 
-config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM6', baud=9600, timeout=0.1)])
+config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM7', baud=9600, timeout=0.1)])
 
 config['launch'] = dict(server = ['owis_server','ocean_server','arcoptix_server','kadi_server'],
                         action = ['owis_action','raman_ocean','ftir_arcoptix','kadi_action'],

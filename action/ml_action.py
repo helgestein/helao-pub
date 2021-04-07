@@ -1,6 +1,6 @@
 import sys
-sys.append(r'../driver')
-sys.append(r'../action')
+sys.path.append(r'../driver')
+sys.path.append(r'../action')
 
 import json
 from pydantic import BaseModel

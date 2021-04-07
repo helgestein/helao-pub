@@ -1,16 +1,18 @@
 import sys
 sys.path.append(r"../driver")
 sys.path.append(r"../config")
-from mischbares_small import config
-from measure_driver import dataAnalysis
-from celery import group
-import uvicorn
-from fastapi import FastAPI
-from pydantic import BaseModel
-import json
 
 if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
     sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
+
+import json
+from pydantic import BaseModel
+from fastapi import FastAPI
+import uvicorn
+from celery import group
+from measure_driver import dataAnalysis
+from mischbares_small import config
+
 
 # The only function that we need for our final test is "schwefel_function_single"
 
@@ -41,13 +43,16 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
     retc = return_class(parameters={'n': n, 'steps': steps}, data=comp)
     return retc
 
+# [dx,dy]
 
-@app.get("/measure/schwefel_function")
+
+@app.get("/measure/schwefelFunction")
 def schwefel_function_single(measurement_area: str, save_data_to: str = "../data/schwefel_fnc.json"):
-    f = d.schwefel_function.delay(measurement_area, save_data_to)
-    result = f.get()
+    print(measurement_area)
+    f = d.schwefel_function(measurement_area, save_data_to)
+    #result = f.get()
     retc = return_class(parameters={'measurement_area': measurement_area}, data={
-                        'key_y': result})
+                        'key_y': f})
     return retc
 
 

@@ -1,20 +1,20 @@
-from celery import group
-import hdfdict
-import os
-import requests
 import sys
 sys.path.append(r"../driver")
 sys.path.append(r"../config")
 sys.path.append(r"../")
-from mischbares_small import config
-from measure_driver import dataAnalysis
-from celery import group
-import uvicorn
-from fastapi import FastAPI
-from pydantic import BaseModel
-import json
-# implement the analysis action
 from util import highestName, dict_address
+import json
+from pydantic import BaseModel
+from fastapi import FastAPI
+import uvicorn
+from measure_driver import dataAnalysis
+from mischbares_small import config
+from celery import group
+import hdfdict
+import os
+import requests
+
+# implement the analysis action
 
 
 app = FastAPI(title="Analysis server V1",
@@ -32,7 +32,7 @@ filepath = "C:/Users/jkflowers/Downloads"
 
 
 @app.get("/analysis/dummy")
-def bridge(exp_num: str or int, key_y: float, session: str):
+def bridge(exp_num: str, sources: str):
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
     Args:
@@ -45,15 +45,18 @@ def bridge(exp_num: str or int, key_y: float, session: str):
     # here we need to return the key_y which is the schwefel function result and the corresponded measurement area
     # i.e pos: (dx, dy) -> schwefel(dx, dy)
     # We need to get the index of the perfomed experiment
+    print(sources)
     if type(exp_num) == str:
         exp_num = exp_num.split('_')[-1]
-    session = json.loads(session)
+    #session = json.loads(sources)
     data = interpret_input(
-        session, "session", "schwefel_function/data/key_y", experiment_number=int(exp_num))[0]
+        sources, "session", "schwefelFunction/data/key_y", experiment_numbers=int(exp_num))[0]
+
+    print(exp_num)
 
     #data = interpret_input(session,"session","dummy/data/key_y")
     retc = return_class(
-        parameters={'exp_num': exp_num, 'key_y': key_y}, data=data)
+        parameters={'exp_num': exp_num}, data=data)
     # {'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
     return retc
 
@@ -78,7 +81,7 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
     # thus, the input "experiment_numbers", will comprise an integer or jsonned list thereof.
     # this means that this feature probably won't be compatible with using multiple data sources at once, but for now, I do not think it needs to be.
     # when I have finished code which I can demonstrate, it should be easier to get intelligent feedback as to what would be a better standard.
-
+    print(sources)
     try:
         sources = json.loads(sources)
     except:
@@ -95,16 +98,16 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
         experiment_numbers = json.loads(experiment_numbers)
     except:
         pass
-
+    print(sources)
     if isinstance(types, str):
         sources, types = [sources], [types]
     if isinstance(addresses, str):
         addresses = [addresses]
     if isinstance(experiment_numbers, int) or experiment_numbers == None:
         experiment_numbers = [experiment_numbers]
-
     datas = []
     for source, typ in zip(sources, types):
+        print(source)
         if typ == "kadi":
             requests.get(f"{kadiurl}/data/downloadfilesfromrecord",
                          params={'ident': source, 'filepath': filepath})

@@ -1,13 +1,14 @@
+from mischbares_small import config
+from ml_driver import DataUtilSim
+from celery import group
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
 import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../action')
 
-import json
-from pydantic import BaseModel
-from fastapi import FastAPI
-import uvicorn
-from celery import group
-from ml_driver import DataUtilSim
 
 #import data_analysis.analysis_action as ana
 

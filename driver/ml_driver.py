@@ -3,6 +3,8 @@ import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+import sys
+sys.path.append(r"../")
 
 from celery_conf import app
 from time import sleep
@@ -19,7 +21,7 @@ class DataUtilSim:
     # changed to the staticmethod because inside of the tasks we can't call anything from self as a DataUtilSim instance
     @staticmethod
     # name argument is required because of the project structure
-    @app.task(name='machine_learning_analysis.ml_analysis.gaus_model')
+    @app.task(name='driver.ml_driver.gaus_model')
     def gaus_model(length_scale=1, restart_optimizer=10, random_state=42):
         """
         Define the gaussian process regressor
@@ -39,7 +41,7 @@ class DataUtilSim:
     # changed to the staticmethod because inside of the tasks we can't call anything from self as a DataUtilSim instance
     @staticmethod
     # name argument is required because of the project structure
-    @app.task(name='machine_learning_analysis.ml_analysis.gaussian_simulation')
+    @app.task(name='driver.ml_driver.gaussian_simulation')
     def gaussian_simulation(X, y, save_data_path='ml_data/ml_analysis.json'):
         """
         Gaussian algorithm and computing mean, variance and alpha value
@@ -53,7 +55,7 @@ class DataUtilSim:
         if type(y) != np.ndarray:
             y = np.array(y)
 
-        model = DataUtilSim.gaus_model().fit(X, y)
+        model = gaus_model().fit(X, y)
         alpha = model.alpha_
         mu, var = model.predict(X, return_std=True)
 
@@ -65,7 +67,7 @@ class DataUtilSim:
         return result
 
     @staticmethod
-    @app.task(name='machine_learning_analysis.ml_analysis.gaussian_simulation')
+    @app.task(name='driver.ml_driver.gaussian_simulation')
     def active_learning_random_forest_simulation(session, x_query, save_data_path='ml_data/ml_analysis.json', addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
         """[summary]
 

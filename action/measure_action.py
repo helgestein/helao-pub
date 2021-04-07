@@ -1,11 +1,13 @@
+import sys
+sys.path.append(r"../driver")
+sys.path.append(r"../config")
+from mischbares_small import config
 from measure_driver import dataAnalysis
 from celery import group
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
-import sys
-sys.append(r'../driver')
 
 if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
     sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")

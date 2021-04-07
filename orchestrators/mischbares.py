@@ -83,8 +83,16 @@ async def doMeasurement(experiment: str):
             experiment = await loop.run_in_executor(None,process_native_command,action,experiment)
             continue
         elif server == 'analysis':
-            #if params['sources'] == "session":
-            #   params['sources'] == session
+            if params['sources'] == "session":
+                params['sources'] == session
+            else:
+                try:
+                    sources = json.loads(params['sources'])
+                    if "session" in sources:
+                        sources[sources.index("session")] = session
+                        params['sources'] = json.dumps(sources)
+                except:
+                    pass
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server,action))
         elif server == 'learning':
             try:
@@ -163,11 +171,16 @@ def process_native_command(command: str,experiment: dict,**kwargs):
         if not isinstance(pointers,list):
             pointers = [pointers]
         for val,pointer in zip(vals,pointers):
+            if dict_address(pointer,params) != "?":
+                raise Exception(f"pointer {pointer} is not intended to be written to")
             dict_address_set(pointer,params,val)
         experiment['params'] = params
     else:
         print("error: native command not recognized")
     return experiment
+
+
+
 
 
 @app.on_event("startup")

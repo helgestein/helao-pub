@@ -1,5 +1,5 @@
 from asyncio import Queue, wait_for
-from time import strftime
+from time import strftime, time_ns
 from munch import munchify
 import json
 import asyncio
@@ -15,8 +15,9 @@ import copy
 import os
 from typing import List, Optional, Any
 import numpy as np
-
-
+import uuid
+from fastapi import FastAPI
+import shortuuid
 
 # work in progress
 class LocalDataHandler:
@@ -100,32 +101,42 @@ class StatusHandler:
         self.is_running = False
         self.is_idle = True
         self.status = 'idle'
+        self.states = {}
         self.last_update = f'{strftime("%Y%m%d.%H%M%S%z")}'
-        self.procid = 'NA'
-        self.dict = {'status': self.status,
+        self.procid = 'NA' # originally intended to show current decision or process_id but not compatible with concurrent actions on same server, check self.states
+        self.dict = {'status': self.status, 'states': self.states,
                      'last_update': self.last_update, 'procid': self.procid}
         self.q.put_nowait(self.dict)
 
+# sync update_nowait: data websocket should key by ID
+#
+    def initStatus(self, fastapp: FastAPI, servKey: str):
+        for route in fastapp.routes:
+            if route.path.startswith(f"/{servKey}"):
+                self.states.update({route.name: []})
 
     async def update(self, state: str):
         self.status = state
         self.last_update = f'{strftime("%Y%m%d.%H%M%S%z")}'
-        self.dict = {'status': self.status,
+        self.dict = {'status': self.status, 'states': self.states,
                      'last_update': self.last_update, 'procid': self.procid}
         if self.q.full():
             _ = await self.q.get()
             self.q.task_done()
         await self.q.put(self.dict)
 
-    async def set_run(self):
+    async def set_run(self, uuid: str, action_name: str):
         self.is_running = True
         self.is_idle = False
+        self.states[action_name].append(uuid)
         await self.update('running')
 
-    async def set_idle(self):
-        self.is_idle = True
-        self.is_running = False
-        await self.update('idle')
+    async def set_idle(self, uuid: str, action_name: str):
+        self.states[action_name].remove(uuid)
+        if all([len(v)==0 for v in self.states.values()]):
+            self.is_idle = True
+            self.is_running = False
+            await self.update('idle')
 
     async def set_error(self):
         self.is_idle = False
@@ -136,6 +147,14 @@ class StatusHandler:
         self.is_idle = False
         self.is_running = False
         await self.update('estop')
+        
+    async def set_meta(self, metadict, keyname="meta"):
+        self.dict[keyname] = metadict
+        await self.update(self.status)
+        
+    async def clear_meta(self, keyname="meta"):
+        self.dict.pop(keyname, None)
+        await self.update(self.status)
 
 
 class OrchHandler:
@@ -218,15 +237,21 @@ class OrchHandler:
 
     async def raise_stop(self):
         await self.update('stopping')
+        
+    async def set_meta(self, metadict, keyname="meta"):
+        self.dict[keyname] = metadict
+        await self.update(self.status)
 
 
 class Decision:
     def __init__(self, uid: str, plate_id: int, sample_no: int, actualizer):
-        self.uid = uid
+        # self.uid = uid
         self.plate_id = plate_id
         self.sample_no = sample_no
         self.actualizer = actualizer
-        self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
+        # self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
+        self.save_path = None
+        self.aux_files = []
 
 
 class Action:
@@ -414,3 +439,10 @@ class _QueueContext(object):
 class IOhelper:
     def __init__(self):
         self.subscribers = 0
+
+
+def getuid(servername: str):
+    uuid1 = uuid.uuid1()
+    uuid3 = uuid.uuid3(uuid.NAMESPACE_URL, f"{uuid1}-{servername}")
+    short = shortuuid.encode(uuid3)[:8]
+    return short

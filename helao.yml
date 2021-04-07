@@ -68,6 +68,7 @@ dependencies:
   - qt
   - requests
   - setuptools
+  - shortuuid
   - sip
   - six
   - sqlite

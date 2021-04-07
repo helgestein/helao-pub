@@ -7,15 +7,19 @@ import aiohttp
 import aiofiles
 from copy import copy
 
-class ID:
-    "ID class for process-sample identification."
+import time
+from random import getrandbits
+import shortuuid
+
+class Decision:
+    "ID class for sample-process identification."
     def __init__(self):
         self.data = []
-        self.decisionID = None
-        self.plateID = None
-        self.sampleID = None
-        self.filePath = None
-        self.auxFiles = []
+        self.decision_id = None
+        self.plate_id = None
+        self.sample_id = None
+        self.save_path = None
+        self.aux_files = []
 
 class Base:
     """Base class for all HELAO servers.
@@ -33,70 +37,75 @@ class Base:
     
     Websocket connections are broadcast from a multisubscriber queue in order to handle
     consumption from multiple clients awaiting a single queue. Self-subscriber tasks are
-    also created as initial subscribers to prevent queue overflow.
+    also created as initial subscribers to log all events and prevent queue overflow.
     
     The data writing method will update a class attribute with the currently open file.
     For a given root directory, files and folders will be written as follows:
-      {root_dir}/
-      {year_weeknum}/
-        {decision_id}__{descString}/
-            {YYmmdd.HHMMSS}__{plateid}_{sampleno}__datafile.ext
-            {YYmmdd.HHMMSS}.rcp
-    
+    {%y.%j}/  # decision_date year.weeknum
+        {%Y%m%d}/  # decision_date
+            {%H%M%S}__{decision_label}__{plate_id}/  # decision_time
+                {%Y%m%d.%H%M%S}__{uuid}/  # action_datetime, action_uuid
+                    {sampleno}__{filename}.{ext}
+                    {%Y%m%d.%H%M%S}__{uuid}.rcp  # action_datetime
+                    (aux_files)
     """
-    def __init__(self, serverName):
-        self.serverName = serverName
+    def __init__(self, server_name):
+        self.server_name = server_name
         self.status = None
-        self.active = ID()
-        self.last = ID()
-        self.fileConn = None # aiofiles connection
-        self.fileSaveRoot = '.'
-        self.statusQ = MultisubscriberQueue()
-        self.dataQ = MultisubscriberQueue()
-        self.statusClients = set()
-        self.dataClients= set()
-        self.ntpServer = 'time.nist.gov'
-        self.ntpResponse = None
-        self.ntpLastSync = None
-        self.ntpOffset = None # add to system time for correction
-        self.getNtpTime()
+        self.active = None
+        self.last = None
+        self.file_conn = None # aiofiles connection
+        self.save_root = '.'
+        self.status_q = MultisubscriberQueue()
+        self.data_q = MultisubscriberQueue()
+        self.status_clients = set()
+        self.data_clients= set()
+        self.ntp_server = 'time.nist.gov'
+        self.ntp_response = None
+        if os.path.exists('ntpLastSync.txt'):
+            self.ntp_last_sync = open('ntpLastSync.txt', 'r').readlines()[0].strip()
+        elif self.ntp_last_sync is None:
+            self.get_ntp_time()
+        self.ntp_offset = None # add to system time for correction
+        self.get_ntp_time()
     
-    def getNtpTime(self):
+    def get_ntp_time(self):
         "Check system clock against NIST clock for trigger operations."
         c = ntplib.NTPClient()
-        response = c.request(self.ntpServer, version=3)
-        self.ntpResponse = response
-        self.ntpLastSync = response.orig_time
-        self.ntpOffset = response.offset
-        print(f"retrieved time at {ctime(self.ntpResponse.tx_timestamp)} from {self.ntpServer}")
+        response = c.request(self.ntp_server, version=3)
+        self.ntp_response = response
+        self.ntp_last_sync = response.orig_time
+        self.ntp_offset = response.offset
+        open('ntpLastSync.txt', 'w').write(self.ntp_last_sync)
+        print(f"retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}")
         
-    def attachStatusClient(self, clientAddr):
+    def attach_client(self, client_addr):
         "Add client for pushing status updates via HTTP POST."
-        self.statusClients.add(clientAddr)
+        self.status_clients.add(client_addr)
    
-    def detachStatusClient(self, clientAddr):
+    def detach_client(self, client_addr):
         "Remove client from receiving status updates via HTTP POST"
-        self.statusClients.remove(clientAddr)
+        self.status_clients.remove(client_addr)
         
-    async def selfStatusTask(self, retryLimit=5):
+    async def log_status_task(self, retryLimit=5):
         "Self-subscribe to status queue, log status changes, POST to clients."
-        async for statusMsg in self.statusQ.subscribe():
-            self.status = statusMsg
-            for clientAddr in self.statusClients:
+        async for status_msg in self.status_q.subscribe():
+            self.status = status_msg
+            for client_addr in self.status_clients:
                 async with aiohttp.ClientSession() as session:
                     success = False
                     for _ in range(retryLimit):
                         async with session.post(
-                            f"http://{clientAddr}/update_status", params = {"server": self.serverName, "status": statusMsg}
+                            f"http://{client_addr}/update_status", params = {"server": self.server_name, "status": statusMsg}
                         ) as resp:
                             response = await resp
                         if response.status<400:
                             success = True
                             break
                 if success:
-                    print(f"Updated {self.serverName} status to {statusMsg} on {clientAddr}.")
+                    print(f"Updated {self.server_name} status to {status_msg} on {clientAddr}.")
                 else:
-                    print(f"Failed to push status message to {clientAddr} after {retryLimit} attempts.") 
+                    print(f"Failed to push status message to {client_addr} after {retryLimit} attempts.") 
             # do stuff with statusMsg (websocket handled in FastAPI definition)
                             
     async def detachSubscribers(self):
@@ -113,7 +122,7 @@ class Base:
             else:
                 lines = ",".join([str(x) for x in dataMsg])
             if self.fileConn:
-                await self.writeData(lines)
+                await self.writeLiveData(lines)
     
     async def syncNtpTask(self, resyncTime=600):
         "Regularly sync with NTP server."
@@ -122,6 +131,9 @@ class Base:
                 self.getNtpTime()
             else:
                 await asyncio.sleep(0.5)
+                
+    async def writeFile(self, outputStr, filename=None, header=None):
+        pass
     
     async def setOutputFile(self, filename=None, header=None):
         "Set active filePath, write header if filename is not None."
@@ -148,12 +160,12 @@ class Base:
         self.active = ID()
         await self.statusQ.put('idle')
     
-    async def writeData(self, outputStr):
+    async def writeLiveData(self, output_str):
         "Appends lines to fileConn."
-        if not outputStr.endswith("\n"):
-            outputStr += "\n"
-        await self.fileConn.write(outputStr)
-    
+        if self.file_conn:
+            if not output_str.endswith("\n"):
+                output_str += "\n"
+            await self.file_conn.write(output_str)
     
     async def setupAct(self):#TODO
         "Populate active ID."
@@ -162,7 +174,6 @@ class Base:
     async def writeRcp(self):#TODO
         "Gather auxiliary filenames, save ID and action parameters to rcp."
     
-
 
 class Orch:#TODO
     """Base class for async orchestrator with trigger support and pushed status update.

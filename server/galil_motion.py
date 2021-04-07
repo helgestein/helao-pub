@@ -105,7 +105,9 @@ def startup_event():
     motion = galil(S.params)
     global stat
     stat = StatusHandler()
-
+    # for route in app.routes:
+    #     print(route.path)
+    #     print(route.name)
     # myloop = asyncio.get_event_loop()
     # #add websocket IO loop
     # myloop.create_task(wsdata_IOloop())

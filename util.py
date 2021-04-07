@@ -112,3 +112,11 @@ def dict_address(address,d):
         return d[address[0]]
     else:
         return dict_address('/'.join(address[1:]),d[address[0]])
+
+#for a string of dict keys seperated by '/', set the value of dictionary d at that address to val
+def dict_address_set(address,d,val):
+    address = address.split('/')
+    if len(address) == 1:
+        d[address[0]] = val
+    else:
+        dict_address_set('/'.join(address[1:]),d[address[0]],val)

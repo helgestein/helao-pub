@@ -108,7 +108,7 @@ def interpret_input(sources:str,types:str,addresses:str,experiment_numbers=None)
             run = highestName(list(filter(lambda k: k != 'meta',source.keys())))
             #maybe it would be better to sort keys before iterating over them
             for key in source[run].keys():
-                if key != 'meta' and (experiment_numbers == [None] or key.split('_')[-1] in experiment_numbers):
+                if key != 'meta' and (experiment_numbers == [None] or int(key.split('_')[-1]) in experiment_numbers):
                     datum = []
                     for address in addresses:
                         #possibilities: address has no number and key(s) do

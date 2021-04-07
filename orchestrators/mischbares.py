@@ -87,11 +87,13 @@ async def doMeasurement(experiment: str):
             #   params['sources'] == session
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'],server,action))
         elif server == 'learning':
-            #res, experiment = run(experiment)
-            #needs to know where to find the preceding analysis.
-            #will also always take the current experiment
-            #will return the experiment
-            #experiment = await json.loads(requests.get(,params=dict(experiment=json.dumps(experiment),session=json.dumps(session))).json())
+            try:
+                pointers = json.loads(params['pointers'])
+            except:
+                pointers = params['pointers']
+            params = {x: params[x] for x in params if x != 'pointers'}
+            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'],server,action))
+            experiment = process_native_command("modify",experiment,vals=res,pointers=pointers)
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         #provisionally dumping every time until proper backup implemented
@@ -99,7 +101,7 @@ async def doMeasurement(experiment: str):
         #with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
-def process_native_command(command: str,experiment: dict):
+def process_native_command(command: str,experiment: dict,**kwargs):
     global session,sessionname
     if command == "start":
         #ensure that the directory in which this session should be saved exists
@@ -137,7 +139,7 @@ def process_native_command(command: str,experiment: dict):
         #don't put any keys in here that have length less than 4 i guess
         experiment['meta']['run'] = run
         experiment['meta']['measurement_number'] = 0
-        session[f"run_{run}"][f"measurement_no_0"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
+        session[f"run_{run}"]["measurement_no_0"].update(dict(meta=dict(measurement_areas=experiment['meta']['measurement_areas'])))
     elif command == "finish":
         hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
         print('attempting to upload session')
@@ -151,6 +153,18 @@ def process_native_command(command: str,experiment: dict):
     elif command == "dummy":
         print("executing 2 second dummy experiment")
         time.sleep(2)
+    elif command == "modify":
+        #modify undefined parameters of actions further in the experiment
+        #worth reiterating that this cannot modify future experiments. the way we have structured everything makes that hard or impossible to do
+        #so design things accordingly....
+        params = experiment['params']
+        if not isinstance(vals,list):
+            vals = [vals]
+        if not isinstance(pointers,list):
+            pointers = [pointers]
+        for val,pointer in zip(vals,pointers):
+            dict_address_set(pointer,params,val)
+        experiment['params'] = params
     else:
         print("error: native command not recognized")
     return experiment

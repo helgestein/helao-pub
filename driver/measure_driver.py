@@ -79,7 +79,7 @@ class dataAnalysis:
         Returns:
             [type]: [description]
         """
-        vector_fnc = eval(exp_num)
+        vector_fnc = eval(measurement_area)
         comp = np.array(vector_fnc)
         sch_comp = 1000 * np.array(comp) - 500
         result = 0

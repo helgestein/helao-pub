@@ -1,13 +1,15 @@
-from ml_driver import DataUtilSim
-#import data_analysis.analysis_action as ana
-from celery import group
-import uvicorn
-from fastapi import FastAPI
-from pydantic import BaseModel
-import json
 import sys
 sys.append(r'../driver')
 sys.append(r'../action')
+
+import json
+from pydantic import BaseModel
+from fastapi import FastAPI
+import uvicorn
+from celery import group
+from ml_driver import DataUtilSim
+
+#import data_analysis.analysis_action as ana
 
 
 app = FastAPI(title="analysis action server",
@@ -32,15 +34,14 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 @app.get("/learning/activeLearning")
 def active_learning_random_forest_simulation(session: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
+
     next_exp_pos, prediction = d.active_learning_random_forest_simulation(
         session, x_query, save_data_path, addresses)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
-    retc = return_class(parameters={'x_query': x_query}, data={
-                        'next_exp_pos': next_exp_pos, 'prediction': prediction})
-
-    return retc
+    print(next_exp_pos)
+    return next_exp_pos, str(next_exp_pos), prediction
 
 
 if __name__ == "__main__":

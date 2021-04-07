@@ -134,8 +134,10 @@ class DataUtilSim:
         # next position that motor needs to go
         print(x_query[train_ix[-1]])
         next_exp = x_query[train_ix[-1]]
-        prediction = pred
-        return next_exp
+        prediction = {}
+        for i in test_ix:
+            prediction.update({str(x_query[i]): pred[i]})
+        return next_exp, prediction
 
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):

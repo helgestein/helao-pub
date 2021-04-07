@@ -36,36 +36,32 @@ dz = config['lang']['safe_sample_pos'][2]
 
 # need to specify the session name
 
-
+substrate = 30
 # in the first move we just choose one arbitary point
-run_sequence = dict(soe=['motor/moveWaste_0', 'motor/moveSample_0', 'motor/moveAbs_0', 'measure/schwefel_function_0', 'analysis/dummy_0'],
-                    params=dict(moveWaste_0=dict(x=0, y=0, z=0),
-                                moveSample_0=dict(x=0, y=0, z=0),
-                                moveAbs_0=dict(dx=dx0, dy=dy0, dz=dz),
-                                schwefel_function_0=dict(
-                                    measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="../data/schwefel_fnc_{}.json".format(0)),
-                                dummy_0=dict(exp_num=0, key_y='?', session=session)),  # key_y should be the output of the schwefel function
-                    meta=dict(substrate=substrate, ma=[round(dx * 100)*10, round(dy * 100)*10],  r=0.005))
 
 
 test_fnc(dict(soe=['orchestrator/start'], params={'start': None}, meta=dict(substrate=substrate, ma=[
          config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=0.005)))
 
+run_sequence = dict(soe=['measure/schwefelFunction_0', 'analysis/dummy_0'],
+                    params=dict(schwefelFunction_0=dict(
+                        measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="C:/Users/Fuzhi/Documents/GitHub/helao_dev/data/schwefel_fnc_{}.json".format(0)),
+    dummy_0=dict(exp_num='measurement_no_0', sources='session')),  # key_y should be the output of the schwefel function
+    meta=dict(substrate=substrate, ma=[round(dx0 * 100)*10, round(dy0 * 100)*10],  r=0.005))
+test_fnc(run_sequence)
+
 for j in range(1, 400, 1):
     # according to the output of the active learning, we need to feed the nexr pos to motor
-    dx, dy = '?', '?'
     exp_num = 'measurement_no_{}'.format(j)
-    run_sequence = dict(soe=['learning/activeLearning_0', 'motor/moveWaste_0', 'motor/moveSample_0', 'motor/moveAbs_0', 'measure/schwefel_function_0', 'analysis/dummy_0', ],
-                        params=dict(activeLearning_0=dict(session=session, x_query=x_query, save_data_path='../ml_data/ml_analysis_{}.json'.format(exp_num), addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])),
-                                    moveWaste_0=dict(x=0, y=0, z=0),
-                                    moveSample_0=dict(x=0, y=0, z=0),
-                                    moveAbs_0=dict(dx='?', dy='?', dz=dz),
-                                    schwefel_function_0=dict(
-                                        measurement_area=str([{}, {}]).format(dx, dy), save_data_to="../data/schwefel_fnc_{}.json".format(exp_num)),
-                                    dummy_0=dict(exp_num=exp_num, key_y='?', session=session)),  # key_y should be the output of the schwefel function)
-                        meta=dict(substrate=substrate, ma=[round(dx * 100)*10, round(dy * 100)*10],  r=0.005))
-    print(dx, dy)
-    test_fnc(soe)
+    print(exp_num)
+    run_sequence = dict(soe=['learning/activeLearning_0', 'measure/schwefelFunction_0', 'analysis/dummy_0', ],
+                        params=dict(activeLearning_0=dict(session='session', x_query=x_query, save_data_path='C:/Users/Fuzhi/Documents/GitHub/helao_dev/ml_data/ml_analysis_{}.json'.format(exp_num), addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"]), pointers=json.dumps(['moveAbs_0/dx', 'moveAbs_0/dy', 'schwefel_function_0/measurement_area'])),
+                                    schwefelFunction_0=dict(
+                                        measurement_area='?', save_data_to="C:/Users/Fuzhi/Documents/GitHub/helao_dev/data/schwefel_fnc_{}.json".format(exp_num)),
+                                    dummy_0=dict(exp_num=exp_num, sources='session')),  # key_y should be the output of the schwefel function)
+                        meta=dict(substrate=substrate, ma=[round(2 * 100)*10, round(2 * 100)*10],  r=0.005))
+
+    test_fnc(run_sequence)
 
 
 test_fnc(dict(soe=['orchestrator/finish'], params={'finish': None}, meta=dict(substrate=substrate, ma=[

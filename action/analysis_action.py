@@ -1,18 +1,21 @@
-# implement the analysis action
-from util import highestName, dict_address
-from fastapi import FastAPI, BaseModel
 from celery import group
-from measure_driver import dataAnalysis
 import hdfdict
 import os
 import requests
-import json
-import uvicorn
 import sys
-sys.path.append('..')
-sys.path.append('../config')
-sys.path.append('../driver')
-sys.path.append('../action')
+sys.path.append(r"../driver")
+sys.path.append(r"../config")
+sys.path.append(r"../")
+from mischbares_small import config
+from measure_driver import dataAnalysis
+from celery import group
+import uvicorn
+from fastapi import FastAPI
+from pydantic import BaseModel
+import json
+# implement the analysis action
+from util import highestName, dict_address
+
 
 app = FastAPI(title="Analysis server V1",
               description="This is a fancy analysis server",
@@ -29,7 +32,7 @@ filepath = "C:/Users/jkflowers/Downloads"
 
 
 @app.get("/analysis/dummy")
-def bridge(exp_num: str, key_y: float, session: str):
+def bridge(exp_num: str or int, key_y: float, session: str):
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
     Args:
@@ -142,8 +145,8 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['analysisServer ']
-                                ['host'], config['servers']['analysisServer ']['port'])
+    url = "http://{}:{}".format(config['servers']['analysisServer']
+                                ['host'], config['servers']['analysisServer']['port'])
     port = 13369
     host = "127.0.0.1"
     print('Port of analysis Server: {}')

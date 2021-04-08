@@ -22,9 +22,6 @@ app = FastAPI(title="Analysis server V1",
               version="1.0")
 
 
-class return_class(BaseModel):
-    parameters: dict = None
-    data: dict = None
 
 
 kadiurl = None
@@ -50,12 +47,13 @@ def bridge(exp_num: str, sources: str):
         exp_num = exp_num.split('_')[-1]
     #session = json.loads(sources)
     data = interpret_input(
-        sources, "session", "schwefelFunction/data/key_y", experiment_numbers=int(exp_num))[0]
+        sources, "session", "schwefelFunction/data/data/key_y", experiment_numbers=int(exp_num))
+    print(data)
 
     print(exp_num)
 
     #data = interpret_input(session,"session","dummy/data/key_y")
-    retc = return_class(
+    retc = dict(
         parameters={'exp_num': exp_num}, data=data)
     # {'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
     return retc
@@ -98,16 +96,14 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
         experiment_numbers = json.loads(experiment_numbers)
     except:
         pass
-    print(sources)
     if isinstance(types, str):
         sources, types = [sources], [types]
     if isinstance(addresses, str):
         addresses = [addresses]
     if isinstance(experiment_numbers, int) or experiment_numbers == None:
         experiment_numbers = [experiment_numbers]
-    datas = []
+    datas = {address.split('/')[-1]:[] for address in addresses}
     for source, typ in zip(sources, types):
-        print(source)
         if typ == "kadi":
             requests.get(f"{kadiurl}/data/downloadfilesfromrecord",
                          params={'ident': source, 'filepath': filepath})
@@ -115,17 +111,18 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
         if typ in ("kadi", "hdf5"):
             source = dict(hdfdict.load(source, lazy=False, mode="r+"))
         if typ in ("kadi", "hdf5", "session"):
-            data = []
+            data = dict()
             run = highestName(
                 list(filter(lambda k: k != 'meta', source.keys())))
             # maybe it would be better to sort keys before iterating over them
-            for key in source[run].keys():
-                if key != 'meta' and (experiment_numbers == [None] or int(key.split('_')[-1]) in experiment_numbers):
-                    datum = []
-                    for address in addresses:
+            
+            for address in addresses:
+                datum = []
+                topadd = address.split('/')[0].split('_')
+                for key in source[run].keys():
+                    if key != 'meta' and (experiment_numbers == [None] or int(key.split('_')[-1]) in experiment_numbers):
                         # possibilities: address has no number and key(s) do
                         #               multiple numbered addresses and keys
-                        topadd = address.split('/')[0].split('_')
                         actions = sorted(list(filter(lambda a: a.split('_')[
                                          0] == topadd[0], source[run][key].keys())), key=lambda a: int(a.split('_')[1]))
                         try:
@@ -138,11 +135,10 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
                         except:
                             print(
                                 f"item {key} does not have what we are looking for")
-                    if datum != []:
-                        data.append(datum)
+                data.update({address.split('/')[-1]:datum})
             source = data
         if typ in ("kadi", "hdf5", "session", "pure"):
-            datas += source
+            datas = {key:datas[key] + source[key] for key in datas.keys()}
     return datas
 
 

@@ -52,7 +52,7 @@ def schwefel_function_single(measurement_area: str, save_data_to: str = "../data
     f = d.schwefel_function(measurement_area, save_data_to)
     #result = f.get()
     retc = return_class(parameters={'measurement_area': measurement_area}, data={
-                        'key_y': f})
+                        'key_y': f.tolist()})
     return retc
 
 

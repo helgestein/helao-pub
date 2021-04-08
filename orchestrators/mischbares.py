@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from mischbares_small import config
 import time
 import requests
+import numpy
 
 app = FastAPI(title="orchestrator",
               description="A fancy complex server", version=1.0)
@@ -97,48 +98,58 @@ async def doMeasurement(experiment: str):
             continue
         elif server == 'analysis':
             if params['sources'] == "session":
-                params['sources'] = json.dumps(session)
+                params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
             else:
                 try:
                     sources = json.loads(params['sources'])
                     if "session" in sources:
                         sources[sources.index("session")] = session
-                        params['sources'] = json.dumps(sources)
+                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
                 except:
                     pass
-            print('test print')
-            time.sleep(10)
-            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))
+            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))
+        
         elif server == 'learning':
+            print('learning')
             if params['sources'] == "session":
-                params['sources'] = session
+                params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
+                print("if")
+                print(params['sources'])
             else:
+                print("else")
                 try:
                     sources = json.loads(params['sources'])
+
                     if "session" in sources:
                         sources[sources.index("session")] = session
-                        params['sources'] = json.dumps(sources)
+                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
+             
                 except:
                     pass
             try:
                 pointers = json.loads(params['pointers'])
+                print(pointers)
+
             except:
                 pointers = params['pointers']
             params = {x: params[x] for x in params if x != 'pointers'}
-            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params), "http://{}:{}/{}/{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'], server, action))
+            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'], server, action))
+            print(f'res: {res}')
+            print(f'pointers: {pointers}')
             experiment = process_native_command(
                 "modify", experiment, vals=res, pointers=pointers)
             continue
         session[f"run_{experiment['meta']['run']}"][f"measurement_no_{experiment['meta']['measurement_number']}"].update(
             {fnc: {'data': res, 'measurement_time': datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}})
         # provisionally dumping every time until proper backup implemented
-        hdfdict.dump(session, os.path.join(
-            experiment['meta']['path'], sessionname+'.hdf5'), mode='w')
+        hdfdict.dump(session, os.path.join(experiment['meta']['path'], sessionname+'.hdf5'), mode='w')
         # with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
 
 def process_native_command(command: str, experiment: dict, **kwargs):
+    for key, value in kwargs.items():
+        print(f"kwargs: {(key, value)}")
     global session, sessionname
     if command == "start":
         # ensure that the directory in which this session should be saved exists
@@ -209,16 +220,22 @@ def process_native_command(command: str, experiment: dict, **kwargs):
         # worth reiterating that this cannot modify future experiments. the way we have structured everything makes that hard or impossible to do
         # so design things accordingly....
         params = experiment['params']
+        vals = kwargs['vals']
+        pointers = kwargs['pointers']
+        print(f"vals: {vals}")
+        print(f"pointers: {pointers}")
         if not isinstance(vals, list):
             vals = [vals]
         if not isinstance(pointers, list):
             pointers = [pointers]
+
         for val, pointer in zip(vals, pointers):
             if dict_address(pointer, params) != "?":
                 raise Exception(
                     f"pointer {pointer} is not intended to be written to")
             dict_address_set(pointer, params, val)
         experiment['params'] = params
+        print(f"params:             {params}")
     else:
         print("error: native command not recognized")
     return experiment

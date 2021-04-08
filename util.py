@@ -1,6 +1,15 @@
 from decimal import Decimal
 import numpy as np
 import itertools as it
+from json import JSONEncoder
+
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
+
 
 def makeMeshBrute(offset_x=0,offset_y=0,a=50,b=50,da=0.01,db=0.01):
     x_pos = np.arange(0+offset_x,a+da+offset_x,da)
@@ -63,6 +72,9 @@ def plotTriangle(ax):
 
 def list_to_dict(my_list):
     return {a:a_ for a,a_ in enumerate(my_list)}
+
+def dict_to_list(my_dict):
+    return [v for v in my_dict.values()]
 
 
 def incrementName(s:str):

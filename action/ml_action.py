@@ -1,13 +1,15 @@
 import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../action')
-
+sys.path.append(r'../config')
+from mischbares_small import config
 import json
 from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
 from celery import group
 from ml_driver import DataUtilSim
+
 
 #import data_analysis.analysis_action as ana
 
@@ -33,23 +35,21 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(session: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
-
-    next_exp_pos, prediction = d.active_learning_random_forest_simulation(
-        session, x_query, save_data_path, addresses)
+def active_learning_random_forest_simulation(sources: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = "schwefel_function/data/key_y"):
+    print("I am learning.")
+    next_exp_pos = d.active_learning_random_forest_simulation(
+        sources, x_query, save_data_path, addresses)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
     print(next_exp_pos)
-    return next_exp_pos, str(next_exp_pos), prediction
-
+    #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
+    return str(next_exp_pos)
 
 if __name__ == "__main__":
     d = DataUtilSim()
     url = "http://{}:{}".format(config['servers']['learningServer']
                                 ['host'], config['servers']['learningServer']['port'])
-    port = 13364
-    host = "127.0.0.1"
     print('Port of ml Server: {}')
     uvicorn.run(app, host=config['servers']['learningServer']
                 ['host'], port=config['servers']['learningServer']['port'])

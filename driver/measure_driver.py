@@ -79,6 +79,7 @@ class dataAnalysis:
         Returns:
             [type]: [description]
         """
+        print(measurement_area)
         vector_fnc = eval(measurement_area)
         comp = np.array(vector_fnc)
         sch_comp = 1000 * np.array(comp) - 500

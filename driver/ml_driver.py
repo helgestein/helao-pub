@@ -3,11 +3,13 @@ import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
+from sklearn.ensemble import RandomForestRegressor
 import sys
 sys.path.append(r"../")
 
 from celery_conf import app
 from time import sleep
+from util import highestName, dict_address
 
 # for the test we just need active_learning_random_forest_simulation function
 kadiurl = None
@@ -68,7 +70,7 @@ class DataUtilSim:
 
     @staticmethod
     @app.task(name='driver.ml_driver.gaussian_simulation')
-    def active_learning_random_forest_simulation(session, x_query, save_data_path='ml_data/ml_analysis.json', addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])):
+    def active_learning_random_forest_simulation(session, x_query, save_data_path='ml_data/ml_analysis.json', addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
         """[summary]
 
         Args:
@@ -82,15 +84,20 @@ class DataUtilSim:
             [x_suggest]: [position of the next experiment]
         """
         session = json.loads(session)
+        print(session)
+        print(addresses)
         data = interpret_input(
             session, "session", json.loads(addresses))
+        print(data)
 
-        key_x = [[d[0]['dx'], d[0]['dy']] for d in data]
+        key_x = [[eval(d[0])[0], eval(d[0])[1]] for d in data]
+        print(f"key_x: {key_x[0]}")
         # accumulated result at every step (n+1)
         y_query = [d[1] for d in data]
+        print(f"y_query: {y_query}")
         # we still need to check the format of the data
         # if x_query and y_query are string then:
-        x_query = eval(x_query)  # all the points of exp
+        x_query = json.loads(x_query)  # all the points of exp
 
         # the key_x should be in following [[4, 5], [4, 6]...]
         #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
@@ -106,8 +113,8 @@ class DataUtilSim:
         test_ix = [i for i in range(len(x_query))]
         #train_ix = [np.random.choice(quin.shape[0], 1, replace=False)[0]]
         # we have the  first pos now (the initial point that motor goes there)
-        train_ix = [x_query.index(j) for j in key_x]
-        print(train_ix)
+        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+        print(f"train_ix: {train_ix}")
         # move the motor to the first point
 
         # we no longer need to put it in for loop
@@ -118,7 +125,7 @@ class DataUtilSim:
         # else:
         # move to the last added train position and pretend we meaure there
         # the actual value that was added in the last learning cycle is quin[train[-1]]
-        regr.fit(x_query[train_ix], y_query[train_ix])
+        regr.fit(x_query[train_ix], y_query)
         pred = regr.predict(x_query[test_ix])
 
         y_var = np.zeros([50, len(x_query[test_ix])])
@@ -129,17 +136,19 @@ class DataUtilSim:
         aqf = pred+np.var(y_var, axis=0)
 
         ix = np.where(aqf == np.max(aqf))[0]
-        print(ix)
+        print(f"aqf : {ix}")
         i = np.random.choice(ix)
-        print(i)
+        print(f"chosen random : {i}")
         train_ix.append(test_ix.pop(i))
         # next position that motor needs to go
-        print(x_query[train_ix[-1]])
-        next_exp = x_query[train_ix[-1]]
-        prediction = {}
-        for i in test_ix:
-            prediction.update({str(x_query[i]): pred[i]})
-        return next_exp, prediction
+        print(f"next position is : {x_query[train_ix[-1]].tolist()}")
+        next_exp = x_query[train_ix[-1]].tolist()
+
+        print(f"predicitons are {pred}")
+        #for i in test_ix:
+            #print(f"Are you float ?! {i}")
+            #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
+        return next_exp
 
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):

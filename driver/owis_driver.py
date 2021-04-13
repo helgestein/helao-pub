@@ -18,11 +18,16 @@ class owis:
 #i think a master-slave connection between two ps10's with a single serial
 #to the computer would be better, but i have been told this requires terminating connectors 
 #on the unused in and out ports of the ps10's, which we do not have
+
+#the com port a given motor is assigned to seems to depend on the order in which they are turned on.
+#I have a stack of ps10's -- always turn them on slowly from the bottom up
         self.sers = []
         for ser in conf['serials']:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))
             time.sleep(.1)
         for i in range(len(self.sers)):
+            self.sers[i].write(bytes(f"AMPSHNT1={conf['serials'][i]['current']}\r",'utf-8'))
+            time.sleep(.1)
             self.activate(i)
             time.sleep(.1)
             self.configure(i)

@@ -1,28 +1,23 @@
 # In order to run the orchestrator which is at the highest level of Helao, all servers should be started.
 import sys
 import os
-sys.path.append(r'../config')
-sys.path.append(r'../action')
-sys.path.append(r'../server')
-sys.path.append(r'../helper')
-sys.path.append(r"..")
-
-from fastapi import FastAPI, BackgroundTasks
-import asyncio
-from util import *
-import datetime
-import hdfdict
-import h5py
-from fastapi import FastAPI, Query
-from typing import List
-import uvicorn
-from copy import copy
 import json
-from pydantic import BaseModel
-from mischbares_small import config
+import datetime
 import time
+from typing import List
+from copy import copy
+from fastapi import FastAPI
+import uvicorn
 import requests
-import numpy
+from pydantic import BaseModel
+import hdfdict
+import asyncio
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(helao_root)
+from util import *
+config = import_module(sys.argv[1]).config
 
 app = FastAPI(title="orchestrator",
               description="A fancy complex server", version=1.0)

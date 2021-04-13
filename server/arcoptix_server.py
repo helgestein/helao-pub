@@ -9,7 +9,7 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 from arcoptix_driver import arcoptix
-config = import_module(sys.argv[1][:-3]).config
+config = import_module(sys.argv[1]).config
 
 app = FastAPI(title="ocean driver", 
             description= " this is a fancy arctoptix ftir spectrometer driver server",

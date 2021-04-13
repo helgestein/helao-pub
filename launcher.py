@@ -8,7 +8,7 @@ from importlib import import_module
 
 helao_root = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(helao_root, 'config'))
-config = import_module(sys.argv[1][:-3]).config
+config = import_module(sys.argv[1]).config
 
 
 def launcher(apis, server, action, orchestrator, visualizer, process):
@@ -26,7 +26,7 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
                 subprocess.Popen(cmd, cwd=helao_root)
         elif api == "orchestrators":
             for o in orchestrator:
-                cmd = ["python", f"{api}/{o}.py"]
+                cmd = ["python", f"{api}/{o}.py", sys.argv[1]]
                 print(f"Starting {api}/{o}.py")
                 subprocess.Popen(cmd, cwd=helao_root)
         elif api == "visualizer":

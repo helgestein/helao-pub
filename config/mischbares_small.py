@@ -76,10 +76,6 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                                        'parseinstructions': ['recordsignal']}
 
 
-#{'Setpoint value': 0.01},{'Duration': 10}
-# 'applypotential','recordsignal'
-# C:\Users\Operator\Documents\auro-master\temp
-# C:\Users\SDC_1\Documents\deploy\helao-dev\temp
 config['echem']['procedures']['ocp'] = {'procedure': 'ocp',
                                         'setpoints': {'FHLevel': {'Duration': 20}},
                                         'plot': 'tCV',
@@ -147,7 +143,7 @@ config['lang'] = dict(vx=5, vy=5, vz=5, port='COM3',
                       safe_home_pos=[0.0, 0.0, 0.0],
                       # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                       safe_waste_pos=[30.0, 100.0, 0.0],
-                      safe_sample_pos=[9.0, 10.0, 0.0],
+                      safe_sample_pos=[5.0, 6.0, 0.0],
                       remove_drop=[30.0, 75.0, 12.26])  # 1.3 #4.5 #30.0, 80.0, 9.75
 
 # Configuration of the Arcoptix FTIR

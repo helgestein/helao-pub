@@ -10,9 +10,6 @@ from mischbares_small import config
 import time
 import json
 
-#I was thinking of rewriting formulation to use an allOn command again, and to manually turn off all pumps at start and/or finish to ensure allOn only calls primed pumps.
-#did not test this approach, and does not seem worth the effort to test, as what we are doing works fine now.
-
 app = FastAPI(title="Pump action server V1",
     description="This is a very fancy pump action server",
     version="1.0")
@@ -31,18 +28,25 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
     for c,p in zip(comprel,pumps):
         v = int(totalvol*c)
         s = int(speed*c)
-        res = requests.get("{}/pump/primePump".format(pumpurl), 
-                            params={'pump':p,'volume':v,'speed':s,
-                                    'direction': direction,'read':True}).json()
-        retl.append(res)
-    for p in pumps:
-        requests.get("{}/pump/runPump".format(pumpurl),params={'pump':p}).json()
+        if not v==0:
+            res = requests.get("{}/pump/primePump".format(pumpurl), 
+                                params={'pump':p,'volume':v,'speed':s,
+                                        'direction': direction,'read':True}).json()
+            retl.append(res)
+    
+    for c,p in zip(comprel,pumps):
+        v = int(totalvol*c)
+        s = int(speed*c)
+        if not v<0.001:
+            print(v)
+            requests.get("{}/pump/runPump".format(pumpurl),params={'pump':p}).json()
     retl.append(flushSerial()) #it is good to keep the buffer clean
-    retc = return_class(parameters= {'comprel':comprel,'pumps':pumps,'speed':speed,'totalvol':totalvol,'direction':direction,
+    retc = return_class(parameters= {'comprel':json.dumps(comprel),'pumps':json.dumps(pumps),'speed':speed,'totalvol':totalvol,'direction':direction,
                                      'units': {'speed':'µl/min','totalvol':'µL'}},
-                        data = retl)
+                        data = {i:retl[i] for i in range(len(retl))})
     time.sleep(60*totalvol/speed)
     return retc
+
 
 @app.get("/pumping/flushSerial/")
 def flushSerial():

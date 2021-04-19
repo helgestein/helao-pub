@@ -66,6 +66,8 @@ def moveDown(dz: float,steps: float,maxForce: float, threshold:float=22.6):
 
 @app.get("/motor/moveAbs")
 def moveAbsFar(dx: float, dy: float, dz: float):
+    print("the x and y position of the next point is {} and {}".format(dx, dy))
+    print("types are {} and {}".format(type(dx), type(dy))) 
     requests.get("{}/lang/moveAbsFar".format(url), params= {"dx": dx, "dy": dy, "dz": dz}).json()
     retc = return_class(parameters= {"dx": dx, "dy": dy, "dz": dz,'units':{'dx':'mm','dy':'mm','dz':'mm'}},data=None)
     return retc

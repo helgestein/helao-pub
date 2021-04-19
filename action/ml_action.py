@@ -9,7 +9,8 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
-
+import requests
+import pickle
 
 
 #import data_analysis.analysis_action as ana
@@ -37,15 +38,34 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 @app.get("/learning/activeLearning")
 def active_learning_random_forest_simulation(sources: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = "schwefel_function/data/key_y"):
+    """
+    if sources == "session":
+        sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+    else:
+        try:
+            sources = json.loads(sources)
+            if "session" in sources:
+                sources[sources.index("session")] = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+        except:
+            pass
+    """  
+    print("i am in learning")
+    with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
+        sources = pickle.load(banana)  
+    print(sources)
+    
+
     print("I am learning.")
-    next_exp_pos = d.active_learning_random_forest_simulation(
+    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(
         sources, x_query, save_data_path, addresses)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
-    print(next_exp_pos)
+    print(next_exp_dx, next_exp_dy, next_exp_pos)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
-    return str(next_exp_pos)
+    return next_exp_dx, next_exp_dy, str(next_exp_pos)
 
 if __name__ == "__main__":
     d = DataUtilSim()

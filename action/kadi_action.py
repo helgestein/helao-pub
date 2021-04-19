@@ -8,8 +8,8 @@ import os
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
-config = import_module(sys.argv[1]).config
-
+#config = import_module(sys.argv[1]).config
+from mischbares_small import config
 
 app = FastAPI(title="Kadi server V1", 
 description="This is a fancy kadi server", 

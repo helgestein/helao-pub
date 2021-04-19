@@ -24,7 +24,7 @@ config['servers'] = dict(pumpServer=dict(host="127.0.0.1", port=13370),
                          minipumpingServer=dict(host="127.0.0.1", port=13390),
                          measureServer=dict(host="127.0.0.1", port=13368),
                          analysisServer=dict(host="127.0.0.1", port=13369),
-                         learningServer=dict(host="127.0.0.1", port=13364))
+                         learningServer=dict(host="127.0.0.1", port=13363))
 
 config['kadi'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
                       PAT=r"78ac200f0379afb4873c7b0ee71f5489946158fe882466a9", group='2')
@@ -158,7 +158,7 @@ config['megsv'] = dict(port=5,
                        dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
 
 config['orchestrator'] = dict(
-    path=r'C:\Users\Operator\Desktop\idk')
+    path=r'C:\Users\LaborRatte23-3\Documents\data')
 
 config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1), dict(
     port='COM6', baud=9600, timeout=0.1)])

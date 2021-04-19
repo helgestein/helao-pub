@@ -57,7 +57,7 @@ class DataUtilSim:
         if type(y) != np.ndarray:
             y = np.array(y)
 
-        model = gaus_model().fit(X, y)
+        model = self.gaus_model().fit(X, y)
         alpha = model.alpha_
         mu, var = model.predict(X, return_std=True)
 
@@ -83,14 +83,14 @@ class DataUtilSim:
         Returns:
             [x_suggest]: [position of the next experiment]
         """
-        session = json.loads(session)
+        #session = json.loads(session)
         print(session)
         print(addresses)
         data = interpret_input(
             session, "session", json.loads(addresses))
         print(data)
 
-        key_x = [[eval(d[0])[0], eval(d[0])[1]] for d in data]
+        key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
         print(f"key_x: {key_x[0]}")
         # accumulated result at every step (n+1)
         y_query = [d[1] for d in data]
@@ -145,10 +145,11 @@ class DataUtilSim:
         next_exp = x_query[train_ix[-1]].tolist()
 
         print(f"predicitons are {pred}")
+        #For the sake of tracibility, we need to save the predicitons at every step 
         #for i in test_ix:
             #print(f"Are you float ?! {i}")
             #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
-        return next_exp
+        return next_exp[0], next_exp[1], next_exp
 
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):

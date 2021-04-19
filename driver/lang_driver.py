@@ -62,6 +62,9 @@ class langNet():
     def moveAbsXY(self,x,y,wait=True):
         xp,yp,zp = self.getPos()
         self.LS.MoveAbs(x,y,zp,0,wait)
+
+    def isMoving(self,):
+        pass
     
     def moveAbsZ(self, z, wait=True):
         #raise do not use this function 

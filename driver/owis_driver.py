@@ -26,11 +26,15 @@ class owis:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))
             time.sleep(.1)
         for i in range(len(self.sers)):
-            self.sers[i].write(bytes(f"AMPSHNT1={conf['serials'][i]['current']}\r",'utf-8'))
+            self.sers[i].write(bytes(f"AMPSHNT1={conf['currents'][i]['mode']}\r",'utf-8'))
+            time.sleep(.1)
+            self.sers[i].write(bytes(f"DRICUR1={conf['currents'][i]['drive']}\r",'utf-8'))
+            time.sleep(.1)
+            self.sers[i].write(bytes(f"HOLCUR1={conf['currents'][i]['hold']}\r",'utf-8'))
             time.sleep(.1)
             self.activate(i)
             time.sleep(.1)
-            self.configure(i)
+            self.configure(i,6)
             time.sleep(.1)
 
     #I am trying to be clever and program all these functions so that
@@ -48,9 +52,9 @@ class owis:
             time.sleep(.1)
             self.sers[motor].write(bytes('EFREE1\r','utf-8'))
 
-    def configure(self,motor:int=0):
+    def configure(self,motor:int=0,ref:int=6):
         time.sleep(.1)
-        self.sers[motor].write(bytes('REF1=6\r','utf-8'))
+        self.sers[motor].write(bytes(f'REF1={ref}\r','utf-8'))
         self.isMoving(motor)
 
     #motor has default so that you can avoid specifying in cases where there is only a single motor

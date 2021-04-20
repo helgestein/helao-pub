@@ -18,7 +18,6 @@ app = FastAPI(title="ocean driver",
             version= "1.0")
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 

@@ -17,7 +17,6 @@ app = FastAPI(title="owis driver",
             version= "1.0")
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
@@ -30,8 +29,8 @@ def activate(motor:int=0):
     
 
 @app.get("/owis/configure")
-def configure(motor:int=0):
-    o.configure(motor)
+def configure(motor:int=0,ref:int=6):
+    o.configure(motor,ref)
     retc = return_class(parameters={"motor": motor},data=None)
     return retc
 
@@ -46,6 +45,13 @@ def getPos():
     ret = o.getPos()
     retc = return_class(parameters=None,data= {"coordinates": ret,'units':{'coordinates':'microsteps (about .0001mm)'}})
     return retc
+
+@app.on_event("startup")
+@app.on_event("shutdown")
+def safe_pos():
+    for i in range(len(config['owis']['safe_positions'])):
+        if config['owis']['safe_positions'][i] != None:
+            o.move(config['owis']['safe_positions'][i],i)
 
 if __name__ == "__main__":
     o = owis(config['owis'])

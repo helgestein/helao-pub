@@ -102,35 +102,24 @@ async def doMeasurement(experiment: str):
                         params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
                 except:
                     pass
-            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))
-        
+            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))        
         elif server == 'learning':
-            print('learning')
             if params['sources'] == "session":
                 params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
-                print("if")
-                print(params['sources'])
             else:
-                print("else")
                 try:
                     sources = json.loads(params['sources'])
-
                     if "session" in sources:
                         sources[sources.index("session")] = session
-                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
-             
+                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)            
                 except:
                     pass
             try:
                 pointers = json.loads(params['pointers'])
-                print(pointers)
-
             except:
                 pointers = params['pointers']
             params = {x: params[x] for x in params if x != 'pointers'}
             res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['learningServer']['host'], config['servers']['learningServer']['port'], server, action))
-            print(f'res: {res}')
-            print(f'pointers: {pointers}')
             experiment = process_native_command(
                 "modify", experiment, vals=res, pointers=pointers)
             continue
@@ -141,6 +130,15 @@ async def doMeasurement(experiment: str):
         # with open(os.path.join(config['orchestrator']['path'],'{}_{}_{}_{}_{}.json'.format(time.time_ns(),str(substrate),str(ma),server,action)), 'w') as f:
         #    json.dump(res, f)
 
+#ways: store result of a previous calculation in session, and be clear that future things no where to find it (cumbersome to put a modify call everywhere)
+#have the call modify all future values at once (unable to hit experiments beyond the current one)
+#give actions global memory (I like this idea better...)
+#now what about looping feedback?
+#i probably have to make a few native commands for that, right?
+#so we want a loop that can repeat a series of actions, ending on an arbitrary condition?
+#we need to figure out how to encode the condition
+#additionally, given that I can modify an experiment but am not adding new ones, we are still blurring the line with experiments somewhat. need to clarify that with helge
+#we also might want regular conditionals... which I guess will take a native command too... still feels like just writing the lego programmming language but less intuitive...
 
 def process_native_command(command: str, experiment: dict, **kwargs):
     for key, value in kwargs.items():
@@ -217,20 +215,16 @@ def process_native_command(command: str, experiment: dict, **kwargs):
         params = experiment['params']
         vals = kwargs['vals']
         pointers = kwargs['pointers']
-        print(f"vals: {vals}")
-        print(f"pointers: {pointers}")
         if not isinstance(vals, list):
             vals = [vals]
         if not isinstance(pointers, list):
             pointers = [pointers]
-
         for val, pointer in zip(vals, pointers):
             if dict_address(pointer, params) != "?":
                 raise Exception(
                     f"pointer {pointer} is not intended to be written to")
             dict_address_set(pointer, params, val)
         experiment['params'] = params
-        print(f"params:             {params}")
     else:
         print("error: native command not recognized")
     return experiment
@@ -246,13 +240,16 @@ async def memory():
     sessionname = None
     global experiment_queue
     experiment_queue = asyncio.Queue()
-    asyncio.create_task(infl())
+    global task
+    task = asyncio.create_task(infl())
     global loop
     loop = asyncio.get_event_loop()
 
 
 @app.on_event("shutdown")
 def disconnect():
+    global task
+    task.cancel()
     if session != None:
         print('saving work on session close -- do not exit terminal')
         hdfdict.dump(session, os.path.join(os.path.join(config['orchestrator']['path'], '_'.join(

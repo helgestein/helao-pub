@@ -8,6 +8,8 @@ class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
+        if isinstance(obj, np.int32):
+            return int(obj)
         return JSONEncoder.default(self, obj)
 
 

@@ -25,8 +25,8 @@ def test_fnc(sequence):
 
 
 # real run
-x, y = np.meshgrid([0.25 * i for i in range(20)],
-                   [0.25 * i for i in range(20)])
+x, y = np.meshgrid([2.5 * i for i in range(20)],
+                   [2.5 * i for i in range(20)])
 x, y = x.flatten(), y.flatten()
 x_query = np.array([[i, j] for i, j in zip(x, y)])
 first_arbitary_choice = random.choice(x_query)
@@ -36,32 +36,44 @@ dz = config['lang']['safe_sample_pos'][2]
 
 # need to specify the session name
 
-substrate = 30
+substrate = 34
 # in the first move we just choose one arbitary point
 
 
 test_fnc(dict(soe=['orchestrator/start'], params={'start': None}, meta=dict(substrate=substrate, ma=[
          config['lang']['safe_sample_pos'][0], config['lang']['safe_sample_pos'][1]], r=0.005)))
-
-run_sequence = dict(soe=['measure/schwefelFunction_0', 'analysis/dummy_0'],
-                    params=dict(schwefelFunction_0=dict(
-                        measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="C:/Users/Operator/Desktop/idk/schwefel_fnc_{}.json".format(0)),
-    dummy_0=dict(exp_num='measurement_no_0', sources='session')),  # key_y should be the output of the schwefel function
-    meta=dict(substrate=substrate, ma=[round(dx0 * 100)*10, round(dy0 * 100)*10],  r=0.005))
+# moveDown_0 = dict(dz=0.213, steps=120, maxForce=0.44, threshold= 0.320),
+# ,'motor/moveDown_0'
+run_sequence = dict(soe=['motor/moveWaste_0', 'motor/RemoveDroplet_0','motor/moveSample_0', 
+                        'motor/moveAbs_0','motor/moveDown_0','measure/schwefelFunction_0', 'analysis/dummy_0'],
+                    params=dict(moveWaste_0= dict(x=0, y=0, z=0),  
+                                RemoveDroplet_0= dict(x=0, y=0, z=0), 
+                                moveSample_0= dict(x=0, y=0, z=0), 
+                                moveAbs_0 = dict(dx=dx0, dy=dy0, dz=dz),
+                                moveDown_0 = dict(dz=0.210, steps=120, maxForce=0.44, threshold= 0.320),
+                                schwefelFunction_0=dict(measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="C:/Users/LaborRatte23-3/Documents/schwefel_res/schwefel_fnc_{}.json".format(0)),
+                                dummy_0=dict(exp_num='measurement_no_0', sources='session')), #, sources='session'  # key_y should be the output of the schwefel function
+                                meta=dict(substrate=substrate, ma=[round(dx0 * 100)*10, round(dy0 * 100)*10],  r=0.005))
 test_fnc(run_sequence)
 #json.dumps(['moveAbs_0/dx', 'moveAbs_0/dy', 'schwefel_function_0/measurement_area'])
 #addresses=json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
-for j in range(1, 400, 1):
+#,'motor/moveDown_0'
+# ,'motor/moveDown_0'
+for j in range(400):
     # according to the output of the active learning, we need to feed the nexr pos to motor
+    # sources='session',
     exp_num = 'measurement_no_{}'.format(j)
     print(exp_num)
-    run_sequence = dict(soe=['learning/activeLearning_0', 'measure/schwefelFunction_0', 'analysis/dummy_0'],
-                        params=dict(activeLearning_0=dict(sources='session', x_query=x_query, save_data_path='C:/Users/Operator/Desktop/idk/ml_analysis_{}.json'.format(exp_num), addresses=json.dumps(["schwefelFunction/data/parameters/measurement_area","dummy/data/data/key_y"]), pointers='schwefelFunction_0/measurement_area'),
-                                    schwefelFunction_0=dict(
-                                        measurement_area='?', save_data_to="C:/Users/Operator/Desktop/idk/schwefel_fnc_{}.json".format(exp_num)),
-                                    dummy_0=dict(exp_num=exp_num, sources='session')),  # key_y should be the output of the schwefel function)
-                        meta=dict(substrate=substrate, ma=[round(2 * 100)*10, round(2 * 100)*10],  r=0.005))
-
+    run_sequence = dict(soe=['learning/activeLearning_0','motor/moveWaste_0', 'motor/RemoveDroplet_0','motor/moveSample_0', 'motor/moveAbs_0' ,'motor/moveDown_0','measure/schwefelFunction_0', 'analysis/dummy_0'],
+                        params=dict(activeLearning_0=dict(sources='session', x_query=x_query, save_data_path='C:/Users/LaborRatte23-3/Documents/anaylse_res/ml_analysis_{}.json'.format(exp_num), addresses=json.dumps(["moveAbs/data/parameters/dx", "moveAbs/data/parameters/dy", "schwefelFunction/data/parameters/measurement_area","dummy/data/data/key_y"]), pointers=json.dumps(['moveAbs_0/dx', 'moveAbs_0/dy','schwefelFunction_0/measurement_area'])),
+                                    moveWaste_0= dict(x=0, y=0, z=0),  
+                                    RemoveDroplet_0= dict(x=0, y=0, z=0), 
+                                    moveSample_0= dict(x=0, y=0, z=0), 
+                                    moveAbs_0 = dict(dx='?', dy='?', dz=dz), 
+                                    moveDown_0 = dict(dz=0.210, steps=120, maxForce=0.44, threshold= 0.320),
+                                    schwefelFunction_0=dict(measurement_area='?', save_data_to="C:/Users/LaborRatte23-3/Documents/schwefel_res/schwefel_fnc_{}.json".format(exp_num)),
+                                    dummy_0=dict(exp_num=exp_num, sources='session')), #, sources='session'  # key_y should be the output of the schwefel function)
+                                    meta=dict(substrate=substrate, ma=[round(2 * 100)*10, round(2 * 100)*10],  r=0.005))
     test_fnc(run_sequence)
 
 

@@ -13,6 +13,8 @@ from celery import group
 import hdfdict
 import os
 import requests
+import pickle
+
 
 # implement the analysis action
 
@@ -29,7 +31,7 @@ filepath = "C:/Users/jkflowers/Downloads"
 
 
 @app.get("/analysis/dummy")
-def bridge(exp_num: str, sources: str):
+def bridge(exp_num: str, sources: str): #
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
     Args:
@@ -38,7 +40,24 @@ def bridge(exp_num: str, sources: str):
 
     Returns:
         [dictionaty]: [measurement area (x_pos, y_pos) and the schwefel function result]
+    
+
+    if sources == "session":
+        sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+        print(sources)
+    else:
+        try:
+            sources = json.loads(sources)
+            if "session" in sources:
+                sources[sources.index("session")] = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+        except:
+            pass
     """
+
+    with open('C:/Users/LaborRatte23-3/Documents/session/sessionAnalysis.pck', 'rb') as banana:
+        sources = pickle.load(banana)
     # here we need to return the key_y which is the schwefel function result and the corresponded measurement area
     # i.e pos: (dx, dy) -> schwefel(dx, dy)
     # We need to get the index of the perfomed experiment

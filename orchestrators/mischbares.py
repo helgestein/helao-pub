@@ -17,7 +17,9 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(helao_root)
 from util import *
-config = import_module(sys.argv[1]).config
+#config = import_module(sys.argv[1]).config
+from mischbares_small import config
+import pickle
 
 app = FastAPI(title="orchestrator",
               description="A fancy complex server", version=1.0)
@@ -27,6 +29,11 @@ app = FastAPI(title="orchestrator",
 async def sendMeasurement(experiment: str):
     await experiment_queue.put(experiment)
 
+@app.get("/orchestrator/getSession")
+async def getSession():
+    global session
+    print(session)
+    return session
 
 async def infl():
     while True:
@@ -61,6 +68,7 @@ async def doMeasurement(experiment: str):
         session[f"run_{experiment['meta']['run']}"].update({f"measurement_no_{experiment['meta']['measurement_number']}": {
                                                            'meta': {'measurement_areas': experiment['meta']['measurement_areas']}}})
     for action_str in experiment['soe']:
+        print(action_str)
         experiment['meta'].update(dict(current_action=action_str))
         # Beispiel: action: 'movement' und fnc : 'moveToHome_0
         server, fnc = action_str.split('/')
@@ -70,6 +78,7 @@ async def doMeasurement(experiment: str):
             res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['movementServer']['host'], config['servers']['movementServer']['port'], server, action))
         elif server == 'motor':
             res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['motorServer']['host'], config['servers']['motorServer']['port'], server, action))
+            print(res)        
         elif server == 'pumping':
             res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['pumpingServer']['host'], config['servers']['pumpingServer']['port'], server, action))
         elif server == 'minipumping':
@@ -93,27 +102,38 @@ async def doMeasurement(experiment: str):
             continue
         elif server == 'analysis':
             if params['sources'] == "session":
-                params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
-            else:
-                try:
-                    sources = json.loads(params['sources'])
-                    if "session" in sources:
-                        sources[sources.index("session")] = session
-                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
-                except:
-                    pass
-            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))        
+                with open('C:/Users/LaborRatte23-3/Documents/session/sessionAnalysis.pck', 'wb') as banana:
+                    pickle.dump(session, banana)
+                #params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
+            #else:
+                #try:
+                    #sources = json.loads(params['sources'])
+                    #if "session" in sources:
+                        
+                        #sources[sources.index("session")] = session
+                        #params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
+                #except:
+                    #pass
+            res = await loop.run_in_executor(None, lambda x: requests.get(x, params=params).json(), "http://{}:{}/{}/{}".format(config['servers']['analysisServer']['host'], config['servers']['analysisServer']['port'], server, action))
+        
         elif server == 'learning':
             if params['sources'] == "session":
-                params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
-            else:
-                try:
-                    sources = json.loads(params['sources'])
-                    if "session" in sources:
-                        sources[sources.index("session")] = session
-                        params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)            
-                except:
-                    pass
+                with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'wb') as banana:
+                    pickle.dump(session, banana)
+                #params['sources'] = json.dumps(session, cls=NumpyArrayEncoder)
+                #print("if")
+                #print(params['sources'])
+            #else:
+                #print("else")
+                #try:
+                    #sources = json.loads(params['sources'])
+
+                    #if "session" in sources:
+                        #sources[sources.index("session")] = session
+                        #params['sources'] = json.dumps(sources, cls=NumpyArrayEncoder)
+             
+                #except:
+                    #pass
             try:
                 pointers = json.loads(params['pointers'])
             except:

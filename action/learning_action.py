@@ -20,9 +20,9 @@ def demo(session:str,experiment:str):
     experiment = json.loads(experiment)
     #so, again, how do we get the analysis here?
     #need the input to constrain the values which arbitrary parameters can take
-    #this will not jive with pydantic
+    #this will not give with pydantic
+    # need ot think how we want to give the data from orchestrator in the case that we did not want to use fastapi and just celery alone 
 
-    #stupidest possible demo
     for para in experiment['params']:
         for item in para:
             if item == '$' or '$' in item:

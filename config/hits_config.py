@@ -11,7 +11,7 @@ config['servers'] = dict(kadiServer = dict(host="127.0.0.1", port=13376),
                          tableServer = dict(host= "127.0.0.1", port= 13388))
 
 config['kadi'] = dict(host = r"https://polis-kadi4mat.iam-cms.kit.edu",
-            PAT = r"78ac200f0379afb4873c7b0ee71f5489946158fe882466a9",group='2')
+            PAT = r"a1cfccb7e5bc5f4c0d37840cdb865e8a3fc5da119249ece5",group='2')
 
 #r'C:\Program Files\ARCoptix\ARCspectro Rocket 2.4.9.13 - x64\ARCsoft.ARCspectroMd'
 #i don't know why a relative path is needed in scripts. it is not in terminal. but here we are.

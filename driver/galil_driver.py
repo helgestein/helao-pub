@@ -14,6 +14,8 @@ import pathlib
 # import copy
 import asyncio
 from classes import transformxy
+from classes import move_modes
+
 
 
 driver_path = os.path.dirname(__file__)
@@ -72,10 +74,19 @@ class galil:
         if "Ain_id" not in self.config_dict:
             self.config_dict["Ain_id"] = dict()
 
+        # this is only here for testing purposes to supply a matrix
         if "Transfermatrix" not in self.config_dict:
             self.config_dict["Transfermatrix"] = [[1,0,0],[0,1,0],[0,0,1]]
+       
+        if "M_instr" not in self.config_dict:
+           self.config_dict["M_instr"] = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+        
         self.xyTransfermatrix = np.matrix(self.config_dict["Transfermatrix"])
 
+        # Mplatexy is identity matrix by default
+        self.transform = transformxy(self.config_dict["M_instr"])
+        # only here for testing: will overwrite the default identity matrix
+        self.transform.update_Mplatexy(self.config_dict["Transfermatrix"])
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -143,8 +154,8 @@ class galil:
             ymotor = self.wsmotordata_buffer['position'][idx]
         else:
             ymotor = None
-        platexy = transformxy.transform_platexy_to_motorxy(self.xyTransfermatrix,[xmotor, ymotor, 1])
-        self.wsmotordata_buffer['platexy'] = [platexy[0,0], platexy[0,1], 1]
+        platexy = self.transform.transform_platexy_to_motorxy([xmotor, ymotor, 1])
+        self.wsmotordata_buffer['platexy'] = [platexy[0], platexy[1], 1]
 
 
     async def motor_move(self, multi_d_mm, multi_axis, speed, mode):
@@ -252,20 +263,20 @@ class galil:
             try:
                 # the logic here is that we assemble a command sequence
                 # here we decide if we move relative, home, or move absolute
-                if mode not in ["relative", "absolute", "homing"]:
-                    raise cmd_exception
                 if stopping:
                     #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
                     cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
                 else:
                     cmd_seq = ["SP{}={}".format(ax, speed)]
-                if mode == "relative":
+                if mode == move_modes.relative:
                     cmd_seq.append("PR{}={}".format(ax, counts))
-                if mode == "homing":
+                elif mode == move_modes.homing:
                     cmd_seq.append("HM{}".format(ax))
-                if mode == "absolute":
+                elif mode == move_modes.absolute:
                     # now we want an abolute position
                     cmd_seq.append("PA{}={}".format(ax, counts))
+                else:
+                    raise cmd_exception
                 cmd_seq.append("BG{}".format(ax))
     
                 timeofmove.append(abs(counts/speed))
@@ -369,139 +380,6 @@ class galil:
             "err_code": ret_err_code,
             "counts": ret_counts
         }
-
-
-    async def motor_move_live(self, d_mm, axis, speed, mode):
-        # this function moves the motor by a set amount of milimeters
-        # you have to specify the axis,
-        # if no axis is specified this function throws an error
-        # if no speed is specified we use the default slow speed
-        # as specified in the setupdictm
-
-        # example: move the motor 5mm to the positive direction:
-        # motor_move(5,'x')
-        # example: move the motor to absolute 0 mm
-        # motor_move(5,'x',mode='absolute')
-        # home the motor at low speed (the distance is not used)
-        # motor_move(5,'x',mode='homing',speed=10000)
-        # the server call would look like:
-        # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=relative
-        # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=absolute
-
-
-        if self.config_dict["estop_motor"] == True:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": None,
-                "err_dist": None,
-                "err_code": "estop",
-                "counts": None
-            }
-
-
-        # first we check if we have the right axis specified
-        if axis in self.config_dict["axis_id"].keys():
-            ax = self.config_dict["axis_id"][axis]
-        else:
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": d_mm,
-                "err_dist": None,
-                "err_code": "setup",
-            }
-
-        # check if the motors are moving if so return an error message
-        # recalculate the distance in mm into distance in counts
-        try:
-            float_counts = (
-                d_mm / self.config_dict["count_to_mm"][ax]
-            )  # calculate float dist from steupd
-            counts = int(np.floor(float_counts))  # we can only mode full counts
-            # save and report the error distance
-            error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
-
-            # check if a speed was upplied otherwise set it to standart
-            if speed == None:
-                speed = self.config_dict["def_speed_count_sec"]
-            else:
-                speed = int(np.floor(speed))
-
-            if speed > self.config_dict["max_speed_count_sec"]:
-                speed = self.config_dict["max_speed_count_sec"]
-            self._speed = speed
-        except Exception:
-            # something went wrong in the numerical part so we give that as feedback
-            return {
-                "moved_axis": None,
-                "speed": None,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": d_mm,
-                "err_dist": None,
-                "err_code": "numerical",
-            }
-        try:
-            # the logic here is that we assemble a command sequence
-            # here we decide if we move relative, home, or move absolute
-            if mode not in ["relative", "absolute", "homing"]:
-                raise cmd_exception
-
-            # stops all other motion
-            #cmd_seq = ["AB", "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-            #cmd_seq = ["ST{}".format(ax), "MO{}".format(ax), "SH{}".format(ax), "SP{}={}".format(ax, speed)]
-            # other motion won't be affected
-            cmd_seq = ["SP{}={}".format(ax, speed)]
-            if mode == "relative":
-                cmd_seq.append("PR{}={}".format(ax, counts))
-            if mode == "homing":
-                cmd_seq.append("HM{}".format(ax))
-            if mode == "absolute":
-                # now we want an abolute position
-                cmd_seq.append("PA{}={}".format(ax, counts))
-            cmd_seq.append("BG{}".format(ax))
-
-            ret = ""
-            for cmd in cmd_seq:
-                _ = self.c(cmd)
-                ret.join(_)
-            while await self.query_axis_moving(axis)["motor_status"] == ["moving"]:
-                d = {
-                    "moved_axis": ax,
-                    "speed": speed,
-                    "accepted_rel_dist": None,
-                    "supplied_rel_dist": d_mm,
-                    "err_dist": error_distance,
-                    "err_code": 0,
-                    "position": await self.query_axis_position(ax),
-                }
-                d = json.dumps(d)
-                yield d
-            d = {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": d_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "position": await self.query_axis_position(ax),
-            }
-            d = json.dumps(d)
-            yield d
-        except Exception:
-            d = {
-                "moved_axis": ax,
-                "speed": speed,
-                "accepted_rel_dist": None,
-                "supplied_rel_dist": d_mm,
-                "err_dist": error_distance,
-                "err_code": 0,
-                "position": await self.query_axis_position(ax),
-            }
-            d = json.dumps(d)
-            yield d
 
 
     async def motor_disconnect(self):

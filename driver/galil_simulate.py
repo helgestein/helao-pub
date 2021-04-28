@@ -13,6 +13,7 @@ from collections import defaultdict
 # import copy
 import asyncio
 from classes import transformxy
+from classes import move_modes
 
 driver_path = os.path.dirname(__file__)
 
@@ -32,12 +33,19 @@ class galil:
         # self.c = self.g.GCommand  # alias the command callable
         self.cycle_lights = False
 
-
+        # this is only here for testing purposes to supply a matrix
         if "Transfermatrix" not in self.config_dict:
             self.config_dict["Transfermatrix"] = [[1,0,0],[0,1,0],[0,0,1]]
 
+        if "M_instr" not in self.config_dict:
+           self.config_dict["M_instr"] = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+
         self.xyTransfermatrix = np.matrix(self.config_dict["Transfermatrix"])
 
+        # Mplatexy is identity matrix by default
+        self.transform = transformxy(self.config_dict["M_instr"])
+        # only here for testing: will overwrite the default identity matrix
+        self.transform.update_Mplatexy(self.config_dict["Transfermatrix"])
 
 
 
@@ -140,8 +148,8 @@ class galil:
             ymotor = self.wsmotordata_buffer['position'][idx]
         else:
             ymotor = None
-        platexy = transformxy.transform_platexy_to_motorxy(self.xyTransfermatrix,[xmotor, ymotor, 1])
-        self.wsmotordata_buffer['platexy'] = [platexy[0,0], platexy[0,1], 1]
+        platexy = self.transform.transform_platexy_to_motorxy([xmotor, ymotor, 1])
+        self.wsmotordata_buffer['platexy'] = [platexy[0], platexy[1], 1]
 
 
     # single axis motion, executes after building command string
@@ -246,8 +254,6 @@ class galil:
             if True:
                 # the logic here is that we assemble a command sequence
                 # here we decide if we move relative, home, or move absolute
-                if mode not in ["relative", "absolute", "homing"]:
-                    raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
     
                 if stopping:  # interrupt current motion
                     self.start_time = time.time()
@@ -256,19 +262,19 @@ class galil:
                 # else:  # if not stopping, set speed?, condition seems unrelated
                     # cmd_seq = ["SP{}={}".format(ax, speed)]
     
-                if mode == "relative":
+                if mode == move_modes.relative:
                     # cmd_seq.append("PR{}={}".format(ax, counts))
                     dist = counts
                     self.axlast[ax] = self.axdict[ax]
                     self.axdict[ax] += counts
     
-                if mode == "homing":
+                elif mode == move_modes.homing:
                     # cmd_seq.append("HM{}".format(ax))
                     dist = np.abs(self.axdict[ax])
                     self.axlast[ax] = self.axdict[ax]
                     self.axdict[ax] = 0
     
-                if mode == "absolute":
+                elif mode == move_modes.absolute:
                     # now we want an absolute position
                     # identify which axis we are talking about
                     # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
@@ -279,7 +285,10 @@ class galil:
                     dist = np.abs(counts - self.axdict[ax])
                     self.axlast[ax] = self.axdict[ax]
                     self.axdict[ax] = counts
-    
+
+                else:
+                    raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
+
                 # cmd_seq.append("BG{}".format(ax))
     
                 motion_time = 1.0*abs(dist/speed)
@@ -369,152 +378,6 @@ class galil:
             "counts": ret_counts
         }
 
-    # def motor_move_live(self, d_mm, axis, speed, mode):
-    #     # this function moves the motor by a set amount of millimeters
-    #     # you have to specify the axis,
-    #     # if no axis is specified this function throws an error
-    #     # if no speed is specified we use the default slow speed
-    #     # as specified in the self.config_dictict
-
-    #     # example: move the motor 5mm to the positive direction:
-    #     # motor_move(5,'x')
-    #     # example: move the motor to absolute 0 mm
-    #     # motor_move(5,'x',mode='absolute')
-    #     # home the motor at low speed (the distance is not used)
-    #     # motor_move(5,'x',mode='homing',speed=10000)
-    #     # the server call would look like:
-    #     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=relative
-    #     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x&mode=absolute
-
-    #     # first we check if we have the right axis specified
-    #     if axis in self.config_dict["axis_id"].keys():
-    #         ax = self.config_dict["axis_id"][axis]
-    #     else:
-    #         return {
-    #             "moved_axis": None,
-    #             "speed": None,
-    #             "accepted_rel_dist": None,
-    #             "supplied_rel_dist": d_mm,
-    #             "err_dist": None,
-    #             "err_code": "setup",
-    #         }
-
-    #     # check if the motors are moving if so return an error message
-    #     # recalculate the distance in mm into distance in counts
-    #     if time.time() < self.stop_time:
-    #         return {
-    #             "moved_axis": None,
-    #             "speed": None,
-    #             "accepted_rel_dist": None,
-    #             "supplied_rel_dist": d_mm,
-    #             "err_dist": None,
-    #             "err_code": "motor_in_motion",
-    #         }
-
-    #     try:
-    #         float_counts = (
-    #             d_mm / self.config_dict["count_to_mm"][ax]
-    #         )  # calculate float dist from self.config_dict
-    #         counts = int(np.floor(float_counts))  # we can only mode full counts
-    #         # save and report the error distance
-    #         error_distance = self.config_dict["count_to_mm"][ax] * (float_counts - counts)
-
-    #         # check if a speed was supplied otherwise set it to standard
-    #         if speed == None:
-    #             speed = self.config_dict["def_speed_count_sec"]
-    #         else:
-    #             speed = int(np.floor(speed))
-
-    #         if speed > self.config_dict["max_speed_count_sec"]:
-    #             speed = self.config_dict["max_speed_count_sec"]
-    #         self._speed = speed
-    #     except:
-    #         # something went wrong in the numerical part so we give that as feedback
-    #         return {
-    #             "moved_axis": None,
-    #             "speed": None,
-    #             "accepted_rel_dist": None,
-    #             "supplied_rel_dist": d_mm,
-    #             "err_dist": None,
-    #             "err_code": "numerical",
-    #         }
-    #     try:
-    #         # the logic here is that we assemble a command sequence
-    #         # here we decide if we move relative, home, or move absolute
-    #         if mode not in ["relative", "absolute", "homing"]:
-    #             raise cmd_exception("mode not one of {'relative', 'absolute', 'homing'}")
-
-    #         # cmd_seq = ["AB", "MO", "SH", "SP{}={}".format(ax, speed)]
-    #         if mode == "relative":
-    #             # cmd_seq.append("PR{}={}".format(ax, counts))
-    #             dist = counts
-    #             self.axlast[ax] = self.axdict[ax]
-    #             self.axdict[ax] += counts
-
-    #         if mode == "homing":
-    #             # cmd_seq.append("HM{}".format(ax))
-    #             dist = np.abs(self.axdict[ax])
-    #             self.axlast[ax] = self.axdict[ax]
-    #             self.axdict[ax] = 0
-
-    #         if mode == "absolute":
-    #             # now we want an absolute position
-    #             # identify which axis we are talking about
-    #             # axlett = {l: i for i, l in enumerate(self.config_dict["axlett"])}
-    #             # cmd_str = "PA " + ",".join(
-    #             #     str(0) if ax != lett else str(counts) for lett in self.config_dict["axlett"]
-    #             # )
-    #             # cmd_seq.append(cmd_str)
-    #             dist = np.abs(counts - self.axdict[ax])
-    #             self.axlast[ax] = self.axdict[ax]
-    #             self.axdict[ax] = counts
-
-    #         # cmd_seq.append("BG{}".format(ax))
-
-    #         # ret = ""
-    #         # for cmd in cmd_seq:
-    #         #     _ = self.c(cmd)
-    #         #     ret.join(_)
-
-    #         motion_time = 1.0 * dist / speed
-    #         self.start_time = time.time()
-    #         self.stop_time = time.time() + motion_time
-
-    #         while await self.query_moving()["motor_status"] == "moving":
-    #             d = {
-    #                 "moved_axis": ax,
-    #                 "speed": speed,
-    #                 "accepted_rel_dist": None,
-    #                 "supplied_rel_dist": d_mm,
-    #                 "err_dist": error_distance,
-    #                 "err_code": 0,
-    #                 "position": await self.query_all_axis_positions(),
-    #             }
-    #             d = json.dumps(d)
-    #             yield d
-    #         d = {
-    #             "moved_axis": ax,
-    #             "speed": speed,
-    #             "accepted_rel_dist": None,
-    #             "supplied_rel_dist": d_mm,
-    #             "err_dist": error_distance,
-    #             "err_code": 0,
-    #             "position": await self.query_all_axis_positions(),
-    #         }
-    #         d = json.dumps(d)
-    #         yield d
-    #     except:
-    #         d = {
-    #             "moved_axis": ax,
-    #             "speed": speed,
-    #             "accepted_rel_dist": None,
-    #             "supplied_rel_dist": d_mm,
-    #             "err_dist": error_distance,
-    #             "err_code": 0,
-    #             "position": await self.query_all_axis_positions(),
-    #         }
-    #         d = json.dumps(d)
-    #         yield d
 
     async def motor_disconnect(self):
         # try:

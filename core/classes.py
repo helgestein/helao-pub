@@ -125,13 +125,16 @@ class StatusHandler:
             self.q.task_done()
         await self.q.put(self.dict)
 
-    async def set_run(self, uuid: str, action_name: str):
+    async def set_run(self, uuid: str = 'dummy', action_name: str = 'dummy'):
         self.is_running = True
         self.is_idle = False
-        self.states[action_name].append(uuid)
+        if action_name not in self.states:
+            self.states[action_name] = [uuid]
+        else:
+            self.states[action_name].append(uuid)
         await self.update('running')
 
-    async def set_idle(self, uuid: str, action_name: str):
+    async def set_idle(self, uuid: str = 'dummy', action_name: str = 'dummy'):
         self.states[action_name].remove(uuid)
         if all([len(v)==0 for v in self.states.values()]):
             self.is_idle = True
@@ -265,22 +268,269 @@ class Action:
         self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
 
 
-
 class transformxy():
-    def transform_platexy_to_motorxy(M, platexy):
-        motorxy = np.dot(np.asmatrix(M),np.asarray(platexy))
+    # Updating plate calibration will automatically update the system transformation
+    # matrix. When angles are changed updated them also here and run update_Msystem 
+    def __init__(self, Minstr, seq = None):
+        # instrument specific matrix
+        self.Minstrxyz = np.asmatrix(np.identity(4))
+        self.Minstr = np.asmatrix(np.identity(4))
+        # plate Matrix
+        self.Mplate = np.asmatrix(np.identity(4))
+        self.Mplatexy = np.asmatrix(np.identity(3))
+        # system Matrix
+        self.M = np.asmatrix(np.identity(4))
+        self.Minv = np.asmatrix(np.identity(4))
+        # need to update the angles here each time the axis is rotated
+        self.alpha = 0
+        self.beta = 0
+        self.gamma = 0
+        self.seq = seq
+        
+        # pre calculates the system Matrix M
+        self.update_Msystem()
+
+
+    def transform_platexy_to_motorxy(self, platexy):
+        '''simply calculates motorxy based on platexy
+        plate warping (z) will be a different call'''
+        platexy = np.asarray(platexy)
+        if len(platexy) == 3:
+            platexy = np.insert(platexy,2,0)
+        # for _ in range(4-len(platexy)):
+        #     platexy = np.append(platexy,1)
+        motorxy = np.dot(self.M,platexy)
+        motorxy = np.delete(motorxy,2)
+        motorxy = np.array(motorxy)[0]
         return motorxy
 
-    def transform_motorxy_to_platexy(M, motorxy):
-        print(np.asarray(motorxy))
-        print(M)
-        try:
-            platexy = np.dot(np.asmatrix(M).I,np.asarray(motorxy))
-        except Exception:
-            print('------------------------------ Matrix singular ---------------------------')
-            platexy = np.array([[None, None, None]])
+
+    def transform_motorxy_to_platexy(self, motorxy):
+        '''simply calculates platexy from current motorxy'''
+        motorxy = np.asarray(motorxy)
+        if len(motorxy) == 3:
+            motorxy = np.insert(motorxy,2,0)
+        # for _ in range(4-len(motorxy)):
+        #     motorxy = np.append(motorxy,1)
+        platexy = np.dot(self.Minv,motorxy)
+        platexy = np.delete(platexy,2)
+        platexy = np.array(platexy)[0]
         return platexy
 
+
+    def Rx(self):
+        '''returns rotation matrix around x-axis'''
+        alphatmp = np.mod(self.alpha, 360) # this actually takes care of neg. values
+        # precalculate some common angles for better accuracy and speed
+        if alphatmp == 0:# or alphatmp == -0.0:
+            return np.asmatrix(np.identity(4))
+        elif alphatmp == 90:# or alphatmp == -270:
+            return np.matrix([[1,0,0,0],
+                                [0,0,-1,0],
+                                [0,1,0,0],
+                                [0,0,0,1]])
+        elif alphatmp == 180:# or alphatmp == -180:
+            return np.matrix([[1,0,0,0],
+                                [0,-1,0,0],
+                                [0,0,-1,0],
+                                [0,0,0,1]])
+        elif alphatmp == 270:# or alphatmp == -90:
+            return np.matrix([[1,0,0,0],
+                                [0,0,1,0],
+                                [0,-1,0,0],
+                                [0,0,0,1]])
+        else:
+            return np.matrix([[1,0,0,0],
+                                [0,np.cos(np.pi/180*alphatmp),-1.0*np.sin(np.pi/180*alphatmp),0],
+                                [0,np.sin(np.pi/180*alphatmp),np.cos(np.pi/180*alphatmp),0],
+                                [0,0,0,1]])
+
+
+    def Ry(self):
+        '''returns rotation matrix around y-axis'''
+        betatmp = np.mod(self.beta, 360) # this actually takes care of neg. values
+        # precalculate some common angles for better accuracy and speed
+        if betatmp == 0:# or betatmp == -0.0:
+            return np.asmatrix(np.identity(4))
+        elif betatmp == 90:# or betatmp == -270:
+            return np.matrix([[0,0,1,0],
+                                [0,1,0,0],
+                                [-1,0,0,0],
+                                [0,0,0,1]])
+        elif betatmp == 180:# or betatmp == -180:
+            return np.matrix([[-1,0,0,0],
+                                [0,1,0,0],
+                                [0,0,-1,0],
+                                [0,0,0,1]])
+        elif betatmp == 270:# or betatmp == -90:
+            return np.matrix([[0,0,-1,0],
+                                [0,1,0,0],
+                                [1,0,0,0],
+                                [0,0,0,1]])
+        else:
+            return np.matrix([[np.cos(np.pi/180*self.beta),0,np.sin(np.pi/180*self.beta),0],
+                                [0,1,0,0],
+                                [-1.0*np.sin(np.pi/180*self.beta),0,np.cos(np.pi/180*self.beta),0],
+                                [0,0,0,1]])
+
+
+    def Rz(self):
+        '''returns rotation matrix around z-axis'''
+        gammatmp = np.mod(self.gamma, 360) # this actually takes care of neg. values
+        # precalculate some common angles for better accuracy and speed
+        if gammatmp == 0:# or gammatmp == -0.0:
+            return np.asmatrix(np.identity(4))
+        elif gammatmp == 90:# or gammatmp == -270:
+            return np.matrix([[0,-1,0,0],
+                                [1,0,0,0],
+                                [0,0,1,0],
+                                [0,0,0,1]])
+        elif gammatmp == 180:# or gammatmp == -180:
+            return np.matrix([[-1,0,0,0],
+                                [0,-1,0,0],
+                                [0,0,1,0],
+                                [0,0,0,1]])
+        elif gammatmp == 270:# or gammatmp == -90:
+            return np.matrix([[0,1,0,0],
+                                [-1,0,0,0],
+                                [0,0,1,0],
+                                [0,0,0,1]])
+        else:
+            return np.matrix([[np.cos(np.pi/180*gammatmp),-1.0*np.sin(np.pi/180*gammatmp),0,0],
+                                [np.sin(np.pi/180*gammatmp),np.cos(np.pi/180*gammatmp),0,0],
+                                [0,0,1,0],
+                                [0,0,0,1]])
+
+    
+    def Mx(self):
+        '''returns Mx part of Minstr'''
+        Mx = np.asmatrix(np.identity(4))
+        Mx[0,0:4] = self.Minstrxyz[0,0:4]
+        return Mx
+
+
+    def My(self):
+        '''returns My part of Minstr'''
+        My = np.asmatrix(np.identity(4))
+        My[1,0:4] = self.Minstrxyz[1,0:4]
+        return My
+
+
+    def Mz(self):
+        '''returns Mz part of Minstr'''
+        Mz = np.asmatrix(np.identity(4))
+        Mz[2,0:4] = self.Minstrxyz[2,0:4]
+        return Mz
+    
+    
+    def Mplatewarp(self, platexy):
+        '''returns plate warp correction matrix (Z-correction. 
+        Only valid for a single platexy coordinate'''
+        return np.asmatrix(np.identity(4)) # TODO, just returns identity matrix for now
+
+
+    def update_Msystem(self):
+        '''updates the transformation matrix for new plate calibration or
+        when angles are changed.
+        Follows stacking sequence from bottom to top (plate)'''
+        if self.seq == None:
+            # default case, we simply have xy calibration
+            self.M = np.dot(self.Minstrxyz, self.Mplate)
+        else:
+            self.Minstr = np.asmatrix(np.identity(4))
+            # more complicated
+            # check for some common sequences:
+            Mcommon1 = False # to check against when common combinations are already found
+            axstr = ''
+            for ax in self.seq.keys():
+                axstr += ax
+            # check for xyz or xy (with no z)
+            # sequence does not matter so should define it like this in the config
+            # if we want to use this
+            if axstr.find('xy') == 0 and axstr.find('z') <= 2:
+                self.Minstr = self.Minstrxyz
+                Mcommon1 = True
+            
+            for ax in self.seq.keys():
+                if ax == 'x' and not Mcommon1:
+                    self.Minstr = np.dot(self.Minstr, self.Mx())
+                elif ax == 'y' and not Mcommon1:
+                    self.Minstr = np.dot(self.Minstr, self.My())
+                elif ax == 'z' and not Mcommon1:
+                    self.Minstr = np.dot(self.Minstr, self.Mz())
+                elif ax == 'Rx':
+                    self.Minstr = np.dot(self.Minstr, self.Rx())
+                elif ax == 'Ry':
+                    self.Minstr = np.dot(self.Minstr, self.Ry())
+                elif ax == 'Rz':
+                    self.Minstr = np.dot(self.Minstr, self.Rz())
+            
+            self.M = np.dot(self.Minstr, self.Mplate)
+
+            # precalculate the inverse as we also need it a lot
+            try:
+                self.Minv = self.M.I
+            except Exception:
+                print('------------------------------ Matrix singular ---------------------------')
+                # use the -1 to signal inverse later --> platexy will then be [x,y,-1]
+                self.Minv = np.matrix([[0,0,0,0],
+                                       [0,0,0,0],
+                                       [0,0,0,0],
+                                       [0,0,0,-1]])
+            
+            print(' ... new system matrix:')
+            print(self.M)
+            print(' ... new inverse system matrix:')
+            print(self.Minv)
+
+
+    def update_Mplatexy(self, Mxy):
+        '''updates the xy part of the plate calibration'''
+        Mxy = np.matrix(Mxy)
+        # assign the xy part        
+        self.Mplate[0:2,0:2] = Mxy[0:2,0:2]
+        # assign the last row (offsets), notice the difference in col (3x3 vs 4x4)
+#        self.Mplate[0:2,3] = Mxy[0:2,2] # something does not work with this one is a 1x2 the other 2x1 for some reason
+        self.Mplate[0,3] = Mxy[0,2]
+        self.Mplate[1,3] = Mxy[1,2]
+        # self.Mplate[3,0:4] should always be 0,0,0,1 and should never change
+        
+        # update the system matrix so we save calculation time later
+        self.update_Msystem()
+
+
+    def get_Mplatexy(self):
+        '''returns the xy part of the platecalibration'''
+        self.Mplatexy = np.asmatrix(np.identity(3))
+        self.Mplatexy[0:2,0:2] = self.Mplate[0:2,0:2]
+        self.Mplatexy[0,2] = self.Mplate[0,3]
+        self.Mplatexy[1,2] = self.Mplate[1,3]
+        return self.Mplatexy
+    
+    
+    def get_Mplate_Msystem(self, Mxy):
+        '''removes Minstr from Msystem to obtain Mplate for alignment'''
+        Mxy = np.asarray(Mxy)
+        Mglobal = np.asmatrix(np.identity(4))
+        Mglobal[0:2,0:2] = Mxy[0:2,0:2]
+        Mglobal[0,3] = Mxy[0,2]
+        Mglobal[1,3] = Mxy[1,2]
+        
+        try:
+            Minstrinv = self.Minstr.I
+            Mtmp = np.dot(Minstrinv, Mglobal)
+            self.Mplatexy = np.asmatrix(np.identity(3))
+            self.Mplatexy[0:2,0:2] = Mtmp[0:2,0:2]
+            self.Mplatexy[0,2] = Mtmp[0,3]
+            self.Mplatexy[1,2] = Mtmp[1,3]
+
+            return self.Mplatexy
+        except Exception:
+            print('------------------------------ Instrument Matrix singular ---------------------------')
+            # use the -1 to signal inverse later --> platexy will then be [x,y,-1]
+            self.Minv = np.matrix([[0,0,0],
+                                   [0,0,0],
+                                   [0,0,-1]])
 
 # return class for FastAPI calls
 class return_class(BaseModel):

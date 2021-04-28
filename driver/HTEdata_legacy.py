@@ -7,6 +7,8 @@ import numpy
 import zipfile
 from re import compile as regexcompile
 import json
+import asyncio
+
 
 
 class cmd_exception(ValueError):
@@ -22,6 +24,9 @@ class HTEdata:
                               r'\\htejcap.caltech.edu\share\home\users\hte\platemaps', r'ERT',r'K:\users\hte\platemaps']
 
         self.PLATEFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\plate', r'J:\hte_jcap_app_proto\plate']
+
+        self.qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
+
         
     ##########################################################################
     # Server Functions
@@ -30,11 +35,18 @@ class HTEdata:
 #    def update_rcp_plateidstr(self, plateidstr, newdata):
         # update rcp file with filenames of measured data
     
+    def put_in_qdata(self, item):
+        if self.qdata.full():
+            print(' ... data q is full ...')
+            _ = self.qdata.get_nowait()
+            self.qdata.put_nowait(item)
+
+
     def get_rcp_plateidstr(self, plateidstr):
-        print(plateidstr)
-        
+        print(plateidstr)    
         return ""
-    
+
+
     def get_info_plateidstr(self, plateidstr):
         infod=self.importinfo(str(plateidstr))
         # 1. checks that the plate_id (info file) exists
@@ -51,9 +63,13 @@ class HTEdata:
           
         # 4. gets platemap and passes to alignment code
         #pmpath=getplatemappath_plateid(plateidstr, return_pmidstr=True)
+            self.put_in_qdata({'info':infod, 'plateid':plateidstr})
+
             return self.get_platemap_plateidstr(plateidstr)
              
         else:
+            self.put_in_qdata({'info':None, 'plateid':plateidstr})
+
             return "No plate found!"
 
 
@@ -61,8 +77,10 @@ class HTEdata:
         infod=self.importinfo(str(plateidstr))
         # 1. checks that the plate_id (info file) exists
         if infod!="No plate found!":
+            self.put_in_qdata({'plateidcheck':True, 'plateid':plateidstr})
             return True
         else:
+            self.put_in_qdata({'plateidcheck':False, 'plateid':plateidstr})
             return False
 
 
@@ -70,8 +88,10 @@ class HTEdata:
         infod=self.importinfo(str(plateidstr))
         if infod!="No plate found!":
             if not 'prints' in infod.keys():
+                self.put_in_qdata({'printrecord':False, 'plateid':plateidstr})
                 return False
             else:
+                self.put_in_qdata({'printrecord':True, 'plateid':plateidstr})
                 return True
 
 
@@ -79,14 +99,17 @@ class HTEdata:
         infod=self.importinfo(str(plateidstr))
         if infod!="No plate found!":
             if not 'anneals' in infod.keys():
+                self.put_in_qdata({'annealrecord':False, 'plateid':plateidstr})
                 return False
             else:
+                self.put_in_qdata({'annealrecord':True, 'plateid':plateidstr})
                 return True
 
 
     def get_platemap_plateidstr(self, plateidstr):
         pmpath=self.getplatemappath_plateid(plateidstr)
         pmdlist=self.readsingleplatemaptxt(pmpath)
+        self.put_in_qdata({'map':pmdlist, 'plateid':plateidstr})
         return json.dumps(pmdlist)
 
 
@@ -96,27 +119,33 @@ class HTEdata:
         else:
             infofiled=self.importinfo(plateidstr_or_filed)
             if infofiled is None:
+                self.put_in_qdata({'elements':None, 'plateid':plateidstr_or_filed})
                 return None
         requiredkeysthere=lambda infofiled, print_key_or_keyword=print_key_or_keyword: ('screening_print_id' in infofiled.keys()) if print_key_or_keyword=='screening_print_id' \
                                                                else (print_key_or_keyword in infofiled['prints'].keys())
         while not ('prints' in infofiled.keys() and requiredkeysthere(infofiled)):
             if not 'lineage' in infofiled.keys() or not ',' in infofiled['lineage']:
+                self.put_in_qdata({'elements':None, 'plateid':plateidstr_or_filed})
                 return None
             parentplateidstr=infofiled['lineage'].split(',')[-2].strip()
             infofiled=self.importinfo(parentplateidstr)
         if print_key_or_keyword=='screening_print_id':
             printdlist=[printd for printd in infofiled['prints'].values() if 'id' in printd.keys() and printd['id']==infofiled['screening_print_id']]
             if len(printdlist)==0:
+                self.put_in_qdata({'elements':None, 'plateid':plateidstr_or_filed})
                 return None
             printd=printdlist[0]
         else:
             printd=infofiled['prints'][print_key_or_keyword]
         if not 'elements' in printd.keys():
+            self.put_in_qdata({'elements':None, 'plateid':plateidstr_or_filed})
             return None
         els=[x for x in printd['elements'].split(',') if x not in exclude_elements_list]
     
         if multielementink_concentrationinfo_bool:
             return els, self.get_multielementink_concentrationinfo(printd,els, return_defaults_if_none=return_defaults_if_none)
+
+        self.put_in_qdata({'elements':els, 'plateid':plateidstr_or_filed})        
         return els
 
     

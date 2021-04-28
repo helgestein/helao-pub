@@ -53,6 +53,7 @@ from pydantic import BaseModel
 from typing import List
 from munch import munchify
 from collections import deque
+import inspect
 
 # Not packaging as a module for now, so we detect source file's root directory from CLI
 # execution and append config, driver, and core to sys.path
@@ -242,7 +243,7 @@ async def async_dispatcher(A: Action):
             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
         ) as resp:
             response = await resp.text()
-    return response
+            return response
 
 
 def sync_dispatcher(A: Action):
@@ -260,7 +261,7 @@ def sync_dispatcher(A: Action):
             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
         ) as resp:
             response = resp.text
-    return response
+            return response
 
 
 async def run_dispatch_loop():
@@ -391,17 +392,34 @@ class return_dec(BaseModel):
     """Return class for queried Decision objects."""
 
     index: int
-    uid: str
+#    uid: str
     plate_id: int
     sample_no: int
     actualizer: str
-    timestamp: str
+#    timestamp: str
 
 
 class return_declist(BaseModel):
     """Return class for queried Decision list."""
-
     decisions: List[return_dec]
+
+
+class return_actlib(BaseModel):
+    """Return class for queried actualizer objects."""
+    index: int
+    action: str
+    doc: str
+    args: list
+    defaults: list
+    #annotations: dict()
+    # defaults: list
+    #argcount: int
+    #params: list
+
+
+class return_actualizerslist(BaseModel):
+    """Return class for queried actualizers list."""
+    actualizers: List[return_actlib]
 
 
 class return_act(BaseModel):
@@ -419,8 +437,94 @@ class return_act(BaseModel):
 
 class return_actlist(BaseModel):
     """Return class for queried Action list."""
-
     actions: List[return_act]
+
+
+@app.post(f"/{servKey}/list_actualizers")
+def list_action_lib():
+    """Return the current list of ACTUALIZERS."""
+# func.__code__.co_argcount
+# 2
+# >>> func.__code__.co_varnames
+# ('x', 'y')
+
+#     for i, act in enumerate(action_lib):
+# #        print(i)
+#         print(act)
+#         # print(action_lib[act])
+#         print('#arg',action_lib[act].__code__.co_argcount)
+#         # print(action_lib[act].__defaults__)
+#         # print(action_lib[act].__kwdefaults__)
+#         print('Documentation:',action_lib[act].__doc__)
+#         # print(action_lib[act].__name__)
+#         # print(action_lib[act].__code__.__doc__)
+#         print(inspect.getfullargspec(tempd['dummy_act2']))
+#         print('############')
+
+        
+
+
+    
+#     # print(action_lib[act])
+#     # print(action_lib[act].__code__.co_argcount)
+#     # print(action_lib[act].__defaults__)
+#     # print(action_lib[act].__kwdefaults__)
+#     # print(action_lib[act].__doc__)
+#     # print(action_lib[act].__name__)
+#     # print(action_lib[act].__code__.__doc__)    
+#     print('############################')
+#     # print(tempd)
+#     print(inspect.signature(tempd['oer_screen']))
+#     # print(inspect.getmembers(tempd['oer_screen']))
+#     print(inspect.getdoc(tempd['oer_screen']))
+#     print(help(tempd['oer_screen']))
+
+#     print('############################')
+# #    print(tempd['oer_screen'])
+
+
+    actlist = []
+    for i, act in enumerate(action_lib):
+        print('full',inspect.getfullargspec(action_lib[act]))
+        #print('anno',inspect.getfullargspec(action_lib[act]).annotations)
+        #print('def',inspect.getfullargspec(action_lib[act]).defaults)
+        tmpdoc = action_lib[act].__doc__ 
+        if tmpdoc == None:
+            tmpdoc = ""
+        tmpargs = inspect.getfullargspec(action_lib[act]).args
+        tmpdef = inspect.getfullargspec(action_lib[act]).defaults
+        if tmpdef == None:
+            tmpdef = []
+        # if not tmpargs:
+        #     tmpargs = ['']
+        
+        
+        actlist.append(return_actlib(
+            index=i,
+            action = act,
+            doc = tmpdoc,#action_lib[act].__doc__ if action_lib[act].__doc__ not None else "",
+            args = tmpargs,#{},
+            defaults = tmpdef,
+            #annotations = inspect.getfullargspec(action_lib[act]).annotations,
+            # defaults = inspect.getfullargspec(action_lib[act]).defaults,
+           #params = '',
+        )
+            )
+
+    # actlist = [
+    #     return_actlib(
+    #         index=i,
+    #         action = act,
+    #         doc = "",#action_lib[act].__doc__ if action_lib[act].__doc__ not None else "",
+    #         args = [1],#{inspect.getfullargspec(action_lib[act]).args},
+    #         # annotations = inspect.getfullargspec(action_lib[act]).annotations,
+    #         # defaults = inspect.getfullargspec(action_lib[act]).defaults,
+    #        #params = '',
+    #     )
+    #     for i, act in enumerate(action_lib)
+    # ]
+    retval = return_actualizerslist(actualizers=actlist)
+    return retval
 
 
 @app.post(f"/{servKey}/list_decisions")
@@ -429,11 +533,11 @@ def list_decisions():
     declist = [
         return_dec(
             index=i,
-            uid=dec.uid,
+            #uid=dec.uid,
             plate_id=dec.plate_id,
             sample_no=dec.sample_no,
             actualizer=dec.actualizer.__name__,
-            timestamp=dec.created_at,
+            #timestamp=dec.created_at,
         )
         for i, dec in enumerate(orch.decisions)
     ]
@@ -443,7 +547,7 @@ def list_decisions():
 
 @app.post(f"/{servKey}/list_actions")
 def list_actions():
-    """Return the current list of actions."""
+    """Return the current list of actions of decission."""
     actlist = [
         return_act(
             index=i,

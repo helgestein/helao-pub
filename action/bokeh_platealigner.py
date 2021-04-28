@@ -70,20 +70,15 @@ S = C[servKey] # the config for this particular server/script in config file
 ###########################Begin Visualizer PART##############################
 
 
-################################################################################
-# resets aligner to initial params
-################################################################################
 def clicked_reset():
+    '''resets aligner to initial params'''
     init_mapaligner()
     
 
-################################################################################
-# Add new point to calibration point list and removing last point
-################################################################################
 def clicked_addpoint(event):
+    '''Add new point to calibration point list and removing last point'''
     global calib_ptsplate
     global calib_ptsmotor
-    global TransferMatrix
     # (1) get selected marker
     selMarker = MarkerNames.index(calib_sel_motor_loc_marker.value)
     # (2) add new platexy point to end of plate point list
@@ -106,17 +101,13 @@ def clicked_addpoint(event):
         alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
 
 
-################################################################################
-# submit final results back to aligner server
-################################################################################
 def clicked_submit():
-   asyncio.gather(finish_alignment(TransferMatrix,0))
+    '''submit final results back to aligner server'''
+    asyncio.gather(finish_alignment(TransferMatrix,0))
 
 
-################################################################################
-# start a new alignment procedure
-################################################################################
 def clicked_go_align():
+    '''start a new alignment procedure'''
     global status_align
     global g_aligning    
     # init the aligner
@@ -128,97 +119,38 @@ def clicked_go_align():
         alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
 
 
-################################################################################
-# move motor to abs position
-################################################################################
 def clicked_moveabs():
+    '''move motor to abs position'''
     asyncio.gather(motor_move('absolute',motor_movexabs_text.value, motor_moveyabs_text.value))
 
 
-################################################################################
-# move motor by relative amount
-################################################################################
 def clicked_moverel():
+    '''move motor by relative amount'''
     asyncio.gather(motor_move('relative',motor_movexrel_text.value, motor_moveyrel_text.value))
 
 
-################################################################################
-# gets current motor position
-################################################################################
 def clicked_readmotorpos():
+    '''gets current motor position'''
     asyncio.gather(motor_getxy()) # updates g_motor_position
 
 
-################################################################################
-# Calculate Transformation Matrix from given points
-################################################################################
 def clicked_calc():
-    global calib_ptsplate, calib_ptsmotor
-    global TransferMatrix
-    global cutoff
-    validpts = []
-
-    # check for duplicate points
-    platepts, motorpts = align_uniquepts(calib_ptsplate,calib_ptsmotor)
-
-    # check if points are not None
-    for idx in range(len(platepts)):
-        if (not align_test_point(platepts[idx])) and (not align_test_point(motorpts[idx])):
-            validpts.append(idx)
-
-    # select the correct alignment procedure
-    if len(validpts) == 3:
-        # Three point alignment
-        print("3P alignment")
-        alignerwebdoc.add_next_tick_callback(partial(update_status,"3P alignment"))
-        M = align_3p(platepts, motorpts)
-    elif len(validpts) == 2:
-        # Two point alignment
-        print("2P alignment")
-        alignerwebdoc.add_next_tick_callback(partial(update_status,"2P alignment"))
-#        # only scale and offsets, no rotation
-#        M = align_2p([platepts[validpts[0]],platepts[validpts[1]]],
-#                     [motorpts[validpts[0]],motorpts[validpts[1]]])
-        # only scale and rotation, offsets == 0
-        M = align_3p([platepts[validpts[0]],platepts[validpts[1]],(0,0,1)],
-                     [motorpts[validpts[0]],motorpts[validpts[1]],(0,0,1)])
-    elif len(validpts) == 1:
-        # One point alignment
-        print("1P alignment")
-        alignerwebdoc.add_next_tick_callback(partial(update_status,"1P alignment"))
-        M = align_1p([platepts[validpts[0]]],
-                     [motorpts[validpts[0]]])
-    else:
-        # No alignment
-        print("0P alignment")
-        alignerwebdoc.add_next_tick_callback(partial(update_status,"0P alignment"))
-        M = TransferMatrix
-        
-    TransferMatrix = cutoffdigits(M, cutoff)
-    print('new TransferMatrix:')
-    print(M)
-    update_TranferMatrixdisplay()
-    alignerwebdoc.add_next_tick_callback(partial(update_status,'New Matrix:\n'+(str)(M)))
+    '''wrapper for async calc call'''
+    asyncio.gather(align_calc())
 
 
-################################################################################
-# Calculate Transformation Matrix from given points
-################################################################################
 def clicked_skipstep():
+    '''Calculate Transformation Matrix from given points'''
     finish_alignment(initialTransferMatrix,0)
 
 
-################################################################################
-# Selects the Marker by clicking on colored buttons
-################################################################################
 def clicked_buttonsel(idx):
+    '''Selects the Marker by clicking on colored buttons'''
     calib_sel_motor_loc_marker.value = MarkerNames[idx]
 
 
-################################################################################
-# remove cal point
-################################################################################
 def clicked_calib_del_pt(idx):
+    '''remove cal point'''
     # remove first point from calib list
     calib_ptsplate.pop(idx)
     calib_ptsmotor.pop(idx)
@@ -229,18 +161,14 @@ def clicked_calib_del_pt(idx):
         alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
 
 
-################################################################################
-# move motor to maker position
-################################################################################
 def clicked_button_marker_move(idx):
+    '''move motor to maker position'''
     if not marker_x[idx].value == "None" and not marker_y[idx].value == "None":
         asyncio.gather(motor_move('absolute',marker_x[idx].value, marker_y[idx].value))
 
 
-################################################################################
-# double click/tap on PM plot to add/move marker
-################################################################################
 def clicked_pmplot(event):
+    '''double click/tap on PM plot to add/move marker'''
     #global calib_sel_motor_loc_marker
     #global pmdata
     print("DOUBLE TAP PMplot")
@@ -282,10 +210,8 @@ def clicked_pmplot(event):
     update_Markerdisplay(selMarker)
 
 
-################################################################################
-# sends finished alignment back to FastAPI server
-################################################################################
 async def finish_alignment(newTransfermatrix,errorcode):
+    '''sends finished alignment back to FastAPI server'''
     global initialTransferMatrix
     global g_aligning
     if g_aligning:    
@@ -334,10 +260,8 @@ async def motor_ismoving():
         alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
 
 
-################################################################################
-# moves the motor by submitting a request to aligner server
-################################################################################
 async def motor_move(mode, x, y):
+    '''moves the motor by submitting a request to aligner server'''
     global motor_readxmotor_text, motor_readyxmotor_text
     global g_motor_position, g_motor_ismoving
     global TransferMatrix
@@ -345,7 +269,7 @@ async def motor_move(mode, x, y):
     if g_aligning:
         
         # transform xy to motor movement xy
-        newxy = await transform_platexy_to_motorxy(TransferMatrix, [(float)(x),(float)(y),1.0])
+        newxy = await transform_platexy_to_motorxy([(float)(x),(float)(y),1.0])
         print('converted plate to motorxy:',newxy)
         A = dict(
             host = C[S.params.aligner_server].host,
@@ -370,10 +294,8 @@ async def motor_move(mode, x, y):
                 await motor_getxy() # updates g_motor_position
 
 
-################################################################################
-# gets current motor position from alignment server
-################################################################################
 async def motor_getxy():
+    '''gets current motor position from alignment server'''
     global g_motor_position
     global g_aligning
     if g_aligning:
@@ -405,11 +327,8 @@ async def motor_getxy():
         alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
     
 
-################################################################################
-# gets plate map from aligner server
-################################################################################
-# gets plate map from aligner server
 async def get_pm():
+    '''gets plate map from aligner server'''
     global g_aligning
     if g_aligning:
         A = dict(
@@ -435,10 +354,8 @@ async def get_pm():
         alignerwebdoc.add_next_tick_callback(partial(update_status,"Error!\nAlign is invalid!"))
     
 
-################################################################################
-# get point from pmap closest to xy
-################################################################################
 def xy_to_sample(xy, pmapxy):
+    '''get point from pmap closest to xy'''
     if len(pmapxy):
         diff = pmapxy - xy
         sumdiff = (diff ** 2).sum(axis=1)
@@ -447,10 +364,8 @@ def xy_to_sample(xy, pmapxy):
         return None
 
 
-################################################################################
-# get list of samples row number closest to xy
-################################################################################
 def get_samples(X, Y):
+    '''get list of samples row number closest to xy'''
     # X and Y are vectors
     #global pmdata
     xyarr = np.array((X, Y)).T
@@ -459,10 +374,8 @@ def get_samples(X, Y):
     return samples
 
 
-################################################################################
-# Removes all Markers from plot
-################################################################################
 def remove_allMarkerpoints():
+    '''Removes all Markers from plot'''
     for idx in range(len(MarkerNames)):
         # remove old Marker point
         old_point = plot_mpmap.select(name=MarkerNames[idx])
@@ -470,12 +383,10 @@ def remove_allMarkerpoints():
             plot_mpmap.renderers.remove(old_point[0])
 
 
-################################################################################
-# gets align status from align server
-# will be checked when pressing go, submitting, or trying to move motors
-# will also checked in FastAPI server for double security
-################################################################################
 async def align_getstatus():
+    '''gets align status from align server
+       will be checked when pressing go, submitting, or trying to move motors
+       will also checked in FastAPI server for double security'''
     global g_aligning
     A = dict(
         host = C[S.params.aligner_server].host,
@@ -495,10 +406,8 @@ async def align_getstatus():
             print('Aligner Status:', g_aligning)
 
 
-################################################################################
-# One point alignment
-################################################################################
 def align_1p(xyplate,xymotor):
+    '''One point alignment'''
     # can only calculate the xy offset
     xoff = xymotor[0][0]-xyplate[0][0]
     yoff = xymotor[0][1]-xyplate[0][1]
@@ -506,6 +415,63 @@ def align_1p(xyplate,xymotor):
                    [0,1,yoff],
                    [0,0,1]])
     return M
+
+
+async def align_calc():
+    '''Calculate Transformation Matrix from given points'''
+    global calib_ptsplate, calib_ptsmotor
+    global TransferMatrix
+    global cutoff
+    validpts = []
+
+    # check for duplicate points
+    platepts, motorpts = align_uniquepts(calib_ptsplate,calib_ptsmotor)
+
+    # check if points are not None
+    for idx in range(len(platepts)):
+        if (not align_test_point(platepts[idx])) and (not align_test_point(motorpts[idx])):
+            validpts.append(idx)
+
+    # select the correct alignment procedure
+    if len(validpts) == 3:
+        # Three point alignment
+        print("3P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"3P alignment"))
+        M = align_3p(platepts, motorpts)
+    elif len(validpts) == 2:
+        # Two point alignment
+        print("2P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"2P alignment"))
+#        # only scale and offsets, no rotation
+#        M = align_2p([platepts[validpts[0]],platepts[validpts[1]]],
+#                     [motorpts[validpts[0]],motorpts[validpts[1]]])
+        # only scale and rotation, offsets == 0
+        M = align_3p([platepts[validpts[0]],platepts[validpts[1]],(0,0,1)],
+                     [motorpts[validpts[0]],motorpts[validpts[1]],(0,0,1)])
+    elif len(validpts) == 1:
+        # One point alignment
+        print("1P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"1P alignment"))
+        M = align_1p([platepts[validpts[0]]],
+                     [motorpts[validpts[0]]])
+    else:
+        # No alignment
+        print("0P alignment")
+        alignerwebdoc.add_next_tick_callback(partial(update_status,"0P alignment"))
+        M = TransferMatrix
+        
+    
+    M = await transform_MxytoMPlate(M)
+    print('####################')
+    print(M)
+    
+    TransferMatrix = cutoffdigits(M, cutoff)
+    print('new TransferMatrix:')
+    print(M)
+
+
+    alignerwebdoc.add_next_tick_callback(partial(update_TranferMatrixdisplay))
+    alignerwebdoc.add_next_tick_callback(partial(update_status,'New Matrix:\n'+(str)(M)))
 
 
 ################################################################################
@@ -527,11 +493,8 @@ def align_1p(xyplate,xymotor):
 #    return M
 
 
-################################################################################
-# Three point alignment
-################################################################################
 def align_3p(xyplate,xymotor):
-    #global TransferMatrix
+    '''Three point alignment'''
     
     print('Solving: xyMotor = M * xyPlate')
     # can calculate the full transfer matrix
@@ -560,16 +523,11 @@ def align_3p(xyplate,xymotor):
     return M
 
 
-################################################################################
-# Test if point is valid for aligning procedure
-################################################################################
 def align_test_point(test_list):
+    '''Test if point is valid for aligning procedure'''
     return [i for i in range(len(test_list)) if test_list[i] == None] 
 
 
-################################################################################
-# Test if point is valid for aligning procedure
-################################################################################
 def align_uniquepts(x,y): 
     unique_x = []
     unique_y = []
@@ -580,10 +538,8 @@ def align_uniquepts(x,y):
     return unique_x, unique_y
 
 
-################################################################################
-# Converts plate to motor xy
-################################################################################
-async def transform_platexy_to_motorxy(M, platexy):
+async def transform_platexy_to_motorxy(platexy):
+    '''Converts plate to motor xy'''
     # M is Transformation matrix from plate to motor
     #motor = M*plate
     A = dict(
@@ -591,7 +547,7 @@ async def transform_platexy_to_motorxy(M, platexy):
         port = C[S.params.aligner_server].port,
         server = S.params.aligner_server,
         action = 'private/toMotorXY',
-        pars = {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
+        pars = {'platexy':json.dumps(np.array(platexy).tolist())}
         )
     url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
     async with aiohttp.ClientSession() as session:
@@ -601,10 +557,8 @@ async def transform_platexy_to_motorxy(M, platexy):
             return np.asarray(json.loads(response['data']['data']['motorxy']))
 
 
-################################################################################
-# Converts motor to plate xy
-################################################################################
-async def transform_motorxy_to_platexy(M, motorxy):
+async def transform_motorxy_to_platexy(motorxy):
+    '''Converts motor to plate xy'''
     # M is Transformation matrix from plate to motor
     #motor = M*plate
     #Minv*motor = Minv*M*plate = plate
@@ -613,7 +567,7 @@ async def transform_motorxy_to_platexy(M, motorxy):
         port = C[S.params.aligner_server].port,
         server = S.params.aligner_server,
         action = 'private/toPlateXY',
-        pars = {'M':json.dumps(np.matrix(M).tolist()),'motorxy':json.dumps(np.array(motorxy).tolist())}
+        pars = {'motorxy':json.dumps(np.array(motorxy).tolist())}
         )
     url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
     async with aiohttp.ClientSession() as session:
@@ -623,10 +577,25 @@ async def transform_motorxy_to_platexy(M, motorxy):
             response = json.loads(response)
             return np.asarray(json.loads(response['data']['data']['platexy']))
 
+async def transform_MxytoMPlate(Mxy):
+    A = dict(
+        host = C[S.params.aligner_server].host,
+        port = C[S.params.aligner_server].port,
+        server = S.params.aligner_server,
+        action = 'private/MxytoMPlate',
+        pars = {'Mxy':json.dumps(Mxy.tolist())}
+        )
+    url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, params=A['pars']) as resp:
+            # response = await resp.json()
+            response = await resp.text()
+            response = json.loads(response)
+            print(response)
+            return np.asarray(json.loads(response['data']['data']['Mplate']))
 
-################################################################################
-# 
-################################################################################
+    
+
 def cutoffdigits(M, digits):
     for i in range(len(M)):
         for j in range(len(M)):
@@ -635,22 +604,18 @@ def cutoffdigits(M, digits):
 
 
 ################################################################################
-# Updates the calibration point display
+# 
 ################################################################################
 def update_calpointdisplay(ptid):
-    #global calib_ptsplate
-    #global calib_ptsmotor
-#    for i in range(0,3):
-#        alignerwebdoc.add_next_tick_callback(partial(update_calpointdisplay,i))
-        calib_xplate[ptid].value = (str)(calib_ptsplate[ptid][0])
-        calib_yplate[ptid].value = (str)(calib_ptsplate[ptid][1]) 
-        calib_xmotor[ptid].value = (str)(calib_ptsmotor[ptid][0])
-        calib_ymotor[ptid].value = (str)(calib_ptsmotor[ptid][1])
+    '''Updates the calibration point display'''
+    calib_xplate[ptid].value = (str)(calib_ptsplate[ptid][0])
+    calib_yplate[ptid].value = (str)(calib_ptsplate[ptid][1]) 
+    calib_xmotor[ptid].value = (str)(calib_ptsmotor[ptid][0])
+    calib_ymotor[ptid].value = (str)(calib_ptsmotor[ptid][1])
 
-################################################################################
-# updates the web interface status field
-################################################################################
+
 def update_status(updatestr, reset = 0):
+    '''updates the web interface status field'''
     global status_align
     if reset:
         status_align.value = updatestr
@@ -659,10 +624,8 @@ def update_status(updatestr, reset = 0):
         status_align.value = updatestr+'\n######\n'+oldstatus
 
 
-################################################################################
-# plots the plate map
-################################################################################
 def update_pm_plot():
+    '''plots the plate map'''
     #global pmdata
     x = [col['x'] for col in pmdata]
     y = [col['y'] for col in pmdata]
@@ -674,10 +637,8 @@ def update_pm_plot():
 
 
 
-################################################################################
-# updates the Marker display elements
-################################################################################
 def update_Markerdisplay(selMarker):
+    '''updates the Marker display elements'''
     marker_x[selMarker].value = (str)(MarkerXYplate[selMarker][0])
     marker_y[selMarker].value = (str)(MarkerXYplate[selMarker][1])
     marker_index[selMarker].value = (str)((MarkerIndex[selMarker]))
@@ -700,10 +661,9 @@ def update_pm_plot_title(plateid):
     plot_mpmap.title.text = ("PlateMap: "+plateid)
 
 
-################################################################################
-# resets all parameters
-################################################################################
+
 def init_mapaligner():
+    '''resets all parameters'''
     global calib_ptsplate, calib_ptsmotor, MarkerSample, MarkerIndex, MarkerCode, MarkerXYplate, MarkerFraction
     global initialTransferMatrix
     global TransferMatrix
@@ -737,10 +697,8 @@ def init_mapaligner():
     gbuf_plate_position = -1*gbuf_plate_position
     
 
-################################################################################
-# IOloop for updating web interface
-################################################################################
 async def IOloop_aligner(): # non-blocking coroutine, updates data source
+    '''IOloop for updating web interface'''
     global g_motor_position, g_motor_ismoving
     global motor_readxmotor_text, motor_readymotor_text
     global motor_move_indicator
@@ -759,7 +717,8 @@ async def IOloop_aligner(): # non-blocking coroutine, updates data source
     # to remove flicker
     if not gbuf_motor_position == g_motor_position:
         # convert motorxy to platexy # todo, replace with wsdatapositionbuffer
-        tmpplate = await transform_motorxy_to_platexy(TransferMatrix, g_motor_position)
+        tmpplate = await transform_motorxy_to_platexy(g_motor_position)
+        
         # update cell marker position in plot
         # remove old Marker point
         old_point = plot_mpmap.select(name=MarkerNames[0])
@@ -856,7 +815,7 @@ g_motor_ismoving = False # will be updated during init
 
 
 # initial instrument specific TransferMatrix
-initialTransferMatrix = np.array(C[S.params.aligner_server].params.Transfermatrix)
+initialTransferMatrix = np.matrix([[1,0,0],[0,1,0],[0,0,1]])
 cutoff = np.array(C[S.params.aligner_server].params.cutoff)
 
 # this is now used for plate to motor transformation and will be refined

@@ -28,6 +28,7 @@ from classes import return_status
 from classes import return_class
 from classes import move_modes
 from classes import wsConnectionManager
+from classes import getuid
 
 
 ################## Helper functions ##########################################
@@ -43,9 +44,9 @@ class aligner:
         # to signal end of alignment
         self.aligning = False
         # default instrument specific Transfermatrix
-        self.Transfermatrix = config_dict['Transfermatrix']
+        self.Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]]
         # for saving Transfermatrix
-        self.newTransfermatrix = config_dict['Transfermatrix']
+        self.newTransfermatrix = [[1,0,0],[0,1,0],[0,0,1]]
         # for saving errorcode
         self.errorcode = 0
 
@@ -110,7 +111,6 @@ class aligner:
 #        self.aligning = False
             
         return {
-#            "Transfermatrix": self.newTransfermatrix,
             "err_code": self.errorcode,
             "plateid": self.plateid,
             "motor_server": self.motorserv,
@@ -151,18 +151,18 @@ class aligner:
                 return response
 
 
-    async def plate_to_motorxy(self, M, platexy):
+    async def plate_to_motorxy(self, platexy):
         url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/toMotorXY"
-        pars = {'M':f"{M}",'platexy':f"{platexy}"}       
+        pars = {'platexy':f"{platexy}"}       
         async with aiohttp.ClientSession() as session:
             async with session.post(url, params=pars) as resp:
                 response = await resp.json()
                 return response
 
 
-    async def motor_to_platexy(self, M, motorxy):
+    async def motor_to_platexy(self, motorxy):
         url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/toPlateXY"
-        pars = {'M':f"{M}",'motorxy':f"{motorxy}"}
+        pars = {'motorxy':f"{motorxy}"}
         async with aiohttp.ClientSession() as session:
             async with session.post(url, params=pars) as resp:
                 response = await resp.json()
@@ -176,23 +176,31 @@ class aligner:
                 response = await resp.json()
                 return response
 
-
-    async def download_alignmentmatrix(self):
-        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/download_alignmentmatrix"
+    async def MxytoMPlate(self, Mxy):
+        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/MxytoMPlate"
+        pars = {'Mxy':f"{Mxy}"}
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, params={}) as resp:
+            async with session.post(url, params=pars) as resp:
                 response = await resp.json()
                 return response
 
-    async def upload_alignmentmatrix(self, newxyTransfermatrix):
-        url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/upload_alignmentmatrix"
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, params={'newxyTransfermatrix':json.dumps(newxyTransfermatrix.tolist())}) as resp:
-                response = await resp.json()
-                return np.asmatrix(json.loads(response))
+    # async def upload_alignmentmatrix(self):
+    #     url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/upload_alignmentmatrix"
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.post(url, params={}) as resp:
+    #             response = await resp.json()
+    #             return response
+
+    # async def download_alignmentmatrix(self, newxyTransfermatrix):
+    #     url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/download_alignmentmatrix"
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.post(url, params={'newxyTransfermatrix':json.dumps(newxyTransfermatrix.tolist())}) as resp:
+    #             response = await resp.json()
+    #             return np.asmatrix(json.loads(response))
 
 
 ################## END Helper functions #######################################
+
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -206,23 +214,20 @@ app = FastAPI(title="Instrument alignment server",
     version="1.0")
 
 
-
-    
-
-
 # only for alignment bokeh server
 @app.post(f"/{servKey}/private/align_get_position")
 async def private_align_get_position():
     """Return the current motor position"""
     # gets position of all axis, but use only axis defined in aligner server params
     # can also easily be 3d axis (but not implemented yet so only 2d for now)
-    await stat.set_run()
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_align_get_position")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={},
         data=await align.get_position(),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_align_get_position")
     return retc
 
 
@@ -235,7 +240,8 @@ async def private_align_move(
     mode: move_modes = "relative"
 ):
     stopping = False
-    await stat.set_run()
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_align_move")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={
@@ -249,37 +255,54 @@ async def private_align_move(
         },
         data=await align.move(d_mm, axis, speed, mode),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_align_move")
+    return retc
+
+
+# only for alignment bokeh server
+@app.post(f"/{servKey}/private/MxytoMPlate")
+async def private_MxytoMPlate(Mxy):
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_MxytoMPlate")
+    retc = return_class(
+        measurement_type="alignment_command",
+        parameters={"command": "MxytoMPlate",
+                    },
+        data=await align.MxytoMPlate(Mxy),
+    )
+    await stat.set_idle(uuid, "private_MxytoMPlate")
     return retc
 
 
 # only for alignment bokeh server
 @app.post(f"/{servKey}/private/toPlateXY")
-async def private_toPlateXY(M, motorxy):
-    await stat.set_run()
+async def private_toPlateXY(motorxy):
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_toPlateXY")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={"command": "toPlateXY",
                     "plateid": align.plateid,
                     },
-        data=await align.motor_to_platexy(M, motorxy),
+        data=await align.motor_to_platexy(motorxy),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_toPlateXY")
     return retc
 
 
 # only for alignment bokeh server
 @app.post(f"/{servKey}/private/toMotorXY")
-async def private_toMotorXY(M, platexy):
-    await stat.set_run()
+async def private_toMotorXY(platexy):
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_toMotorXY")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={"command": "toMotorXY",
                     "plateid": align.plateid,
                     },
-        data=await align.plate_to_motorxy(M, platexy),
+        data=await align.plate_to_motorxy(platexy),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_toMotorXY")
     return retc
 
 
@@ -287,7 +310,8 @@ async def private_toMotorXY(M, platexy):
 @app.post(f"/{servKey}/private/align_get_PM")
 async def private_align_get_PM():
     """Returns the PM for the alignment Visualizer"""
-    await stat.set_run()
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_align_get_PM")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={"command": "get_PM",
@@ -295,7 +319,7 @@ async def private_align_get_PM():
                     },
         data=await align.get_PM(),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_align_get_PM")
     return retc
 
 
@@ -303,7 +327,8 @@ async def private_align_get_PM():
 @app.post(f"/{servKey}/private/ismoving")
 async def private_align_ismoving(axis: str = 'xy'):
     """check if motor is moving"""
-    await stat.set_run()
+    uuid = getuid(servKey)
+    await stat.set_run(uuid, "private_ismoving")
     retc = return_class(
         measurement_type="alignment_command",
         parameters={"command": "align_ismoving",
@@ -311,7 +336,7 @@ async def private_align_ismoving(axis: str = 'xy'):
                     },
         data=await align.ismoving(axis),
     )
-    await stat.set_idle()
+    await stat.set_idle(uuid, "private_ismoving")
     return retc
 
 
@@ -320,7 +345,6 @@ async def private_align_ismoving(axis: str = 'xy'):
 async def private_align_send_alignment(Transfermatrix: str, oldTransfermatrix: str, errorcode: str):
     """the bokeh server will send its Transfermatrix back with this"""
     await stat.set_run()
-
     retc = return_class(
         measurement_type="alignment_command",
         parameters={
@@ -347,7 +371,6 @@ def startup_event():
     align = aligner(S.params, C)
     global stat
     stat = StatusHandler()
-
     global wsstatus
     wsstatus = wsConnectionManager()
 

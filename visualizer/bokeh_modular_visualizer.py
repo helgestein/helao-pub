@@ -153,24 +153,30 @@ class C_nidaqmxvis:
                                                      VCell_8=[],
                                                      VCell_9=[]))
 
+        self.sourceIV_prev = ColumnDataSource(data=dict())
+
         # create visual elements
         self.layout = []
         self.plot_VOLT = figure(title="CELL VOLTs", height=300)
         self.plot_CURRENT = figure(title="CELL CURRENTs", height=300)
+
+        self.plot_VOLT_prev = figure(title="prev. CELL VOLTs", height=300)
+        self.plot_CURRENT_prev = figure(title="prev. CELL CURRENTs", height=300)
 
         self.reset_plot()
 
         # combine all sublayouts into a single one
         self.layout = layout([
             [Spacer(width=20), Div(text="<b>NImax Visualizer module</b>", width=200+50, height=15)],
-            layout([self.plot_VOLT]),
+            [self.plot_VOLT, self.plot_VOLT_prev],
             Spacer(height=10),
-            layout([self.plot_CURRENT]),
+            [self.plot_CURRENT, self.plot_CURRENT_prev],
             Spacer(height=10)
             ],background="#C0C0C0")
 
 
     def add_points(self, new_data):
+        self.sourceIV_prev.data = {key: val for key, val in self.sourceIV.data.items()}        
         self.sourceIV.data = {k: [] for k in self.sourceIV.data}
         self.sourceIV.stream(new_data)
 
@@ -213,9 +219,19 @@ class C_nidaqmxvis:
 
         if self.plot_CURRENT.renderers:
             self.plot_CURRENT.legend.items = []
+
+
+        if self.plot_VOLT_prev.renderers:
+            self.plot_VOLT_prev.legend.items = []
+
+        if self.plot_CURRENT_prev.renderers:
+            self.plot_CURRENT_prev.legend.items = []
             
         self.plot_VOLT.renderers = []
         self.plot_CURRENT.renderers = []
+
+        self.plot_VOLT_prev.renderers = []
+        self.plot_CURRENT_prev.renderers = []
         
         colors = small_palettes['Category10'][9]
         for i,val in enumerate(self.activeCell):
@@ -223,6 +239,9 @@ class C_nidaqmxvis:
             if val:
                 _ = self.plot_VOLT.line(x='t_s', y=f'VCell_{i+1}', source=self.sourceIV, name=f'VCell{i+1}', line_color=colors[i], legend_label=f'VCell{i+1}')
                 _ = self.plot_CURRENT.line(x='t_s', y=f'ICell_{i+1}', source=self.sourceIV, name=f'ICell{i+1}', line_color=colors[i], legend_label=f'ICell{i+1}')
+
+                _ = self.plot_VOLT_prev.line(x='t_s', y=f'VCell_{i+1}', source=self.sourceIV_prev, name=f'VCell{i+1}', line_color=colors[i], legend_label=f'VCell{i+1}')
+                _ = self.plot_CURRENT_prev.line(x='t_s', y=f'ICell_{i+1}', source=self.sourceIV_prev, name=f'ICell{i+1}', line_color=colors[i], legend_label=f'ICell{i+1}')
 
 ##############################################################################
 # potentiostat module class
@@ -238,6 +257,8 @@ class C_potvis:
 
         self.datasource = ColumnDataSource(data=dict(pt=[], t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
         self.time_stamp = 0
+        self.datasource_prev = ColumnDataSource(data=dict(pt=[], t_s=[], Ewe_V=[], Ach_V=[], I_A=[]))
+        self.time_stamp_prev = 0
 #        self.pids = collections.deque(10*[0], 10)
 
         # create visual elements
@@ -249,8 +270,13 @@ class C_potvis:
         self.paragraph2 = Paragraph(text="""y-axis:""", width=50, height=15)
         self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[3])
         
+        
         self.plot = figure(title="Title", height=300)
-        self.line1 = self.plot.line(x='t_s', y='Ewe_V', source=self.datasource, name=str(self.time_stamp))
+#        self.line1 = self.plot.line(x='t_s', y='Ewe_V', source=self.datasource, name=str(self.time_stamp))
+
+
+        self.plot_prev = figure(title="Title", height=300)
+#        self.line_prev = self.plot.line(x='t_s', y='Ewe_V', source=self.datasource_prev, name=str(self.time_stamp_prev))
 
 
 #        self.pid_list = dict(
@@ -266,12 +292,12 @@ class C_potvis:
         # combine all sublayouts into a single one
         self.layout = layout([
             [Spacer(width=20), Div(text="<b>Potentiostat Visualizer module</b>", width=200+50, height=15)],
-            layout([self.paragraph1]),
-            layout([self.radio_button_group]),
-            layout([self.paragraph2]),
-            layout([self.checkbox_button_group]),
+            [self.paragraph1],
+            [self.radio_button_group],
+            [self.paragraph2],
+            [self.checkbox_button_group],
             Spacer(height=10),
-            layout([self.plot]),
+            [self.plot, self.plot_prev],
 #            Spacer(height=10),
 #            layout([self.data_table]),
             Spacer(height=10)
@@ -352,6 +378,11 @@ class C_potvis:
         global doc
         if (new_time_stamp != self.time_stamp) or forceupdate:
             print(' ... reseting Gamry graph')
+            # copy old data to 'prev' plot
+            self.time_stamp_prev = new_time_stamp
+#            self.datasource_prev = copy.deepcopy(self.datasource)
+            self.datasource_prev.data = {key: val for key, val in self.datasource.data.items()}
+            
             self.time_stamp = new_time_stamp
         
             self.datasource.data = {k: [] for k in self.datasource.data}
@@ -366,9 +397,11 @@ class C_potvis:
             
             # remove all old lines
             self.plot.renderers = []
+            self.plot_prev.renderers = []
     
             
             self.plot.title.text = ("Timecode: "+str(new_time_stamp))
+            self.plot_prev.title.text = ("Prev. Meas. Timecode: "+str(self.time_stamp_prev))
             xstr = ''
             if(self.radio_button_group.active == 0):
                 xstr = 't_s'
@@ -383,12 +416,16 @@ class C_potvis:
             for i in self.checkbox_button_group.active:
                 if i == 0:
                     self.plot.line(x=xstr, y='t_s', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                    self.plot_prev.line(x=xstr, y='t_s', line_color=colors[color_count], source=self.datasource_prev, name=str(self.time_stamp_prev))
                 elif i == 1:
                     self.plot.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                    self.plot_prev.line(x=xstr, y='Ewe_V', line_color=colors[color_count], source=self.datasource_prev, name=str(self.time_stamp_prev))
                 elif i == 2:
                     self.plot.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                    self.plot_prev.line(x=xstr, y='Ach_V', line_color=colors[color_count], source=self.datasource_prev, name=str(self.time_stamp_prev))
                 else:
                     self.plot.line(x=xstr, y='I_A', line_color=colors[color_count], source=self.datasource, name=str(self.time_stamp))
+                    self.plot_prev.line(x=xstr, y='I_A', line_color=colors[color_count], source=self.datasource_prev, name=str(self.time_stamp_prev))
                 color_count += 1
    
 
@@ -464,8 +501,8 @@ async def IOloop_visualizer():
                     motorvis.axiserrdisp[idx].value = (str)(tmpmotordata['err_code'][idx])
                 # check if x and y motor is present and plot it
                 pangle = 0.0
-                if 's' in tmpmotordata['axis']:
-                    pangle = tmpmotordata['position'][tmpmotordata['axis'].index('s')]
+                if 'Rz' in tmpmotordata['axis']:
+                    pangle = tmpmotordata['position'][tmpmotordata['axis'].index('Rz')]
                     pangle = math.pi/180.0*pangle # TODO
 #                if 'x' in tmpmotordata['axis'] and 'y' in tmpmotordata['axis']:
 #                    ptx = tmpmotordata['position'][tmpmotordata['axis'].index('x')]

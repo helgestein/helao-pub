@@ -51,13 +51,6 @@ else:
 #    from HTEdata_dummy import HTEdata
 
 
-# local buffer of motor websocket data
-data_wsdata = dict()
-
-qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
-
-
-
 app = FastAPI(title="HTE data management server",
     description="",
     version="1.0")
@@ -93,7 +86,7 @@ def status_wrapper():
 # broadcast platemap and id etc
 @app.websocket(f"/{servKey}/ws_data")
 async def websocket_data(websocket: WebSocket):
-    await wsdata.send(websocket, qdata, 'data_data')
+    await wsdata.send(websocket, dataserv.qdata, 'data_data')
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
@@ -119,13 +112,32 @@ async def get_platemap_plateid(plateid: str):
         parameters={"command": "get_platemap_plateid"},
         data={"map": retval},
     )
+    await stat.set_idle()
+    return retc
 
-    data_wsdata['map'] = json.loads(retval)
-    if qdata.full():
-        print(' ... data q is full ...')
-        _ = qdata.get_nowait()
-    qdata.put_nowait(data_wsdata)
 
+@app.post(f"/{servKey}/get_platexycalibration")
+async def get_platexycalibration(plateid):
+    """gets saved plate alignment matrix"""
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_platexycalibration"},
+        data={"matrix": None}, # need to read it from K or database
+    )
+    await stat.set_idle()
+    return retc
+
+
+@app.post(f"/{servKey}/save_platexycalibration")
+async def save_platexycalibration(plateid):
+    """saves alignment matrix"""
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "save_platexycalibration"},
+        data={"matrix": None}, # get it from motion server
+    )
     await stat.set_idle()
     return retc
 

@@ -75,26 +75,38 @@ class transformation_mode(str, Enum):
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
 @app.post(f"/{servKey}/toMotorXY")
-def transform_platexy_to_motorxy(M, platexy):
+def transform_platexy_to_motorxy(platexy):
     """Converts plate to motor xy"""
-    motorxy = transformxy.transform_platexy_to_motorxy(json.loads(M), json.loads(platexy))
+    motorxy = motion.transform.transform_platexy_to_motorxy(json.loads(platexy))
     retc = return_class(
         measurement_type="motion_calculation",
         parameters={"command": "toMotorXY"},
-        data={"motorxy":json.dumps(np.asarray(motorxy)[0].tolist())}
+        data={"motorxy":json.dumps(motorxy.tolist())}
     )
     return retc
 
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(motorxy).tolist())}
 @app.post(f"/{servKey}/toPlateXY")
-def transform_motorxy_to_platexy(M, motorxy):
+def transform_motorxy_to_platexy(motorxy):
     """Converts motor to plate xy"""
-    platexy = transformxy.transform_platexy_to_motorxy(json.loads(M), json.loads(motorxy))
+    platexy = motion.transform.transform_motorxy_to_platexy(json.loads(motorxy))
     retc = return_class(
         measurement_type="motion_calculation",
         parameters={"command": "toPlateXY"},
-        data={"platexy":json.dumps(np.asarray(platexy)[0].tolist())}
+        data={"platexy":json.dumps(platexy.tolist())}
+    )
+    return retc
+
+
+@app.post(f"/{servKey}/MxytoMPlate")
+def MxytoMPlate(Mxy):
+    """removes Minstr from Msystem to obtain Mplate for alignment"""
+    Mplate = motion.transform.get_Mplate_Msystem(json.loads(Mxy))
+    retc = return_class(
+        measurement_type="motion_calculation",
+        parameters={"command": "MxytoMPlate"},
+        data={"Mplate":json.dumps(Mplate.tolist())}
     )
     return retc
 
@@ -105,12 +117,14 @@ def startup_event():
     motion = galil(S.params)
     global stat
     stat = StatusHandler()
-    # for route in app.routes:
-    #     print(route.path)
-    #     print(route.name)
-    # myloop = asyncio.get_event_loop()
-    # #add websocket IO loop
-    # myloop.create_task(wsdata_IOloop())
+    
+    
+    # if "M_instr" not in S.params:
+    #     S.params["M_instr"] = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
+    
+    # global transform
+    # transform = transformxy(S.params["M_instr"])
+
     
     global wsstatus
     wsstatus = wsConnectionManager()
@@ -128,16 +142,16 @@ async def websocket_status(websocket: WebSocket):
     await wsstatus.send(websocket, stat.q, 'galil_motion_status')
 
 
-@app.post(f"/{servKey}/upload_alignmentmatrix")
-async def upload_alignmentmatrix(newxyTransfermatrix):
-    """Get current in use Alignment from motion server"""
-    motion.xyTransfermatrix = np.asmatrix(json.loads(newxyTransfermatrix))
-
-
 @app.post(f"/{servKey}/download_alignmentmatrix")
-async def download_alignmentmatrix():
+async def download_alignmentmatrix(newxyTransfermatrix):
+    """Get current in use Alignment from motion server"""
+    motion.transform.update_Mplatexy(json.loads(newxyTransfermatrix))
+
+
+@app.post(f"/{servKey}/upload_alignmentmatrix")
+async def upload_alignmentmatrix():
     """Send new Alignment to motion server"""
-    return json.dumps(motion.xyTransfermatrix.tolist())
+    return json.dumps(motion.transform.get_Mplatexy.tolist())
 
 
 @app.post(f"/{servKey}/get_status")
@@ -200,8 +214,11 @@ async def move(
         # need to check if absolute or relative
         # transformation works on absolute coordinates
         #coordinates are given in plate xy system
+        # if mode == move_modes.relative:
+        # elif mode == move_modes.absolute:
+            
         print(xyvec)
-        new_xyvec=transform_platexy_to_motorxy(motion.xyTransfermatrix, xyvec)
+        new_xyvec=motion.transform.transform_platexy_to_motorxy(xyvec)
         print(new_xyvec)
 #        mode = "absolute"
         
@@ -228,21 +245,6 @@ async def move(
         await stat.set_idle()
 
     return retc
-
-
-# @app.post(f"/{servKey}/move_live")
-# async def move_live(
-#     d_mm: float, axis: str, speed: int = None, mode: move_modes = "relative"
-# ):
-#     """Move a specified {axis} by {d_mm} distance at {speed} using {mode} i.e. relative"""
-#     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x
-
-#     # value = motion.motor_move_live(d_mm, axis, speed, mode)
-#     # return return_class(value)
-
-#     return StreamingResponse(
-#         motion.motor_move_live(d_mm, axis, speed, mode), media_type="text/plain"
-#     )
 
 
 @app.post(f"/{servKey}/disconnect")

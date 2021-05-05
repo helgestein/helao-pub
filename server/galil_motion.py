@@ -71,6 +71,7 @@ else:
 class transformation_mode(str, Enum):
     motorxy = "motorxy"
     platexy = "platexy"
+    instrxy = "instrxy"
 
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
@@ -198,29 +199,103 @@ async def move(
     if type(new_d_mm) is not list:
         new_axis = [new_axis]
         new_d_mm = [new_d_mm]
+        
 
-    transformation = "motorxy"
-    if transformation == "motorxy":
+
+    # need to get absolute motor position first
+    tmpmotorpos=await motion.query_axis_position(await motion.get_all_axis())
+    print(' ... current absolute motor positions:',tmpmotorpos)
+    # don't use dicts as we do math on these vectors
+    current_positionvec = [0.0,0.0,0.0,0.0,0.0,0.0] # x, y, z, Rx, Ry, Rz
+    # map the request to this
+    req_positionvec = [0.0,0.0,0.0,0.0,0.0,0.0] # x, y, z, Rx, Ry, Rz
+
+
+    reqdict = dict(zip(new_axis, new_d_mm))
+    print(' ... requested position (',mode,'): ', reqdict)
+    
+    for idx, ax in enumerate(['x', 'y','z','Rx','Ry','Rz']):
+        if ax in tmpmotorpos['ax']:
+            # for current_positionvec
+            current_positionvec[idx] = tmpmotorpos['position'][tmpmotorpos['ax'].index(ax)]
+            # for req_positionvec
+            if ax in reqdict:
+                req_positionvec[idx] = reqdict[ax]
+
+    print(' ... motor position vector:', current_positionvec[0:3])
+    print(' ... requested position vector (',mode,')', req_positionvec)
+
+    if transformation ==  transformation_mode.motorxy:
         # nothing to do
-        print('motion: got motorxy')
-    if transformation == "platexy":
+        print('motion: got motorxy, no transformation necessary')
+    elif transformation ==  transformation_mode.platexy:
         print('motion: got platexy, converting to motorxy')
+        motorxy = [0,0,1]
+        motorxy[0] = current_positionvec[0]
+        motorxy[1] = current_positionvec[1]
+        current_platexy = motion.transform.transform_motorxy_to_platexy(motorxy)
+            #transform.transform_motorxyz_to_instrxyz(current_positionvec[0:3])
+        print(' ... current instrument position (calc from motor):', current_platexy)
+        if mode == move_modes.relative:
+            new_platexy = [0,0,1]
+            new_platexy[0] = current_platexy[0]+req_positionvec[0]
+            new_platexy[1] = current_platexy[1]+req_positionvec[1]
+            print(' ... new platexy (abs)',new_platexy)
+            new_motorxy =  motion.transform.transform_platexy_to_motorxy(new_platexy)
+            print(' ... new motorxy (abs):',new_motorxy)
+            new_axis = ['x', 'y']
+            new_d_mm = [d for d in new_motorxy[0:2]]        
+        elif mode == move_modes.absolute:
+            new_platexy = [0,0,1]
+            new_platexy[0] = req_positionvec[0]
+            new_platexy[1] = req_positionvec[1]
+            print(' ... new platexy (abs)',new_platexy)
+            new_motorxy =  motion.transform.transform_platexy_to_motorxy(new_platexy)
+            print(' ... new motorxy (abs):',new_motorxy)
+            new_axis = ['x', 'y']
+            new_d_mm = [d for d in new_motorxy[0:2]]
+
+        elif mode == move_modes.homing:
+            # not coordinate conversoion needed as these are not used (but length is still checked)
+            pass
+
+
         xyvec = [0,0,1]
         for i, ax in enumerate(new_axis):
             if ax == 'x':
                 xyvec[0] = new_d_mm[0]
             if ax == 'y':
                 xyvec[1] = new_d_mm[1]
-        # need to check if absolute or relative
-        # transformation works on absolute coordinates
-        #coordinates are given in plate xy system
-        # if mode == move_modes.relative:
-        # elif mode == move_modes.absolute:
-            
-        print(xyvec)
-        new_xyvec=motion.transform.transform_platexy_to_motorxy(xyvec)
-        print(new_xyvec)
-#        mode = "absolute"
+    elif transformation == transformation_mode.instrxy:
+        print('motion: got instrxyz, converting to motorxy')
+        current_instrxyz = motion.transform.transform_motorxyz_to_instrxyz(current_positionvec[0:3])
+        print(' ... current instrument position (calc from motor):', current_instrxyz)
+        if mode == move_modes.relative:
+            new_instrxyz = current_instrxyz
+            for i in range(3):
+                new_instrxyz[i] = new_instrxyz[i]+req_positionvec[i]
+            print(' ... new instrument position (abs):',new_instrxyz)
+            # transform from instrxyz to motorxyz
+            new_motorxyz =  motion.transform.transform_instrxyz_to_motorxyz(new_instrxyz[0:3])
+            print(' ... new motor position (abs):',new_motorxyz)
+            new_axis = ['x', 'y', 'z']
+            new_d_mm = [d for d in new_motorxyz[0:3]]
+            mode == move_modes.absolute
+        elif mode == move_modes.absolute:
+            print(' ... new instrument position (abs):',new_instrxyz)
+            new_motorxyz =  motion.transform.transform_instrxyz_to_motorxyz(new_instrxyz[0:3])
+            print(' ... new motor position (abs):',new_motorxyz)
+            new_axis = ['x', 'y', 'z']
+            new_d_mm = [d for d in new_motorxyz[0:3]]
+        elif mode == move_modes.homing:
+            # not coordinate conversoion needed as these are not used (but length is still checked)
+            pass
+        
+
+    print(' ... final axis requested:',new_axis)
+    print(' ... final d (',mode,') requested:', new_d_mm)
+
+
         
     
     retc = return_class(

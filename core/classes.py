@@ -273,12 +273,16 @@ class transformxy():
     # matrix. When angles are changed updated them also here and run update_Msystem 
     def __init__(self, Minstr, seq = None):
         # instrument specific matrix
+        # motor to instrument
         self.Minstrxyz = np.asmatrix(np.identity(4))
         self.Minstr = np.asmatrix(np.identity(4))
+        self.Minstrinv = np.asmatrix(np.identity(4))
         # plate Matrix
+        # instrument to plate
         self.Mplate = np.asmatrix(np.identity(4))
         self.Mplatexy = np.asmatrix(np.identity(3))
         # system Matrix
+        # motor to plate
         self.M = np.asmatrix(np.identity(4))
         self.Minv = np.asmatrix(np.identity(4))
         # need to update the angles here each time the axis is rotated
@@ -299,6 +303,8 @@ class transformxy():
             platexy = np.insert(platexy,2,0)
         # for _ in range(4-len(platexy)):
         #     platexy = np.append(platexy,1)
+        print(' ... M:\n', self.M)
+        print(' ... xy:', platexy)
         motorxy = np.dot(self.M,platexy)
         motorxy = np.delete(motorxy,2)
         motorxy = np.array(motorxy)[0]
@@ -310,12 +316,36 @@ class transformxy():
         motorxy = np.asarray(motorxy)
         if len(motorxy) == 3:
             motorxy = np.insert(motorxy,2,0)
-        # for _ in range(4-len(motorxy)):
-        #     motorxy = np.append(motorxy,1)
+        print(' ... Minv:\n', self.Minv)
+        print(' ... xy:', motorxy)
         platexy = np.dot(self.Minv,motorxy)
         platexy = np.delete(platexy,2)
         platexy = np.array(platexy)[0]
         return platexy
+
+
+    def transform_motorxyz_to_instrxyz(self, motorxyz):
+        '''simply calculatesinstrxyz from current motorxyz'''
+        motorxyz = np.asarray(motorxyz)
+        if len(motorxyz) == 3:
+            # append 1 at end
+            motorxyz = np.append(motorxyz,1)
+        print(' ... Minstrinv:\n', self.Minstrinv)
+        print(' ... xyz:', motorxyz)
+        instrxyz = np.dot(self.Minstrinv,motorxyz)
+        return np.array(instrxyz)[0]
+
+
+    def transform_instrxyz_to_motorxyz(self, instrxyz):
+        '''simply calculates motorxyz from current instrxyz'''
+        instrxyz = np.asarray(instrxyz)
+        if len(instrxyz) == 3:
+            instrxyz = np.append(instrxyz,1)
+        print(' ... Minstr:\n', self.Minstr)
+        print(' ... xyz:', instrxyz)
+        
+        motorxyz = np.dot(self.Minstr,instrxyz)
+        return np.array(motorxyz)[0]
 
 
     def Rx(self):
@@ -471,12 +501,25 @@ class transformxy():
             try:
                 self.Minv = self.M.I
             except Exception:
-                print('------------------------------ Matrix singular ---------------------------')
+                print('------------------------------ System Matrix singular ---------------------------')
                 # use the -1 to signal inverse later --> platexy will then be [x,y,-1]
                 self.Minv = np.matrix([[0,0,0,0],
                                        [0,0,0,0],
                                        [0,0,0,0],
                                        [0,0,0,-1]])
+
+            try:
+                self.Minstrinv = self.Minstr.I
+            except Exception:
+                print('------------------------------ Instrument Matrix singular ---------------------------')
+                # use the -1 to signal inverse later --> platexy will then be [x,y,-1]
+                self.Minstrinv = np.matrix([[0,0,0,0],
+                                       [0,0,0,0],
+                                       [0,0,0,0],
+                                       [0,0,0,-1]])
+
+
+
             
             print(' ... new system matrix:')
             print(self.M)

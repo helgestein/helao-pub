@@ -91,13 +91,21 @@ class galil:
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
         print("gclib version:", self.g.GVersion())
-        self.g.GOpen("%s --direct -s ALL" % (self.config_dict["galil_ip_str"]))
-        print(self.g.GInfo())
-        self.c = self.g.GCommand  # alias the command callable
+        # TODO: error checking here: Galil can crash an dcarsh program
+        try:
+            self.g.GOpen("%s --direct -s ALL" % (self.config_dict["galil_ip_str"]))
+            print(self.g.GInfo())
+            self.c = self.g.GCommand  # alias the command callable
+        except Exception:
+            # todo retrzy counter
+            print('###########################################################')
+            print(' ........................... severe Galil error ... please power cycle Galil and try again')            
+            print('###########################################################')
+            
         self.cycle_lights = False
 
 
-        self.qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
+        self.qdata = asyncio.Queue(maxsize=500)#,loop=asyncio.get_event_loop())
 
         # local buffer for motion data streaming
         # nees to be upated by every motion function
@@ -154,7 +162,7 @@ class galil:
             ymotor = self.wsmotordata_buffer['position'][idx]
         else:
             ymotor = None
-        platexy = self.transform.transform_platexy_to_motorxy([xmotor, ymotor, 1])
+        platexy = self.transform.transform_motorxy_to_platexy([xmotor, ymotor, 1])
         self.wsmotordata_buffer['platexy'] = [platexy[0], platexy[1], 1]
 
 
@@ -231,11 +239,10 @@ class galil:
             # check if the motors are moving if so return an error message
             # recalculate the distance in mm into distance in counts
             try:
-                print(self.config_dict["count_to_mm"][ax])
+                print(' ... count_to_mm:',ax, self.config_dict["count_to_mm"][ax])
                 float_counts = (
                     d_mm / self.config_dict["count_to_mm"][ax]
                 )  # calculate float dist from steupd
-                print(self.config_dict["count_to_mm"][ax])
     
                 counts = int(np.floor(float_counts))  # we can only mode full counts
                 # save and report the error distance
@@ -260,6 +267,9 @@ class galil:
                 ret_err_code.append("numerical")
                 ret_counts.append(None)
                 continue
+
+
+
             try:
                 # the logic here is that we assemble a command sequence
                 # here we decide if we move relative, home, or move absolute
@@ -282,10 +292,15 @@ class galil:
                 timeofmove.append(abs(counts/speed))
                 
                 #ret = ""
+                print('BUGCHECK:',cmd_seq)
+                # BUG
+                # TODO
+                # it can happen that it crashes below for some reasons
+                # when more then two axis move are requested
                 for cmd in cmd_seq:
                     _ = self.c(cmd)
                     #ret.join(_)
-                print(cmd_seq)
+                print(' ... Galil cmd:',cmd_seq)
                 ret_moved_axis.append(ax)
                 ret_speed.append(speed)
                 ret_accepted_rel_dist.append(None)
@@ -307,6 +322,9 @@ class galil:
                 continue
 
 
+
+
+
         # get max time until all axis are expected to have stopped
         if len(timeofmove)>0:
             tmax = max(timeofmove)
@@ -316,19 +334,7 @@ class galil:
             tmax = 0
         
         # wait for expected axis move time before checking if axis stoppped
-        print('Axis expected to stop in',tmax,'sec')
-#        await asyncio.sleep(tmax) # no real time position broadcast
-        # one query to set axis move id (for real time on all axis activate in loop)
-        _ = await self.query_axis_moving(multi_axis)
-        # real time position broadcast
-        while (time.time() < self.stop_time):
-            await asyncio.sleep(0.5)
-            _ = self.query_axis_position(multi_axis)
-#            await asyncio.sleep(0.25)
-#            _ = self.query_axis_moving(multi_axis)
-
-
-
+        print(' ... axis expected to stop in',tmax,'sec')
 
         if self.config_dict["estop_motor"] == False:
 
@@ -339,7 +345,7 @@ class galil:
             else:
                 tout = 60
             while (time.time()-tstart < tout) and self.config_dict["estop_motor"] == False:
-                qmove = self.query_axis_moving(multi_axis)
+                qmove = await self.query_axis_moving(multi_axis)
 #                time.sleep(0.5) # TODO: what time is ok to wait and not to overload the Galil
                 await asyncio.sleep(0.5)
                 if all(qmove['err_code']):
@@ -368,7 +374,7 @@ class galil:
 
         # read final position
         # updates ws buffer
-        _ = self.query_axis_position(multi_axis)
+        _ = await self.query_axis_position(multi_axis)
 
         # one return for all axis 
         return {
@@ -399,20 +405,32 @@ class galil:
         if type(multi_axis) is not list:
             multi_axis = [multi_axis]
 
+        # first get the relative position (actual only the current position of the encoders)
+        # to get how many axis are present
         q = self.c("TP")  # query position of all axis
+        cmd = "PA "
+        for i in range(len(q.split(','))):
+            if i==0:
+                cmd += "?"
+            else:
+                cmd += ",?"
+        q = self.c(cmd)  # query position of all axis
+        #_ = self.c("PF 10.4")  # set format
+        #q = self.c("TP")  # query position of all axis
+        
         # now we need to map these outputs to the ABCDEFG... channels
         # and then map that to xyz so it is humanly readable
         axlett = 'ABCDEFGH'
         axlett = axlett[0:len(q.split(','))]
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
         ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(axlett)}
+        # this puts the counts back to motor mm
         pos = {
             axl: int(r) * self.config_dict["count_to_mm"][axl]
             for axl, r in zip(axlett, q.split(", "))
         }
         # return the results through calculating things into mm
         axpos = {ax_abc_to_xyz[k]: p for k, p in pos.items()}
-
         ret_ax = []
         ret_position = []
         for axis in multi_axis:
@@ -437,24 +455,37 @@ class galil:
             multi_axis = [multi_axis]
         ret_status = []
         ret_err_code = []
+        qdict = dict(zip(axlett, q.split(", ")))
         for axis in multi_axis:
-            for axl, r in zip(axlett, q.split(", ")):
-                if int(r) == 0:
-                    self.update_wsmotorbuffersingle('motor_status', axis, "moving")
-                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
-                    ret_status.append("moving")
-                    ret_err_code.append(int(r))
-                elif int(r) == 1:
-                    self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
-                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
-                    ret_status.append("stopped")
-                    ret_err_code.append(int(r))
+            if axis in self.config_dict["axis_id"].keys():
+                ax = self.config_dict["axis_id"][axis]
+                if ax in qdict:
+                    r = qdict[ax]
+                    if int(r) == 0:
+                        self.update_wsmotorbuffersingle('motor_status', axis, "moving")
+                        self.update_wsmotorbuffersingle('err_code', axis, int(r))
+                        ret_status.append("moving")
+                        ret_err_code.append(int(r))
+                    elif int(r) == 1:
+                        self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
+                        self.update_wsmotorbuffersingle('err_code', axis, int(r))
+                        ret_status.append("stopped")
+                        ret_err_code.append(int(r))
+                    else:
+                        self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
+                        self.update_wsmotorbuffersingle('err_code', axis, int(r))
+                        # stopped due to error/issue
+                        ret_status.append("stopped")
+                        ret_err_code.append(int(r))
                 else:
-                    self.update_wsmotorbuffersingle('motor_status', axis, "stopped")
-                    self.update_wsmotorbuffersingle('err_code', axis, int(r))
-                    # stopped due to error/issue
-                    ret_status.append("stopped")
-                    ret_err_code.append(int(r))
+                    ret_status.append("invalid")
+                    ret_err_code.append(-1)
+                    
+            else:
+                ret_status.append("invalid")
+                ret_err_code.append(-1)
+                pass
+
         return {
             "motor_status": ret_status,
             "err_code": ret_err_code

@@ -14,15 +14,17 @@ sys.path.append(os.path.join(os.path.dirname(
     os.path.dirname(lib_root)), 'core'))
 
 # list valid actualizer functions 
-ACTUALIZERS = ['oer_screen', 'dummy_act']
+ACTUALIZERS = ['oer_screen', 'dummy_act', 'dummy_act2']
 
 
 def dummy_act():
+    """doc dummy act"""
     action_list = dummy_act2()
     return action_list
 
 
-def dummy_act2():
+def dummy_act2(givemeaname, withdefaultvalue: str = 'default value test'):
+    '''This is the description for dummy act2... Test Test'''
     action_list = ['a', 'bunch', 'of', 'actions']
     return action_list
 
@@ -66,7 +68,8 @@ cv1_pars = {"Vinit": 0,
 # action set for OER screening
 
 
-def oer_screen(decisionObj: Decision):
+def oer_screen(decisionObj: Decision, arg1, arg2 = 3):
+    '''doc OER screen'''
     action_list = []
     # move x
     action_list.append(Action(decision=decisionObj,

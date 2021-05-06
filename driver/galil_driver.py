@@ -149,6 +149,54 @@ class galil:
         self.qdata.put_nowait(self.wsmotordata_buffer)
 
 
+    async def setaxisref(self):
+        # home all axis first
+        axis = await self.get_all_axis()
+        print(' ... axis:', axis)
+        if 'Rx' in axis:
+            axis.remove('Rx')
+        if 'Ry' in axis:
+            axis.remove('Ry')
+        if 'Rz' in axis:
+            axis.remove('Rz')
+#            axis.pop(axis.index('Rz'))
+        print(' ... axis:', axis)
+
+        if axis is not None:
+            # go slow to find the same position every time
+            # first a fast move to find the switch
+            retc1 = await self.motor_move([0 for ax in axis], axis, None, move_modes.homing)
+            # move back 2mm
+            retc1 = await self.motor_move([2 for ax in axis], axis, None, move_modes.relative)
+            # approach switch again very slow to get better zero position
+            retc1 = await self.motor_move([0 for ax in axis], axis, 1000, move_modes.homing)
+
+            retc2 = await self.motor_move([self.config_dict["axis_zero"][self.config_dict["axis_id"][ax]] for ax in axis], 
+                                          [ax for ax in axis], None, move_modes.relative)
+
+
+            # set absolute zero to current position
+            q = self.c("TP")  # query position of all axis
+            print(' ... q1',q)
+            cmd = "DP "
+            for i in range(len(q.split(','))):
+                if i==0:
+                    cmd += "0"
+                else:
+                    cmd += ",0"
+            print(' ... ',cmd)
+    
+    
+            # sets abs zero here
+            _ = self.c(cmd)
+            
+            
+            
+            return retc2
+        else:
+            return 'error'
+
+
     def motor_to_plate_calc(self):
         # add some extra data
         if 'x' in self.wsmotordata_buffer['axis']:

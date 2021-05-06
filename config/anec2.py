@@ -17,10 +17,10 @@ config["servers"] = dict(
             Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
             M_instr = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
             count_to_mm=dict(
-                A=1.0,#1.0/15690.3,
-                B=1.0,#1.0/6395.45,
-                C=1.0,#1.0/6395.45,
-                D=1.0,#1.0/3154.787,
+                A=1.0/15835.31275,#1.0/15690.3,
+                B=1.0/6398.771436,#1.0/6395.45,
+                C=1.0/6396.315722,#1.0/6395.45,
+                D=1.0/3154.787,#1.0/3154.787,
             ),
             galil_ip_str="192.168.200.23",
             def_speed_count_sec=10000,
@@ -34,8 +34,16 @@ config["servers"] = dict(
                 #t="E",
                 #u="F"
                 ),
+            axis_zero=dict(
+                A=0.0, #z
+                B=52.0, #y
+                C=77.0, #x
+                D=0.0, #Rz
+                #t="E",
+                #u="F"
+                ),
             #axlett="ABCD", # not needed anymore
-            timeout = 60, # timeout for axis stop in sec
+            timeout = 10*60, # timeout for axis stop in sec
             tbroadcast = 2, # frequency of websocket broadcast (only broadcasts if something changes but need to reduce the frequeny of that if necessary)
         )
     ),

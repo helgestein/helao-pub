@@ -74,6 +74,26 @@ class transformation_mode(str, Enum):
     instrxy = "instrxy"
 
 
+
+@app.post(f"/{servKey}/setmotionref")
+async def setmotionref():
+    """Set the reference position for xyz by 
+    (1) homing xyz, 
+    (2) set abs zero, 
+    (3) moving by center counts back, 
+    (4) set abs zero"""
+    await stat.set_run()
+    # http://127.0.0.1:8001/motor/query/positions
+    retc = return_class(
+        measurement_type="motion_setref",
+        parameters={"command": "setmotionref"},
+        data=await motion.setaxisref()
+    )
+    await stat.set_idle()
+    return retc
+
+
+
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
 @app.post(f"/{servKey}/toMotorXY")
 def transform_platexy_to_motorxy(platexy):

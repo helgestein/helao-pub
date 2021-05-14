@@ -101,21 +101,21 @@ def startup_event():
     # monitor_task = asyncio.create_task(orch.monitor_states())
     orch.monitor_states()
     # populate decisions for testing
-    orch.decisions.append(
-        Decision(
-            uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
-        )
-    )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
     print('Orch decision length:',len(orch.decisions))
 
 
@@ -209,21 +209,21 @@ def clear_decisions():
 @app.post(f"/{servKey}/reset_demo")
 def reset_demo():
     """Re-add example decisions to decision queue."""
-    orch.decisions.append(
-        Decision(
-            uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
-        )
-    )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
+    # orch.decisions.append(
+    #     Decision(
+    #         uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
+    #     )
+    # )
     return {}
 
 
@@ -484,6 +484,7 @@ def list_action_lib():
 
 
     actlist = []
+    print('##############', action_lib)
     for i, act in enumerate(action_lib):
         print('full',inspect.getfullargspec(action_lib[act]))
         #print('anno',inspect.getfullargspec(action_lib[act]).annotations)
@@ -598,8 +599,14 @@ def get_all_urls():
     return url_list
 
 
+
+@app.post("/shutdown")
+def post_shutdown():
+    shutdown_event()
+
+
 @app.on_event("shutdown")
-def disconnect():
+def shutdown_event():
     """Run shutdown actions."""
     emergencyStop = True
     time.sleep(0.75)

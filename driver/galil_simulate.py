@@ -710,6 +710,6 @@ class galil:
         # this gets called when the server is shut down or reloaded to ensure a clean
         # disconnect ... just restart or terminate the server
         #self.motor_stop()
-        asyncio.gather(self.motor_off(asyncio.gather(self.get_all_axis())))
+        #asyncio.gather(self.motor_off(asyncio.gather(self.get_all_axis())))
         # self.g.GClose()
         return {"shutdown"}

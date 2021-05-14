@@ -2,7 +2,8 @@ config = dict()
 
 # action library provides generator functions which produce action
 # lists from input decision_id grouping
-config["action_libraries"] = ["lisa_sdc_demo"]
+#config["action_libraries"] = ["lisa_sdc_demo"]
+config["action_libraries"] = ["lisa_ANEC2"]
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -13,6 +14,8 @@ config["servers"] = dict(
         fast="galil_motion",
         simulate=True, # choose between simulator(default) or real device
         params=dict(
+            Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
+            M_instr = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
             count_to_mm=dict(
                 A=1.0/3154.787,
                 B=1.0/6395.45,
@@ -28,7 +31,7 @@ config["servers"] = dict(
                 x="D",
                 y="B",
                 z="C",
-                s="A",
+                Rz="A",
                 #t="E",
                 #u="F"
                 ),
@@ -109,7 +112,6 @@ config["servers"] = dict(
             data_server = "data", # will use this to get PM_map temporaily, else need to parse it as JSON later
             motor_server = "motor", # will use this to get PM_map temporaily, else need to parse it as JSON later
             vis_server = "aligner_vis", # will use this to get PM_map temporaily, else need to parse it as JSON later
-            Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
             cutoff = 6, # cutoff of digits for TransferMatrix calculation
         )
     ),
@@ -119,6 +121,19 @@ config["servers"] = dict(
         group="orchestrators",
         fast="async_orch",
         path="."
+    ),
+    operator=dict(
+        host="127.0.0.1",
+        port=8011,
+        group="operators",
+        bokeh="async_operator",
+        path=".",
+        params = dict(
+            doc_name = "ADSS Operator",
+            orch = 'orchestrator',
+            data_server = "data",
+            servicemode=True,
+        )
     ),
     # potentiostat_vis=dict(
     #     host="127.0.0.1",

@@ -177,11 +177,7 @@ async def upload_alignmentmatrix():
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return return_status(
-        measurement_type="get_status",
-        parameters={},
-        status=stat.dict,
-    )
+    return stat.dict
 
 
 @app.post(f"/{servKey}/move")
@@ -192,7 +188,9 @@ async def move(
     mode: move_modes = "relative",
     transformation: transformation_mode = "motorxy" # default, nothing to do
 ):
-    """Move a apecified {axis} by {d_mm} distance at {speed} using {mode} i.e. relative"""
+    """Move a apecified {axis} by {d_mm} distance at {speed} using {mode} i.e. relative.
+       Use Rx, Ry, Rz and not in combination with x,y,z only in motorxy.
+       No z, Rx, Ry, Rz when platexy selected."""
     await stat.set_run()
     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x
     stopping=False
@@ -228,7 +226,8 @@ async def move(
     # don't use dicts as we do math on these vectors
     current_positionvec = [0.0,0.0,0.0,0.0,0.0,0.0] # x, y, z, Rx, Ry, Rz
     # map the request to this
-    req_positionvec = [0.0,0.0,0.0,0.0,0.0,0.0] # x, y, z, Rx, Ry, Rz
+#    req_positionvec = [0.0,0.0,0.0,0.0,0.0,0.0] # x, y, z, Rx, Ry, Rz
+    req_positionvec = [None,None,None,None,None,None] # x, y, z, Rx, Ry, Rz
 
 
     reqdict = dict(zip(new_axis, new_d_mm))
@@ -247,28 +246,47 @@ async def move(
 
     if transformation ==  transformation_mode.motorxy:
         # nothing to do
-        print('motion: got motorxy, no transformation necessary')
+        print('motion: got motorxy (',mode,'), no transformation necessary')
     elif transformation ==  transformation_mode.platexy:
-        print('motion: got platexy, converting to motorxy')
+        print('motion: got platexy (',mode,'), converting to motorxy')
         motorxy = [0,0,1]
         motorxy[0] = current_positionvec[0]
         motorxy[1] = current_positionvec[1]
         current_platexy = motion.transform.transform_motorxy_to_platexy(motorxy)
             #transform.transform_motorxyz_to_instrxyz(current_positionvec[0:3])
-        print(' ... current instrument position (calc from motor):', current_platexy)
+        print(' ... current plate position (calc from motor):', current_platexy)
         if mode == move_modes.relative:
             new_platexy = [0,0,1]
-            new_platexy[0] = current_platexy[0]+req_positionvec[0]
-            new_platexy[1] = current_platexy[1]+req_positionvec[1]
+
+            if req_positionvec[0] is not None:
+                new_platexy[0] = current_platexy[0]+req_positionvec[0]
+            else:
+                new_platexy[0] = current_platexy[0]
+
+            if req_positionvec[1] is not None:
+                new_platexy[1] = current_platexy[1]+req_positionvec[1]
+            else:
+                new_platexy[1] = current_platexy[1]
+
             print(' ... new platexy (abs)',new_platexy)
             new_motorxy =  motion.transform.transform_platexy_to_motorxy(new_platexy)
             print(' ... new motorxy (abs):',new_motorxy)
             new_axis = ['x', 'y']
             new_d_mm = [d for d in new_motorxy[0:2]]        
+            mode = move_modes.absolute
         elif mode == move_modes.absolute:
             new_platexy = [0,0,1]
-            new_platexy[0] = req_positionvec[0]
-            new_platexy[1] = req_positionvec[1]
+
+            if req_positionvec[0] is not None:
+                new_platexy[0] = req_positionvec[0]
+            else:
+                new_platexy[0] = current_platexy[0]
+
+            if req_positionvec[1] is not None:
+                new_platexy[1] = req_positionvec[1]
+            else:
+                new_platexy[1] = current_platexy[1]
+
             print(' ... new platexy (abs)',new_platexy)
             new_motorxy =  motion.transform.transform_platexy_to_motorxy(new_platexy)
             print(' ... new motorxy (abs):',new_motorxy)
@@ -287,21 +305,31 @@ async def move(
             if ax == 'y':
                 xyvec[1] = new_d_mm[1]
     elif transformation == transformation_mode.instrxy:
-        print('motion: got instrxyz, converting to motorxy')
+        print(' ................mode', mode)
+        print('motion: got instrxyz (',mode,'), converting to motorxy')
         current_instrxyz = motion.transform.transform_motorxyz_to_instrxyz(current_positionvec[0:3])
         print(' ... current instrument position (calc from motor):', current_instrxyz)
         if mode == move_modes.relative:
             new_instrxyz = current_instrxyz
             for i in range(3):
-                new_instrxyz[i] = new_instrxyz[i]+req_positionvec[i]
+                if req_positionvec[i] is not None:
+                    new_instrxyz[i] = new_instrxyz[i]+req_positionvec[i]
+                else:
+                    new_instrxyz[i] = new_instrxyz[i]
             print(' ... new instrument position (abs):',new_instrxyz)
             # transform from instrxyz to motorxyz
             new_motorxyz =  motion.transform.transform_instrxyz_to_motorxyz(new_instrxyz[0:3])
             print(' ... new motor position (abs):',new_motorxyz)
             new_axis = ['x', 'y', 'z']
             new_d_mm = [d for d in new_motorxyz[0:3]]
-            mode == move_modes.absolute
+            mode = move_modes.absolute
         elif mode == move_modes.absolute:
+            new_instrxyz = current_instrxyz
+            for i in range(3):
+                if req_positionvec[i] is not None:
+                    new_instrxyz[i] = req_positionvec[i]
+                else:
+                    new_instrxyz[i] = new_instrxyz[i]
             print(' ... new instrument position (abs):',new_instrxyz)
             new_motorxyz =  motion.transform.transform_instrxyz_to_motorxyz(new_instrxyz[0:3])
             print(' ... new motor position (abs):',new_motorxyz)
@@ -519,8 +547,15 @@ def get_all_urls():
     return url_list
 
 
+@app.post("/shutdown")
+def post_shutdown():
+    print(' ... motion shutdown ###')
+    motion.shutdown_event()
+#    shutdown_event()
+
+
 @app.on_event("shutdown")
-def shutdown():
+def shutdown_event():
     global galil_motion_running
     galil_motion_running = False
     retc = return_class(

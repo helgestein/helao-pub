@@ -74,6 +74,10 @@ class galil:
         if "Ain_id" not in self.config_dict:
             self.config_dict["Ain_id"] = dict()
 
+
+        print(' ... motor config:', self.config_dict)
+
+
         # this is only here for testing purposes to supply a matrix
         if "Transfermatrix" not in self.config_dict:
             self.config_dict["Transfermatrix"] = [[1,0,0],[0,1,0],[0,0,1]]
@@ -81,12 +85,23 @@ class galil:
         if "M_instr" not in self.config_dict:
            self.config_dict["M_instr"] = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
         
+        
+        
+        
         self.xyTransfermatrix = np.matrix(self.config_dict["Transfermatrix"])
 
         # Mplatexy is identity matrix by default
-        self.transform = transformxy(self.config_dict["M_instr"])
+        self.transform = transformxy(self.config_dict["M_instr"], self.config_dict["axis_id"])
         # only here for testing: will overwrite the default identity matrix
         self.transform.update_Mplatexy(self.config_dict["Transfermatrix"])
+#        self.transform.update_Msystem()
+        print(' ... M_instr:', self.transform.Minstr)
+        print(' ... M_plate:', self.transform.Mplate)
+
+
+
+
+
 
         # if this is the main instance let us make a galil connection
         self.g = gclib.py()
@@ -128,7 +143,7 @@ class galil:
             self.motor_to_plate_calc()
 
         if self.qdata.full():
-            print(' ... motion q is full ...')
+            #print(' ... motion q is full ...')
             _ = self.qdata.get_nowait()
         self.qdata.put_nowait(self.wsmotordata_buffer)
 
@@ -144,7 +159,7 @@ class galil:
             self.motor_to_plate_calc()
 
         if self.qdata.full():
-            print(' ... motion q is full ...')
+            # print(' ... motion q is full ...')
             _ = self.qdata.get_nowait()
         self.qdata.put_nowait(self.wsmotordata_buffer)
 
@@ -336,7 +351,7 @@ class galil:
                 else:
                     raise cmd_exception
                 cmd_seq.append("BG{}".format(ax))
-    
+                # todo: fix this for absolute or relative move
                 timeofmove.append(abs(counts/speed))
                 
                 #ret = ""
@@ -374,6 +389,7 @@ class galil:
 
 
         # get max time until all axis are expected to have stopped
+        print(' ... timeofmove', timeofmove)
         if len(timeofmove)>0:
             tmax = max(timeofmove)
             if tmax > 30*60:
@@ -811,6 +827,7 @@ class galil:
         # this gets called when the server is shut down or reloaded to ensure a clean
         # disconnect ... just restart or terminate the server
         #self.stop_axis(self.get_all_axis())
-        asyncio.gather(self.motor_off(asyncio.gather(self.get_all_axis()))) # already contains stop command
+        print(' ... shutting down galil motion')
+        #asyncio.gather(self.motor_off(asyncio.gather(self.get_all_axis()))) # already contains stop command
         self.g.GClose()
         return {"shutdown"}

@@ -199,15 +199,15 @@ def clicked_pmplot(event):
             if len(buf) == 0:
                 buf = "-"
             MarkerFraction[selMarker] = buf
-    ##    elif:
-    # remove old Marker point
-    old_point = plot_mpmap.select(name=MarkerNames[selMarker])
-    if len(old_point)>0:
-        plot_mpmap.renderers.remove(old_point[0])
-    # plot new Marker point
-    plot_mpmap.square(platex, platey, size=7,line_width=2, color=None, alpha=1.0, line_color=MarkerColors[selMarker], name=MarkerNames[selMarker])
-    # add Marker positions to list
-    update_Markerdisplay(selMarker)
+        ##    elif:
+        # remove old Marker point
+        old_point = plot_mpmap.select(name=MarkerNames[selMarker])
+        if len(old_point)>0:
+            plot_mpmap.renderers.remove(old_point[0])
+        # plot new Marker point
+        plot_mpmap.square(platex, platey, size=7,line_width=2, color=None, alpha=1.0, line_color=MarkerColors[selMarker], name=MarkerNames[selMarker])
+        # add Marker positions to list
+        update_Markerdisplay(selMarker)
 
 
 async def finish_alignment(newTransfermatrix,errorcode):

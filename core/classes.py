@@ -126,6 +126,7 @@ class StatusHandler:
         await self.q.put(self.dict)
 
     async def set_run(self, uuid: str = 'dummy', action_name: str = 'dummy'):
+        print(f' ... set server status for action {action_name} with uuid {uuid}: run')
         self.is_running = True
         self.is_idle = False
         if action_name not in self.states:
@@ -135,6 +136,7 @@ class StatusHandler:
         await self.update('running')
 
     async def set_idle(self, uuid: str = 'dummy', action_name: str = 'dummy'):
+        print(f' ... set server status for action {action_name} with uuid {uuid}: idle')
         self.states[action_name].remove(uuid)
         if all([len(v)==0 for v in self.states.values()]):
             self.is_idle = True
@@ -226,32 +228,43 @@ class OrchHandler:
         self.is_blocked = False
 
     async def set_run(self):
+        print(' ... set orch status run')
         self.is_running = True
         self.is_idle = False
         await self.update('running')
 
     async def set_idle(self):
+        print(' ... set orch status idle')
         self.is_idle = True
         self.is_running = False
         await self.update('idle')
 
     async def raise_skip(self):
+        print(' ... raise orch status skipping')
         await self.update('skipping')
 
     async def raise_stop(self):
+        print(' ... raise orch status stopping')
         await self.update('stopping')
         
     async def set_meta(self, metadict, keyname="meta"):
         self.dict[keyname] = metadict
         await self.update(self.status)
 
+class action_runparams:
+    '''Contains status uid, name, and additional parameters from previous server calls of a decision'''
+    def __init__(self, uid: str, name: str):
+        self.statuid = uid
+        self.statname = name
+
 
 class Decision:
-    def __init__(self, uid: str, plate_id: int, sample_no: int, actualizer):
-        # self.uid = uid
+    def __init__(self, uid: str, plate_id: int, sample_no: int, actualizer, actualizerparams = []):
+        self.uid = uid
         self.plate_id = plate_id
         self.sample_no = sample_no
         self.actualizer = actualizer
+        self.actualizerparams = actualizerparams
         # self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
         self.save_path = None
         self.aux_files = []
@@ -274,7 +287,7 @@ class transformxy():
     def __init__(self, Minstr, seq = None):
         # instrument specific matrix
         # motor to instrument
-        self.Minstrxyz = np.asmatrix(np.identity(4))
+        self.Minstrxyz = np.asmatrix(Minstr)#np.asmatrix(np.identity(4))
         self.Minstr = np.asmatrix(np.identity(4))
         self.Minstrinv = np.asmatrix(np.identity(4))
         # plate Matrix
@@ -291,8 +304,12 @@ class transformxy():
         self.gamma = 0
         self.seq = seq
         
+        
+        
         # pre calculates the system Matrix M
         self.update_Msystem()
+        print(' ... Minstr', self.Minstr)
+        print(' ... Minstrxyz', self.Minstrxyz)
 
 
     def transform_platexy_to_motorxy(self, platexy):
@@ -436,6 +453,7 @@ class transformxy():
         '''returns Mx part of Minstr'''
         Mx = np.asmatrix(np.identity(4))
         Mx[0,0:4] = self.Minstrxyz[0,0:4]
+        print(' ... Mx', Mx)
         return Mx
 
 
@@ -443,6 +461,7 @@ class transformxy():
         '''returns My part of Minstr'''
         My = np.asmatrix(np.identity(4))
         My[1,0:4] = self.Minstrxyz[1,0:4]
+        print(' ... My', My)
         return My
 
 
@@ -450,6 +469,7 @@ class transformxy():
         '''returns Mz part of Minstr'''
         Mz = np.asmatrix(np.identity(4))
         Mz[2,0:4] = self.Minstrxyz[2,0:4]
+        print(' ... Mz', Mz)
         return Mz
     
     
@@ -463,7 +483,11 @@ class transformxy():
         '''updates the transformation matrix for new plate calibration or
         when angles are changed.
         Follows stacking sequence from bottom to top (plate)'''
+
+        print(' ... updatting M')
+
         if self.seq == None:
+            print(' ... seq is empty, using default transformation')
             # default case, we simply have xy calibration
             self.M = np.dot(self.Minstrxyz, self.Mplate)
         else:
@@ -478,21 +502,28 @@ class transformxy():
             # sequence does not matter so should define it like this in the config
             # if we want to use this
             if axstr.find('xy') == 0 and axstr.find('z') <= 2:
+                print(' ... got xyz seq')
                 self.Minstr = self.Minstrxyz
                 Mcommon1 = True
             
             for ax in self.seq.keys():
                 if ax == 'x' and not Mcommon1:
+                    print(' ... got x seq')
                     self.Minstr = np.dot(self.Minstr, self.Mx())
                 elif ax == 'y' and not Mcommon1:
+                    print(' ... got y seq')
                     self.Minstr = np.dot(self.Minstr, self.My())
                 elif ax == 'z' and not Mcommon1:
+                    print(' ... got z seq')
                     self.Minstr = np.dot(self.Minstr, self.Mz())
                 elif ax == 'Rx':
+                    print(' ... got Rx seq')
                     self.Minstr = np.dot(self.Minstr, self.Rx())
                 elif ax == 'Ry':
+                    print(' ... got Ry seq')
                     self.Minstr = np.dot(self.Minstr, self.Ry())
                 elif ax == 'Rz':
+                    print(' ... got Rz seq')
                     self.Minstr = np.dot(self.Minstr, self.Rz())
             
             self.M = np.dot(self.Minstr, self.Mplate)
@@ -634,6 +665,8 @@ class wsConnectionManager:
                 # only send to one
                 #await wsdata.send_personal_message(json.dumps(data), websocket)
                 # send to all
+                # print(' ... got new data on WS')
+                # print(data)
                 await self.broadcast(json.dumps(data))
         except WebSocketDisconnect:
             self.disconnect(websocket)

@@ -76,11 +76,7 @@ async def websocket_status(websocket: WebSocket):
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return return_status(
-        measurement_type="get_status",
-        parameters={},
-        status=stat.dict,
-    )
+    return stat.dict
 
 
 # broadcast platemap and id etc
@@ -228,8 +224,13 @@ def get_all_urls():
     return url_list
 
 
+@app.post("/shutdown")
+def post_shutdown():
+    shutdown_event()
+
+
 @app.on_event("shutdown")
-def shutdown():
+def shutdown_event():
     return ""
 
     

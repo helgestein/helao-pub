@@ -44,6 +44,7 @@ from nidaqmx.constants import TaskMode
 from nidaqmx.constants import SyncType
 from nidaqmx.constants import TriggerType
 
+from enum import Enum
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
@@ -60,6 +61,15 @@ from classes import sample_class
 ################## Helper functions ##########################################
 # this could also move into a separate driver, but should not be necessary
 # as all of this can also be in the FastAPI functions itself
+
+
+class pumpitems(str, Enum):
+    PeriPump = 'PeriPump'
+    #MultiPeriPump = 'MultiPeriPump'
+    Direction = 'Direction'
+
+
+
 class cNIMAX:
     # in principle we can also just call predefined tasks from NImax app,
     # but I define my own here to be more flexible
@@ -290,6 +300,7 @@ class cNIMAX:
 
 
     async def run_task_Pumps(self, pumps, value):
+        print(' ... NIMAX pump:', pumps, value)
         pump_list = await self.sep_str(pumps)
         cmds = []
         with nidaqmx.Task() as task_Pumps:
@@ -556,7 +567,7 @@ async def run_task_Active_Cells_Selection(cells: str, on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_Pumps")
-async def run_task_Pumps(pumps: str, on: bool = True):
+async def run_task_Pumps(pumps: pumpitems = 'PeriPump', on: bool = True):
     """Provide list of Pumps separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -721,11 +732,7 @@ async def websocket_status(websocket: WebSocket):
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return return_status(
-        measurement_type="get_status",
-        parameters={},
-        status=stat.dict,
-    )
+    return stat.dict
 
 
 @app.post('/endpoints')
@@ -751,8 +758,13 @@ def get_all_urls():
     return url_list
 
 
+@app.post("/shutdown")
+def post_shutdown():
+    shutdown_event()
+
+
 @app.on_event("shutdown")
-def shutdown():
+def shutdown_event():
     return ""
 
 

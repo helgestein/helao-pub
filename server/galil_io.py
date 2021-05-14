@@ -70,11 +70,7 @@ async def websocket_status(websocket: WebSocket):
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return return_status(
-        measurement_type="get_status",
-        parameters={},
-        status=stat.dict,
-    )
+    return stat.dict()
 
 
 @app.post(f"/{servKey}/query_analog_in")
@@ -277,8 +273,14 @@ def get_all_urls():
     return url_list
 
 
+@app.post("/shutdown")
+def post_shutdown():
+    pass
+#    shutdown_event()
+
+
 @app.on_event("shutdown")
-def shutdown():
+def shutdown_event():
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "shutdown"},

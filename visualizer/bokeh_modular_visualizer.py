@@ -266,9 +266,9 @@ class C_potvis:
 
 
         self.paragraph1 = Paragraph(text="""x-axis:""", width=50, height=15)
-        self.radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=1)
+        self.radio_button_group = RadioButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=0)
         self.paragraph2 = Paragraph(text="""y-axis:""", width=50, height=15)
-        self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[3])
+        self.checkbox_button_group = CheckboxButtonGroup(labels=["t_s", "Ewe_V", "Ach_V", "I_A"], active=[1,3])
         
         
         self.plot = figure(title="Title", height=300)
@@ -352,6 +352,8 @@ class C_potvis:
             while self.IOloop_data_run:
                 try:
                     new_data = json.loads(await ws.recv())
+                    # print(' ... new data for potentiostat visualizer module:')
+                    # print(new_data)
                     if new_data is not None:
                         doc.add_next_tick_callback(partial(self.add_points, new_data))
                 except Exception:
@@ -368,6 +370,7 @@ class C_potvis:
                     new_status = json.loads(new_status)
                     # only reset graph at the beginning of a measurement and 
                     # not at every status change
+                    # print(' ... visualizer got new status from potentiostat:', new_status)
                     if new_status is not None and new_status['status'] == 'running':
                         doc.add_next_tick_callback(partial(self.reset_plot, new_status['last_update']))
                 except Exception:

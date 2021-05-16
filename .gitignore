@@ -6,5 +6,5 @@ __pycache__/*
 *.DS_Store
 *.pck
 outputs/*
-settings.json
-config/mischbares_small.py
+*/.DS_Store
+.DS_Store

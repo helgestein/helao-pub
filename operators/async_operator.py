@@ -99,12 +99,12 @@ class C_async_operator:
         #     self.servicemode = False
         # else:
         self.servicemode = self.S_config.params.get('servicemode', False)
-        self.service_loop_run = False
+        # self.service_loop_run = False
 
-        # for service mode orch operator
-        self.oporch = OrchHandler(C_config)
-        if self.servicemode:
-            self.oporch.monitor_states()
+        # # for service mode orch operator
+        # self.oporch = OrchHandler(C_config)
+        # if self.servicemode:
+        #     self.oporch.monitor_states()
 
 
         # self.data_url = config['wsdata_url']
@@ -140,28 +140,28 @@ class C_async_operator:
 
 
 
-#        self.menu = [("Item 1", "item_1"), ("Item 2", "item_2"), None, ("Item 3", "item_3")]
-        
-        #self.dropdown = Dropdown(label="Dropdown button", button_type="warning", menu=self.act_list)
-        # self.dropdown = Select(title="Actualizers:", value=self.act_select_list[0], options=self.act_select_list)
-        self.dropdown = Select(title="Select actualizer:", value = None, options=self.act_select_list)
-#        self.dropdown.js_on_event("menu_item_click", self.callback_act_select)
-#        self.dropdown.on_event('', self.callback_act_select)
-        self.dropdown.on_change('value', self.callback_act_select)
-        self.button_prepend = Button(label="prepend", button_type="default", width=150)
-        self.button_append = Button(label="append", button_type="default", width=150)
+        self.actions_dropdown = Select(title="Select actualizer:", value = None, options=self.act_select_list)
+        self.actions_dropdown.on_change('value', self.callback_act_select)
 
-        #self.button_load_sample_list = Button(label="load sample list", button_type="default", width=150)
         self.button_load_sample_list = FileInput(accept=".csv,.txt", width = 300)
         self.button_load_sample_list.on_change('value', self.get_sample_list)
 
+
         # buttons to control orch
         self.button_start = Button(label="Start", button_type="default", width=70)
+        self.button_start.on_event(ButtonClick, self.callback_start)
         self.button_stop = Button(label="Stop", button_type="default", width=70)
+        self.button_stop.on_event(ButtonClick, self.callback_stop)
         self.button_skip = Button(label="Skip", button_type="default", width=70)
+        self.button_skip.on_event(ButtonClick, self.callback_skip_dec)
+
         self.button_clear_dec = Button(label="clear decisions", button_type="default", width=100)
+        self.button_clear_dec.on_event(ButtonClick, self.callback_clear_decisions)
         self.button_clear_act = Button(label="clear actions", button_type="default", width=100)
-#        self.button_submit.on_event(ButtonClick, self.callback_act_select)
+        self.button_clear_act.on_event(ButtonClick, self.callback_clear_actions)
+
+        self.button_prepend = Button(label="prepend", button_type="default", width=150)
+        self.button_append = Button(label="append", button_type="default", width=150)
 
 
         # service mode elements
@@ -187,21 +187,6 @@ class C_async_operator:
 
 
 
-        # combine all sublayouts into a single one
-#         self.layout0 = layout([
-#             [Spacer(width=20), Div(text=f"<b>{S_config.params.doc_name}</b>", width=200+50, height=15)],
-# #            layout([self.paragraph1]),
-# #            layout([self.radio_button_group]),
-# #            layout([self.paragraph2]),
-# #            layout([self.checkbox_button_group]),
-#             [self.dropdown],
-#             [self.act_descr_txt],
-#             Spacer(height=10),
-#             [self.button_load_sample_list, self.button_append, self.button_prepend],
-#             Spacer(height=10),
-#             ],background="#C0C0C0",width=640)
-
-
         if self.servicemode:
             print(' ... service mode activated for operator!')
             self.layout_servicemode = layout([
@@ -218,7 +203,7 @@ class C_async_operator:
                 [Spacer(width=20), Div(text=f"<b>{S_config.params.doc_name}</b>", width=200+50, height=15, style={'font-size': '200%', 'color': 'red'})],
                 background="#C0C0C0",width=640),
             layout([
-                [self.dropdown],
+                [self.actions_dropdown],
                 [Spacer(width=10), Div(text="<b>Actualizer description:</b>", width=200+50, height=15)],
                 [self.act_descr_txt],
                 Spacer(height=10),
@@ -256,7 +241,7 @@ class C_async_operator:
 
     def get_actualizers(self):
         '''get all available actualizers to populate later functions'''
-        response = self.do_request('list_actualizers')
+        response = self.do_orch_request('list_actualizers')
         self.actualizers = json.loads(response)["actualizers"]
         
         for item in self.actualizers:
@@ -271,7 +256,7 @@ class C_async_operator:
 
     def get_decisions(self):
         '''get decision list from orch'''
-        response = json.loads(self.do_request('list_decisions'))['decisions']
+        response = json.loads(self.do_orch_request('list_decisions'))['decisions']
         self.decision_list = dict()
         if len(response):
             for key in response[0].keys():
@@ -283,7 +268,7 @@ class C_async_operator:
 
     def get_actions(self):
         '''get action list from orch'''
-        response = json.loads(self.do_request('list_actions'))['actions']
+        response = json.loads(self.do_orch_request('list_actions'))['actions']
         self.action_list = dict()
         if len(response):
             for key in response[0].keys():
@@ -291,11 +276,11 @@ class C_async_operator:
         print(self.action_list)
 
 
-    def do_request(self,item):
+    def do_orch_request(self,item, itemparams: dict = {}):
         '''submit a FastAPI request to orch'''
         url = f"http://{self.orch.host}:{self.orch.port}/{self.S_config.params.orch}/{item}"
         with requests.Session() as session:
-            with session.post(url, params={}) as resp:
+            with session.post(url, params=itemparams) as resp:
                 response = resp.text
                 print(response)
                 return response
@@ -348,6 +333,7 @@ class C_async_operator:
                 if len(buf) == 0:
                     buf = "-"
                 operator_doc.add_next_tick_callback(partial(self.update_samples,str(PMnum[0])))
+                operator_doc.add_next_tick_callback(partial(self.update_xysamples,str(platex), str(platey)))
                 #MarkerFraction[selMarker] = buf
         ##    elif:
                 # remove old Marker point
@@ -365,9 +351,41 @@ class C_async_operator:
         asyncio.gather(self.get_pm(new))
 
 
+    def callback_start(self, event):
+        print(' ... starting orch')
+        response = self.do_orch_request('start')
+        print(' ... orch start response:', response)
+
+
+    def callback_stop(self, event):
+        print(' ... stopping operator orch')
+        response = self.do_orch_request('stop')
+        print(' ... orch stop response:', response)
+
+
+    def callback_skip_dec(self, event):
+        print(' ... skipping decision')
+        response = self.do_orch_request('skip')
+        print(' ... orch response:', response)
+
+
+    def callback_clear_decisions(self, event):
+        print(' ... clearing decisions')
+        response = self.do_orch_request('clear_decisions')
+        print(' ... orch response:', response)
+
+
+    def callback_clear_actions(self, event):
+        print(' ... clearing actions')
+        response = self.do_orch_request('clear_actions')
+        print(' ... orch response:', response)
+
+
+
+
     def callback_sericemode_run(self, event):
         print(' ... starting operator orch')
-        selaction = self.dropdown.value
+        selaction = self.actions_dropdown.value
         selplateid = self.input_plateid.value
         selsample = self.input_sampleno.value
         print(' ... selected action from list:', selaction)
@@ -376,27 +394,38 @@ class C_async_operator:
         # idx = self.act_select_list.index(selaction)
         # print(idx)
         # print(self.actualizers[idx]['action'])
-        print(self.oporch.decisions)
+        # print(self.oporch.decisions)
 
         actparams = []
         for paraminput in self.param_input:
-            actparams.append(paraminput.value)
+            actparams.append(str(paraminput.value))
             print(' ... aditional action param:',paraminput.value)
 
 
-        self.oporch.decisions.append(
-            Decision(
-                uid=getuid('oporchservicemode'), plate_id=selplateid, sample_no=selsample, actualizer=action_lib[selaction], actualizerparams=actparams
-            )
-        )
-        print(self.oporch.decisions)
-        self.service_loop_run = True
+
+#append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams: list):
+        newuid = getuid('oporchservicemode')
+        params = {'uid':f'{newuid}',
+             'plate_id':f'{selplateid}', 
+             'sample_no':f'{selsample}', 
+             'actualizer':f'{selaction}',
+             'actparams':json.dumps(actparams)}
+
+        # submit decission to orchestrator
+        response = self.do_orch_request('append_decision',params)
+        print(' ... orch stop response:', response)
+
+        # start the orchestrator
+        response = self.do_orch_request('start')
+        print(' ... orch start response:', response)
+
 
 
     def callback_sericemode_stop(self, event):
         print('##############################################################')
-        print(' ... stopping operator orch')
-        self.service_loop_run = False
+        print(' ... stopping orch')
+        response = self.do_orch_request('stop')
+        print(' ... orch stop response:', response)
 
 
     def update_param_layout(self, args, defaults):
@@ -444,6 +473,17 @@ class C_async_operator:
 
     def update_samples(self, value):
         self.input_sampleno.value = value
+
+
+    def update_xysamples(self, xval, yval):
+        for paraminput in self.param_input:
+            if paraminput.title == 'x_mm':
+                paraminput.value = xval
+            if paraminput.title == 'y_mm':
+                paraminput.value = yval
+
+
+        # self.input_sampleno.value = value
 
 
     def update_pm_plot(self):
@@ -529,139 +569,139 @@ class C_async_operator:
 
 
     
-    # TODO: move async_dispatcher, sync_dispatcher,  and run_dispatch_loop into OrchHandler
-    async def servicemode_async_dispatcher(self, A: Action):
-        """Request non-blocking actions which may run concurrently.
+    # # TODO: move async_dispatcher, sync_dispatcher,  and run_dispatch_loop into OrchHandler
+    # async def servicemode_async_dispatcher(self, A: Action):
+    #     """Request non-blocking actions which may run concurrently.
     
-        Args:
-          A: an Action type object containing action server name, endpoint, and parameters.
+    #     Args:
+    #       A: an Action type object containing action server name, endpoint, and parameters.
     
-        Returns:
-          Response string from http POST request.
-        """
-        S = C[A.server]
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-            ) as resp:
-                response = await resp.text()
-                return response
+    #     Returns:
+    #       Response string from http POST request.
+    #     """
+    #     S = C[A.server]
+    #     async with aiohttp.ClientSession() as session:
+    #         async with session.post(
+    #             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
+    #         ) as resp:
+    #             response = await resp.text()
+    #             return response
     
     
-    def servicemode_sync_dispatcher(self, A: Action):
-        """Request blocking actions which must run sequentially.
+    # def servicemode_sync_dispatcher(self, A: Action):
+    #     """Request blocking actions which must run sequentially.
     
-        Args:
-          A: an Action type object containing action server name, endpoint, and parameters.
+    #     Args:
+    #       A: an Action type object containing action server name, endpoint, and parameters.
     
-        Returns:
-          Response string from http POST request.
-        """
-        S = C[A.server]
-        with requests.Session() as session:
-            with session.post(
-                f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-            ) as resp:
-                response = resp.text
-                return response
+    #     Returns:
+    #       Response string from http POST request.
+    #     """
+    #     S = C[A.server]
+    #     with requests.Session() as session:
+    #         with session.post(
+    #             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
+    #         ) as resp:
+    #             response = resp.text
+    #             return response
 
 
-    async def dispatchloop(self): # non-blocking coroutine, updates data source
-        global doc
-        while self.servicemode:
-            await asyncio.sleep(1) # await point allows status changes to affect between actions
-            while self.service_loop_run:
-                print(" ... running operator orch")
-                print(' ... oporch status:',self.oporch.status)
-                if self.oporch.status == "idle":
-                    await self.oporch.set_run()
-                print(' ... oporch status:',self.oporch.status)
-                # clause for resuming paused action list
-                print(' ... oporch descisions: ',self.oporch.decisions)
-                while self.oporch.status != "idle" and (self.oporch.actions or self.oporch.decisions):
-                    await asyncio.sleep(
-                        0.01
-                    )  # await point allows status changes to affect between actions
-                    if not self.oporch.actions:
-                        print(' ... getting new action')
-                        D = self.oporch.decisions.popleft()
-                        D.uid = getuid('oporch')
-                        self.oporch.procid = D.uid
-                        # todo: parse also additional params to actiulizer here
-                        self.oporch.actions = deque(D.actualizer(D, *D.actualizerparams))
-                        print(' ... got', self.oporch.actions)
-                        print(' ... optional params', D.actualizerparams)
-                    else:
-                        if self.oporch.status == "stopping":
-                            print("stop issued: waiting for action servers to idle")
-                            while any(
-                                [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
-                            ):
-                                _ = (
-                                    await self.oporch.dataq.get()
-                                )  # just used to monitor orch.STATES update
-                                self.oporch.dataq.task_done()
-                            print("stopped")
-                            self.oporch.set_idle()
-                        elif self.oporch.status == "skipping":
-                            print("skipping to next decision")
-                            self.oporch.actions.clear()
-                            self.oporch.set_run()
-                        elif self.oporch.status == "running":
-                            # check current blocking status
-                            while self.oporch.is_blocked:
-                                print("waiting for orchestrator to unblock")
-                                _ = await self.oporch.dataq.get()
-                                self.oporch.dataq.task_done()
-                            A = self.oporch.actions.popleft()
-                            # see async_dispatcher for unpacking
-                            if A.preempt:
-                                print(' ... oporch is waiting for previous actions to finish')
-                                while any(
-                                    [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
-                                ):
-                                    # print(' ... states are:')
-                                    # for state in self.oporch.STATES:
-                                    #     print('###############################')
-                                    #     print(state)
-                                    #     print(self.oporch.STATES[state])
-                                    #     print(self.oporch.STATES[state]["status"])
-                                    #     print('###############################')
-                                    #     print(' ... ',[k for k in self.oporch.STATES.keys()])
-                                    #     print(' ... ',[self.oporch.STATES[k]["status"] for k in self.oporch.STATES.keys()])
-                                    #     print(' ... ',[self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()])
-                                    # print(self.oporch.STATES)
-                                    _ = await self.oporch.dataq.get()
-                                    self.oporch.dataq.task_done()
-                                print(' ... oporch finished waiting for previous actions to finish')
-                            print(f"dispatching action {A.action} on server {A.server}")
-                            if (
-                                A.block or not self.oporch.actions
-                            ):  # block if flag is set, or last action in queue
-                                self.oporch.block()
-                                print(
-                                    f"[{A.decision.uid} / {A.action}] blocking - sync action started"
-                                )
-                                self.servicemode_sync_dispatcher(A)
-                                self.oporch.unblock()
-                                print(
-                                    f"[{A.decision.uid} / {A.action}] unblocked - sync action finished"
-                                )
-                            else:
-                                print(
-                                    f"[{A.decision.uid} / {A.action}] no blocking - async action started"
-                                )
-                                await self.servicemode_async_dispatcher(A)
-                                print(
-                                    f"[{A.decision.uid} / {A.action}] no blocking - async action finished"
-                                )
-                            # TODO: dynamic generate new decisions by signaling operator
-                            # if not self.oporch.decisions and not self.oporch.actions
-                print(" ... decision queue is empty")
-                print(" ... stopping operator orch")
-                #await self.oporch.set_idle()
-                self.service_loop_run = False
-                break
+    # async def dispatchloop(self): # non-blocking coroutine, updates data source
+    #     global doc
+    #     while self.servicemode:
+    #         await asyncio.sleep(1) # await point allows status changes to affect between actions
+    #         while self.service_loop_run:
+    #             print(" ... running operator orch")
+    #             print(' ... oporch status:',self.oporch.status)
+    #             if self.oporch.status == "idle":
+    #                 await self.oporch.set_run()
+    #             print(' ... oporch status:',self.oporch.status)
+    #             # clause for resuming paused action list
+    #             print(' ... oporch descisions: ',self.oporch.decisions)
+    #             while self.oporch.status != "idle" and (self.oporch.actions or self.oporch.decisions):
+    #                 await asyncio.sleep(
+    #                     0.01
+    #                 )  # await point allows status changes to affect between actions
+    #                 if not self.oporch.actions:
+    #                     print(' ... getting new action')
+    #                     D = self.oporch.decisions.popleft()
+    #                     D.uid = getuid('oporch')
+    #                     self.oporch.procid = D.uid
+    #                     # todo: parse also additional params to actiulizer here
+    #                     self.oporch.actions = deque(D.actualizer(D, *D.actualizerparams))
+    #                     print(' ... got', self.oporch.actions)
+    #                     print(' ... optional params', D.actualizerparams)
+    #                 else:
+    #                     if self.oporch.status == "stopping":
+    #                         print("stop issued: waiting for action servers to idle")
+    #                         while any(
+    #                             [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
+    #                         ):
+    #                             _ = (
+    #                                 await self.oporch.dataq.get()
+    #                             )  # just used to monitor orch.STATES update
+    #                             self.oporch.dataq.task_done()
+    #                         print("stopped")
+    #                         self.oporch.set_idle()
+    #                     elif self.oporch.status == "skipping":
+    #                         print("skipping to next decision")
+    #                         self.oporch.actions.clear()
+    #                         self.oporch.set_run()
+    #                     elif self.oporch.status == "running":
+    #                         # check current blocking status
+    #                         while self.oporch.is_blocked:
+    #                             print("waiting for orchestrator to unblock")
+    #                             _ = await self.oporch.dataq.get()
+    #                             self.oporch.dataq.task_done()
+    #                         A = self.oporch.actions.popleft()
+    #                         # see async_dispatcher for unpacking
+    #                         if A.preempt:
+    #                             print(' ... oporch is waiting for previous actions to finish')
+    #                             while any(
+    #                                 [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
+    #                             ):
+    #                                 # print(' ... states are:')
+    #                                 # for state in self.oporch.STATES:
+    #                                 #     print('###############################')
+    #                                 #     print(state)
+    #                                 #     print(self.oporch.STATES[state])
+    #                                 #     print(self.oporch.STATES[state]["status"])
+    #                                 #     print('###############################')
+    #                                 #     print(' ... ',[k for k in self.oporch.STATES.keys()])
+    #                                 #     print(' ... ',[self.oporch.STATES[k]["status"] for k in self.oporch.STATES.keys()])
+    #                                 #     print(' ... ',[self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()])
+    #                                 # print(self.oporch.STATES)
+    #                                 _ = await self.oporch.dataq.get()
+    #                                 self.oporch.dataq.task_done()
+    #                             print(' ... oporch finished waiting for previous actions to finish')
+    #                         print(f"dispatching action {A.action} on server {A.server}")
+    #                         if (
+    #                             A.block or not self.oporch.actions
+    #                         ):  # block if flag is set, or last action in queue
+    #                             self.oporch.block()
+    #                             print(
+    #                                 f"[{A.decision.uid} / {A.action}] blocking - sync action started"
+    #                             )
+    #                             self.servicemode_sync_dispatcher(A)
+    #                             self.oporch.unblock()
+    #                             print(
+    #                                 f"[{A.decision.uid} / {A.action}] unblocked - sync action finished"
+    #                             )
+    #                         else:
+    #                             print(
+    #                                 f"[{A.decision.uid} / {A.action}] no blocking - async action started"
+    #                             )
+    #                             await self.servicemode_async_dispatcher(A)
+    #                             print(
+    #                                 f"[{A.decision.uid} / {A.action}] no blocking - async action finished"
+    #                             )
+    #                         # TODO: dynamic generate new decisions by signaling operator
+    #                         # if not self.oporch.decisions and not self.oporch.actions
+    #             print(" ... decision queue is empty")
+    #             print(" ... stopping operator orch")
+    #             #await self.oporch.set_idle()
+    #             self.service_loop_run = False
+    #             break
 
 
 ##############################################################################
@@ -691,11 +731,11 @@ operatorloop = asyncio.get_event_loop()
 # else:
 servicemode = S.params.get('servicemode', False)
 
-if servicemode:
-    print(' ... service mode enabled. Creating operator dispatchbloop')
-    operatorloop.create_task(operator.dispatchloop())
+# if servicemode:
+#     print(' ... service mode enabled. Creating operator dispatchbloop')
+#     operatorloop.create_task(operator.dispatchloop())
 
 # select the first item to force an update of the layout
 if operator.act_select_list:
-    operator.dropdown.value = operator.act_select_list[0]
+    operator.actions_dropdown.value = operator.act_select_list[0]
 

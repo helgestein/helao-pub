@@ -61,7 +61,7 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, "config"))
 sys.path.append(os.path.join(helao_root, "driver"))
 sys.path.append(os.path.join(helao_root, "core"))
-from classes import OrchHandler, Decision, Action
+from classes import OrchHandler, Decision, Action, getuid
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
@@ -163,9 +163,9 @@ async def start_process():
             await run_dispatch_loop()
             # asyncio.create_task(run_dispatch_loop())
         else:
-            print("decision list is empty")
+            print(" ... orch decision list is empty")
     else:
-        print("already running")
+        print(" ... orch is already running")
     return {}
 
 
@@ -175,7 +175,7 @@ async def stop_process():
     if orch.status != "idle":
         await orch.raise_stop()
     else:
-        print("orchestrator is not running")
+        print(" ... orchestrator is not running")
     return {}
 
 
@@ -185,7 +185,7 @@ async def skip_decision():
     if orch.status != "idle":
         await orch.raise_skip()
     else:
-        print("orchestrator not running, clearing action queue")
+        print(" ... orchestrator not running, clearing action queue")
         orch.actions.clear()
     return {}
 
@@ -193,7 +193,7 @@ async def skip_decision():
 @app.post(f"/{servKey}/clear_actions")
 def clear_actions():
     """Clear the present action queue while stopped."""
-    print("clearing action queue")
+    print(" ... clearing action queue")
     orch.actions.clear()
     return {}
 
@@ -201,29 +201,8 @@ def clear_actions():
 @app.post(f"/{servKey}/clear_decisions")
 def clear_decisions():
     """Clear the present decision queue while stopped."""
-    print("clearing decision queue")
+    print(" ... clearing decision queue")
     orch.decisions.clear()
-    return {}
-
-
-@app.post(f"/{servKey}/reset_demo")
-def reset_demo():
-    """Re-add example decisions to decision queue."""
-    # orch.decisions.append(
-    #     Decision(
-    #         uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
-    #     )
-    # )
-    # orch.decisions.append(
-    #     Decision(
-    #         uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
-    #     )
-    # )
-    # orch.decisions.append(
-    #     Decision(
-    #         uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
-    #     )
-    # )
     return {}
 
 
@@ -266,20 +245,29 @@ def sync_dispatcher(A: Action):
 
 async def run_dispatch_loop():
     """Parse decision and action queues, and dispatch actions."""
+    print(" ... running operator orch")
+    print(' ... orch status:', orch.status)
     if orch.status == "idle":
         await orch.set_run()
+    print(' ... orch status:',orch.status)
     # clause for resuming paused action list
+    print(' ... orch descisions: ',orch.decisions)
     while orch.status != "idle" and (orch.actions or orch.decisions):
         await asyncio.sleep(
             0.01
         )  # await point allows status changes to affect between actions
         if not orch.actions:
+            print(' ... getting new action')
             D = orch.decisions.popleft()
+            D.uid = getuid('orch')
             orch.procid = D.uid
-            orch.actions = deque(D.actualizer(D))
+            # todo: parse also additional params to actiulizer here
+            orch.actions = deque(D.actualizer(D, *D.actualizerparams))
+            print(' ... got', orch.actions)
+            print(' ... optional params', D.actualizerparams)
         else:
             if orch.status == "stopping":
-                print("stop issued: waiting for action servers to idle")
+                print(" ... orch stop issued: waiting for action servers to idle")
                 while any(
                     [orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()]
                 ):
@@ -290,24 +278,36 @@ async def run_dispatch_loop():
                 print("stopped")
                 orch.set_idle()
             elif orch.status == "skipping":
-                print("skipping to next decision")
+                print(" ... skipping to next decision")
                 orch.actions.clear()
                 orch.set_run()
             elif orch.status == "running":
                 # check current blocking status
                 while orch.is_blocked:
-                    print("waiting for orchestrator to unblock")
+                    print(" ... waiting for orchestrator to unblock")
                     _ = await orch.dataq.get()
                     orch.dataq.task_done()
                 A = orch.actions.popleft()
                 # see async_dispatcher for unpacking
                 if A.preempt:
+                    print(' ... orch is waiting for previous actions to finish')
                     while any(
                         [orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()]
                     ):
-                        print(orch.STATES)
+                        # print(' ... states are:')
+                        # for state in orch.STATES:
+                        #     print('###############################')
+                        #     print(state)
+                        #     print(orch.STATES[state])
+                        #     print(orch.STATES[state]["status"])
+                        #     print('###############################')
+                        #     print(' ... ',[k for k in orch.STATES.keys()])
+                        #     print(' ... ',[orch.STATES[k]["status"] for k in orch.STATES.keys()])
+                        #     print(' ... ',[orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()])
+                        # print(orch.STATES)
                         _ = await orch.dataq.get()
                         orch.dataq.task_done()
+                    print(' ... orch finished waiting for previous actions to finish')
                 print(f"dispatching action {A.action} on server {A.server}")
                 if (
                     A.block or not orch.actions
@@ -331,13 +331,22 @@ async def run_dispatch_loop():
                     )
                 # TODO: dynamic generate new decisions by signaling operator
                 # if not orch.decisions and not orch.actions
-    print("decision queue is empty")
+    print(" ... decision queue is empty")
+    print(" ... stopping operator orch")
     await orch.set_idle()
     return True
 
 
+@app.post(f"/{servKey}/action_wait")
+async def action_wait(waittime: float = 0.0):
+    """Sleep action"""
+    print(' ... wait action:', waittime)
+    await asyncio.sleep(waittime)
+    return {}
+
+
 @app.post(f"/{servKey}/append_decision")
-def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
+def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams):
     """Add a decision object to the end of the decision queue.
 
     Args:
@@ -356,6 +365,7 @@ def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
                 plate_id=plate_id,
                 sample_no=sample_no,
                 actualizer=action_lib[actualizer],
+                actualizerparams=json.loads(actparams),
             )
         )
     )
@@ -363,7 +373,7 @@ def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
 
 
 @app.post(f"/{servKey}/prepend_decision")
-def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
+def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams: list):
     """Add a decision object to the start of the decision queue.
 
     Args:
@@ -382,6 +392,7 @@ def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
                 plate_id=plate_id,
                 sample_no=sample_no,
                 actualizer=action_lib[actualizer],
+                actualizerparams=actparams,
             )
         )
     )
@@ -443,46 +454,6 @@ class return_actlist(BaseModel):
 @app.post(f"/{servKey}/list_actualizers")
 def list_action_lib():
     """Return the current list of ACTUALIZERS."""
-# func.__code__.co_argcount
-# 2
-# >>> func.__code__.co_varnames
-# ('x', 'y')
-
-#     for i, act in enumerate(action_lib):
-# #        print(i)
-#         print(act)
-#         # print(action_lib[act])
-#         print('#arg',action_lib[act].__code__.co_argcount)
-#         # print(action_lib[act].__defaults__)
-#         # print(action_lib[act].__kwdefaults__)
-#         print('Documentation:',action_lib[act].__doc__)
-#         # print(action_lib[act].__name__)
-#         # print(action_lib[act].__code__.__doc__)
-#         print(inspect.getfullargspec(tempd['dummy_act2']))
-#         print('############')
-
-        
-
-
-    
-#     # print(action_lib[act])
-#     # print(action_lib[act].__code__.co_argcount)
-#     # print(action_lib[act].__defaults__)
-#     # print(action_lib[act].__kwdefaults__)
-#     # print(action_lib[act].__doc__)
-#     # print(action_lib[act].__name__)
-#     # print(action_lib[act].__code__.__doc__)    
-#     print('############################')
-#     # print(tempd)
-#     print(inspect.signature(tempd['oer_screen']))
-#     # print(inspect.getmembers(tempd['oer_screen']))
-#     print(inspect.getdoc(tempd['oer_screen']))
-#     print(help(tempd['oer_screen']))
-
-#     print('############################')
-# #    print(tempd['oer_screen'])
-
-
     actlist = []
     print('##############', action_lib)
     for i, act in enumerate(action_lib):
@@ -512,18 +483,6 @@ def list_action_lib():
         )
             )
 
-    # actlist = [
-    #     return_actlib(
-    #         index=i,
-    #         action = act,
-    #         doc = "",#action_lib[act].__doc__ if action_lib[act].__doc__ not None else "",
-    #         args = [1],#{inspect.getfullargspec(action_lib[act]).args},
-    #         # annotations = inspect.getfullargspec(action_lib[act]).annotations,
-    #         # defaults = inspect.getfullargspec(action_lib[act]).defaults,
-    #        #params = '',
-    #     )
-    #     for i, act in enumerate(action_lib)
-    # ]
     retval = return_actualizerslist(actualizers=actlist)
     return retval
 

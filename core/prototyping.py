@@ -15,6 +15,7 @@ import aiohttp
 import aiofiles
 from aiofiles.os import wrap
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.openapi.utils import get_flat_params
 from classes import MultisubscriberQueue 
 
 async_copy = wrap(shutil.copy)
@@ -128,7 +129,7 @@ class Decision(object):
             self.get_uuid()
     def as_dict(self):
         return vars(self)
-    def get_uuid(self, orch_name: str='orchestrator'):
+    def gen_uuid(self, orch_name: str='orchestrator'):
         "server_name can be any string used in generating random uuid"
         if self.decision_uuid:
             print(f'decision_uuid: {self.decision_uuid} already exists')
@@ -169,7 +170,7 @@ class Action(Decision):
             print(f'Action {" and ".join(missing_args)} not specified. Placeholder actions will only affect the action queue enumeration.')
         if self.action_uuid is None and self.action_name:
             self.get_uuid()
-    def get_uuid(self):
+    def gen_uuid(self):
         if self.action_uuid:
             print(f'action_uuid: {self.action_uuid} already exists')
         else:
@@ -177,6 +178,16 @@ class Action(Decision):
             print(f'action_uuid: {self.action_uuid} assigned')
     def set_atime(self):
         self.action_timestamp = strftime("%Y%m%d.%H%M%S")
+
+
+class HelaoFastAPI(FastAPI):
+    """Standard FastAPI class with HELAO config attached for simpler import.
+    """
+    def __init__(self, helao_cfg: dict, helao_srv: str, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helao_cfg = helao_cfg
+        self.helao_srv = helao_srv
+        
     
 class Base(object):
     """Base class for all HELAO servers.
@@ -206,12 +217,27 @@ class Base(object):
                     {%Y%m%d.%H%M%S}__{uuid}.rcp  # action_datetime
                     (aux_files)
     """
-    def __init__(self, server_name: str, fastapp: FastAPI, save_root: str, technique_name: Optional[str]=None, calibration: dict={}):
+    def __init__(self, fastapp: HelaoFastAPI, save_root: Optional[str]=None, technique_name: Optional[str]=None, calibration: dict={}):
+        self.server_name = fastapp.helao_srv
+        self.server_cfg = fastapp.helao_cfg["servers"][self.server_name]
+        self.world_cfg = fastapp.helao_cfg
         self.hostname = gethostname()
-        self.server_name = server_name
-        self.technique_name = server_name if technique_name is None else technique_name
+        self.technique_name = self.server_name if technique_name is None else technique_name
         self.calibration = calibration
-        self.save_root = save_root
+        if "save_root" in self.server_cfg.keys():
+            print(f"Found root save directory in config: {self.server_cfg['save_root']}")
+            self.save_root = self.server_cfg["save_root"]
+        if save_root:
+            print(f"Root save directory was specified: {save_root}.")
+            if self.save_root:
+                print("Overriding 'save_root' specified in config.")
+            self.save_root = save_root
+        if not self.save_root:
+            print("Warning: root save directory was not defined. Logs, RCPs, and data will not be written.")
+        else:
+            if not os.path.isdir(self.save_root):
+                print("Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written.")
+                self.save_root = None
         self.status = None
         self.active = None
         self.last = None
@@ -228,12 +254,36 @@ class Base(object):
             self.get_ntp_time()
         self.ntp_offset = None # add to system time for correction
         self.get_ntp_time()
-        self.get_fast_endpoints(fastapp)
+        self.init_endpoint_status(fastapp)
+        self.fast_urls = self.get_endpoint_urls(fastapp)
         
-    def get_fast_endpoints(self, app: FastAPI):
+    def init_endpoint_status(self, app: FastAPI):
         "Populate status dict with FastAPI server endpoints for monitoring."
         self.status = {route.name: [] for route in app.routes if route.path.startswith(f'/{self.server_name}')}
         print(f"Found {len(self.status)} endpoints for status monitoring.")
+        
+    def get_endpoint_urls(self, app: HelaoFastAPI):
+        """Return a list of all endpoints on this server."""
+        url_list = []
+        for route in app.routes:
+            routeD = {"path": route.path, "name": route.name}
+            if "dependant" in dir(route):
+                flatParams = get_flat_params(route.dependant)
+                paramD = {
+                    par.name: {
+                        "outer_type": str(par.outer_type_).split("'")[1],
+                        "type": str(par.type_).split("'")[1],
+                        "required": par.required,
+                        "shape": par.shape,
+                        "default": par.default,
+                    }
+                    for par in flatParams
+                }
+                routeD["params"] = paramD
+            else:
+                routeD["params"] = []
+            url_list.append(routeD)
+        return url_list
     
     def get_ntp_time(self):
         "Check system clock against NIST clock for trigger operations."
@@ -245,10 +295,25 @@ class Base(object):
         open('ntpLastSync.txt', 'w').write(self.ntp_last_sync)
         print(f"retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}")
         
-    def attach_client(self, client_addr: str):
+    async def attach_client(self, client_addr: str, retry_limit=5):
         "Add client for pushing status updates via HTTP POST."
         self.status_clients.add(client_addr)
         print(f"Added {client_addr} to status subscriber list.")
+        current_status = self.status
+        async with aiohttp.ClientSession() as session:
+            success = False
+            for _ in range(retry_limit):
+                async with session.post(
+                    f"http://{client_addr}/update_status", params = {"server": self.server_name, "status": current_status}
+                ) as resp:
+                    response = await resp
+                if response.status<400:
+                    success = True
+                    break
+            if success:
+                print(f"Updated {self.server_name} status to {current_status} on {client_addr}.")
+            else:
+                print(f"Failed to push status message to {client_addr} after {retry_limit} attempts.")
    
     def detach_client(self, client_addr: str):
         "Remove client from receiving status updates via HTTP POST"
@@ -272,7 +337,7 @@ class Base(object):
         except WebSocketDisconnect:
             print(f"Data websocket client {websocket.client[0]}:{websocket.client[1]} disconnected.")
 
-    async def log_status_task(self, retry_limit: int=5):
+    async def log_status_task(self, retry_limit: int=5):#TODO:write to log if save_root exists
         "Self-subscribe to status queue, log status changes, POST to clients."
         async for status_msg in self.status_q.subscribe():
             self.status = status_msg
@@ -357,18 +422,24 @@ class Base(object):
         
 
     async def setup_act(self, action: Action, file_type:str='stream_csv', file_group:str='stream_files', filename: Optional[str]=None, header:Optional[str]=None):
-        "Populate active decision, set active file connection, write initial rcp, set endpoint status."
+        "Populate active decision, set active file connection, write initial rcp."
         self.active = action
         self.active.set_atime()
         decision_date = self.active.decision_timestamp.split('.')[0]
         decision_time = self.active.decision_timestamp.split('.')[-1]
         year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
-        self.active.output_dir = os.path.join(self.save_root,
-                                                 year_week,
-                                                 decision_date,
-                                                 f"{decision_time}_{self.active.decision_label}",
-                                                 f"{self.active.action_timestamp}__{self.active.action_uuid}"
-                                                 )
+        if not self.save_root:
+            print("Root save directory not specified, cannot save action results.")
+            self.active.save_datastream = False
+            self.active.save_rcp = False
+            self.active.output_dir = None
+        else:
+            self.active.output_dir = os.path.join(self.save_root,
+                                                    year_week,
+                                                    decision_date,
+                                                    f"{decision_time}_{self.active.decision_label}",
+                                                    f"{self.active.action_timestamp}__{self.active.action_uuid}"
+                                                    )
         if self.active.save_rcp:
             os.makedirs(self.active.output_dir, exist_ok=True)
             self.active.actionnum = f"{self.active.action_abbr}{self.active.action_enum}"
@@ -382,8 +453,7 @@ class Base(object):
                 "plate_id": self.active.plate_id,
                 "output_dir": self.active.output_dir,
             }
-            if self.calibration:
-                initial_dict.update(self.calibration)
+            initial_dict.update(self.calibration)
             initial_dict.update({
                 "decision_uuid": self.active.decision_uuid,
                 "decision_enum": self.active.decision_enum,
@@ -408,7 +478,6 @@ class Base(object):
                     filename = f"act{self.active.action_enum:02}_{self.active.action_abbr}__{self.active.plate_id}_{self.active.sample_no}.csv"
                 self.active.file_dict[self.active.filetech_key][file_group].update({filename: file_info})
                 await self.set_output_file(filename, header)
-
 
     async def write_to_rcp(self, rcp_dict: dict):
         "Create new rcp if it doesn't exist, otherwise append rcp_dict to file."
@@ -445,7 +514,6 @@ class Base(object):
             await async_copy(x, new_path)
         
 
-
 class Orch(Base):#TODO
     """Base class for async orchestrator with trigger support and pushed status update.
     
@@ -463,10 +531,24 @@ class Orch(Base):#TODO
     
     POST requests from action servers are added to a multisubscriber queue and consumed
     by a self-subscriber task to update the action server status dict and log changes.
-    
     """
-    def __init__(self, server_name: str, fastapp: FastAPI, save_root: str=None):
+    def __init__(self, server_name: str, fastapp: FastAPI, save_root: str=None):#TODO
         super.__init__(server_name, fastapp, save_root)
+        # instantiate decision/experiment queue, action queue
+        
+    
+    async def update_status(self):#TODO
+        """Dict update method for received action server status messages.
+        
+        Async task for updating orch status dict {act_serv_key: {act_name: act_uuid}}
+        """
+        # await put into
+        pass
+    
+    async def check_status(self):#TODO
+        """Return orchestrator status flag."""
+        # await asyncio.sleep
+        pass
     
     
 class ActiveLearningOrch(Orch):

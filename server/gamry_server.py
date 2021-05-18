@@ -54,6 +54,7 @@ from classes import wsConnectionManager
 from classes import sample_class
 from classes import getuid
 from classes import action_runparams
+from classes import Action_params
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -115,7 +116,7 @@ def status_wrapper():
 
 
 @app.post(f"/{servKey}/get_meas_status")
-async def get_meas_status():
+async def get_meas_status(action_params = ''):
     """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
     return return_status(
         measurement_type="gamry_command",
@@ -127,15 +128,16 @@ async def get_meas_status():
     )
 
 
-@app.post(f"/{servKey}/set_sample")
-async def set_sample(
-    samples: sample_class
-):
-    """setup the experiment desciption to be included in the output file"""
-    uuid = getuid(servKey)
-    await stat.set_run(uuid, "set_sample")
-    poti.FIFO_sample = samples
-    await stat.set_idle(uuid, "set_sample")
+# @app.post(f"/{servKey}/set_sample")
+# async def set_sample(
+#     samples: sample_class,
+#     action_params = ''
+# ):
+#     """setup the experiment desciption to be included in the output file"""
+#     uuid = getuid(servKey)
+#     await stat.set_run(uuid, "set_sample")
+#     poti.FIFO_sample = samples
+#     await stat.set_idle(uuid, "set_sample")
     
 
 @app.post(f"/{servKey}/run_LSV")
@@ -146,10 +148,11 @@ async def run_LSV(
     SampleRate: float = 0.01,   # Time between data acquisition samples in seconds.
     TTLwait: int = -1,          # -1 disables, else select TTL 0-3
     TTLsend: int = -1,           # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 ):
     """Linear Sweep Voltammetry (unlike CV no backward scan is done), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_LSV")
+    runparams = action_runparams(uid=getuid(servKey), name="run_LSV",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -176,13 +179,14 @@ async def run_CA(
     SampleRate: float = 0.01,    # Time between data acquisition samples in seconds.
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 #    Vlimit: float = 10.0,
 #    EQDelay: float = 5.0
 ):
 
     """Chronoamperometry (current response on amplied potential), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CA")
+    runparams = action_runparams(uid=getuid(servKey), name="run_CA",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -208,12 +212,13 @@ async def run_CP(
     SampleRate: float = 1.0,      # Time between data acquisition samples in seconds.
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 #    Vlimit: float = 10.0,
 #    EQDelay: float = 5.0
 ):
     """Chronopotentiometry (Potential response on controlled current), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CP")
+    runparams = action_runparams(uid=getuid(servKey), name="run_CP",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -243,10 +248,11 @@ async def run_CV(
     Cycles: int = 1,
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 ):
     """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CV")
+    runparams = action_runparams(uid=getuid(servKey), name="run_CV",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -303,10 +309,11 @@ async def run_EIS(
     SampleRate: float = 0.01,
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 ):
     """use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_EIS")
+    runparams = action_runparams(uid=getuid(servKey), name="run_EIS",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -335,10 +342,11 @@ async def run_OCV(
     SampleRate: float = 0.01,
     TTLwait: int = -1, # -1 disables, else select TTL 0-3
     TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto'
+    IErange: Gamry_Irange = 'auto',
+    action_params = '', #optional parameters
 ):
     """use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_OCV")
+    runparams = action_runparams(uid=getuid(servKey), name="run_OCV",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
     measurement_type="gamry_command",
@@ -357,7 +365,7 @@ async def run_OCV(
 
 
 @app.post(f"/{servKey}/stop")
-async def stop():
+async def stop(action_params = ''):
     """Stops measurement in a controlled way."""
     runparams = action_runparams(uid=getuid(servKey), name="stop")
     await stat.set_run(runparams.statuid, runparams.statname)
@@ -372,7 +380,7 @@ async def stop():
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True):
+async def estop(switch: bool = True, action_params = ''):
     """Same as stop, but also sets estop flag."""
     runparams = action_runparams(uid=getuid(servKey), name="estop")
     await stat.set_run(runparams.statuid, runparams.statname)

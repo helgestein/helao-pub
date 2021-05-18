@@ -246,30 +246,30 @@ class cNIMAX:
         return 0
 
 
-    # waits for TTL handshake, e.g. high signal
-    async def run_task_RSH_TTL_handshake(self):
-        with nidaqmx.Task() as task_handshake:
-            if 'port' in self.config_dict.dev_RSHTTLhandshake.keys() and 'term' in self.config_dict.dev_RSHTTLhandshake.keys():
-                task_handshake.ci_channels.add_ci_count_edges_chan(self.config_dict.dev_RSHTTLhandshake['port'],
-                                                                   edge=Edge.RISING,
-                                                                   initial_count=0,
-                                                                   count_direction=CountDirection.COUNT_UP
-                                                                   )
-                task_handshake.ci_channels[0].ci_count_edges_term = self.config_dict.dev_RSHTTLhandshake['term']
+    # # waits for TTL handshake, e.g. high signal
+    # async def run_task_RSH_TTL_handshake(self):
+    #     with nidaqmx.Task() as task_handshake:
+    #         if 'port' in self.config_dict.dev_RSHTTLhandshake.keys() and 'term' in self.config_dict.dev_RSHTTLhandshake.keys():
+    #             task_handshake.ci_channels.add_ci_count_edges_chan(self.config_dict.dev_RSHTTLhandshake['port'],
+    #                                                                edge=Edge.RISING,
+    #                                                                initial_count=0,
+    #                                                                count_direction=CountDirection.COUNT_UP
+    #                                                                )
+    #             task_handshake.ci_channels[0].ci_count_edges_term = self.config_dict.dev_RSHTTLhandshake['term']
 
 
-                # TODO: need to improve this once the real hardware is ready
-                while True:
-                    print(' ... waiting for RSH handshake ...')
-                    data = task_handshake.read()
-                    if data:
-                        print(' ... got RSH handshake ...')
-                        break
-                    await asyncio.sleep(0.5)
+    #             # TODO: need to improve this once the real hardware is ready
+    #             while True:
+    #                 print(' ... waiting for RSH handshake ...')
+    #                 data = task_handshake.read()
+    #                 if data:
+    #                     print(' ... got RSH handshake ...')
+    #                     break
+    #                 await asyncio.sleep(0.5)
                 
-                return {"name":"RSH_TTL_handshake",
-                    "status": data
-                   }
+    #             return {"name":"RSH_TTL_handshake",
+    #                 "status": data
+    #                }
 
 
     async def run_task_getFSW(self, FSW):
@@ -389,6 +389,8 @@ class cNIMAX:
                 self.FIFO_epoch =  time.time_ns()
                 self.FIFO_name = f'NImax_{time.strftime("%Y%m%d_%H%M%S%z.txt")}'
                 self.FIFO_dir = self.local_data_dump
+                # self.FIFO_dir = os.path.join(self.local_data_dump,action_params['save_folder'])
+                print(' ... saving to:',self.FIFO_dir)
                 # open new file and write header
                 self.datafile.filename = self.FIFO_name
                 self.datafile.filepath = self.FIFO_dir
@@ -510,7 +512,7 @@ app = FastAPI(title="NIdaqmx server",
 
 
 @app.post(f"/{servKey}/run_task_GasFlowValves")
-async def run_task_GasFlowValves(valves: str, on: bool = True):
+async def run_task_GasFlowValves(valves: str, on: bool = True, action_params = ''):
     """Provide list of Valves (number) separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -529,7 +531,7 @@ async def run_task_GasFlowValves(valves: str, on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_Master_Cell_Select")
-async def run_task_Master_Cell_Select(cells: str, on: bool = True):
+async def run_task_Master_Cell_Select(cells: str, on: bool = True, action_params = ''):
     """Provide list of Cells separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -548,7 +550,7 @@ async def run_task_Master_Cell_Select(cells: str, on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_Active_Cells_Selection")
-async def run_task_Active_Cells_Selection(cells: str, on: bool = True):
+async def run_task_Active_Cells_Selection(cells: str, on: bool = True, action_params = ''):
     """Provide list of Cells (number) separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -567,7 +569,7 @@ async def run_task_Active_Cells_Selection(cells: str, on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_Pumps")
-async def run_task_Pumps(pumps: pumpitems = 'PeriPump', on: bool = True):
+async def run_task_Pumps(pumps: pumpitems = 'PeriPump', on: bool = True, action_params = ''):
     """Provide list of Pumps separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -586,7 +588,7 @@ async def run_task_Pumps(pumps: pumpitems = 'PeriPump', on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_FSWBCD")
-async def run_task_FSWBCD(BCDs: str, on: bool = True):
+async def run_task_FSWBCD(BCDs: str, on: bool = True, action_params = ''):
     """Provide list of Pumps separated by ,"""
     await stat.set_run()
     retc = return_class(
@@ -605,7 +607,7 @@ async def run_task_FSWBCD(BCDs: str, on: bool = True):
 
 
 @app.post(f"/{servKey}/run_task_FSW_error")
-async def run_task_FSW_error():
+async def run_task_FSW_error(action_params = ''):
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
@@ -621,7 +623,7 @@ async def run_task_FSW_error():
 
 
 @app.post(f"/{servKey}/run_task_FSW_done")
-async def run_task_FSW_done():
+async def run_task_FSW_done(action_params = ''):
     await stat.set_run()
     retc = return_class(
         measurement_type="NImax_command",
@@ -636,24 +638,24 @@ async def run_task_FSW_done():
     return retc
 
 
-@app.post(f"/{servKey}/run_task_RSH_TTL_handshake")
-async def run_task_RSH_TTL_handshake():
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="NImax_command",
-        parameters={
-                    "command": "run_RSH_TTL_handshake",
-                    "parameters": {
-                        },
-                    },
-        data=await NIMAX.run_task_RSH_TTL_handshake(),
-    )
-    await stat.set_idle()
-    return retc
+# @app.post(f"/{servKey}/run_task_RSH_TTL_handshake")
+# async def run_task_RSH_TTL_handshake(action_params = ''):
+#     await stat.set_run()
+#     retc = return_class(
+#         measurement_type="NImax_command",
+#         parameters={
+#                     "command": "run_RSH_TTL_handshake",
+#                     "parameters": {
+#                         },
+#                     },
+#         data=await NIMAX.run_task_RSH_TTL_handshake(),
+#     )
+#     await stat.set_idle()
+#     return retc
 
 
 @app.post(f"/{servKey}/run_task_Cell_IV")
-async def run_task_Cell_IV(on: bool = True,tstep: float = 1.0):
+async def run_task_Cell_IV(on: bool = True,tstep: float = 1.0, action_params = ''):
     """Get the current/voltage measurement for each cell.
     Only active cells are plotted in visualizer."""
     await stat.set_run()
@@ -673,7 +675,7 @@ async def run_task_Cell_IV(on: bool = True,tstep: float = 1.0):
 
 
 @app.post(f"/{servKey}/stop")
-async def stop():
+async def stop(action_params = ''):
     """Stops measurement in a controlled way."""
     await stat.set_run()
     retc = return_class(
@@ -687,7 +689,7 @@ async def stop():
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True):
+async def estop(switch: bool = True, action_params = ''):
     """Same as stop, but also sets estop flag."""
     await stat.set_run()
     retc = return_class(

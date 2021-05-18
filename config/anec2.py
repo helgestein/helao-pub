@@ -4,6 +4,7 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
+local_data_dump=r'C:\INST\RUNS2'
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -15,7 +16,10 @@ config["servers"] = dict(
         port=8001,
         group="orchestrators",
         fast="async_orch",
-        path="."
+        path=".",
+        params=dict(
+            local_data_dump=f'{local_data_dump}'
+            )
     ),
     ##########################################################################
     # Instrument Servers
@@ -79,7 +83,7 @@ config["servers"] = dict(
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
             #dev_family = 'Interface', # 'Interface' or 'Reference', not need anymore, we can autodetect this
             dev_id = 0, # (default 0) Gamry device number in Gamry Instrument Manager (i-1)
-            local_data_dump='C:\\INST\\RUNS', # dont foeget to use \\ instead of \
+            local_data_dump=f'{local_data_dump}', # will use this if orch is not running
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
         )
@@ -102,7 +106,7 @@ config["servers"] = dict(
         group="server",
         fast="nidaqmx_server",
         params = dict(
-            local_data_dump="C:\\temp", # dont foeget to use \\ instead of \
+            local_data_dump=f'{local_data_dump}', # will use this if orch is not running
             dev_CellCurrent_trigger = 'PFI1', #P1.1
             dev_CellVoltage_trigger = 'PFI1', #P1.1
             dev_CellCurrent = {
@@ -196,7 +200,7 @@ config["servers"] = dict(
             host = 'hte-rshs-01.htejcap.caltech.edu',
             dev_NImax = { # TTL handshake via NImax
                 'start':'PXI-6284/port2/line5',  #P2.5
-                'RSH2':'PXI-6284/port2/line7',  #P2.7
+                'continue':'PXI-6284/port2/line7',  #P2.7
                 'done':'PXI-6284/port2/line3',  #P2.3
                 }
         )

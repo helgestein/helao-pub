@@ -13,9 +13,11 @@ from enum import Enum
 import psutil
 from time import strftime
 from classes import LocalDataHandler
-from classes import sample_class
+#from classes import sample_class
 import os
 from classes import action_runparams
+from classes import Action_params
+import json
 
 
 class Gamry_modes(str, Enum):
@@ -162,8 +164,10 @@ class gamry:
         self.FIFO_column_headings = []
         self.FIFO_Gamryname = ''
         # holds all sample information
-        self.FIFO_sample = sample_class()
+        #self.FIFO_sample = sample_class()
         
+        self.def_action_params = Action_params()
+        self.action_params = self.def_action_params.as_dict()
 
     ##########################################################################
     # This is main Gamry measurement loop which always needs to run
@@ -581,7 +585,7 @@ class gamry:
           
 
             # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
-            await datafile.write_sampleinfo_async(self.FIFO_sample)
+            await datafile.write_sampleinfo_async(self.action_params)
             
             # write Gamry specific data
             await datafile.write_data_async('%gamry='+str(self.FIFO_Gamryname))
@@ -723,6 +727,12 @@ class gamry:
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -748,10 +758,8 @@ class gamry:
                 self.FIFO_gamryheader += f'%scanrate={ScanRate}\n'
                 self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
                 self.FIFO_gamryheader += f'%eta={eta}'
-                
-                
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
+
+                self.set_filedir()
                 
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
@@ -796,12 +804,22 @@ class gamry:
         TTLsend: int = -1,
         Irange: Gamry_Irange = 'auto'
     ):
+        print('################################################################')
+        print(runparams)
+        print('################################################################')
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
+
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -827,10 +845,9 @@ class gamry:
                 self.FIFO_gamryheader += f'%Tval={Tval}\n'
                 self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
                 self.FIFO_gamryheader += f'%eta={eta}'
-    
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
-    
+
+                self.set_filedir()
+
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
                 self.IO_do_meas = True
@@ -879,6 +896,12 @@ class gamry:
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -905,8 +928,7 @@ class gamry:
                 self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
                 self.FIFO_gamryheader += f'%eta={eta}'
     
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
+                self.set_filedir()
     
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
@@ -964,6 +986,12 @@ class gamry:
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1014,9 +1042,8 @@ class gamry:
                 self.FIFO_gamryheader += f'%cycles={Cycles}\n'
                 self.FIFO_gamryheader += f'%eta={eta}'
     
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
-    
+                self.set_filedir()
+
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
                 self.IO_do_meas = True
@@ -1077,6 +1104,12 @@ class gamry:
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1106,8 +1139,7 @@ class gamry:
                 self.FIFO_gamryheader += f'%eta={eta}'
                 
                 
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
+                self.set_filedir()
                 
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
@@ -1162,6 +1194,12 @@ class gamry:
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
+                try:
+                    # use parsed version
+                    self.action_params = json.loads(runparams.action_params)
+                except Exception:
+                    # use default
+                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1187,8 +1225,7 @@ class gamry:
                 self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
                 self.FIFO_gamryheader += f'%eta={eta}'
     
-                self.FIFO_name = f'gamry_{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-                self.FIFO_dir = self.local_data_dump
+                self.set_filedir()
     
                 # signal the IOloop to start the measrurement
                 self.runparams = runparams
@@ -1217,3 +1254,11 @@ class gamry:
             "eta": eta,
             "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
         }
+
+    def set_filedir(self):
+        samplenostr = '_'.join([str(sample) for sample in self.action_params['sample_no']])
+        self.FIFO_name = f'sampleno{samplenostr}__gamry__{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+        # self.FIFO_dir = self.local_data_dump
+        # self.local_data_dump will be skipped if second param is absolute path
+        self.FIFO_dir = os.path.join(self.local_data_dump,self.action_params['save_folder'])
+        print(' ... saving to:',self.FIFO_dir)

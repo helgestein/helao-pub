@@ -161,7 +161,9 @@ class C_async_operator:
         self.button_clear_act.on_event(ButtonClick, self.callback_clear_actions)
 
         self.button_prepend = Button(label="prepend", button_type="default", width=150)
+        self.button_prepend.on_event(ButtonClick, self.callback_prepend)
         self.button_append = Button(label="append", button_type="default", width=150)
+        self.button_append.on_event(ButtonClick, self.callback_append)
 
 
         # service mode elements
@@ -381,39 +383,54 @@ class C_async_operator:
         print(' ... orch response:', response)
 
 
+    def callback_prepend(self, event):
+        self.prepend_action()
 
 
-    def callback_sericemode_run(self, event):
-        print(' ... starting operator orch')
+    def callback_append(self, event):
+        self.append_action()
+
+
+    def append_action(self):
+        params = self.populate_action()
+        # submit decission to orchestrator
+        response = self.do_orch_request('append_decision',params)
+        return response
+
+    def prepend_action(self):
+        params = self.populate_action()
+        # submit decission to orchestrator
+        response = self.do_orch_request('prepend_decision',params)
+        return response
+
+
+    def populate_action(self):
         selaction = self.actions_dropdown.value
         selplateid = self.input_plateid.value
         selsample = self.input_sampleno.value
         print(' ... selected action from list:', selaction)
         print(' ... selected plateid:', selplateid)
         print(' ... selected sample:', selsample)
-        # idx = self.act_select_list.index(selaction)
-        # print(idx)
-        # print(self.actualizers[idx]['action'])
-        # print(self.oporch.decisions)
 
         actparams = []
         for paraminput in self.param_input:
             actparams.append(str(paraminput.value))
             print(' ... aditional action param:',paraminput.value)
 
-
-
-#append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams: list):
-        newuid = getuid('oporchservicemode')
+        newuid = getuid('operator')
         params = {'uid':f'{newuid}',
              'plate_id':f'{selplateid}', 
              'sample_no':f'{selsample}', 
              'actualizer':f'{selaction}',
              'actparams':json.dumps(actparams)}
+        return params
 
-        # submit decission to orchestrator
-        response = self.do_orch_request('append_decision',params)
-        print(' ... orch stop response:', response)
+
+
+
+    def callback_sericemode_run(self, event):
+        print(' ... starting operator orch')
+        self.append_action()
 
         # start the orchestrator
         response = self.do_orch_request('start')
@@ -566,6 +583,11 @@ class C_async_operator:
         pmxy = np.array([[col['x'], col['y']] for col in self.pmdata])
         samples = list(np.apply_along_axis(self.xy_to_sample, 1, xyarr, pmxy))
         return samples             
+
+    def update_tables(self):
+        self.get_decisions()
+        self.get_actions()
+
 
 
     

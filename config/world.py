@@ -4,6 +4,7 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
+config["action_library_path"] = "../library"
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(

@@ -39,20 +39,13 @@ a OrchHandler class object, the core functionality of an async orchestrator.
 
 import sys
 import os
-import json
 import time
-import requests
 import asyncio
-import aiohttp
 from importlib import import_module
 
 import uvicorn
-from fastapi import FastAPI, WebSocket
-from fastapi.openapi.utils import get_flat_params
-from pydantic import BaseModel
-from typing import List
+from fastapi import WebSocket
 from munch import munchify
-from collections import deque
 
 # Not packaging as a module for now, so we detect source file's root directory from CLI
 # execution and append config, driver, and core to sys.path
@@ -60,7 +53,7 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, "config"))
 sys.path.append(os.path.join(helao_root, "driver"))
 sys.path.append(os.path.join(helao_root, "core"))
-from classes import OrchHandler, Decision, Action
+from prototyping import Action, Decision, Orch, HelaoFastAPI
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
@@ -70,23 +63,13 @@ servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 O = C[servKey]
-
-# Multiple action libraries may be specified in the config, and all actualizers will be
-# imported into the action_lib dictionary. When importing more than one action library,
-# take care that actualizer function names do not conflict.
-action_lib = {}
-sys.path.append(os.path.join(helao_root, "library"))
-for actlib in config["action_libraries"]:
-    tempd = import_module(actlib).__dict__
-    action_lib.update({func: tempd[func] for func in tempd["ACTUALIZERS"]})
-
-app = FastAPI(
-    title=servKey, description="Async orchestrator with blocking", version=0.1
+app = HelaoFastAPI(
+    config, servKey, title=servKey, description="Async orchestrator V2", version=0.2
 )
 
 
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
     """Run startup actions.
 
     When FastAPI server starts, create a global OrchHandler object, initiate the
@@ -94,73 +77,38 @@ def startup_event():
     decision queue for testing.
     """
     global orch
-    orch = OrchHandler(C)
+    orch = Orch(servKey, app)
     # TODO: write class method to launch monitor_states coro in current event loop
     # global monitor_task
-    # monitor_task = asyncio.create_task(orch.monitor_states())
-    orch.monitor_states()
-    # populate decisions for testing
-    orch.decisions.append(
-        Decision(
-            uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
-        )
-    )
-    print('Orch decision length:',len(orch.decisions))
+    await orch.subscribe_all()
 
 
-@app.websocket(f"/{servKey}/ws_status")
+@app.websocket(f"/ws_status")
 async def websocket_status(websocket: WebSocket):
     """Subscribe to orchestrator status messages.
 
     Args:
       websocket: a fastapi.WebSocket object
     """
-    await websocket.accept()
-    while True:
-        # only broadcast orch status if running; status messages should only generate while running
-        if orch.status != "idle":
-            data = await orch.msgq.get()
-            await websocket.send_text(json.dumps(data))
-            print(json.dumps(data))
-            orch.msgq.task_done()
+    await orch.ws_status(websocket)
 
 
-@app.websocket(f"/{servKey}/ws_data")
+@app.websocket(f"/ws_data")
 async def websocket_data(websocket: WebSocket):
     """Subscribe to action server status dicts.
 
     Args:
       websocket: a fastapi.WebSocket object
     """
-    await websocket.accept()
-    while True:
-        # only broadcast orch status if running; status messages should only generate while running
-        if orch.status != "idle":
-            data = await orch.dataq.get()
-            await websocket.send_text(json.dumps(data))
-            orch.dataq.task_done()
+    await orch.ws_data(websocket)
 
 
-@app.post(f"/{servKey}/start")
+@app.post(f"/start")
 async def start_process():
     """Begin processing decision and action queues."""
-    if orch.status == "idle":
-        # just in case status messages were populated, clear before starting
-        while not orch.msgq.empty():
-            _ = await orch.msgq.get()
+    if orch.loop_state == "stopped":
         if orch.actions or orch.decisions:  # resume actions from a paused run
-            await run_dispatch_loop()
-            # asyncio.create_task(run_dispatch_loop())
+            await orch.run_dispatch_loop()
         else:
             print("decision list is empty")
     else:
@@ -168,330 +116,155 @@ async def start_process():
     return {}
 
 
-@app.post(f"/{servKey}/stop")
+@app.post(f"/stop")
 async def stop_process():
     """Stop processing decision and action queues."""
-    if orch.status != "idle":
-        await orch.raise_stop()
+    if orch.loop_state == "started":
+        await orch.intend_stop()
     else:
         print("orchestrator is not running")
     return {}
 
 
-@app.post(f"/{servKey}/skip")
+@app.post(f"/skip")
 async def skip_decision():
     """Clear the present action queue while running."""
-    if orch.status != "idle":
-        await orch.raise_skip()
+    if orch.loop_state == "started":
+        await orch.intend_skip()
     else:
         print("orchestrator not running, clearing action queue")
+        await asyncio.sleep(0.001)
         orch.actions.clear()
     return {}
 
 
 @app.post(f"/{servKey}/clear_actions")
-def clear_actions():
+async def clear_actions():
     """Clear the present action queue while stopped."""
     print("clearing action queue")
+    await asyncio.sleep(0.001)
     orch.actions.clear()
     return {}
 
 
 @app.post(f"/{servKey}/clear_decisions")
-def clear_decisions():
+async def clear_decisions():
     """Clear the present decision queue while stopped."""
     print("clearing decision queue")
+    await asyncio.sleep(0.001)
     orch.decisions.clear()
     return {}
 
 
-@app.post(f"/{servKey}/reset_demo")
-def reset_demo():
-    """Re-add example decisions to decision queue."""
-    orch.decisions.append(
-        Decision(
-            uid="0001", plate_id=1234, sample_no=9, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0002", plate_id=1234, sample_no=12, actualizer=action_lib["oer_screen"]
-        )
-    )
-    orch.decisions.append(
-        Decision(
-            uid="0003", plate_id=1234, sample_no=15, actualizer=action_lib["oer_screen"]
-        )
-    )
-    return {}
-
-
-# TODO: move async_dispatcher, sync_dispatcher,  and run_dispatch_loop into OrchHandler
-async def async_dispatcher(A: Action):
-    """Request non-blocking actions which may run concurrently.
-
-    Args:
-      A: an Action type object containing action server name, endpoint, and parameters.
-
-    Returns:
-      Response string from http POST request.
-    """
-    S = C[A.server]
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-        ) as resp:
-            response = await resp.text()
-    return response
-
-
-def sync_dispatcher(A: Action):
-    """Request blocking actions which must run sequentially.
-
-    Args:
-      A: an Action type object containing action server name, endpoint, and parameters.
-
-    Returns:
-      Response string from http POST request.
-    """
-    S = C[A.server]
-    with requests.Session() as session:
-        with session.post(
-            f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-        ) as resp:
-            response = resp.text
-    return response
-
-
-async def run_dispatch_loop():
-    """Parse decision and action queues, and dispatch actions."""
-    if orch.status == "idle":
-        await orch.set_run()
-    # clause for resuming paused action list
-    while orch.status != "idle" and (orch.actions or orch.decisions):
-        await asyncio.sleep(
-            0.01
-        )  # await point allows status changes to affect between actions
-        if not orch.actions:
-            D = orch.decisions.popleft()
-            orch.procid = D.uid
-            orch.actions = deque(D.actualizer(D))
-        else:
-            if orch.status == "stopping":
-                print("stop issued: waiting for action servers to idle")
-                while any(
-                    [orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()]
-                ):
-                    _ = (
-                        await orch.dataq.get()
-                    )  # just used to monitor orch.STATES update
-                    orch.dataq.task_done()
-                print("stopped")
-                orch.set_idle()
-            elif orch.status == "skipping":
-                print("skipping to next decision")
-                orch.actions.clear()
-                orch.set_run()
-            elif orch.status == "running":
-                # check current blocking status
-                while orch.is_blocked:
-                    print("waiting for orchestrator to unblock")
-                    _ = await orch.dataq.get()
-                    orch.dataq.task_done()
-                A = orch.actions.popleft()
-                # see async_dispatcher for unpacking
-                if A.preempt:
-                    while any(
-                        [orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()]
-                    ):
-                        print(orch.STATES)
-                        _ = await orch.dataq.get()
-                        orch.dataq.task_done()
-                print(f"dispatching action {A.action} on server {A.server}")
-                if (
-                    A.block or not orch.actions
-                ):  # block if flag is set, or last action in queue
-                    orch.block()
-                    print(
-                        f"[{A.decision.uid} / {A.action}] blocking - sync action started"
-                    )
-                    sync_dispatcher(A)
-                    orch.unblock()
-                    print(
-                        f"[{A.decision.uid} / {A.action}] unblocked - sync action finished"
-                    )
-                else:
-                    print(
-                        f"[{A.decision.uid} / {A.action}] no blocking - async action started"
-                    )
-                    await async_dispatcher(A)
-                    print(
-                        f"[{A.decision.uid} / {A.action}] no blocking - async action finished"
-                    )
-                # TODO: dynamic generate new decisions by signaling operator
-                # if not orch.decisions and not orch.actions
-    print("decision queue is empty")
-    await orch.set_idle()
-    return True
-
-
 @app.post(f"/{servKey}/append_decision")
-def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
+async def append_decision(
+    decision_dict: dict = None,
+    orch_name: str = None,
+    decision_label: str = None,
+    plate_id: int = None,
+    sample_no: int = None,
+    actualizer: str = None,
+    actual_pars: dict = {},
+    result_dict: dict = {},
+    access: str = "hte",
+):
     """Add a decision object to the end of the decision queue.
 
     Args:
-      uid: A unique decision identifier, as str.
+      decision_dict: Decision parameters (optional), as dict.
+      orch_name: Orchestrator server key (optional), as str.
       plate_id: The sample's plate id (no checksum), as int.
       sample_no: A sample number, as int.
       actualizer: The name of the actualizer for building the action list, as str.
+      actual_pars: Actualizer parameters, as dict.
+      result_dict: Action responses dict keyed by action_enum.
+      access: Access control group, as str.
 
     Returns:
       Nothing.
     """
-    orch.decisions.append(
-        (
-            Decision(
-                uid=uid,
-                plate_id=plate_id,
-                sample_no=sample_no,
-                actualizer=action_lib[actualizer],
-            )
-        )
+    await orch.add_decision(
+        decision_dict,
+        orch_name,
+        decision_label,
+        plate_id,
+        sample_no,
+        actualizer,
+        actual_pars,
+        result_dict,
+        access,
+        prepend=False,
     )
     return {}
 
 
 @app.post(f"/{servKey}/prepend_decision")
-def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str):
+async def prepend_decision(
+    decision_dict: dict = None,
+    orch_name: str = None,
+    decision_label: str = None,
+    plate_id: int = None,
+    sample_no: int = None,
+    actualizer: str = None,
+    actual_pars: dict = {},
+    result_dict: dict = {},
+    access: str = "hte",
+):
     """Add a decision object to the start of the decision queue.
 
     Args:
-      uid: A unique decision identifier, as str.
+      decision_dict: Decision parameters (optional), as dict.
+      orch_name: Orchestrator server key (optional), as str.
       plate_id: The sample's plate id (no checksum), as int.
       sample_no: A sample number, as int.
       actualizer: The name of the actualizer for building the action list, as str.
+      actual_pars: Actualizer parameters, as dict.
+      result_dict: Action responses dict keyed by action_enum.
+      access: Access control group, as str.
 
     Returns:
       Nothing.
     """
-    orch.decisions.appendleft(
-        (
-            Decision(
-                uid=uid,
-                plate_id=plate_id,
-                sample_no=sample_no,
-                actualizer=action_lib[actualizer],
-            )
-        )
+    await orch.add_decision(
+        decision_dict,
+        orch_name,
+        decision_label,
+        plate_id,
+        sample_no,
+        actualizer,
+        actual_pars,
+        result_dict,
+        access,
+        prepend=True,
     )
     return {}
 
 
-class return_dec(BaseModel):
-    """Return class for queried Decision objects."""
-
-    index: int
-    uid: str
-    plate_id: int
-    sample_no: int
-    actualizer: str
-    timestamp: str
-
-
-class return_declist(BaseModel):
-    """Return class for queried Decision list."""
-
-    decisions: List[return_dec]
-
-
-class return_act(BaseModel):
-    """Return class for queried Action objects."""
-
-    index: int
-    uid: str
-    server: str
-    action: str
-    pars: dict
-    preempt: bool
-    block: bool
-    timestamp: str
-
-
-class return_actlist(BaseModel):
-    """Return class for queried Action list."""
-
-    actions: List[return_act]
-
-
-@app.post(f"/{servKey}/list_decisions")
+@app.post(f"/list_decisions")
 def list_decisions():
     """Return the current list of decisions."""
-    declist = [
-        return_dec(
-            index=i,
-            uid=dec.uid,
-            plate_id=dec.plate_id,
-            sample_no=dec.sample_no,
-            actualizer=dec.actualizer.__name__,
-            timestamp=dec.created_at,
-        )
-        for i, dec in enumerate(orch.decisions)
-    ]
-    retval = return_declist(decisions=declist)
-    return retval
+    return orch.list_decisions()
 
+@app.post(f"/active_decision")
+def active_decision():
+    """Return the active decision."""
+    return orch.get_decision(last=False)
 
-@app.post(f"/{servKey}/list_actions")
+@app.post(f"/last_decision")
+def last_decision():
+    """Return the last decision."""
+    return orch.get_decision(last=True)
+
+@app.post(f"/list_actions")
 def list_actions():
     """Return the current list of actions."""
-    actlist = [
-        return_act(
-            index=i,
-            uid=act.decision.uid,
-            server=act.server,
-            action=act.action,
-            pars=act.pars,
-            preempt=act.preempt,
-            block=act.block,
-            timestamp=act.created_at,
-        )
-        for i, act in enumerate(orch.actions)
-    ]
-    retval = return_actlist(actions=actlist)
-    return retval
-
-
-@app.post("/shutdown")
-def pre_shutdown_tasks():
-    """Execute code before terminating with helao.py script."""
-    for k, task in orch.monitors.items():
-        task.cancel()
-        print(f'Cancelled {k} websocket monitor')
+    return orch.list_actions()
 
 
 @app.post("/endpoints")
 def get_all_urls():
     """Return a list of all endpoints on this server."""
-    url_list = []
-    for route in app.routes:
-        routeD = {"path": route.path, "name": route.name}
-        if "dependant" in dir(route):
-            flatParams = get_flat_params(route.dependant)
-            paramD = {
-                par.name: {
-                    "outer_type": str(par.outer_type_).split("'")[1],
-                    "type": str(par.type_).split("'")[1],
-                    "required": par.required,
-                    "shape": par.shape,
-                    "default": par.default,
-                }
-                for par in flatParams
-            }
-            routeD["params"] = paramD
-        else:
-            routeD["params"] = []
-        url_list.append(routeD)
-    return url_list
+    return orch.get_endpoint_urls(app)
 
 
 @app.on_event("shutdown")

@@ -110,16 +110,16 @@ config["servers"] = dict(
             dev_CellCurrent_trigger = 'PFI1', #P1.1
             dev_CellVoltage_trigger = 'PFI1', #P1.1
             dev_CellCurrent = {
-                        '1':'PXI-6289/ai16',
-                        '2':'PXI-6289/ai17',
-                        '3':'PXI-6289/ai18',
-                        '4':'PXI-6289/ai19',
-                        '5':'PXI-6289/ai20',
-                        '6':'PXI-6289/ai21',
-                        '7':'PXI-6289/ai22',
-                        '8':'PXI-6289/ai23',
-                        '9':'PXI-6289/ai0'
-                        },
+                '1':'PXI-6289/ai16',
+                '2':'PXI-6289/ai17',
+                '3':'PXI-6289/ai18',
+                '4':'PXI-6289/ai19',
+                '5':'PXI-6289/ai20',
+                '6':'PXI-6289/ai21',
+                '7':'PXI-6289/ai22',
+                '8':'PXI-6289/ai23',
+                '9':'PXI-6289/ai0'
+                },
             dev_CellVoltage = {
                 '1':'PXI-6284/ai16',
                 '2':'PXI-6284/ai17',
@@ -196,7 +196,7 @@ config["servers"] = dict(
         fast="PAL_server",
         params = dict(
             user = 'RSHS',
-            key = 'c:\\helao\\sshkeys\\rshs_private3.ppk', # needs to be in new openssh file format
+            key = r'c:\helao\sshkeys\rshs_private3.ppk', # needs to be in new openssh file format
             host = 'hte-rshs-01.htejcap.caltech.edu',
             dev_NImax = { # TTL handshake via NImax
                 'start':'PXI-6284/port2/line5',  #P2.5
@@ -229,7 +229,7 @@ config["servers"] = dict(
             doc_name = "ADSS Operator",
             orch = 'orchestrator',
             data_server = "data",
-            servicemode=True,
+            servicemode=False,
         )
     ),
     aligner_vis=dict(

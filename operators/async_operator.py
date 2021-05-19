@@ -152,16 +152,18 @@ class C_async_operator:
         self.button_start.on_event(ButtonClick, self.callback_start)
         self.button_stop = Button(label="Stop", button_type="default", width=70)
         self.button_stop.on_event(ButtonClick, self.callback_stop)
-        self.button_skip = Button(label="Skip", button_type="default", width=70)
+        self.button_skip = Button(label="Skip", button_type="danger", width=70)
         self.button_skip.on_event(ButtonClick, self.callback_skip_dec)
 
-        self.button_clear_dec = Button(label="clear decisions", button_type="default", width=100)
+        self.button_clear_dec = Button(label="clear decisions", button_type="danger", width=100)
         self.button_clear_dec.on_event(ButtonClick, self.callback_clear_decisions)
-        self.button_clear_act = Button(label="clear actions", button_type="default", width=100)
+        self.button_clear_act = Button(label="clear actions", button_type="danger", width=100)
         self.button_clear_act.on_event(ButtonClick, self.callback_clear_actions)
 
         self.button_prepend = Button(label="prepend", button_type="default", width=150)
+        self.button_prepend.on_event(ButtonClick, self.callback_prepend)
         self.button_append = Button(label="append", button_type="default", width=150)
+        self.button_append.on_event(ButtonClick, self.callback_append)
 
 
         # service mode elements
@@ -223,7 +225,7 @@ class C_async_operator:
         self.layout2 = layout([
                 layout([self.layout_servicemode],background="#E0E0E0",width=640),
                 layout([
-                    [self.button_append, self.button_prepend],
+                    [self.button_append, self.button_prepend, self.button_start, self.button_stop],
                     ]),
                 layout([
                 [Spacer(width=20), Div(text="<b>Decisions:</b>", width=200+50, height=15)],
@@ -231,7 +233,7 @@ class C_async_operator:
                 [Spacer(width=20), Div(text="<b>Actions:</b>", width=200+50, height=15)],
                 [self.action_table],
                 Spacer(height=10),
-                [self.button_start, self.button_stop, self.button_skip, self.button_clear_dec, self.button_clear_act],
+                [self.button_skip, Spacer(width=5), self.button_clear_dec, Spacer(width=5), self.button_clear_act],
                 Spacer(height=10),
                 ],background="#7fdbff",width=640),
             ])
@@ -264,6 +266,7 @@ class C_async_operator:
             for line in response:
                 for key, value in line.items():
                     self.decision_list[key].append(value)
+        print(' ... current active decisions:',self.decision_list)
 
 
     def get_actions(self):
@@ -273,7 +276,7 @@ class C_async_operator:
         if len(response):
             for key in response[0].keys():
                 self.action_list[key] = []
-        print(self.action_list)
+        print(' ... current active actions:',self.action_list)
 
 
     def do_orch_request(self,item, itemparams: dict = {}):
@@ -381,39 +384,57 @@ class C_async_operator:
         print(' ... orch response:', response)
 
 
+    def callback_prepend(self, event):
+        self.prepend_action()
+        operator_doc.add_next_tick_callback(partial(self.update_tables))
 
 
-    def callback_sericemode_run(self, event):
-        print(' ... starting operator orch')
+
+    def callback_append(self, event):
+        self.append_action()
+        operator_doc.add_next_tick_callback(partial(self.update_tables))
+
+
+    def append_action(self):
+        params = self.populate_action()
+        # submit decission to orchestrator
+        response = self.do_orch_request('append_decision',params)
+        return response
+
+    def prepend_action(self):
+        params = self.populate_action()
+        # submit decission to orchestrator
+        response = self.do_orch_request('prepend_decision',params)
+        return response
+
+
+    def populate_action(self):
         selaction = self.actions_dropdown.value
         selplateid = self.input_plateid.value
         selsample = self.input_sampleno.value
         print(' ... selected action from list:', selaction)
         print(' ... selected plateid:', selplateid)
         print(' ... selected sample:', selsample)
-        # idx = self.act_select_list.index(selaction)
-        # print(idx)
-        # print(self.actualizers[idx]['action'])
-        # print(self.oporch.decisions)
 
         actparams = []
         for paraminput in self.param_input:
             actparams.append(str(paraminput.value))
             print(' ... aditional action param:',paraminput.value)
 
-
-
-#append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams: list):
-        newuid = getuid('oporchservicemode')
+        newuid = getuid('operator')
         params = {'uid':f'{newuid}',
              'plate_id':f'{selplateid}', 
              'sample_no':f'{selsample}', 
              'actualizer':f'{selaction}',
              'actparams':json.dumps(actparams)}
+        return params
 
-        # submit decission to orchestrator
-        response = self.do_orch_request('append_decision',params)
-        print(' ... orch stop response:', response)
+
+
+
+    def callback_sericemode_run(self, event):
+        print(' ... starting operator orch')
+        self.append_action()
 
         # start the orchestrator
         response = self.do_orch_request('start')
@@ -511,6 +532,7 @@ class C_async_operator:
         print(samplestr)
         operator_doc.add_next_tick_callback(partial(self.update_samples,samplestr))
 
+
     async def get_pm(self, plateid):
         '''gets plate map from aligner server'''
 
@@ -519,34 +541,9 @@ class C_async_operator:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, params={'plateid':plateid}) as resp:
                 response = await resp.json()
-                #print(response)
                 self.pmdata = json.loads(response['data']['map'])
                 operator_doc.add_next_tick_callback(partial(self.update_pm_plot))
-                #return response
 
-
-        # A = dict(
-        #     host = C[S.params.aligner_server].host,
-        #     port = C[S.params.aligner_server].port,
-        #     server = S.params.aligner_server,
-        #     action = 'private/align_get_PM',
-        #     pars = {}
-        #     )
-        # url = f"http://{A['host']}:{A['port']}/{A['server']}/{A['action']}"
-        # print(url)
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.post(url, params=A['pars']) as resp:
-        #         response = await resp.json()
-        #         print(response)
-        #         #TODO: check if dataserver actually send a map        
-        #         plateid=response['parameters']['plateid']
-        #         #alignerwebdoc.add_next_tick_callback(partial(update_pm_plot_title, plateid))
-        #         #alignerwebdoc.add_next_tick_callback(partial(update_status,"Got plateID:\n"+plateid))
-        #         #global pmdata
-        #         #pmdata = json.loads(response['data']['data']['map'])
-                
-        #         #alignerwebdoc.add_next_tick_callback(partial(update_status,"PM loaded"))
-        #         #alignerwebdoc.add_next_tick_callback(partial(update_pm_plot))
     
     def xy_to_sample(self, xy, pmapxy):
         '''get point from pmap closest to xy'''
@@ -567,156 +564,32 @@ class C_async_operator:
         samples = list(np.apply_along_axis(self.xy_to_sample, 1, xyarr, pmxy))
         return samples             
 
+    def update_tables(self):
+        # should maybe update it do ws later instead of polling once orch2 is ready
+        self.get_decisions()
+        self.columns_dec = [TableColumn(field=key, title=key) for key in self.decision_list.keys()]
+        self.decision_table.source.data = self.decision_list
+        self.decision_table.columns=self.columns_dec
 
-    
-    # # TODO: move async_dispatcher, sync_dispatcher,  and run_dispatch_loop into OrchHandler
-    # async def servicemode_async_dispatcher(self, A: Action):
-    #     """Request non-blocking actions which may run concurrently.
-    
-    #     Args:
-    #       A: an Action type object containing action server name, endpoint, and parameters.
-    
-    #     Returns:
-    #       Response string from http POST request.
-    #     """
-    #     S = C[A.server]
-    #     async with aiohttp.ClientSession() as session:
-    #         async with session.post(
-    #             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-    #         ) as resp:
-    #             response = await resp.text()
-    #             return response
-    
-    
-    # def servicemode_sync_dispatcher(self, A: Action):
-    #     """Request blocking actions which must run sequentially.
-    
-    #     Args:
-    #       A: an Action type object containing action server name, endpoint, and parameters.
-    
-    #     Returns:
-    #       Response string from http POST request.
-    #     """
-    #     S = C[A.server]
-    #     with requests.Session() as session:
-    #         with session.post(
-    #             f"http://{S.host}:{S.port}/{A.server}/{A.action}", params=A.pars
-    #         ) as resp:
-    #             response = resp.text
-    #             return response
+        self.get_actions()
+        self.columns_act = [TableColumn(field=key, title=key) for key in self.action_list.keys()]
+        self.action_table.source.data=self.action_list
+        self.action_table.columns=self.columns_act
 
 
-    # async def dispatchloop(self): # non-blocking coroutine, updates data source
-    #     global doc
-    #     while self.servicemode:
-    #         await asyncio.sleep(1) # await point allows status changes to affect between actions
-    #         while self.service_loop_run:
-    #             print(" ... running operator orch")
-    #             print(' ... oporch status:',self.oporch.status)
-    #             if self.oporch.status == "idle":
-    #                 await self.oporch.set_run()
-    #             print(' ... oporch status:',self.oporch.status)
-    #             # clause for resuming paused action list
-    #             print(' ... oporch descisions: ',self.oporch.decisions)
-    #             while self.oporch.status != "idle" and (self.oporch.actions or self.oporch.decisions):
-    #                 await asyncio.sleep(
-    #                     0.01
-    #                 )  # await point allows status changes to affect between actions
-    #                 if not self.oporch.actions:
-    #                     print(' ... getting new action')
-    #                     D = self.oporch.decisions.popleft()
-    #                     D.uid = getuid('oporch')
-    #                     self.oporch.procid = D.uid
-    #                     # todo: parse also additional params to actiulizer here
-    #                     self.oporch.actions = deque(D.actualizer(D, *D.actualizerparams))
-    #                     print(' ... got', self.oporch.actions)
-    #                     print(' ... optional params', D.actualizerparams)
-    #                 else:
-    #                     if self.oporch.status == "stopping":
-    #                         print("stop issued: waiting for action servers to idle")
-    #                         while any(
-    #                             [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
-    #                         ):
-    #                             _ = (
-    #                                 await self.oporch.dataq.get()
-    #                             )  # just used to monitor orch.STATES update
-    #                             self.oporch.dataq.task_done()
-    #                         print("stopped")
-    #                         self.oporch.set_idle()
-    #                     elif self.oporch.status == "skipping":
-    #                         print("skipping to next decision")
-    #                         self.oporch.actions.clear()
-    #                         self.oporch.set_run()
-    #                     elif self.oporch.status == "running":
-    #                         # check current blocking status
-    #                         while self.oporch.is_blocked:
-    #                             print("waiting for orchestrator to unblock")
-    #                             _ = await self.oporch.dataq.get()
-    #                             self.oporch.dataq.task_done()
-    #                         A = self.oporch.actions.popleft()
-    #                         # see async_dispatcher for unpacking
-    #                         if A.preempt:
-    #                             print(' ... oporch is waiting for previous actions to finish')
-    #                             while any(
-    #                                 [self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()]
-    #                             ):
-    #                                 # print(' ... states are:')
-    #                                 # for state in self.oporch.STATES:
-    #                                 #     print('###############################')
-    #                                 #     print(state)
-    #                                 #     print(self.oporch.STATES[state])
-    #                                 #     print(self.oporch.STATES[state]["status"])
-    #                                 #     print('###############################')
-    #                                 #     print(' ... ',[k for k in self.oporch.STATES.keys()])
-    #                                 #     print(' ... ',[self.oporch.STATES[k]["status"] for k in self.oporch.STATES.keys()])
-    #                                 #     print(' ... ',[self.oporch.STATES[k]["status"] != "idle" for k in self.oporch.STATES.keys()])
-    #                                 # print(self.oporch.STATES)
-    #                                 _ = await self.oporch.dataq.get()
-    #                                 self.oporch.dataq.task_done()
-    #                             print(' ... oporch finished waiting for previous actions to finish')
-    #                         print(f"dispatching action {A.action} on server {A.server}")
-    #                         if (
-    #                             A.block or not self.oporch.actions
-    #                         ):  # block if flag is set, or last action in queue
-    #                             self.oporch.block()
-    #                             print(
-    #                                 f"[{A.decision.uid} / {A.action}] blocking - sync action started"
-    #                             )
-    #                             self.servicemode_sync_dispatcher(A)
-    #                             self.oporch.unblock()
-    #                             print(
-    #                                 f"[{A.decision.uid} / {A.action}] unblocked - sync action finished"
-    #                             )
-    #                         else:
-    #                             print(
-    #                                 f"[{A.decision.uid} / {A.action}] no blocking - async action started"
-    #                             )
-    #                             await self.servicemode_async_dispatcher(A)
-    #                             print(
-    #                                 f"[{A.decision.uid} / {A.action}] no blocking - async action finished"
-    #                             )
-    #                         # TODO: dynamic generate new decisions by signaling operator
-    #                         # if not self.oporch.decisions and not self.oporch.actions
-    #             print(" ... decision queue is empty")
-    #             print(" ... stopping operator orch")
-    #             #await self.oporch.set_idle()
-    #             self.service_loop_run = False
-    #             break
-
+    async def IOloop_visualizer(self):
+        # should maybe update it do ws later instead of polling once orch2 is ready
+        # itr seems when orch is in dispatch loop this here is not updating
+        self.update_tables()
 
 ##############################################################################
 # MAIN
 ##############################################################################
 
 operator_doc = curdoc()
-# if 'doc_name' in S.params:
-#     operator_doc.title = S.params['doc_name']
-# else:
-#     operator_doc.title = 
 operator_doc.title = S.params.get('doc_name', 'Modular Visualizer')
 
 operator = C_async_operator(S, C)
-#operator_doc.add_root(operator.layout)
 
 dynamic_col = column(operator.layout0, operator.layout2)
 
@@ -725,17 +598,11 @@ operator_doc.add_root(dynamic_col)
 # get the event loop
 operatorloop = asyncio.get_event_loop()
 
-
-# if 'servicemode' not in S.params:           
-#     servicemode = False
-# else:
 servicemode = S.params.get('servicemode', False)
 
-# if servicemode:
-#     print(' ... service mode enabled. Creating operator dispatchbloop')
-#     operatorloop.create_task(operator.dispatchloop())
 
 # select the first item to force an update of the layout
 if operator.act_select_list:
     operator.actions_dropdown.value = operator.act_select_list[0]
 
+operator_doc.add_periodic_callback(operator.IOloop_visualizer,2000) # time in ms

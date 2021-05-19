@@ -41,6 +41,7 @@ import sys
 import os
 import json
 import time
+from time import strftime, time_ns
 import requests
 import asyncio
 import aiohttp
@@ -62,6 +63,8 @@ sys.path.append(os.path.join(helao_root, "config"))
 sys.path.append(os.path.join(helao_root, "driver"))
 sys.path.append(os.path.join(helao_root, "core"))
 from classes import OrchHandler, Decision, Action, getuid
+from classes import Action_params
+from classes import LocalDataHandler
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
@@ -95,7 +98,7 @@ def startup_event():
     decision queue for testing.
     """
     global orch
-    orch = OrchHandler(C)
+    orch = OrchHandler(C, servKey)
     # TODO: write class method to launch monitor_states coro in current event loop
     # global monitor_task
     # monitor_task = asyncio.create_task(orch.monitor_states())
@@ -216,6 +219,7 @@ async def async_dispatcher(A: Action):
     Returns:
       Response string from http POST request.
     """
+    print(f'... async dispatcher on {A.server} with {A.action} and {A.pars}')
     S = C[A.server]
     async with aiohttp.ClientSession() as session:
         async with session.post(
@@ -234,6 +238,7 @@ def sync_dispatcher(A: Action):
     Returns:
       Response string from http POST request.
     """
+    print(f'... sync dispatcher on {A.server} with {A.action} and {A.pars}')
     S = C[A.server]
     with requests.Session() as session:
         with session.post(
@@ -247,6 +252,7 @@ async def run_dispatch_loop():
     """Parse decision and action queues, and dispatch actions."""
     print(" ... running operator orch")
     print(' ... orch status:', orch.status)
+    rcpdatafile = LocalDataHandler()
     if orch.status == "idle":
         await orch.set_run()
     print(' ... orch status:',orch.status)
@@ -265,6 +271,32 @@ async def run_dispatch_loop():
             orch.actions = deque(D.actualizer(D, *D.actualizerparams))
             print(' ... got', orch.actions)
             print(' ... optional params', D.actualizerparams)
+            
+            # creating folder structure for decission
+            # now =  datetime.datetime.now()
+            # year, week_num, day_of_week = my_date.isocalendar()
+            
+            # year = str(year)[2:4]
+            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__{D.uid}__{D.plate_id}'
+           
+            # open new file and write header
+            rcpdatafile.filename = f'{strftime("%H%M%S")}__{D.uid}__{D.plate_id}.rcp'
+            rcpdatafile.filepath = os.path.join(orch.local_data_dump,  D.save_path)
+            await rcpdatafile.open_file_async()
+            await rcpdatafile.write_data_async(f'<Decision Decision_uid={D.uid}>')
+            await rcpdatafile.write_data_async(json.dumps(dict(
+                                                uid = f'{D.uid}',
+                                                plate_id = f'{D.plate_id}',
+                                                sample_no = f'{D.sample_no}',
+                                                actualizer = f'{D.actualizer}',
+                                                actualizerparams = json.dumps(D.actualizerparams),
+                                                save_path = f'{D.save_path}',
+                                                aux_files = f'{D.aux_files}'
+                                                )))
+#            await rcpdatafile.write_data_async(json.dumps(D.as_dict()))
+            await rcpdatafile.write_data_async('</Decision>')
+            await rcpdatafile.close_file_async()
+            
         else:
             if orch.status == "stopping":
                 print(" ... orch stop issued: waiting for action servers to idle")
@@ -288,6 +320,42 @@ async def run_dispatch_loop():
                     _ = await orch.dataq.get()
                     orch.dataq.task_done()
                 A = orch.actions.popleft()
+                A.uid = getuid(A.action) # use action name for uid inout
+                # subfolder for action
+                A.save_path = os.path.join(orch.local_data_dump, D.save_path, f'{strftime("%Y%m%d.%H%M%S")}__{A.uid}')
+                print('... saving files for action in rel path:',A.save_path)
+                
+                # adding save path to parsed parameters for FastAPI call
+                A.pars['action_params'] = json.dumps(Action_params(save_folder = A.save_path, 
+                                                                   prev_action_retval = None,
+                                                                   plate_id = D.plate_id,
+                                                                   sample_no = [D.sample_no],
+                                                                   sample_x = [],
+                                                                   sample_y = [],
+                                                                   sample_elements = [], 
+                                                                   sample_composition = [], 
+                                                                   sample_code = []).as_dict())
+
+
+                await rcpdatafile.open_file_async()
+                await rcpdatafile.write_data_async(f'<Action_START Action_uid={A.uid} Decision_uid={D.uid}>')
+                await rcpdatafile.write_data_async(json.dumps(dict(
+                                        decision = f'{A.decision}',
+                                        server_key = f'{A.server}',
+                                        action = f'{A.action}',
+                                        action_pars = json.dumps(A.pars),
+                                        preempt = f'{A.preempt}',
+                                        block = f'{A.block}',
+                                        uid = f'{A.uid}',
+                                        created_at = f'{A.created_at}',
+                                        save_path = f'{A.save_path}',
+                                                    )))
+
+
+                #await rcpdatafile.write_data_async(json.dumps(A.as_dict()))
+                await rcpdatafile.write_data_async('</Action_START>')
+                await rcpdatafile.close_file_async()
+                
                 # see async_dispatcher for unpacking
                 if A.preempt:
                     print(' ... orch is waiting for previous actions to finish')
@@ -316,7 +384,7 @@ async def run_dispatch_loop():
                     print(
                         f"[{A.decision.uid} / {A.action}] blocking - sync action started"
                     )
-                    sync_dispatcher(A)
+                    actionretvals = sync_dispatcher(A)
                     orch.unblock()
                     print(
                         f"[{A.decision.uid} / {A.action}] unblocked - sync action finished"
@@ -325,10 +393,19 @@ async def run_dispatch_loop():
                     print(
                         f"[{A.decision.uid} / {A.action}] no blocking - async action started"
                     )
-                    await async_dispatcher(A)
+                    actionretvals = await async_dispatcher(A)
                     print(
                         f"[{A.decision.uid} / {A.action}] no blocking - async action finished"
                     )
+
+                await rcpdatafile.open_file_async()
+                await rcpdatafile.write_data_async(f'<Action_END Action_uid={A.uid} Decision_uid={D.uid}>')
+                await rcpdatafile.write_data_async(json.dumps(actionretvals))
+                await rcpdatafile.write_data_async('</Action_END>')
+                await rcpdatafile.close_file_async()
+
+
+
                 # TODO: dynamic generate new decisions by signaling operator
                 # if not orch.decisions and not orch.actions
     print(" ... decision queue is empty")

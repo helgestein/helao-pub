@@ -86,7 +86,7 @@ async def websocket_data(websocket: WebSocket):
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
-async def get_elements_plateid(plateid: str):
+async def get_elements_plateid(plateid: str, action_params = ''):
     """Gets the elements from the screening print in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -99,7 +99,7 @@ async def get_elements_plateid(plateid: str):
 
 
 @app.post(f"/{servKey}/get_platemap_plateid")
-async def get_platemap_plateid(plateid: str):
+async def get_platemap_plateid(plateid: str, action_params = ''):
     """gets platemap"""
     await stat.set_run()
     retval = dataserv.get_platemap_plateidstr(plateid)
@@ -113,7 +113,7 @@ async def get_platemap_plateid(plateid: str):
 
 
 @app.post(f"/{servKey}/get_platexycalibration")
-async def get_platexycalibration(plateid):
+async def get_platexycalibration(plateid, action_params = ''):
     """gets saved plate alignment matrix"""
     await stat.set_run()
     retc = return_class(
@@ -126,7 +126,7 @@ async def get_platexycalibration(plateid):
 
 
 @app.post(f"/{servKey}/save_platexycalibration")
-async def save_platexycalibration(plateid):
+async def save_platexycalibration(plateid, action_params = ''):
     """saves alignment matrix"""
     await stat.set_run()
     retc = return_class(
@@ -139,7 +139,7 @@ async def save_platexycalibration(plateid):
 
 
 @app.post(f"/{servKey}/check_plateid")
-async def check_plateid(plateid):
+async def check_plateid(plateid, action_params = ''):
     """checks that the plate_id (info file) exists"""
     await stat.set_run()
     retc = return_class(
@@ -152,7 +152,7 @@ async def check_plateid(plateid):
 
 
 @app.post(f"/{servKey}/check_printrecord_plateid")
-async def check_printrecord_plateid(plateid: str):
+async def check_printrecord_plateid(plateid: str, action_params = ''):
     """checks that a print record exist in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -165,7 +165,7 @@ async def check_printrecord_plateid(plateid: str):
 
 
 @app.post(f"/{servKey}/check_annealrecord_plateid")
-async def check_annealrecord_plateid(plateid: str):
+async def check_annealrecord_plateid(plateid: str, action_params = ''):
     """checks that a anneal record exist in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -178,7 +178,7 @@ async def check_annealrecord_plateid(plateid: str):
 
 
 @app.post(f"/{servKey}/get_info_plateid")
-async def get_info_plateid(plateid: str):
+async def get_info_plateid(plateid: str, action_params = ''):
     await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
@@ -190,7 +190,7 @@ async def get_info_plateid(plateid: str):
 
 
 @app.post(f"/{servKey}/get_rcp_plateid")
-async def get_rcp_plateid(plateid: str):
+async def get_rcp_plateid(plateid: str, action_params = ''):
     await stat.set_run()
     retc = return_class(
         measurement_type="data_command",

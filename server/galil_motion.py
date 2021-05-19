@@ -76,7 +76,7 @@ class transformation_mode(str, Enum):
 
 
 @app.post(f"/{servKey}/setmotionref")
-async def setmotionref():
+async def setmotionref(action_params = ''):
     """Set the reference position for xyz by 
     (1) homing xyz, 
     (2) set abs zero, 
@@ -96,7 +96,7 @@ async def setmotionref():
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
 @app.post(f"/{servKey}/toMotorXY")
-def transform_platexy_to_motorxy(platexy):
+def transform_platexy_to_motorxy(platexy, action_params = ''):
     """Converts plate to motor xy"""
     motorxy = motion.transform.transform_platexy_to_motorxy(json.loads(platexy))
     retc = return_class(
@@ -109,7 +109,7 @@ def transform_platexy_to_motorxy(platexy):
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(motorxy).tolist())}
 @app.post(f"/{servKey}/toPlateXY")
-def transform_motorxy_to_platexy(motorxy):
+def transform_motorxy_to_platexy(motorxy, action_params = ''):
     """Converts motor to plate xy"""
     platexy = motion.transform.transform_motorxy_to_platexy(json.loads(motorxy))
     retc = return_class(
@@ -121,7 +121,7 @@ def transform_motorxy_to_platexy(motorxy):
 
 
 @app.post(f"/{servKey}/MxytoMPlate")
-def MxytoMPlate(Mxy):
+def MxytoMPlate(Mxy, action_params = ''):
     """removes Minstr from Msystem to obtain Mplate for alignment"""
     Mplate = motion.transform.get_Mplate_Msystem(json.loads(Mxy))
     retc = return_class(
@@ -164,13 +164,13 @@ async def websocket_status(websocket: WebSocket):
 
 
 @app.post(f"/{servKey}/download_alignmentmatrix")
-async def download_alignmentmatrix(newxyTransfermatrix):
+async def download_alignmentmatrix(newxyTransfermatrix, action_params = ''):
     """Get current in use Alignment from motion server"""
     motion.transform.update_Mplatexy(json.loads(newxyTransfermatrix))
 
 
 @app.post(f"/{servKey}/upload_alignmentmatrix")
-async def upload_alignmentmatrix():
+async def upload_alignmentmatrix(action_params = ''):
     """Send new Alignment to motion server"""
     return json.dumps(motion.transform.get_Mplatexy.tolist())
 
@@ -186,7 +186,8 @@ async def move(
     axis: str,
     speed: int = None,
     mode: move_modes = "relative",
-    transformation: transformation_mode = "motorxy" # default, nothing to do
+    transformation: transformation_mode = "motorxy", # default, nothing to do
+    action_params = ''
 ):
     """Move a apecified {axis} by {d_mm} distance at {speed} using {mode} i.e. relative.
        Use Rx, Ry, Rz and not in combination with x,y,z only in motorxy.
@@ -371,7 +372,7 @@ async def move(
 
 
 @app.post(f"/{servKey}/disconnect")
-async def disconnect():
+async def disconnect(action_params = ''):
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "motor_disconnect_command"},
@@ -381,7 +382,7 @@ async def disconnect():
 
 
 @app.post(f"/{servKey}/query_positions")
-async def query_positions():
+async def query_positions(action_params = ''):
     await stat.set_run()
     # http://127.0.0.1:8001/motor/query/positions
     retc = return_class(
@@ -394,7 +395,7 @@ async def query_positions():
 
 
 @app.post(f"/{servKey}/query_position")
-async def query_position(axis: str):
+async def query_position(axis: str, action_params = ''):
     # http://127.0.0.1:8001/motor/query/position?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -417,7 +418,7 @@ async def query_position(axis: str):
 
 
 @app.post(f"/{servKey}/query_moving")
-async def query_moving(axis: str):
+async def query_moving(axis: str, action_params = ''):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -440,7 +441,7 @@ async def query_moving(axis: str):
 
 
 @app.post(f"/{servKey}/off")
-async def axis_off(axis: str):
+async def axis_off(axis: str, action_params = ''):
     # http://127.0.0.1:8001/motor/set/off?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -463,7 +464,7 @@ async def axis_off(axis: str):
 
 
 @app.post(f"/{servKey}/on")
-async def axis_on(axis: str):
+async def axis_on(axis: str, action_params = ''):
     # http://127.0.0.1:8001/motor/set/on?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -486,7 +487,7 @@ async def axis_on(axis: str):
 
 
 @app.post(f"/{servKey}/stop")
-async def stop():
+async def stop(action_params = ''):
     await stat.set_run()
     # http://127.0.0.1:8001/motor/set/stop
     retc = return_class(
@@ -499,7 +500,7 @@ async def stop():
 
 
 @app.post(f"/{servKey}/reset")
-async def reset():
+async def reset(action_params = ''):
     """Resets Galil device. Only for emergency use!"""
     await stat.set_run()
     retc = return_class(
@@ -512,7 +513,7 @@ async def reset():
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True):
+async def estop(switch: bool = True,action_params = ''):
     # http://127.0.0.1:8001/motor/set/stop
     await stat.set_run()
     retc = return_class(

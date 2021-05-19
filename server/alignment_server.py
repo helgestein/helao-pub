@@ -393,6 +393,7 @@ async def get_alignment(plateid: str,
                         motor: str="motor",#align.config_dict['motor_server'], # default motor server in config 
 #                        visualizer: str=align.config_dict['vis_server'], # default visualizer in config
                         data: str="data",#align.config_dict['data_server'] # default data server in config
+                        action_params = ''
                         ):
     """Starts alignment process and returns TransferMatrix"""
     print('Getting alignment for:', plateid)
@@ -418,7 +419,7 @@ async def get_alignment(plateid: str,
 # get_alignment
 # when align_status is then true the Matrix is valid, else it will return the initial one
 @app.post(f"/{servKey}/align_status")
-async def align_status():
+async def align_status(action_params = ''):
     """Return status of current alignment"""
     # True: alignment is running, False: no alignment running
     await stat.set_run()

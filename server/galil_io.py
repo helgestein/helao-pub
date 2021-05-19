@@ -74,7 +74,7 @@ def status_wrapper():
 
 
 @app.post(f"/{servKey}/query_analog_in")
-def read_analog_in(port):
+def read_analog_in(port, action_params = ''):
 
     sepvals = [' ',',','\t',';','::',':']
     new_port = None
@@ -97,7 +97,7 @@ def read_analog_in(port):
 
 
 @app.post(f"/{servKey}/query_digital_in")
-def read_digital_in(port):
+def read_digital_in(port, action_params = ''):
 
     sepvals = [' ',',','\t',';','::',':']
     new_port = None
@@ -118,7 +118,7 @@ def read_digital_in(port):
 
 
 @app.post(f"/{servKey}/query_digital_out")
-def read_digital_out(port):
+def read_digital_out(port, action_params = ''):
 
     sepvals = [' ',',','\t',';','::',':']
     new_port = None
@@ -139,7 +139,7 @@ def read_digital_out(port):
 
 
 @app.post(f"/{servKey}/digital_out_on")
-def set_digital_out_on(port):
+def set_digital_out_on(port, action_params = ''):
     
     sepvals = [' ',',','\t',';','::',':']
     new_port = None
@@ -160,7 +160,7 @@ def set_digital_out_on(port):
 
 
 @app.post(f"/{servKey}/digital_out_off")
-def set_digital_out_off(port):
+def set_digital_out_off(port, action_params = ''):
     
     sepvals = [' ',',','\t',';','::',':']
     new_port = None
@@ -182,7 +182,7 @@ def set_digital_out_off(port):
 
 
 @app.post(f"/{servKey}/set_triggered_cycles")
-def set_triggered_cycles(trigger_port: int, out_port: int, t_cycle: int):
+def set_triggered_cycles(trigger_port: int, out_port: int, t_cycle: int, action_params = ''):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "set_digital_cycle"},
@@ -192,7 +192,7 @@ def set_triggered_cycles(trigger_port: int, out_port: int, t_cycle: int):
 
 
 @app.post(f"/{servKey}/analog_out")
-def set_analog_out(port: int, value: float):
+def set_analog_out(port: int, value: float, action_params = ''):
 #def set_analog_out(handle: int, module: int, bitnum: int, value: float):
     # TODO
     retc = return_class(
@@ -205,7 +205,7 @@ def set_analog_out(port: int, value: float):
 
 
 @app.post(f"/{servKey}/inf_digi_cycles")
-def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.0):
+def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.0, action_params = ''):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "analog_out_set"},
@@ -215,7 +215,7 @@ def inf_cycles(time_on: float, time_off: float, port: int, init_time: float = 0.
 
 
 @app.post(f"/{servKey}/break_inf_digi_cycles")
-def break_inf_cycles():
+def break_inf_cycles(action_params = ''):
     retc = return_class(
         measurement_type="io_command",
         parameters={"command": "analog_out_set"},
@@ -225,7 +225,7 @@ def break_inf_cycles():
 
 
 @app.post(f"/{servKey}/reset")
-async def reset():
+async def reset(action_params = ''):
     """Resets Galil device. Only for emergency use!"""
     await stat.set_run()
     retc = return_class(
@@ -238,7 +238,7 @@ async def reset():
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True):
+async def estop(switch: bool = True, action_params = ''):
     # http://127.0.0.1:8001/motor/set/stop
     await stat.set_run()
     retc = return_class(

@@ -31,16 +31,15 @@ class LocalDataHandler:
         
     # helper function        
     def sample_to_header(self, sample):
-        sampleheader  = '%plate='+str(sample.plateid)
-        sampleheader += '\n%sample='+'\t'.join([str(sample) for sample in sample.sampleid])
-        sampleheader += '\n%x='+'\t'.join([str(x) for x in sample.x])
-        sampleheader += '\n%y='+'\t'.join([str(y) for y in sample.y])
-        sampleheader += '\n%elements='+'\t'.join([str(element) for element in sample.elements])
-        sampleheader += '\n%composition='+'\t'.join([str(comp) for comp in sample.composition])
-        sampleheader += '\n%code='+'\t'.join([str(code) for code in sample.code])
+        sampleheader  = '%plate='+str(sample['plate_id'])
+        sampleheader += '\n%sample='+'\t'.join([str(sample) for sample in sample['sample_no']])
+        sampleheader += '\n%x='+'\t'.join([str(x) for x in sample['sample_x']])
+        sampleheader += '\n%y='+'\t'.join([str(y) for y in sample['sample_y']])
+        sampleheader += '\n%elements='+'\t'.join([str(element) for element in sample['sample_elements']])
+        sampleheader += '\n%composition='+'\t'.join([str(comp) for comp in sample['sample_composition']])
+        sampleheader += '\n%code='+'\t'.join([str(code) for code in sample['sample_code']])
         return sampleheader
         
-
 
     async def open_file_async(self):
         if not os.path.exists(self.filepath):
@@ -60,7 +59,9 @@ class LocalDataHandler:
         
 
     async def write_data_async(self, data):
-        await self.f.write(data + '\n')
+        if not data.endswith("\n"):
+            data += "\n"
+        await self.f.write(data)
 
 
     async def close_file_async(self):
@@ -88,7 +89,9 @@ class LocalDataHandler:
 
 
     def write_data_sync(self, data):
-        self.f.write(data + '\n')
+        if not data.endswith("\n"):
+            data += "\n"
+        self.f.write(data)
 
         
     def close_file_sync(self):
@@ -163,7 +166,7 @@ class StatusHandler:
 
 
 class OrchHandler:
-    def __init__(self, config):
+    def __init__(self, config, orch_servKey):
         self.msgq = Queue(maxsize=10)  # queue for orchestrator status
         # consolidated queue for action server statuses
         self.dataq = Queue(maxsize=10)
@@ -187,6 +190,12 @@ class OrchHandler:
         self.C = munchify(config)
         self.STATES = {S: requests.post(
             f"http://{self.C[S].host}:{self.C[S].port}/{S}/get_status").json() for S in self.fastServers}
+        self.orch_servKey = orch_servKey
+        self.local_data_dump=self.C[self.orch_servKey].params.get('local_data_dump','C:\\temp')
+        print('#############################################################')
+        print(' ... orch will save all data to:', self.local_data_dump)
+        print('#############################################################')
+
 
     async def update(self, state: str):
         self.status = state
@@ -251,11 +260,45 @@ class OrchHandler:
         self.dict[keyname] = metadict
         await self.update(self.status)
 
+    def as_dict(self):
+        return vars(self)
+
 class action_runparams:
     '''Contains status uid, name, and additional parameters from previous server calls of a decision'''
-    def __init__(self, uid: str, name: str):
+    def __init__(self, uid: str, name: str, action_params: dict):
         self.statuid = uid
         self.statname = name
+        self.action_params = action_params # holds folder, params from previous action etc
+
+
+# class Action_params(BaseModel):
+#     save_folder: str = ''
+#     prev_action_retval: dict = None
+class Action_params():
+    def __init__(self, 
+                 save_folder: str = '', # need '' instead of None
+                 prev_action_retval: dict = None, 
+                 plate_id: int = None,
+                 sample_no:  List[int] = [],
+                 sample_x:  List[str] = [],
+                 sample_y: List[str] = [],
+                 sample_elements: List[str] = [],
+                 sample_composition: List[str] = [],
+                 sample_code: List[str] = [],
+                 ):
+        self.save_folder = save_folder
+        self.prev_action_retval = prev_action_retval
+        self.plate_id = plate_id
+        self.sample_no = sample_no
+        self.sample_x = sample_x
+        self.sample_y = sample_y
+        self.sample_elements = sample_elements
+        self.sample_composition = sample_composition
+        self.sample_code = sample_code
+
+
+    def as_dict(self):
+        return vars(self)
 
 
 class Decision:
@@ -266,9 +309,11 @@ class Decision:
         self.actualizer = actualizer
         self.actualizerparams = actualizerparams
         # self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
-        self.save_path = None
+        self.save_path = ''
         self.aux_files = []
 
+    def as_dict(self):
+        return vars(self)
 
 class Action:
     def __init__(self, decision: Decision, server_key: str, action: str, action_pars: dict, preempt: bool = True, block: bool = True):
@@ -278,8 +323,12 @@ class Action:
         self.pars = action_pars
         self.preempt = preempt
         self.block = block
+        self.uid = ''
         self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
+        self.save_path = '' # relative folder (absolute main path is in server config)
 
+    def as_dict(self):
+        return vars(self)
 
 class transformxy():
     # Updating plate calibration will automatically update the system transformation
@@ -618,8 +667,8 @@ class return_class(BaseModel):
 class return_status(BaseModel):
     measurement_type: str
     parameters: dict
-    status: dict
-
+    status: dict = None
+    
 
 # class for sample parameters
 # everything except plateid needs to be a list as ANEC2 will do parallel measurements

@@ -4,6 +4,7 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
+local_data_dump=r'C:\INST\RUNS2'
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -15,7 +16,10 @@ config["servers"] = dict(
         port=8001,
         group="orchestrators",
         fast="async_orch",
-        path="."
+        path=".",
+        params=dict(
+            local_data_dump=f'{local_data_dump}'
+            )
     ),
     ##########################################################################
     # Instrument Servers
@@ -79,7 +83,7 @@ config["servers"] = dict(
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
             #dev_family = 'Interface', # 'Interface' or 'Reference', not need anymore, we can autodetect this
             dev_id = 0, # (default 0) Gamry device number in Gamry Instrument Manager (i-1)
-            local_data_dump='C:\\INST\\RUNS', # dont foeget to use \\ instead of \
+            local_data_dump=f'{local_data_dump}', # will use this if orch is not running
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
         )
@@ -102,20 +106,20 @@ config["servers"] = dict(
         group="server",
         fast="nidaqmx_server",
         params = dict(
-            local_data_dump="C:\\temp", # dont foeget to use \\ instead of \
+            local_data_dump=f'{local_data_dump}', # will use this if orch is not running
             dev_CellCurrent_trigger = 'PFI1', #P1.1
             dev_CellVoltage_trigger = 'PFI1', #P1.1
             dev_CellCurrent = {
-                        '1':'PXI-6289/ai16',
-                        '2':'PXI-6289/ai17',
-                        '3':'PXI-6289/ai18',
-                        '4':'PXI-6289/ai19',
-                        '5':'PXI-6289/ai20',
-                        '6':'PXI-6289/ai21',
-                        '7':'PXI-6289/ai22',
-                        '8':'PXI-6289/ai23',
-                        '9':'PXI-6289/ai0'
-                        },
+                '1':'PXI-6289/ai16',
+                '2':'PXI-6289/ai17',
+                '3':'PXI-6289/ai18',
+                '4':'PXI-6289/ai19',
+                '5':'PXI-6289/ai20',
+                '6':'PXI-6289/ai21',
+                '7':'PXI-6289/ai22',
+                '8':'PXI-6289/ai23',
+                '9':'PXI-6289/ai0'
+                },
             dev_CellVoltage = {
                 '1':'PXI-6284/ai16',
                 '2':'PXI-6284/ai17',
@@ -192,11 +196,11 @@ config["servers"] = dict(
         fast="PAL_server",
         params = dict(
             user = 'RSHS',
-            key = 'c:\\helao\\sshkeys\\rshs_private3.ppk', # needs to be in new openssh file format
+            key = r'c:\helao\sshkeys\rshs_private3.ppk', # needs to be in new openssh file format
             host = 'hte-rshs-01.htejcap.caltech.edu',
             dev_NImax = { # TTL handshake via NImax
                 'start':'PXI-6284/port2/line5',  #P2.5
-                'RSH2':'PXI-6284/port2/line7',  #P2.7
+                'continue':'PXI-6284/port2/line7',  #P2.7
                 'done':'PXI-6284/port2/line3',  #P2.3
                 }
         )
@@ -225,7 +229,7 @@ config["servers"] = dict(
             doc_name = "ADSS Operator",
             orch = 'orchestrator',
             data_server = "data",
-            servicemode=True,
+            servicemode=False,
         )
     ),
     aligner_vis=dict(

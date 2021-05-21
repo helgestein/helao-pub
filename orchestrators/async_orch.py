@@ -274,12 +274,6 @@ async def run_dispatch_loop():
             print(' ... optional params', D.actualizerparams)
             
             # creating folder structure for decission
-            # now =  datetime.datetime.now()
-            # year, week_num, day_of_week = my_date.isocalendar()
-            
-            # year = str(year)[2:4]
-            # TODO: instead of D.UID --> D.UID + label (custom input for label)
-#            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.plate_id}__{D.uid}'
             D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
            
             # open new file and write header
@@ -287,18 +281,21 @@ async def run_dispatch_loop():
             rcpdatafile_dec.filepath = os.path.join(orch.local_data_dump,  D.save_path)
             print(' ... #######', D.save_path)
             print(' ... #######', os.path.join(orch.local_data_dump,  D.save_path))
+
+
+            D_prercp_dict = dict(uid = f'{D.uid}',
+                                plate_id = f'{D.plate_id}',
+                                sample_no = f'{D.sample_no}',
+                                actualizer = f'{D.actualizer}',
+                                actualizerparams = D.actualizerparams,
+                                save_path = os.path.normpath(D.save_path),
+                                aux_files = f'{D.aux_files}'
+                                )
+
+
             await rcpdatafile_dec.open_file_async()
             await rcpdatafile_dec.write_data_async(f'<Decision Decision_uid={D.uid}>')
-            await rcpdatafile_dec.write_data_async(json.dumps(dict(
-                                                uid = f'{D.uid}',
-                                                plate_id = f'{D.plate_id}',
-                                                sample_no = f'{D.sample_no}',
-                                                actualizer = f'{D.actualizer}',
-                                                actualizerparams = D.actualizerparams,
-                                                save_path = os.path.normpath(D.save_path),
-                                                aux_files = f'{D.aux_files}'
-                                                )))
-#            await rcpdatafile_dec.write_data_async(json.dumps(D.as_dict()))
+            await rcpdatafile_dec.write_data_async(json.dumps(D_prercp_dict))
             await rcpdatafile_dec.write_data_async('</Decision>')
             await rcpdatafile_dec.close_file_async()
             
@@ -343,49 +340,42 @@ async def run_dispatch_loop():
                                                                    sample_code = [],
                                                                    DUID = D.uid,
                                                                    AUID = A.uid,
-                                                                   actiontime = A.actiontime).as_dict())
+                                                                   actiontime = A.actiontime,
+                                                                   created_at = A.created_at,
+                                                                   block = A.block,
+                                                                   preempt = A.preempt,
+                                                                   action = A.action).as_dict())
 
 
-                rcpdatafile_act.filename = f'{strftime("%Y%m%d.%H%M%S")}__{A.uid}.prercp'
+
+                A_prercp_start_dict = dict(decision = f'{A.decision}',
+                                           server_key = f'{A.server}',
+                                           action = f'{A.action}',
+                                           action_pars = A.pars,
+                                           preempt = f'{A.preempt}',
+                                           block = f'{A.block}',
+                                           uid = f'{A.uid}',
+                                           created_at = f'{A.created_at}',
+                                           actiontime = f'{A.actiontime}',
+                                           save_path = os.path.normpath(A.save_path)
+                                           )
+
+                # decision level pre-rcp, start part
+                await rcpdatafile_dec.open_file_async()
+                await rcpdatafile_dec.write_data_async(f'<Action_START Action_uid={A.uid} Decision_uid={D.uid}>')
+                await rcpdatafile_dec.write_data_async(json.dumps(A_prercp_start_dict))
+                await rcpdatafile_dec.write_data_async('</Action_START>')
+                await rcpdatafile_dec.close_file_async()
+
+                # action server level pre-rcp, start part
+                rcpdatafile_act.filename = f'{A.actiontime}__{A.uid}.prercp'
                 rcpdatafile_act.filepath = os.path.join(orch.local_data_dump,  A.save_path)
                 await rcpdatafile_act.open_file_async()
                 await rcpdatafile_act.write_data_async(f'<Action_START Action_uid={A.uid}>')
-                await rcpdatafile_act.write_data_async(json.dumps(dict(
-                                        decision = f'{A.decision}',
-                                        server_key = f'{A.server}',
-                                        action = f'{A.action}',
-                                        action_pars = A.pars,
-                                        preempt = f'{A.preempt}',
-                                        block = f'{A.block}',
-                                        uid = f'{A.uid}',
-                                        created_at = f'{A.created_at}',
-                                        actiontime = f'{A.actiontime}',
-                                        save_path = os.path.normpath(A.save_path),
-                                                    )))
-    #            await rcpdatafile_act.write_data_async(json.dumps(D.as_dict()))
+                await rcpdatafile_act.write_data_async(json.dumps(A_prercp_start_dict))
                 await rcpdatafile_act.write_data_async('</Action_START>')
                 await rcpdatafile_act.close_file_async()
 
-
-
-
-                await rcpdatafile_dec.open_file_async()
-                await rcpdatafile_dec.write_data_async(f'<Action_START Action_uid={A.uid} Decision_uid={D.uid}>')
-                await rcpdatafile_dec.write_data_async(json.dumps(dict(
-                                        decision = f'{A.decision}',
-                                        server_key = f'{A.server}',
-                                        action = f'{A.action}',
-                                        action_pars = A.pars,
-                                        preempt = f'{A.preempt}',
-                                        block = f'{A.block}',
-                                        uid = f'{A.uid}',
-                                        created_at = f'{A.created_at}',
-                                        actiontime = f'{A.actiontime}',                                        
-                                        save_path = os.path.normpath(A.save_path),
-                                                    )))
-                #await rcpdatafile_dec.write_data_async(json.dumps(A.as_dict()))
-                await rcpdatafile_dec.write_data_async('</Action_START>')
-                await rcpdatafile_dec.close_file_async()
                 
                 # see async_dispatcher for unpacking
                 if A.preempt:
@@ -393,17 +383,6 @@ async def run_dispatch_loop():
                     while any(
                         [orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()]
                     ):
-                        # print(' ... states are:')
-                        # for state in orch.STATES:
-                        #     print('###############################')
-                        #     print(state)
-                        #     print(orch.STATES[state])
-                        #     print(orch.STATES[state]["status"])
-                        #     print('###############################')
-                        #     print(' ... ',[k for k in orch.STATES.keys()])
-                        #     print(' ... ',[orch.STATES[k]["status"] for k in orch.STATES.keys()])
-                        #     print(' ... ',[orch.STATES[k]["status"] != "idle" for k in orch.STATES.keys()])
-                        # print(orch.STATES)
                         _ = await orch.dataq.get()
                         orch.dataq.task_done()
                     print(' ... orch finished waiting for previous actions to finish')
@@ -430,7 +409,7 @@ async def run_dispatch_loop():
                     )
 
 
-
+                # action server level pre-rcp, end part
                 await rcpdatafile_act.open_file_async()
                 await rcpdatafile_act.write_data_async(f'<Action_END Action_uid={A.uid}>')
                 await rcpdatafile_act.write_data_async(json.dumps(actionretvals))
@@ -439,7 +418,7 @@ async def run_dispatch_loop():
 
 
 
-
+                # decision level pre-rcp, end part
                 await rcpdatafile_dec.open_file_async()
                 await rcpdatafile_dec.write_data_async(f'<Action_END Action_uid={A.uid} Decision_uid={D.uid}>')
                 await rcpdatafile_dec.write_data_async(json.dumps(actionretvals))

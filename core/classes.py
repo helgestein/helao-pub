@@ -287,7 +287,11 @@ class Action_params():
                  sample_code: List[str] = [],
                  DUID: str = '',
                  AUID: str = '',
-                 actiontime: str = ''
+                 actiontime: str = '',
+                 created_at: str = '',
+                 block: bool = False,
+                 preempt: bool = False,
+                 action: str = ''
                  ):
         self.save_folder = save_folder
         self.prev_action_retval = prev_action_retval
@@ -301,6 +305,12 @@ class Action_params():
         self.DUID = DUID
         self.AUID = AUID
         self.actiontime = actiontime
+        self.block = block
+        self.preempt = preempt
+        self.action = action
+        self.created_at = created_at
+
+
     def as_dict(self):
         return vars(self)
 

@@ -177,6 +177,7 @@ class cPAL:
         self.IO_continue = False
         self.IO_error = None
         self.IO_datafile = LocalDataHandler()
+        self.liquid_sample_rcp = LocalDataHandler()
         self.IO_remotedatafile = ''
 
 
@@ -204,44 +205,6 @@ class cPAL:
         self.def_action_params = Action_params()
         self.action_params = self.def_action_params.as_dict()
 
-
-        # self.configure_triggers()
-        # self.test_trigger()
-        # self.test_trigger2()
-        
-    # def test_trigger2(self):
-    #     # Voltage reading is MASTER
-    #     self.task = nidaqmx.Task()
-    #     self.task.ai_channels.add_ai_current_chan('PXI-6284/ai1',
-    #                                                   name_to_assign_to_channel = 'test',
-    #                                                   terminal_config=TerminalConfiguration.DIFFERENTIAL,
-    #                                                   # min_val=-10.0,
-    #                                                   # max_val=+10.0,
-    #                                                   # units=VoltageUnits.VOLTS,
-    #                                                 )
-
-    #     self.task.ai_channels.all.ai_lowpass_enable = True
-    #     self.task.timing.cfg_samp_clk_timing(1.0, 
-    #                                                     source="", 
-    #                                                     active_edge=Edge.RISING, 
-    #                                                     sample_mode=AcquisitionType.CONTINUOUS, 
-    #                                                     samps_per_chan=self.buffersize)
-
-    #     # TODO can increase the callbackbuffersize if needed
-    #     #self.task_CellCurrent.register_every_n_samples_acquired_into_buffer_event(10,self.streamCURRENT_callback)
-    #     self.task.register_every_n_samples_acquired_into_buffer_event(10,self.trigger2_callback)
-
-    #     self.task.triggers.start_trigger.trig_type = TriggerType.DIGITAL_EDGE
-    #     self.task.triggers.start_trigger.cfg_dig_edge_start_trig(
-    #         trigger_source = 'PFI11',#'PXI-6284/port2/line5', # works with PFI1 on GAMRY
-    #         trigger_edge = Edge.RISING)
-    #     self.task.start()
-
-
-    # def trigger2_callback(self, task_handle, every_n_samples_event_type,number_of_samples, callback_data):
-    #     data = self.task.read(number_of_samples_per_channel=number_of_samples)
-    #     print('####', data)
-    #     #self.task.stop()
 
 
     async def create_new_liquid_sample_no(self, DUID: str = '',
@@ -281,9 +244,6 @@ class cPAL:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, params={'liquid_sample_no':liquid_sample_no}) as resp:
                 response = await resp.json()
-                print('#####################################################')
-                print(response)
-                print('#####################################################')
                 return response['data']['liquid_sample']
 
 
@@ -475,7 +435,7 @@ class cPAL:
         mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
 
 
-        auxheader = 'Date\tMethod\tTool\tSource\tDestinationTray\tDestinationSlot\tDestinationVial\tVolume\n'
+        auxheader = 'Date\tMethod\tTool\tSource\tDestinationTray\tDestinationSlot\tDestinationVial\tVolume\r\n' # for \r\n
         # sshcmd = f'cd {unixpath}'
         # print(' .... ', sshcmd)
         # mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
@@ -548,6 +508,42 @@ class cPAL:
         await self.IO_datafile.open_file_async()
         await self.IO_datafile.write_data_async('\t'.join(logdata))
         await self.IO_datafile.close_file_async()
+
+
+        # liquid_sample specific rcp
+        liquid_sampe_dict = dict(d_uid = self.action_params['DUID'],
+                                 a_uid = self.action_params['AUID'],
+                                 action = self.action_params['action'],
+                                 # action_pars = self.action_params['action_pars'],
+                                 server_key = self.servkey,
+                                 plate_id = self.action_params['plate_id'],
+                                 sample_no = self.action_params['sample_no'],
+                                 created_at = self.action_params['DUID'],
+                                 action_time = self.action_params['actiontime'],
+                                 save_path = self.FIFO_dir,
+                                 action_created_at = self.action_params['created_at'],
+                                 block = self.action_params['block'],
+                                 preempt = self.action_params['preempt'],
+                                 new_liquid_sample_no = new_liquid_sample_no,
+                                 old_liquid_sample_no = PALparams.liquid_sample_no,
+                                 epoch_PAL = ssh_time,
+                                 epoch_start = start_time,
+                                 epoch_continue = continue_time,
+                                 epoch_done = done_time,
+                                 PAL_tool =  PALparams.tool,
+                                 PAL_source = PALparams.source,
+                                 PAL_volume_uL = PALparams.volume_uL,
+                                 PAL_dest_tray = PALparams.dest_tray,
+                                 PAL_dest_slot = PALparams.dest_slot,
+                                 PAL_dest_vial = PALparams.dest_vial,
+                                 PAL_logfile = path_logfile,
+                                 PAL_method = path_methodfile,
+                                 )
+        self.liquid_sample_rcp.filename = f'{new_liquid_sample_no:08d}__{actiontime}__{AUID}.preinfo'
+        self.liquid_sample_rcp.filepath = self.FIFO_dir
+        await self.liquid_sample_rcp.open_file_async()
+        await self.liquid_sample_rcp.write_data_async(json.dumps(liquid_sampe_dict))
+        await self.liquid_sample_rcp.close_file_async()
 
         
         

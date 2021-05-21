@@ -8,12 +8,133 @@ import zipfile
 from re import compile as regexcompile
 import json
 import asyncio
+import aiofiles
+import json
 
+
+from time import strftime, time_ns
+
+from classes import LocalDataHandler
 
 
 class cmd_exception(ValueError):
     def __init__(self, arg):
         self.args = arg
+
+
+class DBfile_handler:
+    def __init__(self, DBfilepath, DBfile, headerlines = 0):
+        self.DBfilepath = DBfilepath
+        self.DBfile = DBfile
+        self.fDB = None
+        self.headerlines = headerlines
+        # create folder first if it not exist
+        if not os.path.exists(self.DBfilepath):
+            os.makedirs(self.DBfilepath)
+        print('##############################################################')
+        print(' ... liquid sample no database is:', os.path.join(self.DBfilepath,self.DBfile))
+        print('##############################################################')
+
+
+    async def open_DB(self, mode):
+        if os.path.exists(self.DBfilepath):
+            self.fDB = await aiofiles.open(os.path.join(self.DBfilepath,self.DBfile),mode)
+            return True
+        else:
+            return False
+
+
+    async def close_DB(self):
+        await self.fDB.close()
+
+
+    async def add_line(self, line):
+        if not line.endswith("\n"):
+            line += "\n"
+        await self.fDB.write(line)
+
+
+    async def count_IDs(self):
+        # TODO: faster way?
+        _ = await self.open_DB('a+')        
+        counter = 0
+        await self.fDB.seek(0)
+        async for line in self.fDB:
+            counter += 1
+        await self.close_DB()
+        return counter - self.headerlines
+
+
+    async def new_ID(self, entrydict):
+        # count lines of CSV to get ID
+        newID = await self.count_IDs()
+        newID = newID + 1
+        print(' ... new liquid sample no:', newID)
+        # add new id to dict
+        entrydict['id'] = newID
+        # dump dict to separate json file
+        AUID = entrydict.get('AUID','')
+        DUID = entrydict.get('DUID','')
+        await self.write_ID_jsonfile(f'{newID:08d}__{DUID}__{AUID}.json',entrydict)
+        # add newid to DB csv
+        await self.open_DB('a+')
+        await self.add_line(f'{newID},{DUID},{AUID}')
+        await self.close_DB()        
+        return newID
+
+
+    async def write_ID_jsonfile(self, filename, datadict):
+        '''write a separate json file for each new ID'''
+        self.fjson = await aiofiles.open(os.path.join(self.DBfilepath, filename),'a+')
+        await self.fjson.write(json.dumps(datadict))
+        await self.fjson.close()
+
+
+    async def get_ID_line(self, ID):
+        # TODO: faster way?
+        # need to add headerline count
+        ID = ID + self.headerlines
+        await self.open_DB('r+')
+        counter = 0
+        retval = ''
+        await self.fDB.seek(0)
+        async for line in self.fDB:
+            counter += 1
+            if counter == ID:
+                retval = line
+                break
+        await self.close_DB()
+        return retval
+
+
+    async def load_json_file(self, filename, linenr=1):
+        self.fjsonread = await aiofiles.open(os.path.join(self.DBfilepath, filename),'r+')
+        counter = 0
+        retval = ''
+        await self.fjsonread.seek(0)
+        async for line in self.fjsonread:
+            counter += 1
+            if counter == linenr:
+                retval = line
+        await self.fjsonread.close()
+        return json.loads(retval)
+
+
+    async def get_json(self, ID):
+        data = await self.get_ID_line(ID)
+        data = data.strip('\n')
+        data = data.split(',')
+        fileID = int(data[0])
+        DUID = data[1]
+        AUID = data[2]
+        #await self.write_ID_jsonfile(f'{newID:08d}__{DUID}__{AUID}.json',entrydict)
+        filename = f'{fileID:08d}__{DUID}__{AUID}.json'
+        print(' ... data json file:', filename)
+        retval = await self.load_json_file(filename, 1)
+        print(' ... data json content:', retval)
+        return retval
+
+
 
 
 class HTEdata:
@@ -26,7 +147,9 @@ class HTEdata:
         self.PLATEFOLDERS=[r'\\htejcap.caltech.edu\share\data\hte_jcap_app_proto\plate', r'J:\hte_jcap_app_proto\plate']
 
         self.qdata = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
-
+        self.liquidDBpath = self.config_dict['liquid_DBpath']
+        self.liquidDBfile = self.config_dict['liquid_DBfile']        
+        self.echeDB =  DBfile_handler(self.liquidDBpath, self.liquidDBfile)
         
     ##########################################################################
     # Server Functions
@@ -34,6 +157,73 @@ class HTEdata:
     
 #    def update_rcp_plateidstr(self, plateidstr, newdata):
         # update rcp file with filenames of measured data
+
+    def str_to_strarray(self, datastr):
+        sepvals = [';','\t','::',':']
+        dataarray = None
+
+        for sep in sepvals:
+            if not (datastr.find(sep) == -1):
+                    dataarray = datastr.split(sep)
+                    break
+    
+        if dataarray == None:
+            dataarray = datastr
+    
+        if type(dataarray) is not list:
+            dataarray = [dataarray]
+        return dataarray
+
+
+    def tofloat(self, datastr):
+        try:
+            return float(datastr)
+        except Exception:
+            return None
+
+
+    async def get_liquid_sample_no(self, liquid_sample_no):
+        dataCSV = await self.echeDB.get_ID_line(liquid_sample_no)
+        return dataCSV
+
+
+    async def get_liquid_sample_no_json(self, liquid_sample_no):
+        datajson = await self.echeDB.get_json(liquid_sample_no)
+        return datajson
+
+
+    async def create_new_liquid_sample_no(self, DUID: str, AUID: str, source: str, sourcevol_mL: str, volume_mL: str,
+                              action_time: str, chemical: str, mass: str,
+                              supplier: str, lot_number: str, servkey: str):
+
+
+        
+        action_time = action_time.replace(',', ';')
+        chemical = chemical.replace(',', ';')
+        mass = mass.replace(',', ';')
+        supplier = supplier.replace(',', ';')
+        lot_number = lot_number.replace(',', ';')
+        sourcevol_mL = sourcevol_mL.replace(',', ';')
+        source = source.replace(',', ';')
+        
+        
+        entry = dict(DUID=DUID,
+                     AUID=AUID,
+                     source=self.str_to_strarray(source),
+                     sourcevol_mL=[self.tofloat(vol) for vol in  self.str_to_strarray(sourcevol_mL)],
+                     volume_mL=volume_mL,
+                     action_time=action_time,
+                     chemical=self.str_to_strarray(chemical),
+                     mass=self.str_to_strarray(mass),
+                     supplier=self.str_to_strarray(supplier),
+                     lot_number=self.str_to_strarray(lot_number),
+                     servkey=servkey)
+        
+
+        newID = await self.echeDB.new_ID(entry) 
+        return newID
+    
+    
     
     def put_in_qdata(self, item):
         if self.qdata.full():

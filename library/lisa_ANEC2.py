@@ -54,12 +54,12 @@ def orchtest(decisionObj: Decision, d_mm = '1.0'):
     return action_list
 
 
-def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', potential = '0.0', duration = '10.0', samplerate = '0.01', filltime = 10.0):
-    """Chronoamperometry (current response on amplied potential):
-        x_mm / y_mm: plate coordinates of sample;
-        potential (Volt): applied potential;
-        duration (sec): how long the potential is applied;
-        samplerate (sec): sampleperiod of Gamry;
+def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no = '1', potential = '0.0', duration = '10.0', samplerate = '0.01', filltime = 10.0):
+    """Chronoamperometry (current response on amplied potential):\n
+        x_mm / y_mm: plate coordinates of sample;\n
+        potential (Volt): applied potential;\n
+        duration (sec): how long the potential is applied;\n
+        samplerate (sec): sampleperiod of Gamry;\n
         filltime (sec): how long it takes to fill the cell with liquid or empty it."""
 
     action_list = []
@@ -113,6 +113,27 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', potential = '0.
                          preempt=True,
                          block=False))
 
+    # fill liquid
+
+    action_list.append(Action(decision=decisionObj,
+                         server_key="PAL",
+                         action="run_method",
+                         action_pars={'liquid_sample_no': f'{liquid_sample_no}',
+                                      'method': 'lcfc_fill_hardcodedvolume.cam',
+                                      'tool':'LS3',
+                                      'source': 'electrolyte_res',
+                                      'volume_uL': '30000', # uL
+                                      'dest_tray': '2',
+                                      'dest_slot': '1',
+                                      'dest_vial': '1',
+                                      #logfile: str = 'TestLogFile.txt',
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      },
+                         preempt=False,
+                         block=False))
 
     # set pump flow forward
     action_list.append(Action(decision=decisionObj,
@@ -121,7 +142,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', potential = '0.
                           action_pars={"pumps": 'Direction',
                                       "on": 0,
                                       },
-                          preempt=True,
+                          preempt=False,
                           block=False))
 
 

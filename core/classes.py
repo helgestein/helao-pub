@@ -285,6 +285,9 @@ class Action_params():
                  sample_elements: List[str] = [],
                  sample_composition: List[str] = [],
                  sample_code: List[str] = [],
+                 DUID: str = '',
+                 AUID: str = '',
+                 actiontime: str = ''
                  ):
         self.save_folder = save_folder
         self.prev_action_retval = prev_action_retval
@@ -295,8 +298,9 @@ class Action_params():
         self.sample_elements = sample_elements
         self.sample_composition = sample_composition
         self.sample_code = sample_code
-
-
+        self.DUID = DUID
+        self.AUID = AUID
+        self.actiontime = actiontime
     def as_dict(self):
         return vars(self)
 

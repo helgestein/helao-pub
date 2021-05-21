@@ -804,9 +804,6 @@ class gamry:
         TTLsend: int = -1,
         Irange: Gamry_Irange = 'auto'
     ):
-        print('################################################################')
-        print(runparams)
-        print('################################################################')
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop

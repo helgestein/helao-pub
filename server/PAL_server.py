@@ -103,8 +103,7 @@ class cPALparams():
         
     def as_dict(self):
         return vars(self)
-
-
+    
 
 
 class cPAL:
@@ -207,6 +206,11 @@ class cPAL:
 
 
 
+
+
+
+
+
     async def create_new_liquid_sample_no(self, DUID: str = '',
                           AUID: str = '',
                           source: str = '',
@@ -237,6 +241,15 @@ class cPAL:
                 response = await resp.json()
                 return response['data']['id']
 
+
+
+
+    async def get_last_liquid_sample_no(self):
+        url = f"http://{self.datahost}:{self.dataport}/{self.dataserv}/get_last_liquid_sample_no"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={}) as resp:
+                response = await resp.json()
+                return response['data']['liquid_sample']
 
 
     async def get_sample_no_json(self, liquid_sample_no: int):
@@ -373,6 +386,13 @@ class cPAL:
         AUID = self.action_params['DUID']
         actiontime = self.action_params['actiontime']
 
+        print(' ... old sampple is', PALparams.liquid_sample_no)
+        if PALparams.liquid_sample_no == -1:
+            print(' ... PAL need to get last sample from list')
+            PALparams.liquid_sample_no = await self.get_last_liquid_sample_no()
+            print(' ... last sample is ', PALparams.liquid_sample_no)
+        print(' ... old sampple is', PALparams.liquid_sample_no)
+
 
         sourceelecrolyte = await self.get_sample_no_json(PALparams.liquid_sample_no)
         
@@ -385,6 +405,9 @@ class cPAL:
         print(' ... source_mass:', source_mass)
         print(' ... source_supplier:', source_supplier)
         print(' ... source_lotnumber:', source_lotnumber)
+        
+        
+            
         
         new_liquid_sample_no = await self.create_new_liquid_sample_no(DUID, AUID, source=PALparams.liquid_sample_no, sourcevol_mL = PALparams.volume_uL/1000.0,
                                              volume_mL = PALparams.volume_uL/1000.0, action_time=actiontime, chemical=source_chemical,

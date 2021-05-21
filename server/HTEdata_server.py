@@ -87,6 +87,8 @@ async def websocket_data(websocket: WebSocket):
     await wsdata.send(websocket, dataserv.qdata, 'data_data')
 
 
+
+
 @app.post(f"/{servKey}/get_elements_plateid")
 async def get_elements_plateid(plateid: str, action_params = ''):
     """Gets the elements from the screening print in the info file"""
@@ -246,6 +248,20 @@ async def create_new_liquid_sample_no(DUID: str = '',
                                                   supplier,
                                                   lot_number,
                                                   servkey)},
+    )
+    await stat.set_idle()
+    return retc
+
+
+
+
+@app.post(f"/{servKey}/get_last_liquid_sample_no")
+async def get_last_liquid_sample_no(action_params = ''):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_last_liquid_sample_no"},
+        data={"liquid_sample": await dataserv.get_last_liquid_sample_no()},
     )
     await stat.set_idle()
     return retc

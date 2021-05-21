@@ -4,7 +4,7 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
-local_data_dump=r'C:\INST\RUNS2'
+local_data_dump=r'C:\INST\RUNS'
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -43,7 +43,12 @@ config["servers"] = dict(
         simulate=False, # choose between simulator(default) or real device
         params=dict(
             Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
-            M_instr = [[1,0,0,-76.525],[0,1,0,-50.875],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+            
+            # 4x6 plate
+            #M_instr = [[1,0,0,-76.525],[0,1,0,-50.875],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+            # 100mm wafer
+            M_instr = [[1,0,0,-76.525+(3*25.4-50)],[0,1,0,-50.875+2.71],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+
             count_to_mm=dict(
                 A=1.0/15835.31275,#1.0/15690.3,
                 B=1.0/6398.771436,#1.0/6395.45,
@@ -220,17 +225,17 @@ config["servers"] = dict(
     ##########################################################################
     # Visualizers (bokeh servers)
     ##########################################################################
-    # exp_vis=dict(#simple dumb modular visualizer
-    #     host="127.0.0.1",
-    #     port=5001,
-    #     group="visualizer",
-    #     bokeh="bokeh_modular_visualizer",
-    #     params = dict(
-    #         doc_name = "ANEC2 visualizer",
-    #         ws_nidaqmx="nimax",
-    #         ws_potentiostat = 'potentiostat',
-    #     )
-    # ),
+    exp_vis=dict(#simple dumb modular visualizer
+        host="127.0.0.1",
+        port=5001,
+        group="visualizer",
+        bokeh="bokeh_modular_visualizer",
+        params = dict(
+            doc_name = "ANEC2 visualizer",
+            ws_nidaqmx="nimax",
+            ws_potentiostat = 'potentiostat',
+        )
+    ),
     operator=dict(
         host="127.0.0.1",
         port=5002,

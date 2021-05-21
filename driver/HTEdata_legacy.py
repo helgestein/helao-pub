@@ -181,6 +181,10 @@ class HTEdata:
         except Exception:
             return None
 
+    async def get_last_liquid_sample_no(self):
+        lastno = await self.echeDB.count_IDs()
+        return lastno
+
 
     async def get_liquid_sample_no(self, liquid_sample_no):
         dataCSV = await self.echeDB.get_ID_line(liquid_sample_no)

@@ -46,6 +46,7 @@ import requests
 import asyncio
 import aiohttp
 from importlib import import_module
+from datetime import datetime
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
@@ -272,12 +273,15 @@ async def run_dispatch_loop():
             orch.actions = deque(D.actualizer(D, *D.actualizerparams))
             print(' ... got', orch.actions)
             print(' ... optional params', D.actualizerparams)
-            
+            # to get unique times for decision folder
+            await asyncio.sleep(2)
             # creating folder structure for decission
-            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
+            # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
+            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
            
             # open new file and write header
-            rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}__{D.uid}.prercp'
+            # rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}__{D.uid}.prercp'
+            rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}.prercp'
             rcpdatafile_dec.filepath = os.path.join(orch.local_data_dump,  D.save_path)
             print(' ... #######', D.save_path)
             print(' ... #######', os.path.join(orch.local_data_dump,  D.save_path))
@@ -324,8 +328,15 @@ async def run_dispatch_loop():
                 A = orch.actions.popleft()
                 A.uid = getuid(A.action) # use action name for uid inout
                 # subfolder for action
-                A.actiontime = strftime("%Y%m%d.%H%M%S")
-                A.save_path = os.path.join(orch.local_data_dump, D.save_path, f'{A.actiontime}__{A.server}__{A.uid}')
+                # A.actiontime = strftime("%Y%m%d.%H%M%S")
+                # A.actiontime = datetime.now().strftime('%Y%m%d.%H%M%S%f')[:-3]
+                await asyncio.sleep(0.002) # wait 1ms for unique action times
+                epochns = time.time_ns()
+                timestr = time.strftime('%Y%m%d.%H%M%S', time.localtime(epochns/1E9))+str(epochns)[-9:-6]
+                A.actiontime =  timestr
+
+                # A.save_path = os.path.join(orch.local_data_dump, D.save_path, f'{A.actiontime}__{A.server}__{A.uid}')
+                A.save_path = os.path.join(orch.local_data_dump, D.save_path, f'{A.actiontime}__{A.server}')
                 print('... saving files for action in rel path:',A.save_path)
                 
                 # adding save path to parsed parameters for FastAPI call
@@ -368,7 +379,8 @@ async def run_dispatch_loop():
                 await rcpdatafile_dec.close_file_async()
 
                 # action server level pre-rcp, start part
-                rcpdatafile_act.filename = f'{A.actiontime}__{A.uid}.prercp'
+                # rcpdatafile_act.filename = f'{A.actiontime}__{A.uid}.prercp'
+                rcpdatafile_act.filename = f'{A.actiontime}.prercp'
                 rcpdatafile_act.filepath = os.path.join(orch.local_data_dump,  A.save_path)
                 await rcpdatafile_act.open_file_async()
                 await rcpdatafile_act.write_data_async(f'<Action_START Action_uid={A.uid}>')

@@ -41,17 +41,25 @@ class LocalDataHandler:
         return sampleheader
         
 
-    async def open_file_async(self):
+    async def open_file_async(self, mode: str = 'a'):
         if not os.path.exists(self.filepath):
             os.makedirs(self.filepath)
-           
-        if os.path.exists(os.path.join(self.filepath, self.filename)):
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'a')
+         
+        if mode == 'r' or mode == 'r+':
+            if os.path.exists(os.path.join(self.filepath, self.filename)):
+                self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),mode)
+                return True                
+            else:
+                return False
             
+        if os.path.exists(os.path.join(self.filepath, self.filename)):
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),mode)
+            return True
         else:
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w')
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w+')
             if len(self.fileheader)>0:
                 await self.write_data_async(self.write_header)
+            return True
 
 
     async def write_sampleinfo_async(self, sample):

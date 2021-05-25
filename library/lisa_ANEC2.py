@@ -118,7 +118,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
                          server_key="PAL",
                          action="run_method",
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
-                                      'method': 'lcfc_fill_hardcodedvolume.cam',
+                                      'method': 'fillfixed',#'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
@@ -304,7 +304,7 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
                          server_key="PAL",
                          action="run_method",
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
-                                      'method': 'lcfc_fill_hardcodedvolume.cam',
+                                      'method': 'fillfixed',#'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
@@ -378,8 +378,8 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-1',
-                                      'method': 'lcfc_archive.cam',
+                          action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
+                                      'method': 'archive ',#'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
                                       'volume_uL': '500', # uL
@@ -539,7 +539,7 @@ def ADSS_CP10(decisionObj: Decision,
                          server_key="PAL",
                          action="run_method",
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
-                                      'method': 'lcfc_fill_hardcodedvolume.cam',
+                                      'method': 'fillfixed',#'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
@@ -739,8 +739,8 @@ def ADSS_CP10(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-1',
-                                      'method': 'lcfc_archive.cam',
+                          action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
+                                      'method': 'archive',#'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
                                       'volume_uL': '500', # uL

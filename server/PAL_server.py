@@ -267,6 +267,21 @@ class cPAL:
         self.action_params = self.def_action_params.as_dict()
 
 
+    async def reset_PAL_system_vial_table(self):
+        # backup to json
+        await self.backup_PAL_system_vial_table(reset = True)
+        # full backup to csv
+        for tray in range(len(self.trays)):
+            for slot in range(3): # each tray has 3 slots
+                await self.write_vial_holder_table_as_CSV(tray+1, slot+1)
+        # reset PAL table    
+        # todo change that to a config config
+        self.trays = [PALtray(slot1 = None, slot2 = None, slot3 = None), 
+                      PALtray(slot1 = VT54(max_vol_mL=2.0), slot2 = VT54(max_vol_mL=2.0), slot3 = None)]
+        # save new one so it can be loaded of Program startup
+        await self.backup_PAL_system_vial_table(reset = False)
+
+
     async def load_PAL_system_vial_table_from_backup(self):
         file_path = os.path.join(self.local_data_dump,self.PAL_file)
         print(' ... loading PAL table from',file_path)
@@ -339,10 +354,14 @@ class cPAL:
 
 
     
-    async def backup_PAL_system_vial_table(self):
+    async def backup_PAL_system_vial_table(self, reset: bool = False):
         datafile = LocalDataHandler()
         datafile.filepath = self.local_data_dump
-        datafile.filename = self.PAL_file
+        if reset:
+            datafile.filename = f'PALresetBackup__{datetime.now().strftime("%Y%m%d.%H%M%S%f")}'+self.PAL_file
+        else:
+            datafile.filename = self.PAL_file
+                
         print(' ... updating table:', datafile.filepath, datafile.filename)
         await datafile.open_file_async(mode = 'w+')
         
@@ -394,33 +413,30 @@ class cPAL:
         # save full table as backup too
         await self.backup_PAL_system_vial_table()
 
-        datafile = LocalDataHandler()
-        datafile.filename = f'VialTable__tray{tray+1}__slot{slot+1}__{datetime.now().strftime("%Y%m%d.%H%M%S%f")}.csv'
-        datafile.filepath = self.local_data_dump
-        print(' ... saving vial holder table to:', datafile.filepath, datafile.filename)
-        await datafile.open_file_async()
-        await datafile.write_data_async(','.join(['vial_no', 'liquid_sample_no', 'vol_mL']))
-        for i, _ in enumerate(self.trays[tray].slots[slot].vials):
-            await datafile.write_data_async(','.join([str(i+1),
-                                                      str(self.trays[tray].slots[slot].liquid_sample_no[i]),
-                                                      str(self.trays[tray].slots[slot].vol_mL[i])]))
-        # await datafile.write_data_async('\t'.join(logdata))
-        await datafile.close_file_async()
-
-        
-
+        if self.trays[tray-1] is not None:
+            if self.trays[tray-1].slots[slot-1] is not None:
+                datafile = LocalDataHandler()
+                datafile.filename = f'VialTable__tray{tray}__slot{slot}__{datetime.now().strftime("%Y%m%d.%H%M%S%f")}.csv'
+                datafile.filepath = self.local_data_dump
+                print(' ... saving vial holder table to:', datafile.filepath, datafile.filename)
+                await datafile.open_file_async()
+                await datafile.write_data_async(','.join(['vial_no', 'liquid_sample_no', 'vol_mL']))
+                for i, _ in enumerate(self.trays[tray-1].slots[slot-1].vials):
+                    await datafile.write_data_async(','.join([str(i+1),
+                                                              str(self.trays[tray-1].slots[slot-1].liquid_sample_no[i]),
+                                                              str(self.trays[tray-1].slots[slot-1].vol_mL[i])]))
+                # await datafile.write_data_async('\t'.join(logdata))
+                await datafile.close_file_async()
 
 
     async def get_vial_holder_table(self, tray: int = 2, slot: int = 1, csv = False):
         '''Returns vial tray sample table'''
         print(' ... getting table')
-        tray -= 1
-        slot -= 1
-        if self.trays[tray] is not None:
-            if self.trays[tray].slots[slot] is not None:
+        if self.trays[tray-1] is not None:
+            if self.trays[tray-1].slots[slot-1] is not None:
                 if csv:
                     await self.write_vial_holder_table_as_CSV(tray, slot)
-                return self.trays[tray].slots[slot].as_dict()
+                return self.trays[tray-1].slots[slot-1].as_dict()
             else:
                 return {}
         else:
@@ -920,6 +936,20 @@ async def websocket_status(websocket: WebSocket):
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
     return stat.dict
+
+
+
+@app.post(f"/{servKey}/reset_PAL_system_vial_table")
+async def reset_PAL_system_vial_table(action_params = ''):
+    '''Resets PAL vial table. But will make a full dump to CSV first.'''
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="PAL_command",
+        parameters={"command": "reset_PAL_system_vial_table"},
+        data={"reset": await PAL.reset_PAL_system_vial_table()},
+    )
+    await stat.set_idle()
+    return retc
 
 
 @app.post(f"/{servKey}/update_PAL_system_vial_table")

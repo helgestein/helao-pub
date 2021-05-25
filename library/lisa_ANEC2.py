@@ -122,10 +122,6 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
-                                      'dest_tray': '2',
-                                      'dest_slot': '1',
-                                      'dest_vial': '1',
-                                      #logfile: str = 'TestLogFile.txt',
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
                                       'spacingmethod': 'linear',
@@ -238,7 +234,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
     return action_list
 
 
-def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_no = '3', dest_vial = '2', current = '0.001', duration = '30.0', samplerate = '0.01', filltime = 60.0):
+def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_no = '3', current = '0.001', duration = '30.0', samplerate = '0.01', filltime = 60.0):
     """Chronopotentiometry (Potential response on controlled current):
         x_mm / y_mm: plate coordinates of sample;
         potential (Volt): applied potential;
@@ -308,10 +304,6 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
-                                      'dest_tray': '2',
-                                      'dest_slot': '1',
-                                      'dest_vial': '1',
-                                      #logfile: str = 'TestLogFile.txt',
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
                                       'spacingmethod': 'linear',
@@ -383,10 +375,6 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
                                       'volume_uL': '500', # uL
-                                      'dest_tray': '2',
-                                      'dest_slot': '1',
-                                      'dest_vial': f'{dest_vial}',
-                                      #logfile: str = 'TestLogFile.txt',
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
                                       'spacingmethod': 'linear',
@@ -462,7 +450,6 @@ def ADSS_CP10(decisionObj: Decision,
               x_mm = '10.0', 
               y_mm = '10.0', 
               liquid_sample_no = '3', 
-              dest_vial = '2', 
               current1 = '0.001',
               current2 = '0.001',
               current3 = '0.001',
@@ -543,10 +530,6 @@ def ADSS_CP10(decisionObj: Decision,
                                       'tool':'LS3',
                                       'source': 'electrolyte_res',
                                       'volume_uL': '30000', # uL
-                                      'dest_tray': '2',
-                                      'dest_slot': '1',
-                                      'dest_vial': '1',
-                                      #logfile: str = 'TestLogFile.txt',
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
                                       'spacingmethod': 'linear',
@@ -744,10 +727,6 @@ def ADSS_CP10(decisionObj: Decision,
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
                                       'volume_uL': '500', # uL
-                                      'dest_tray': '2',
-                                      'dest_slot': '1',
-                                      'dest_vial': f'{dest_vial}',
-                                      #logfile: str = 'TestLogFile.txt',
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
                                       'spacingmethod': 'linear',

@@ -7,8 +7,9 @@ import shutil
 from copy import copy
 from collections import defaultdict, deque
 from socket import gethostname
-from time import ctime, time, strftime, strptime
-from typing import Optional, List
+from time import ctime, time, strftime, strptime, sleep
+from datetime import datetime
+from typing import Optional, List, Union
 
 import shortuuid
 import ntplib
@@ -121,6 +122,8 @@ class Decision(object):
         decision_label: str = "nolabel",
         plate_id: int = None,
         sample_no: int = None,
+        samples_in: list = [],
+        samples_out: list = [],
         actualizer: str = None,
         actual_pars: dict = {},
         result_dict: dict = {},
@@ -136,15 +139,11 @@ class Decision(object):
         self.access = imports.get("access", access)
         self.plate_id = imports.get("plate_id", plate_id)
         self.sample_no = imports.get("sample_no", sample_no)
+        self.samples_in = imports.get("samples_in", samples_in)
+        self.samples_out = imports.get("samples_out", samples_out)
         self.actual = imports.get("actual", actualizer)
         self.actual_pars = imports.get("actual_pars", actual_pars)
         self.result_dict = imports.get("result_dict", result_dict)
-        check_args = {"plate_id": self.plate_id, "sample_no": self.sample_no}
-        missing_args = [k for k, v in check_args.items() if v is None]
-        if missing_args:
-            print(
-                f'Decision {" and ".join(missing_args)} not specified. Placeholder decisions will only affect the decision queue enumeration.'
-            )
         if self.decision_uuid is None and self.action.name:
             self.get_uuid()
 
@@ -159,8 +158,10 @@ class Decision(object):
             self.decision_uuid = gen_uuid(self.orch_name)
             print(f"decision_uuid: {self.decision_uuid} assigned")
 
-    def set_dtime(self):
-        self.decision_timestamp = strftime("%Y%m%d.%H%M%S")
+    def set_dtime(self, offset: float = 0):
+        dtime = datetime.now()
+        dtime = datetime.fromtimestamp(dtime.timestamp() + offset)
+        self.decision_timestamp = dtime.strftime("%Y%m%d.%H%M%S%f")
 
 
 class Action(Decision):
@@ -175,8 +176,8 @@ class Action(Decision):
         action_enum: int = None,
         action_abbr: str = None,
         save_rcp: bool = False,
-        save_datastream=None,
-        start_condition: int = 3,
+        save_datastream: bool = False,
+        start_condition: Union[int, dict] = 3,
     ):
         super().__init__(inputdict)  # grab decision keys
         imports = {}
@@ -215,8 +216,10 @@ class Action(Decision):
             self.action_uuid = gen_uuid(self.action_name)
             print(f"action_uuid: {self.action_uuid} assigned")
 
-    def set_atime(self):
-        self.action_timestamp = strftime("%Y%m%d.%H%M%S")
+    def set_atime(self, offset: float = 0):
+        atime = datetime.now()
+        atime = datetime.fromtimestamp(atime.timestamp() + offset)
+        self.action_timestamp = atime.strftime("%Y%m%d.%H%M%S%f")
 
 
 class HelaoFastAPI(FastAPI):
@@ -292,25 +295,23 @@ class Base(object):
                     "Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written."
                 )
                 self.save_root = None
+        self.actives = {}
         self.status = {}
-        self.active = None
-        self.last = None
-        self.file_conn = None  # aiofiles connection
+        self.endpoints = []
         self.status_q = MultisubscriberQueue()
         self.data_q = MultisubscriberQueue()
         self.status_clients = set()
-        self.data_clients = set()
         self.ntp_server = "time.nist.gov"
         self.ntp_response = None
+        self.ntp_offset = None  # add to system time for correction
         if os.path.exists("ntpLastSync.txt"):
             self.ntp_last_sync = open("ntpLastSync.txt", "r").readlines()[0].strip()
         elif self.ntp_last_sync is None:
             self.get_ntp_time()
-        self.ntp_offset = None  # add to system time for correction
-        self.get_ntp_time()
         self.init_endpoint_status(fastapp)
         self.fast_urls = self.get_endpoint_urls(fastapp)
-        self.endpoints = []
+        self.status_logger = asyncio.create_task(self.log_status_task())
+        self.ntp_syncer = asyncio.create_task(self.sync_ntp_task())
 
     def init_endpoint_status(self, app: FastAPI):
         "Populate status dict with FastAPI server endpoints for monitoring."
@@ -353,14 +354,16 @@ class Base(object):
             url_list.append(routeD)
         return url_list
 
-    def get_ntp_time(self):
+    async def get_ntp_time(self):
         "Check system clock against NIST clock for trigger operations."
         c = ntplib.NTPClient()
         response = c.request(self.ntp_server, version=3)
         self.ntp_response = response
         self.ntp_last_sync = response.orig_time
         self.ntp_offset = response.offset
-        open("ntpLastSync.txt", "w").write(self.ntp_last_sync)
+        time_inst = await aiofiles.open("ntpLastSync.txt", "w")
+        await time_inst.write(self.ntp_last_sync)
+        await time_inst.close()
         print(
             f"retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}"
         )
@@ -423,12 +426,10 @@ class Base(object):
                 f"Data websocket client {websocket.client[0]}:{websocket.client[1]} disconnected."
             )
 
-    async def log_status_task(
-        self, retry_limit: int = 5
-    ):  # TODO:write to log if save_root exists
+    async def log_status_task(self, retry_limit: int = 5):
         "Self-subscribe to status queue, log status changes, POST to clients."
         async for status_msg in self.status_q.subscribe():
-            self.status = status_msg
+            self.status.update(status_msg)
             for client_addr in self.status_clients:
                 async with aiohttp.ClientSession() as session:
                     success = False
@@ -449,79 +450,240 @@ class Base(object):
                     print(
                         f"Failed to push status message to {client_addr} after {retry_limit} attempts."
                     )
+            # TODO:write to log if save_root exists
 
     async def detach_subscribers(self):
         await self.status_q.put(StopAsyncIteration)
         await self.data_q.put(StopAsyncIteration)
         await asyncio.sleep(5)
 
-    async def log_data_task(self):
-        "Self-subscribe to data queue, write to present file path."
-        async for data_msg in self.data_q.subscribe():
-            # dataMsg should be a list of values or a list of list of values
-            if isinstance(data_msg[0], list):
-                lines = "\n".join([",".join([str(x) for x in l]) for l in data_msg])
-                self.data += data_msg
-            else:
-                lines = ",".join([str(x) for x in data_msg])
-                self.data.append(data_msg)
-            if self.file_conn:
-                await self.write_live_data(lines)
-
     async def sync_ntp_task(self, resync_time: int = 600):
         "Regularly sync with NTP server."
         while True:
+            time_inst = await aiofiles.open("ntpLastSync.txt", "r")
+            ntp_last_sync = await time_inst.readline()
+            await time_inst.close()
+            self.ntp_last_sync = float(ntp_last_sync.strip())
             if time() - self.ntp_last_sync > resync_time:
                 self.get_ntp_time()
             else:
-                await asyncio.sleep(0.5)
+                wait_time = time() - self.ntp_last_sync
+                await asyncio.sleep(wait_time)
 
-    async def set_output_file(self, filename: str, header: Optional[str] = None):
-        "Set active save_path, write header if supplied."
-        output_path = os.path.join(self.active.output_dir, filename)
-        # create output file and set connection
-        self.file_conn = await aiofiles.open(output_path, mode="a+")
-        if header:
-            if not header.endswith("\n"):
-                header += "\n"
-            await self.file_conn.write(header)
+    async def shutdown(self):
+        await self.detach_subscribers()
+        self.status_logger.cancel()
+        self.ntp_syncer.cancel()
 
-    async def write_live_data(self, output_str: str):
-        "Appends lines to file_conn."
-        if self.file_conn:
-            if not output_str.endswith("\n"):
-                output_str += "\n"
-            await self.file_conn.write(output_str)
+    class Active(object):
+        """Active action holder which wraps data queing and rcp writing."""
 
-    async def write_file(
-        self,
-        file_type: str,
-        filename: str,
-        output_str: str,
-        header: Optional[str] = None,
-    ):
-        "Write complete file, not used with queue streaming."
-        _output_path = os.path.join(self.active.output_dir, filename)
-        # create output file and set connection
-        file_instance = await aiofiles.open(_output_path, mode="w")
-        numlines = len(output_str.split("\n"))
-        if header:
-            header_lines = len(header.split("\n"))
-            header_parts = ",".join(header.split("\n")[-1].replace(",", "\t").split())
-            file_info = f"{file_type};{header_parts};{header_lines};{numlines};{self.active.sample_no}"
-            if not header.endswith("\n"):
-                header += "\n"
-            output_str = header + output_str
-        else:
-            file_info = f"{file_type};{numlines};{self.active.sample_no}"
-        await file_instance.write(output_str)
-        await file_instance.close()
-        self.active.file_dict[self.active.filetech_key]["aux_files"].update(
-            {filename: file_info}
-        )
-        print(f"Wrote {numlines} lines to {_output_path}")
+        async def __init__(
+            self,
+            base,  # outer instance
+            action: Action,
+            file_type: str = "stream_csv",
+            file_group: str = "stream_files",
+            filename: Optional[str] = None,
+            header: Optional[str] = None,
+        ):
+            self.base = base
+            self.active = action
+            self.active.set_atime(offset=self.base.ntp_offset)
+            self.file_conn = None
+            decision_date = self.active.decision_timestamp.split(".")[0]
+            decision_time = self.active.decision_timestamp.split(".")[-1]
+            year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
+            if not self.base.save_root:
+                print("Root save directory not specified, cannot save action results.")
+                self.active.save_datastream = False
+                self.active.save_rcp = False
+                self.active.output_dir = None
+            else:
+                self.active.output_dir = os.path.join(
+                    self.base.save_root,
+                    year_week,
+                    decision_date,
+                    f"{decision_time}_{self.active.decision_label}",
+                    f"{self.active.action_timestamp}__{self.active.action_uuid}",
+                )
+            if self.active.save_rcp:
+                os.makedirs(self.active.output_dir, exist_ok=True)
+                self.active.actionnum = (
+                    f"{self.active.action_abbr}{self.active.action_enum}"
+                )
+                self.active.filetech_key = f"files_technique__{self.active.actionnum}"
+                initial_dict = {
+                    "technique_name": self.base.technique_name,
+                    "server_name": self.base.server_name,
+                    "orchestrator": self.base.orch_name,
+                    "machine": self.base.hostname,
+                    "access": self.active.access,
+                    "plate_id": self.active.plate_id,
+                    "output_dir": self.active.output_dir,
+                }
+                initial_dict.update(self.calibration)
+                initial_dict.update(
+                    {
+                        "decision_uuid": self.active.decision_uuid,
+                        "decision_enum": self.active.decision_enum,
+                        "action_uuid": self.active.action_uuid,
+                        "action_enum": self.active.action_enum,
+                        "action_name": self.active.action_name,
+                        f"{self.technique_name}_params__{self.active.actionnum}": self.active.action_params,
+                    }
+                )
+                await self.write_to_rcp(initial_dict)
+                if self.active.save_datastream is not False:
+                    if header:
+                        if isinstance(header, list):
+                            header_lines = len(header)
+                            header = "\n".join(header)
+                        else:
+                            header_lines = len(header.split("\n"))
+                        header_parts = ",".join(
+                            header.split("\n")[-1].replace(",", "\t").split()
+                        )
+                        file_info = f"{file_type};{header_parts};{header_lines};{self.active.sample_no}"
+                    else:
+                        file_info = f"{file_type};{self.active.sample_no}"
+                    if filename is None:  # generate filename
+                        filename = f"act{self.active.action_enum:02}_{self.active.action_abbr}__{self.active.plate_id}_{self.active.sample_no}.csv"
+                    self.active.file_dict[self.active.filetech_key][file_group].update(
+                        {filename: file_info}
+                    )
+                    await self.set_output_file(filename, header)
+            await self.base.add_status(self.active.action_name, self.active.action_uuid)
+            self.data_logger = asyncio.create_task(self.log_data_task())
+            self.base.actives[self.active.action_uuid] = self.active.as_dict()
 
-    async def setup_act(
+        async def set_output_file(self, filename: str, header: Optional[str] = None):
+            "Set active save_path, write header if supplied."
+            output_path = os.path.join(self.active.output_dir, filename)
+            # create output file and set connection
+            self.file_conn = await aiofiles.open(output_path, mode="a+")
+            if header:
+                if not header.endswith("\n"):
+                    header += "\n"
+                await self.file_conn.write(header)
+
+        async def write_live_data(self, output_str: str):
+            "Appends lines to file_conn."
+            if self.file_conn:
+                if not output_str.endswith("\n"):
+                    output_str += "\n"
+                await self.file_conn.write(output_str)
+
+        async def enqueue_data(self, data):
+            data_msg = {self.active.action_uuid: data}
+            await self.base.data_q.put(data_msg)
+
+        async def log_data_task(self):
+            "Self-subscribe to data queue, write to present file path."
+            async for data_msg in self.base.data_q.subscribe():
+                # dataMsg should be a dict {uuid: list of values or a list of list of values}
+                if (
+                    self.active.action_uuid in data_msg.keys()
+                ):  # only write data for this action
+                    if isinstance(data_msg[0], list):
+                        lines = "\n".join(
+                            [",".join([str(x) for x in l]) for l in data_msg]
+                        )
+                        self.active.data += data_msg
+                    else:
+                        lines = ",".join([str(x) for x in data_msg])
+                        self.active.data.append(data_msg)
+                    if self.file_conn:
+                        await self.write_live_data(lines)
+
+        async def write_file(
+            self,
+            file_type: str,
+            filename: str,
+            output_str: str,
+            header: Optional[str] = None,
+            sample_str: Optional[str] = None,
+        ):
+            "Write complete file, not used with queue streaming."
+            _output_path = os.path.join(self.active.output_dir, filename)
+            # create output file and set connection
+            file_instance = await aiofiles.open(_output_path, mode="w")
+            numlines = len(output_str.split("\n"))
+            if header:
+                header_lines = len(header.split("\n"))
+                header_parts = ",".join(
+                    header.split("\n")[-1].replace(",", "\t").split()
+                )
+                file_info = ";".join(
+                    [
+                        f"{x}"
+                        for x in (
+                            file_type,
+                            header_parts,
+                            header_lines,
+                            numlines,
+                            sample_str,
+                        )
+                    ]
+                )
+                if not header.endswith("\n"):
+                    header += "\n"
+                output_str = header + output_str
+            else:
+                file_info = ";".join(
+                    [f"{x}" for x in (file_type, numlines, sample_str)]
+                )
+            await file_instance.write(output_str)
+            await file_instance.close()
+            self.active.file_dict[self.active.filetech_key]["aux_files"].update(
+                {filename: file_info}
+            )
+            print(f"Wrote {numlines} lines to {_output_path}")
+
+        async def write_to_rcp(self, rcp_dict: dict):
+            "Create new rcp if it doesn't exist, otherwise append rcp_dict to file."
+            output_path = os.path.join(
+                self.active.output_dir, f"{self.active.action_timestamp}.rcp"
+            )
+            output_str = dict_to_rcp(rcp_dict)
+            file_instance = await aiofiles.open(output_path, mode="a+")
+            await file_instance.write(output_str)
+            await file_instance.close()
+
+        async def finish_act(self):
+            "Close file_conn, finish rcp, copy aux, set endpoint status, and move active dict to past."
+            if self.file_conn:
+                await self.file_conn.close()
+                self.file_conn = None
+            if self.active.file_dict:
+                await self.write_to_rcp(self.active.file_dict)
+            await self.base.clear_status(
+                self.active.action_name, self.active.action_uuid
+            )
+            self.data_logger.cancel()
+            _ = self.base.actives.pop(self.active.action_uuid, None)
+            return self.active
+
+        async def track_file(self, file_type: str, file_path: str):
+            "Add auxiliary files to file dictionary."
+            if os.path.dirname(file_path) != self.active.output_dir:
+                self.active.file_paths.append(file_path)
+            file_info = f"{file_type};{self.active.sample_no}"
+            filename = os.path.basename(file_path)
+            self.active.file_dict[self.active.filetech_key]["aux_files"].update(
+                {filename: file_info}
+            )
+            print(
+                f"{filename} added to files_technique__{self.active.actionnum} / aux_files list."
+            )
+
+        async def relocate_files(self):
+            "Copy auxiliary files from folder path to rcp directory."
+            for x in self.active.file_paths:
+                new_path = os.path.join(self.active.output_dir, os.path.basename(x))
+                await async_copy(x, new_path)
+
+    async def contain_action(
         self,
         action: Action,
         file_type: str = "stream_csv",
@@ -529,112 +691,26 @@ class Base(object):
         filename: Optional[str] = None,
         header: Optional[str] = None,
     ):
-        "Populate active decision, set active file connection, write initial rcp."
-        self.active = action
-        self.active.set_atime()
-        decision_date = self.active.decision_timestamp.split(".")[0]
-        decision_time = self.active.decision_timestamp.split(".")[-1]
-        year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
-        if not self.save_root:
-            print("Root save directory not specified, cannot save action results.")
-            self.active.save_datastream = False
-            self.active.save_rcp = False
-            self.active.output_dir = None
+        self.actives[action.action_uuid] = await Base.Active(
+            self, action, file_type, file_group, filename, header
+        )
+
+    async def release_action(self, action_uuid: str):
+        if action_uuid in self.actives.keys():
+            finished_act = await self.actives[action_uuid].finish_act()
+            _ = self.actives.pop([action_uuid], None)
+            return finished_act
         else:
-            self.active.output_dir = os.path.join(
-                self.save_root,
-                year_week,
-                decision_date,
-                f"{decision_time}_{self.active.decision_label}",
-                f"{self.active.action_timestamp}__{self.active.action_uuid}",
-            )
-        if self.active.save_rcp:
-            os.makedirs(self.active.output_dir, exist_ok=True)
-            self.active.actionnum = (
-                f"{self.active.action_abbr}{self.active.action_enum}"
-            )
-            self.active.filetech_key = f"files_technique__{self.active.actionnum}"
-            initial_dict = {
-                "technique_name": self.technique_name,
-                "server_name": self.server_name,
-                "orchestrator": self.orch_name,
-                "machine": self.hostname,
-                "access": self.active.access,
-                "plate_id": self.active.plate_id,
-                "output_dir": self.active.output_dir,
-            }
-            initial_dict.update(self.calibration)
-            initial_dict.update(
-                {
-                    "decision_uuid": self.active.decision_uuid,
-                    "decision_enum": self.active.decision_enum,
-                    "action_uuid": self.active.action_uuid,
-                    "action_enum": self.active.action_enum,
-                    "action_name": self.active.action_name,
-                    f"{self.technique_name}_params__{self.active.actionnum}": self.active.action_params,
-                }
-            )
-            await self.write_to_rcp(initial_dict)
-            if self.active.save_datastream is not False:
-                if header:
-                    if isinstance(header, list):
-                        header_lines = len(header)
-                        header = "\n".join(header)
-                    else:
-                        header_lines = len(header.split("\n"))
-                    header_parts = ",".join(
-                        header.split("\n")[-1].replace(",", "\t").split()
-                    )
-                    file_info = f"{file_type};{header_parts};{header_lines};{self.active.sample_no}"
-                else:
-                    file_info = f"{file_type};{self.active.sample_no}"
-                if filename is None:  # generate filename
-                    filename = f"act{self.active.action_enum:02}_{self.active.action_abbr}__{self.active.plate_id}_{self.active.sample_no}.csv"
-                self.active.file_dict[self.active.filetech_key][file_group].update(
-                    {filename: file_info}
-                )
-                await self.set_output_file(filename, header)
-        await self.add_status(self.active.action_name, self.active.action_uuid)
+            print(f"Specified action uuid {action_uuid} was not found.")
+            return None
 
-    async def write_to_rcp(self, rcp_dict: dict):
-        "Create new rcp if it doesn't exist, otherwise append rcp_dict to file."
-        output_path = os.path.join(
-            self.active.output_dir, f"{self.active.action_timestamp}.rcp"
-        )
-        output_str = dict_to_rcp(rcp_dict)
-        file_instance = await aiofiles.open(output_path, mode="a+")
-        await file_instance.write(output_str)
-        await file_instance.close()
-
-    async def finish_act(self):
-        "Close file_conn, finish rcp, copy aux, set endpoint status, and move active dict to past."
-        if self.file_conn:
-            await self.file_conn.close()
-            self.file_conn = None
-        if self.active.file_dict:
-            await self.write_to_rcp(self.active.file_dict)
-        self.last = copy(self.active)
-        await self.clear_status(self.active.action_name, self.active.action_uuid)
-        self.active = None
-
-    async def track_file(self, file_type: str, file_path: str):
-        "Add auxiliary files to file dictionary."
-        if os.path.dirname(file_path) != self.active.output_dir:
-            self.active.file_paths.append(file_path)
-        file_info = f"{file_type};{self.active.sample_no}"
-        filename = os.path.basename(file_path)
-        self.active.file_dict[self.active.filetech_key]["aux_files"].update(
-            {filename: file_info}
-        )
-        print(
-            f"{filename} added to files_technique__{self.active.actionnum} / aux_files list."
-        )
-
-    async def relocate_files(self):
-        "Copy auxiliary files from folder path to rcp directory."
-        for x in self.active.file_paths:
-            new_path = os.path.join(self.active.output_dir, os.path.basename(x))
-            await async_copy(x, new_path)
+    async def get_active_info(self, action_uuid: str):
+        if action_uuid in self.actives.keys():
+            action_dict = await self.actives[action_uuid].active.as_dict()
+            return action_dict
+        else:
+            print(f"Specified action uuid {action_uuid} was not found.")
+            return None
 
 
 class Orch(Base):
@@ -660,8 +736,8 @@ class Orch(Base):
         self,
         server_name: str,
         fastapp: HelaoFastAPI,
-        save_root: str = None,
-    ): 
+        save_root: Optional[str] = None,
+    ):
         super.__init__(server_name, fastapp, save_root)
         self.import_actualizers()
         # instantiate decision/experiment queue, action queue
@@ -670,33 +746,40 @@ class Orch(Base):
         self.active_decision = None
         self.last_decision = None
         self.global_status = defaultdict(lambda: defaultdict(list))
-        self.global_q = MultisubscriberQueue() # passes global_status dicts
-        
+        self.global_q = MultisubscriberQueue()  # passes global_status dicts
+
         # global state of all instruments as string [idle|busy] independent of dispatch loop
         self.global_state = None
-        
+
         self.init_success = False  # need to subscribe to all fastapi servers in config
         self.loop_state = "stopped"  # present dispatch loop state [started|stopped]
-        
+
         # separate from global state, signals dispatch loop control [skip|stop|None]
         self.loop_intent = None
+        self.status_subscriber = asyncio.create_task(self.subscribe_all())
 
-    def import_actualizers(self, library_path: str=None):
+    def import_actualizers(self, library_path: str = None):
         """Import actualizer functions into environment."""
         if library_path is None:
             if "action_library_path" not in self.world_cfg.keys():
-                print("library_path argument not specified and key is not present in config.")
+                print(
+                    "library_path argument not specified and key is not present in config."
+                )
                 return False
             library_path = self.world_cfg["action_library_path"]
         if not os.path.isdir(library_path):
-            print(f"library path {library_path} was specified but is not a valid directory")
+            print(
+                f"library path {library_path} was specified but is not a valid directory"
+            )
             return False
         sys.path.append(library_path)
         self.action_lib = {}
         for actlib in self.world_cfg["action_libraries"]:
             tempd = import_module(actlib).__dict__
             self.action_lib.update({func: tempd[func] for func in tempd["ACTUALIZERS"]})
-        print(f"imported {len(self.world_cfg['action_libraries'])} actualizers specified by config.")
+        print(
+            f"imported {len(self.world_cfg['action_libraries'])} actualizers specified by config."
+        )
         return True
 
     async def subscribe_all(self, retry_limit: int = 5):
@@ -733,7 +816,7 @@ class Orch(Base):
                 f"Orchestrator cannot process decisions unless all FastAPI servers in config file are accessible."
             )
 
-    async def update_status(self, act_serv: str, status_dict: dict): 
+    async def update_status(self, act_serv: str, status_dict: dict):
         """Dict update method for received action server status messages.
 
         Async task for updating orch status dict {act_serv_key: {act_name: [act_uuid]}}
@@ -809,13 +892,13 @@ class Orch(Base):
         while self.loop_state == "started" and (self.actions or self.decisions):
             await asyncio.sleep(
                 0.001
-            )  # allows status changes to affect between actions
+            )  # allows status changes to affect between actions, also enforce unique timestamp
             if not self.actions:
                 print(" ... getting actions from new decision")
                 # generate uids when populating, generate timestamp when acquring
                 self.last_decision = copy(self.active_decision)
                 self.active_decision = self.decisions.popleft()
-                self.active_decision.set_dtime()
+                self.active_decision.set_dtime(offset=self.ntp_offset)
                 actual = self.active_decision.actual
                 # additional actualizer params should be stored in decision.actual_pars
                 unpacked_acts = self.action_lib[actual](self.active_decision)
@@ -845,44 +928,76 @@ class Orch(Base):
                     # append previous results to current action
                     A.result_dict = self.active_decision.result_dict
                     # see async_dispatcher for unpacking
-                    if A.start_condition == 0:
-                        print(" ... orch is dispatching an unconditional action")
-                    else:
-                        if A.start_condition == 1:
-                            print(
-                                " ... orch is waiting for endpoint to become available"
-                            )
-                            async for _ in self.global_q.subscribe():
-                                endpoint_free = (
-                                    len(
-                                        self.global_status[A.action_server][
-                                            A.action_name
+                    if isinstance(A.start_condition, int):
+                        if A.start_condition == 0:
+                            print(" ... orch is dispatching an unconditional action")
+                        else:
+                            if A.start_condition == 1:
+                                print(
+                                    " ... orch is waiting for endpoint to become available"
+                                )
+                                async for _ in self.global_q.subscribe():
+                                    endpoint_free = (
+                                        len(
+                                            self.global_status[A.action_server][
+                                                A.action_name
+                                            ]
+                                        )
+                                        == 0
+                                    )
+                                    if endpoint_free:
+                                        break
+                            elif A.start_condition == 2:
+                                print(
+                                    " ... orch is waiting for server to become available"
+                                )
+                                async for _ in self.global_q.subscribe():
+                                    server_free = all(
+                                        [
+                                            len(uuid_list) == 0
+                                            for _, uuid_list in self.global_status[
+                                                A.action_server
+                                            ].items()
                                         ]
                                     )
-                                    == 0
-                                )
-                                if endpoint_free:
-                                    break
-                        elif A.start_condition == 2:
-                            print(" ... orch is waiting for server to become available")
-                            async for _ in self.global_q.subscribe():
-                                server_free = all(
-                                    [
-                                        len(uuid_list) == 0
-                                        for _, uuid_list in self.global_status[
-                                            A.action_server
-                                        ].items()
-                                    ]
-                                )
-                                if server_free:
-                                    break
-                        else:  # start_condition is 3 or unsupported value
-                            print(" ... orch is waiting for all actions to finish")
-                            async for _ in self.global_q.subscribe():
-                                running_states, _ = self.check_global_state()
-                                global_free = len(running_states) == 0
-                                if global_free:
-                                    break
+                                    if server_free:
+                                        break
+                            else:  # start_condition is 3 or unsupported value
+                                print(" ... orch is waiting for all actions to finish")
+                                async for _ in self.global_q.subscribe():
+                                    running_states, _ = self.check_global_state()
+                                    global_free = len(running_states) == 0
+                                    if global_free:
+                                        break
+                    elif isinstance(A.start_condition, dict):
+                        print(
+                            " ... waiting for multiple conditions on external servers"
+                        )
+                        condition_dict = A.start_condition
+                        async for _ in self.global_q.subscribe():
+                            conditions_free = all(
+                                [
+                                    len(self.global_status[k][v] == 0)
+                                    for k, vlist in condition_dict.items()
+                                    if vlist and isinstance(vlist, list)
+                                    for v in vlist
+                                ]
+                                + [
+                                    len(uuid_list) == 0
+                                    for k, v in condition_dict.items()
+                                    if v == [] or v is None
+                                    for _, uuid_list in self.global_status[k].items()
+                                ]
+                            )
+                            if conditions_free:
+                                break
+                    else:
+                        print(" ... invalid start condition, waiting for all actions to finish")
+                        async for _ in self.global_q.subscribe():
+                            running_states, _ = self.check_global_state()
+                            global_free = len(running_states) == 0
+                            if global_free:
+                                break
                     print(f"dispatching action {A.action} on server {A.server}")
                     result = await self.async_dispatcher(A)
                     self.active_decision.result_dict[A.action_enum] = result
@@ -911,13 +1026,27 @@ class Orch(Base):
         decision_label: str = None,
         plate_id: int = None,
         sample_no: int = None,
+        samples_in: list = [],
+        samples_out: list = [],
         actualizer: str = None,
         actual_pars: dict = {},
         result_dict: dict = {},
         access: str = "hte",
-        prepend = False
+        prepend=False,
     ):
-        D = Decision(decision_dict, orch_name, decision_label, plate_id, sample_no, actualizer, actual_pars, result_dict, access)
+        D = Decision(
+            decision_dict,
+            orch_name,
+            decision_label,
+            plate_id,
+            sample_no,
+            samples_in,
+            samples_out,
+            actualizer,
+            actual_pars,
+            result_dict,
+            access,
+        )
         # reminder: decision_dict values take precedence over keyword args but we grab
         # active or last decision label if decision_label is not specified
         if D.orch_name is None:
@@ -925,14 +1054,20 @@ class Orch(Base):
         if decision_label is None:
             if self.active_decision is not None:
                 active_label = self.active_decision.decision_label
-                print(f"decision_label not specified, inheriting {active_label} from active decision")
+                print(
+                    f"decision_label not specified, inheriting {active_label} from active decision"
+                )
                 D.decision_label = active_label
             elif self.last_decision is not None:
                 last_label = self.last_decision.decision_label
-                print(f"decision_label not specified, inheriting {last_label} from previous decision")
+                print(
+                    f"decision_label not specified, inheriting {last_label} from previous decision"
+                )
                 D.decision_label = last_label
             else:
-                print(f"decision_label not specified, no past decisions to inherit so using default 'nolabel")
+                print(
+                    f"decision_label not specified, no past decisions to inherit so using default 'nolabel"
+                )
         await asyncio.sleep(0.001)
         if prepend:
             self.decisions.appendleft(D)
@@ -940,7 +1075,7 @@ class Orch(Base):
         else:
             self.decisions.append(D)
             print(f"decision {D.decision_uuid} appended to queue")
-            
+
     def list_decisions(self):
         """Return the current queue of decisions."""
         declist = [
@@ -952,7 +1087,7 @@ class Orch(Base):
                 sample_no=dec.sample_no,
                 actualizer=dec.actual,
                 pars=dec.actual_pars,
-                access=dec.access
+                access=dec.access,
             )
             for i, dec in enumerate(self.decisions)
         ]
@@ -975,7 +1110,7 @@ class Orch(Base):
                     sample_no=dec.sample_no,
                     actualizer=dec.actual,
                     pars=dec.actual_pars,
-                    access=dec.access
+                    access=dec.access,
                 )
             ]
         else:
@@ -988,13 +1123,13 @@ class Orch(Base):
                     sample_no=None,
                     actualizer=None,
                     pars=None,
-                    access=None
+                    access=None,
                 )
             ]
         retval = return_declist(decisions=declist)
         return retval
 
-    def list_actions(self):    
+    def list_actions(self):
         """Return the current queue of actions."""
         actlist = [
             return_act(
@@ -1009,8 +1144,14 @@ class Orch(Base):
         ]
         retval = return_actlist(actions=actlist)
         return retval
-    
-    
+
+    async def shutdown(self):
+        await self.detach_subscribers()
+        self.status_logger.cancel()
+        self.ntp_syncer.cancel()
+        self.status_subscriber.cancel()
+
+
 class return_dec(BaseModel):
     """Return class for queried Decision objects."""
 

@@ -4,10 +4,9 @@ import os
 import sys
 
 from importlib import import_module
-import json
 import uvicorn
 
-from fastapi import FastAPI, WebSocket
+from fastapi import WebSocket
 from fastapi.openapi.utils import get_flat_params
 from munch import munchify
 
@@ -15,14 +14,9 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
-from classes import StatusHandler
-from classes import return_status
-from classes import return_class
-from classes import wsConnectionManager
 
-import asyncio
-import time
-
+from typing import Optional
+from prototyping import Action, Decision, HelaoFastAPI
 
 
 
@@ -36,8 +30,8 @@ S = C[servKey]
 
 # check if 'mode' setting is present
 if not 'mode' in S:
-    print('"mode" not defined, switching to lagacy mode.')
-    S['mode']= "lagacy"
+    print('"mode" not defined, switching to legacy mode.')
+    S['mode']= "legacy"
 
 
 if S.mode == "legacy":
@@ -51,7 +45,7 @@ else:
 #    from HTEdata_dummy import HTEdata
 
 
-app = FastAPI(title="HTE data management server",
+app = HelaoFastAPI(config, servKey, title="HTE data management server",
     description="",
     version="1.0")
 
@@ -60,33 +54,37 @@ app = FastAPI(title="HTE data management server",
 def startup_event():
     global dataserv
     dataserv = HTEdata(S.params)
-    global stat
-    stat = StatusHandler()
-
-    global wsdata
-    wsdata = wsConnectionManager()
-    global wsstatus
-    wsstatus = wsConnectionManager()
+    global actserv
+    actserv = Base(servKey, app)
 
 
-@app.websocket(f"/{servKey}/ws_status")
+@app.websocket(f"/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await wsstatus.send(websocket, stat.q, 'data_status')
+    """Broadcast status messages.
 
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_status(websocket)
+
+
+@app.websocket(f"/ws_data")
+async def websocket_data(websocket: WebSocket):
+    """Broadcast status dicts.
+
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_data(websocket)
+    
 
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return stat.dict
-
-
-# broadcast platemap and id etc
-@app.websocket(f"/{servKey}/ws_data")
-async def websocket_data(websocket: WebSocket):
-    await wsdata.send(websocket, dataserv.qdata, 'data_data')
+    return actserv.status
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
-async def get_elements_plateid(plateid: str, action_params = ''):
+async def get_elements_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]={}):
     """Gets the elements from the screening print in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -99,7 +97,7 @@ async def get_elements_plateid(plateid: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/get_platemap_plateid")
-async def get_platemap_plateid(plateid: str, action_params = ''):
+async def get_platemap_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     """gets platemap"""
     await stat.set_run()
     retval = dataserv.get_platemap_plateidstr(plateid)
@@ -113,7 +111,7 @@ async def get_platemap_plateid(plateid: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/get_platexycalibration")
-async def get_platexycalibration(plateid, action_params = ''):
+async def get_platexycalibration(plateid: Optional[str], action_dict: Optional[dict]={}):
     """gets saved plate alignment matrix"""
     await stat.set_run()
     retc = return_class(
@@ -126,7 +124,7 @@ async def get_platexycalibration(plateid, action_params = ''):
 
 
 @app.post(f"/{servKey}/save_platexycalibration")
-async def save_platexycalibration(plateid, action_params = ''):
+async def save_platexycalibration(plateid: Optional[str], action_dict: Optional[dict]={}):
     """saves alignment matrix"""
     await stat.set_run()
     retc = return_class(
@@ -139,7 +137,7 @@ async def save_platexycalibration(plateid, action_params = ''):
 
 
 @app.post(f"/{servKey}/check_plateid")
-async def check_plateid(plateid, action_params = ''):
+async def check_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     """checks that the plate_id (info file) exists"""
     await stat.set_run()
     retc = return_class(
@@ -152,7 +150,7 @@ async def check_plateid(plateid, action_params = ''):
 
 
 @app.post(f"/{servKey}/check_printrecord_plateid")
-async def check_printrecord_plateid(plateid: str, action_params = ''):
+async def check_printrecord_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     """checks that a print record exist in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -165,7 +163,7 @@ async def check_printrecord_plateid(plateid: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/check_annealrecord_plateid")
-async def check_annealrecord_plateid(plateid: str, action_params = ''):
+async def check_annealrecord_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     """checks that a anneal record exist in the info file"""
     await stat.set_run()
     retc = return_class(
@@ -178,7 +176,7 @@ async def check_annealrecord_plateid(plateid: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/get_info_plateid")
-async def get_info_plateid(plateid: str, action_params = ''):
+async def get_info_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
@@ -190,7 +188,7 @@ async def get_info_plateid(plateid: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/get_rcp_plateid")
-async def get_rcp_plateid(plateid: str, action_params = ''):
+async def get_rcp_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
     await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
@@ -201,27 +199,10 @@ async def get_rcp_plateid(plateid: str, action_params = ''):
     return retc
 
 
-@app.post('/endpoints')
+@app.post("/endpoints")
 def get_all_urls():
-    url_list = []
-    for route in app.routes:
-        routeD = {'path': route.path,
-                  'name': route.name
-                  }
-        if 'dependant' in dir(route):
-            flatParams = get_flat_params(route.dependant)
-            paramD = {par.name: {
-                'outer_type': str(par.outer_type_).split("'")[1],
-                'type': str(par.type_).split("'")[1],
-                'required': par.required,
-                'shape': par.shape,
-                'default': par.default
-            } for par in flatParams}
-            routeD['params'] = paramD
-        else:
-            routeD['params'] = []
-        url_list.append(routeD)
-    return url_list
+    """Return a list of all endpoints on this server."""
+    return actserv.get_endpoint_urls(app)
 
 
 @app.post("/shutdown")

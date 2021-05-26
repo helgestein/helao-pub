@@ -78,9 +78,6 @@ async def startup_event():
     """
     global orch
     orch = Orch(servKey, app)
-    # TODO: write class method to launch monitor_states coro in current event loop
-    # global monitor_task
-    await orch.subscribe_all()
 
 
 @app.websocket(f"/ws_status")
@@ -163,6 +160,8 @@ async def append_decision(
     decision_label: str = None,
     plate_id: int = None,
     sample_no: int = None,
+    samples_in: list = [],
+    samples_out: list = [],
     actualizer: str = None,
     actual_pars: dict = {},
     result_dict: dict = {},
@@ -189,6 +188,8 @@ async def append_decision(
         decision_label,
         plate_id,
         sample_no,
+        samples_in,
+        samples_out,
         actualizer,
         actual_pars,
         result_dict,
@@ -205,6 +206,8 @@ async def prepend_decision(
     decision_label: str = None,
     plate_id: int = None,
     sample_no: int = None,
+    samples_in: list = [],
+    samples_out: list = [],
     actualizer: str = None,
     actual_pars: dict = {},
     result_dict: dict = {},
@@ -231,6 +234,8 @@ async def prepend_decision(
         decision_label,
         plate_id,
         sample_no,
+        samples_in,
+        samples_out,
         actualizer,
         actual_pars,
         result_dict,

@@ -605,4 +605,4 @@ servicemode = S.params.get('servicemode', False)
 if operator.act_select_list:
     operator.actions_dropdown.value = operator.act_select_list[0]
 
-operator_doc.add_periodic_callback(operator.IOloop_visualizer,2000) # time in ms
+# operator_doc.add_periodic_callback(operator.IOloop_visualizer,2000) # time in ms

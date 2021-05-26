@@ -87,7 +87,13 @@ class cNIMAX:
 
 
         # seems to work by just defining the scale and then only using its name
-        self.Iscale = nidaqmx.scale.Scale.create_lin_scale('NEGATE3',-1.0,0.0,UnitsPreScaled.AMPS,'AMPS')
+        try:
+            self.Iscale = nidaqmx.scale.Scale.create_lin_scale('NEGATE3',-1.0,0.0,UnitsPreScaled.AMPS,'AMPS')
+        except Exception as e:
+            print('##########################################################')
+            print(' ... NImax error')
+            print('##########################################################')
+            raise e
         self.time_stamp = time.time()
         
         self.qIV = asyncio.Queue(maxsize=100)#,loop=asyncio.get_event_loop())
@@ -376,6 +382,7 @@ class cNIMAX:
                 return {"err_code": "0"}
             else:
                 return {"err_code": "not found"}
+
 
 
     # TODO: test what happens if we clear all NIMax settings?

@@ -4,7 +4,7 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
-local_data_dump=r'C:\INST\RUNS2'
+local_data_dump=r'C:\INST\RUNS'
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -31,6 +31,8 @@ config["servers"] = dict(
         fast="HTEdata_server",
         mode = "legacy", # lagcy; modelyst
         params = dict(
+            liquid_DBpath = r'C:\INST\DATABASE',
+            liquid_DBfile = 'liquid_ID_database.csv'
         )
     ),
     motor=dict(
@@ -41,7 +43,12 @@ config["servers"] = dict(
         simulate=False, # choose between simulator(default) or real device
         params=dict(
             Transfermatrix = [[1,0,0],[0,1,0],[0,0,1]], # default Transfermatrix for plate calibration
-            M_instr = [[1,0,0,-76.525],[0,1,0,-50.875],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+            
+            # 4x6 plate
+            #M_instr = [[1,0,0,-76.525],[0,1,0,-50.875],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+            # 100mm wafer
+            M_instr = [[1,0,0,-76.525+(3*25.4-50)],[0,1,0,-50.875+2.71],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+
             count_to_mm=dict(
                 A=1.0/15835.31275,#1.0/15690.3,
                 B=1.0/6398.771436,#1.0/6395.45,
@@ -88,18 +95,18 @@ config["servers"] = dict(
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework 6\GamryCOM.exe"
         )
     ),
-    aligner=dict(
-        host="127.0.0.1",
-        port=8005,
-        group="server",
-        fast="alignment_server",
-        params = dict(
-            data_server = "data", # will use this to get PM_map temporaily, else need to parse it as JSON later
-            motor_server = "motor", # will use this to get PM_map temporaily, else need to parse it as JSON later
-            vis_server = "aligner_vis", # will use this to get PM_map temporaily, else need to parse it as JSON later
-            cutoff = 6, # cutoff of digits for TransferMatrix calculation
-        )
-    ),
+    # aligner=dict(
+    #     host="127.0.0.1",
+    #     port=8005,
+    #     group="server",
+    #     fast="alignment_server",
+    #     params = dict(
+    #         data_server = "data", # will use this to get PM_map temporaily, else need to parse it as JSON later
+    #         motor_server = "motor", # will use this to get PM_map temporaily, else need to parse it as JSON later
+    #         vis_server = "aligner_vis", # will use this to get PM_map temporaily, else need to parse it as JSON later
+    #         cutoff = 6, # cutoff of digits for TransferMatrix calculation
+    #     )
+    # ),
     nimax=dict(
         host="127.0.0.1",
         port=8006,
@@ -198,11 +205,21 @@ config["servers"] = dict(
             user = 'RSHS',
             key = r'c:\helao\sshkeys\rshs_private3.ppk', # needs to be in new openssh file format
             host = 'hte-rshs-01.htejcap.caltech.edu',
+            method_path = r'C:\Users\rshs\Desktop\ADSS\adss_psc_methods\lcfc',
+            log_file = r'C:\Users\rshs\Desktop\ADSS\adss_logfile\210512_lcfc_manualwatertest\210512_LCFC_manualwatertest_logfile.txt',
+            # remote_data_dump1 =  '/cygdrive/c/INST/RUNS',
+            # remote_data_dump2 =  r'C:\INST\RUNS',
+            local_data_dump=f'{local_data_dump}', # will use this if orch is not running
+            timeout = 30*60, # 30min timeout for waiting for TTL
+            data_server = "data",
             dev_NImax = { # TTL handshake via NImax
-                'start':'PXI-6284/port2/line5',  #P2.5
-                'continue':'PXI-6284/port2/line7',  #P2.7
-                'done':'PXI-6284/port2/line3',  #P2.3
-                }
+                # 'start':'PFI13',#'PXI-6284/port2/line5',  #P2.5, #PFI13
+                # 'continue':'PFI15',#'PXI-6284/port2/line7',  #P2.7 #PFI15
+                # 'done':'PFI11',#'PXI-6284/port2/line3',  #P2.3 #PFI11
+                'start':'PXI-6284/port2/line5',  #P2.5, #PFI13
+                'continue':'PXI-6284/port2/line7',  #P2.7 #PFI15
+                'done':'PXI-6284/port2/line3',  #P2.3 #PFI11
+                },
         )
     ),
     ##########################################################################
@@ -232,14 +249,14 @@ config["servers"] = dict(
             servicemode=False,
         )
     ),
-    aligner_vis=dict(
-        host="127.0.0.1",
-        port=5003,
-        group="action",
-        bokeh="bokeh_platealigner",
-        params = dict(
-            aligner_server="aligner", # aligner and aligner_vis should be in tandem
-        )
-    ),
+    # aligner_vis=dict(
+    #     host="127.0.0.1",
+    #     port=5003,
+    #     group="action",
+    #     bokeh="bokeh_platealigner",
+    #     params = dict(
+    #         aligner_server="aligner", # aligner and aligner_vis should be in tandem
+    #     )
+    # ),
     
 )

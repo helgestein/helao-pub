@@ -28,25 +28,50 @@ class Gamry_modes(str, Enum):
     EIS = "EIS"
     OCV = "OCV"
 
+# class Gamry_Irange(str, Enum):
+#     #NOTE: The ranges listed below are for 300 mA or 30 mA models. For 750 mA models, multiply the ranges by 2.5. For 600 mA models, multiply the ranges by 2.0.
+#     auto = 'auto'
+#     mode0 = '3pA'
+#     mode1 = '30pA' 
+#     mode2 = '300pA'
+#     mode3 = '3nA'
+#     mode4 = '30nA'
+#     mode5 = '300nA'
+#     mode6 = '3μA'
+#     mode7 = '30μA'
+#     mode8 = '300μA'
+#     mode9 = '3mA'
+#     mode10 = '30mA'
+#     mode11 = '300mA'
+#     mode12 = '3A'
+#     mode13 = '30A'
+#     mode14 = '300A'
+#     mode15 = '3kA'
+
+# for IFC1010
 class Gamry_Irange(str, Enum):
     #NOTE: The ranges listed below are for 300 mA or 30 mA models. For 750 mA models, multiply the ranges by 2.5. For 600 mA models, multiply the ranges by 2.0.
     auto = 'auto'
-    mode0 = '3pA'
-    mode1 = '30pA' 
-    mode2 = '300pA'
-    mode3 = '3nA'
-    mode4 = '30nA'
-    mode5 = '300nA'
-    mode6 = '3μA'
-    mode7 = '30μA'
-    mode8 = '300μA'
-    mode9 = '3mA'
-    mode10 = '30mA'
-    mode11 = '300mA'
-    mode12 = '3A'
-    mode13 = '30A'
-    mode14 = '300A'
-    mode15 = '3kA'
+    mode0 = '1pA' # doesnt go that low
+    mode1 = '10pA'  # doesnt go that low 
+    mode2 = '100pA'  # doesnt go that low
+    mode3 = '1nA'
+    mode4 = '10nA'
+    mode5 = '100nA'
+    mode6 = '1μA'
+    mode7 = '10μA'
+    mode8 = '100μA'
+    mode9 = '1mA'
+    mode10 = '10mA'
+    mode11 = '100mA'
+    mode12 = '1A'
+    mode13 = '10A'
+    mode14 = '100A'
+    mode15 = '1kA'
+
+
+
+
 
 def gamry_error_decoder(e):
     if isinstance(e, comtypes.COMError):
@@ -804,9 +829,6 @@ class gamry:
         TTLsend: int = -1,
         Irange: Gamry_Irange = 'auto'
     ):
-        print('################################################################')
-        print(runparams)
-        print('################################################################')
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop

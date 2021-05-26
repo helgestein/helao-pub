@@ -14,11 +14,23 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
+<<<<<<< HEAD
+=======
+from classes import StatusHandler
+from classes import return_status
+from classes import return_class
+from classes import wsConnectionManager
+
+from time import strftime, time_ns
+
+import asyncio
+import time
+>>>>>>> ff1b1f53a184fae5c429b0c9b6eb2e3075434f8b
 
 from typing import Optional
 from prototyping import Action, Decision, HelaoFastAPI
 
-
+from classes import getuid
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -81,6 +93,8 @@ async def websocket_data(websocket: WebSocket):
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
     return actserv.status
+
+
 
 
 @app.post(f"/{servKey}/get_elements_plateid")
@@ -199,7 +213,98 @@ async def get_rcp_plateid(plateid: Optional[str], action_dict: Optional[dict]={}
     return retc
 
 
+<<<<<<< HEAD
 @app.post("/endpoints")
+=======
+@app.post(f"/{servKey}/create_new_liquid_sample_no")
+async def create_new_liquid_sample_no(DUID: str = '',
+                          AUID: str = '',
+                          source: str = '',
+                          sourcevol_mL: str = '',
+                          volume_mL: float = 0.0,
+                          action_time: str = '',#strftime("%Y%m%d.%H%M%S"),
+                          chemical: str = '',
+                          mass: str = '',
+                          supplier: str = '',
+                          lot_number: str = '',
+                          servkey: str = servKey,
+                          action_params = ''
+                          ):
+    '''use CAS for chemical if available. Written on bottles of chemicals with all other necessary information.\n
+    For empty DUID and AUID the UID will automatically created. For manual entry leave DUID, AUID, action_time, and action_params empty and servkey on "data".\n
+    If its the very first liquid (no source in database exists) leave source and source_mL empty.'''
+
+    if DUID == '':
+        print(' ... got no DUID for create_new_liquid_sample_no, creating one')
+        DUID = getuid(servKey)
+    if AUID == '':
+        print(' ... got no AUID for create_new_liquid_sample_no, creating one')
+        AUID = getuid(servKey)
+    if action_time == '':
+        print(' ... got no action_time for create_new_liquid_sample_no, creating one')
+        action_time = strftime("%Y%m%d.%H%M%S")
+
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "create_new_liquid_sample_no"},
+        data={"id": await dataserv.create_new_liquid_sample_no(DUID,
+                                                  AUID,
+                                                  source,
+                                                  sourcevol_mL,
+                                                  volume_mL,
+                                                  action_time,
+                                                  chemical,
+                                                  mass,
+                                                  supplier,
+                                                  lot_number,
+                                                  servkey)},
+    )
+    await stat.set_idle()
+    return retc
+
+
+
+
+@app.post(f"/{servKey}/get_last_liquid_sample_no")
+async def get_last_liquid_sample_no(action_params = ''):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_last_liquid_sample_no"},
+        data={"liquid_sample": await dataserv.get_last_liquid_sample_no()},
+    )
+    await stat.set_idle()
+    return retc
+
+
+
+@app.post(f"/{servKey}/get_liquid_sample_no")
+async def get_liquid_sample_no(liquid_sample_no: int, action_params = ''):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_liquid_sample_no"},
+        data={"liquid_sample": await dataserv.get_liquid_sample_no(liquid_sample_no)},
+    )
+    await stat.set_idle()
+    return retc
+
+
+@app.post(f"/{servKey}/get_liquid_sample_no_json")
+async def get_liquid_sample_no_json(liquid_sample_no: int, action_params = ''):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="data_command",
+        parameters={"command": "get_liquid_sample_no_json"},
+        data={"liquid_sample": await dataserv.get_liquid_sample_no_json(liquid_sample_no)},
+    )
+    await stat.set_idle()
+    return retc
+
+
+@app.post('/endpoints')
+>>>>>>> ff1b1f53a184fae5c429b0c9b6eb2e3075434f8b
 def get_all_urls():
     """Return a list of all endpoints on this server."""
     return actserv.get_endpoint_urls(app)

@@ -41,17 +41,25 @@ class LocalDataHandler:
         return sampleheader
         
 
-    async def open_file_async(self):
+    async def open_file_async(self, mode: str = 'a'):
         if not os.path.exists(self.filepath):
             os.makedirs(self.filepath)
-           
-        if os.path.exists(os.path.join(self.filepath, self.filename)):
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'a')
+         
+        if mode == 'r' or mode == 'r+':
+            if os.path.exists(os.path.join(self.filepath, self.filename)):
+                self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),mode)
+                return True                
+            else:
+                return False
             
+        if os.path.exists(os.path.join(self.filepath, self.filename)):
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),mode)
+            return True
         else:
-            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w')
+            self.f = await aiofiles.open(os.path.join(self.filepath, self.filename),'w+')
             if len(self.fileheader)>0:
                 await self.write_data_async(self.write_header)
+            return True
 
 
     async def write_sampleinfo_async(self, sample):
@@ -285,6 +293,13 @@ class Action_params():
                  sample_elements: List[str] = [],
                  sample_composition: List[str] = [],
                  sample_code: List[str] = [],
+                 DUID: str = '',
+                 AUID: str = '',
+                 actiontime: str = '',
+                 created_at: str = '',
+                 block: bool = False,
+                 preempt: bool = False,
+                 action: str = ''
                  ):
         self.save_folder = save_folder
         self.prev_action_retval = prev_action_retval
@@ -295,6 +310,13 @@ class Action_params():
         self.sample_elements = sample_elements
         self.sample_composition = sample_composition
         self.sample_code = sample_code
+        self.DUID = DUID
+        self.AUID = AUID
+        self.actiontime = actiontime
+        self.block = block
+        self.preempt = preempt
+        self.action = action
+        self.created_at = created_at
 
 
     def as_dict(self):

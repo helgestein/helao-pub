@@ -26,15 +26,19 @@ class owis:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))
             time.sleep(.1)
         for i in range(len(self.sers)):
-            self.sers[i].write(bytes(f"AMPSHNT1={conf['currents'][i]['mode']}\r",'utf-8'))
+            self.sers[i].write(bytes("?ASTAT\r",'utf-8'))
             time.sleep(.1)
-            self.sers[i].write(bytes(f"DRICUR1={conf['currents'][i]['drive']}\r",'utf-8'))
-            time.sleep(.1)
-            self.sers[i].write(bytes(f"HOLCUR1={conf['currents'][i]['hold']}\r",'utf-8'))
-            time.sleep(.1)
-            self.activate(i)
-            time.sleep(.1)
-            self.configure(i,6)
+            out = self.sers[i].read(1000)
+            if  str(out)[2] not in  ["R","T","V","P"]:
+                self.sers[i].write(bytes(f"AMPSHNT1={conf['currents'][i]['mode']}\r",'utf-8'))
+                time.sleep(.1)
+                self.sers[i].write(bytes(f"DRICUR1={conf['currents'][i]['drive']}\r",'utf-8'))
+                time.sleep(.1)
+                self.sers[i].write(bytes(f"HOLCUR1={conf['currents'][i]['hold']}\r",'utf-8'))
+                time.sleep(.1)
+                self.activate(i)
+                time.sleep(.1)
+                self.configure(i,6)
             time.sleep(.1)
 
     #I am trying to be clever and program all these functions so that

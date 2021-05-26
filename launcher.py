@@ -18,7 +18,6 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
                 cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
                 print(f"Starting {api}/{s}")
                 subprocess.Popen(cmd, cwd=helao_root, shell=True)
-            #ppid = p.pid
         elif api == "action":
             for a in action:
                 cmd = ["python", f"{api}/{a}.py", sys.argv[1]]
@@ -37,9 +36,8 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
             for p in process:
                 cmd = ["python", f"{p}.py"]
                 subprocess.Popen(cmd, cwd=helao_root)
-                print(f"Starting {o}.py")           
+                print(f"Starting {p}.py")           
                 
-    #return ppid
 
 
 

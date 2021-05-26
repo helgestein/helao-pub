@@ -18,18 +18,32 @@ app = FastAPI(title="arcoptix ftir server V1",
 
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
 @app.get("/ftir/read")
-def read(filename:str,timeMode:bool=False,av:int=1,time:float=None):
-    readstring = 'Time' if timeMode else ''
-    readparams = {'time':time} if timeMode else {'av':av}
-    call = requests.get("{}/arcoptix/read{}".format(url,readstring),params=readparams).json()
-    spectrum = requests.get("{}/arcoptix/spectrum".format(url),params={'filename':filename}).json()
-    retc = return_class(parameters={'timeMode':timeMode,'av':av,'time':time,'filename':filename,'units':{'time':'??'}}, 
-                        data={'raw':[call,spectrum],'res':spectrum['data']})
+def read(filename:str,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
+    data = requests.get("{}/arcoptix/spectrum".format(url),params={'filename':filename,'time':time,'av':av,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange}).json()
+    retc = return_class(parameters={'filename':filename,'time':time,'av':av,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange,'units':{"av":"s or #spectra"}}, 
+                        data=data)
+    return retc
+
+@app.get("/ftir/setGain")
+def setGain(gain:int):
+    data = requests.get("{}/arcoptix/setGain".format(url),params={"gain":gain}).json()
+    retc = return_class(parameters={"gain":gain},data=None)
+    return retc
+
+@app.get("/ftir/saturation")
+def getSaturation():
+    data = requests.get("{}/arcoptix/saturation".format(url),params=None).json()
+    retc = return_class(parameters=None,data={"saturation":data})
+    return retc
+
+@app.get("/ftir/getGain")
+def getGain():
+    data = requests.get("{}/arcoptix/getGain".format(url),params=None).json()
+    retc = return_class(parameters=None,data={"gain":data})
     return retc
 
 @app.get("/ftir/loadFile")

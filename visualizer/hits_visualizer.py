@@ -29,49 +29,49 @@ ftirurl = f"ws://{Sftir['host']}:{Sftir['port']}/ws"
 
 
 def update_raman(newdata):
-    global source
+    global ramansource
     global plot1,plot2
     doc.remove_root(plot1)
     doc.remove_root(plot2)
-    source.append(newdata)
+    ramansource.append(newdata)
 
-    plot1 = figure(title="newest data", height=300)
+    plot1 = figure(title="newest raman data", height=300)
     plot1.title.align = "center"
     plot1.title.text_font_size = "24px"
-    plot1.add_layout(Title(text="newest data", align="center"), "left")
-    plot1.line(x="wavelengths", y='intensities', source=source[-1])    
-    plot2 = figure(title="all data", height=300)
+    plot1.add_layout(Title(text="newest raman data", align="center"), "left")
+    plot1.line(x="wavelengths", y='intensities', source=ramansource[-1])    
+    plot2 = figure(title="all raman data", height=300)
     plot2.title.align = "center"
     plot2.title.text_font_size = "24px"
-    plot2.add_layout(Title(text="all data", align="center"), "left")
-    l = len(source)
+    plot2.add_layout(Title(text="all raman data", align="center"), "left")
+    l = len(ramansource)
     colors = [HSL(round(240*i/(l-1)) if l != 1 else 180,1,.5).to_rgb() for i in range(l)]
     for i in range(l):
-                plot2.line(x="wavelengths", y='intensities', source=source[i],line_color=colors[i]) 
+                plot2.line(x="wavelengths", y='intensities', source=ramansource[i],line_color=colors[i]) 
     
     doc.add_root(plot1) # add plot to document
     doc.add_root(plot2)
 
 def update_ftir(newdata):
-    global source
+    global ftirsource
     global plot3,plot4
     doc.remove_root(plot3)
     doc.remove_root(plot4)
-    source.append(newdata)
+    ftirsource.append(newdata)
 
-    plot3 = figure(title="newest data", height=300)
+    plot3 = figure(title="newest ftir data", height=300)
     plot3.title.align = "center"
     plot3.title.text_font_size = "24px"
-    plot3.add_layout(Title(text="newest data", align="center"), "left")
-    plot3.line(x="wavelengths", y='intensities', source=source[-1])    
-    plot4 = figure(title="all data", height=300)
+    plot3.add_layout(Title(text="newest ftir data", align="center"), "left")
+    plot3.line(x="wavelengths", y='intensities', source=ftirsource[-1])    
+    plot4 = figure(title="all ftir data", height=300)
     plot4.title.align = "center"
     plot4.title.text_font_size = "24px"
-    plot4.add_layout(Title(text="all data", align="center"), "left")
-    l = len(source)
+    plot4.add_layout(Title(text="all ftir data", align="center"), "left")
+    l = len(ftirsource)
     colors = [HSL(round(240*i/(l-1)) if l != 1 else 180,1,.5).to_rgb() for i in range(l)]
     for i in range(l):
-                plot4.line(x="wavelengths", y='intensities', source=source[i],line_color=colors[i]) 
+                plot4.line(x="wavelengths", y='intensities', source=ftirsource[i],line_color=colors[i]) 
     
     doc.add_root(plot3) # add plot to document
     doc.add_root(plot4)
@@ -92,7 +92,8 @@ async def ftirloop():
                 new_data=json.loads(new_data)
                 doc.add_next_tick_callback(partial(update_ftir, new_data))
 
-source = []
+ramansource = []
+ftirsource = []
 
 plot1 = figure(title="newest raman data", height=300)
 plot2 = figure(title="all raman data", height=300)

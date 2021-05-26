@@ -138,9 +138,9 @@ def dict_address_set(address,d,val):
 #can't send files of more than 1MB over websockets as implemented in uvicorn
 #keep an eye on github.com/encode/uvicorn/pull/995
 #in the meantime, I am using this to average points and make spectrum files smaller for the visualizer
-#n is how many points should be compressed into a single point, keys tells you what keys to grab from the driver return dict
-def compress_spectrum(data,n,keys):
+#n is how many points should be compressed into a single point
+def compress_spectrum(data,n):
+    ret = {}
     for k,l in data.items():
-        if k in keys:
-            data[k] = [sum(l[i:i+n])/min(n,len(l)-i) for i in range(0,len(l),n)] 
-    return data
+        ret[k] = [sum(l[i:i+n])/min(n,len(l)-i) for i in range(0,len(l),n)] 
+    return ret

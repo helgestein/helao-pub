@@ -14,21 +14,9 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
-<<<<<<< HEAD
-=======
-from classes import StatusHandler
-from classes import return_status
-from classes import return_class
-from classes import wsConnectionManager
-
-from time import strftime, time_ns
-
-import asyncio
-import time
->>>>>>> ff1b1f53a184fae5c429b0c9b6eb2e3075434f8b
 
 from typing import Optional
-from prototyping import Action, Decision, HelaoFastAPI
+from prototyping import Action, Decision, HelaoFastAPI, Base
 
 from classes import getuid
 
@@ -95,161 +83,200 @@ def status_wrapper():
     return actserv.status
 
 
-
-
 @app.post(f"/{servKey}/get_elements_plateid")
-async def get_elements_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]={}):
+async def get_elements_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """Gets the elements from the screening print in the info file"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_elements_plateid"},
-        data={"elements": dataserv.get_elements_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_elements_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"elements": dataserv.get_elements_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_platemap_plateid")
-async def get_platemap_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def get_platemap_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """gets platemap"""
-    await stat.set_run()
-    retval = dataserv.get_platemap_plateidstr(plateid)
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_platemap_plateid"},
-        data={"map": retval},
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_platemap_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"map": dataserv.get_platemap_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_platexycalibration")
-async def get_platexycalibration(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def get_platexycalibration(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """gets saved plate alignment matrix"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_platexycalibration"},
-        data={"matrix": None}, # need to read it from K or database
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_platexycalibration"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"matrix": None})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/save_platexycalibration")
-async def save_platexycalibration(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def save_platexycalibration(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """saves alignment matrix"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "save_platexycalibration"},
-        data={"matrix": None}, # get it from motion server
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "save_platexycalibration"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"matrix": None})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/check_plateid")
-async def check_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def check_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """checks that the plate_id (info file) exists"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "check_plateid"},
-        data={"bool": dataserv.check_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "check_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"bool": dataserv.check_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/check_printrecord_plateid")
-async def check_printrecord_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def check_printrecord_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """checks that a print record exist in the info file"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "check_printrecord_plateid"},
-        data={"bool": dataserv.check_printrecord_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "check_printrecord_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"bool": dataserv.check_printrecord_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/check_annealrecord_plateid")
-async def check_annealrecord_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
+async def check_annealrecord_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
     """checks that a anneal record exist in the info file"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "check_annealrecord_plateid"},
-        data={"bool": dataserv.check_annealrecord_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "check_annealrecord_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"bool": dataserv.check_annealrecord_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_info_plateid")
-async def get_info_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_info_plateid"},
-        data={"info": dataserv.get_info_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+async def get_info_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_info_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"info": dataserv.get_info_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_rcp_plateid")
-async def get_rcp_plateid(plateid: Optional[str], action_dict: Optional[dict]={}):
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_rcp_plateid"},
-        data={"info": dataserv.get_rcp_plateidstr(plateid)},
-    )
-    await stat.set_idle()
-    return retc
+async def get_rcp_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]=None):
+    if action_dict:
+        A = Action(action_dict)
+        plateid = A.action_params['plateid']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_rcp_plateid"
+        A.action_params['plateid'] = plateid
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"info": dataserv.get_rcp_plateidstr(plateid)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
-<<<<<<< HEAD
-@app.post("/endpoints")
-=======
 @app.post(f"/{servKey}/create_new_liquid_sample_no")
-async def create_new_liquid_sample_no(DUID: str = '',
-                          AUID: str = '',
-                          source: str = '',
-                          sourcevol_mL: str = '',
-                          volume_mL: float = 0.0,
-                          action_time: str = '',#strftime("%Y%m%d.%H%M%S"),
-                          chemical: str = '',
-                          mass: str = '',
-                          supplier: str = '',
-                          lot_number: str = '',
-                          servkey: str = servKey,
-                          action_params = ''
+async def create_new_liquid_sample_no(
+                          source: Optional[str] = None,
+                          sourcevol_mL: Optional[str] = None,
+                          volume_mL: Optional[float] = 0.0,
+                          action_time: Optional[str] = None,
+                          chemical: Optional[str] = None,
+                          mass: Optional[str] = None,
+                          supplier: Optional[str] = None,
+                          lot_number: Optional[str] = None,
+                          servkey: Optional[str] = servKey,
+                          action_dict: Optional[dict] = None
                           ):
     '''use CAS for chemical if available. Written on bottles of chemicals with all other necessary information.\n
     For empty DUID and AUID the UID will automatically created. For manual entry leave DUID, AUID, action_time, and action_params empty and servkey on "data".\n
     If its the very first liquid (no source in database exists) leave source and source_mL empty.'''
-
-    if DUID == '':
-        print(' ... got no DUID for create_new_liquid_sample_no, creating one')
-        DUID = getuid(servKey)
-    if AUID == '':
-        print(' ... got no AUID for create_new_liquid_sample_no, creating one')
-        AUID = getuid(servKey)
-    if action_time == '':
-        print(' ... got no action_time for create_new_liquid_sample_no, creating one')
-        action_time = strftime("%Y%m%d.%H%M%S")
-
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "create_new_liquid_sample_no"},
-        data={"id": await dataserv.create_new_liquid_sample_no(DUID,
-                                                  AUID,
+    if action_dict:
+        A = Action(action_dict) # actions originating from orchesterator will include decision attributes
+        source = A.action_params['source']
+        sourcevol_mL = A.action_params['sourcevol_mL']
+        volume_mL = A.action_params['volume_mL']
+        action_time = A.action_params['action_time']
+        chemical = A.action_params['chemical']
+        mass = A.action_params['mass']
+        supplier = A.action_params['supplier']
+        lot_number = A.action_params['lot_number']
+        servkey = servKey
+    else:
+        A = Action() # this generates AUID and DUID, but DUID will be unrelated to previous actions
+        A.action_server = servKey
+        A.action_name = "create_new_liquid_sample_no"
+        A.action_params['source'] = source 
+        A.action_params['sourcevol_mL'] = sourcevol_mL 
+        A.action_params['volume_mL'] = volume_mL 
+        A.action_params['action_time'] = action_time 
+        A.action_params['chemical'] = chemical 
+        A.action_params['mass'] = mass 
+        A.action_params['supplier'] = supplier 
+        A.action_params['lot_number'] = lot_number 
+        A.action_params['servkey'] = servKey 
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"id": await dataserv.create_new_liquid_sample_no(A.action_uuid,
+                                                  A.decision_uuid,
                                                   source,
                                                   sourcevol_mL,
                                                   volume_mL,
@@ -260,51 +287,58 @@ async def create_new_liquid_sample_no(DUID: str = '',
                                                   lot_number,
                                                   servkey)},
     )
-    await stat.set_idle()
-    return retc
-
-
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_last_liquid_sample_no")
-async def get_last_liquid_sample_no(action_params = ''):
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_last_liquid_sample_no"},
-        data={"liquid_sample": await dataserv.get_last_liquid_sample_no()},
-    )
-    await stat.set_idle()
-    return retc
+async def get_last_liquid_sample_no(action_dict: Optional[dict]=None):
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_last_liquid_sample_no"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"liquid_sample": await dataserv.get_last_liquid_sample_no()})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 
 @app.post(f"/{servKey}/get_liquid_sample_no")
-async def get_liquid_sample_no(liquid_sample_no: int, action_params = ''):
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_liquid_sample_no"},
-        data={"liquid_sample": await dataserv.get_liquid_sample_no(liquid_sample_no)},
-    )
-    await stat.set_idle()
-    return retc
+async def get_liquid_sample_no(liquid_sample_no: Optional[int]=None, action_dict: Optional[dict]=None):
+    if action_dict:
+        A = Action(action_dict)
+        liquid_sample_no = A.action_params['liquid_sample_no']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_liquid_sample_no"
+        A.action_params['liquid_sample_no'] = liquid_sample_no
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no(liquid_sample_no)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/get_liquid_sample_no_json")
-async def get_liquid_sample_no_json(liquid_sample_no: int, action_params = ''):
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="data_command",
-        parameters={"command": "get_liquid_sample_no_json"},
-        data={"liquid_sample": await dataserv.get_liquid_sample_no_json(liquid_sample_no)},
-    )
-    await stat.set_idle()
-    return retc
+async def get_liquid_sample_no_json(liquid_sample_no: Optional[int]=None, action_dict: Optional[dict]=None):
+    if action_dict:
+        A = Action(action_dict)
+        liquid_sample_no = A.action_params['liquid_sample_no']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_liquid_sample_no_json"
+        A.action_params['liquid_sample_no'] = liquid_sample_no
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no_json(liquid_sample_no)})
+    finished_act = await actserv.release_action(A.action_uuid)
+    return finished_act.as_dict()
 
 
 @app.post('/endpoints')
->>>>>>> ff1b1f53a184fae5c429b0c9b6eb2e3075434f8b
 def get_all_urls():
     """Return a list of all endpoints on this server."""
     return actserv.get_endpoint_urls(app)

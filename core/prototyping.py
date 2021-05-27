@@ -117,13 +117,9 @@ class Decision(object):
 
     def __init__(
         self,
-        inputdict: dict = None,
+        inputdict: Optional[dict] = None,
         orch_name: str = "orchestrator",
         decision_label: str = "nolabel",
-        plate_id: int = None,
-        sample_no: int = None,
-        samples_in: list = [],
-        samples_out: list = [],
         actualizer: str = None,
         actual_pars: dict = {},
         result_dict: dict = {},
@@ -137,10 +133,6 @@ class Decision(object):
         self.decision_timestamp = imports.get("decision_timestamp", None)
         self.decision_label = imports.get("decision_label", decision_label)
         self.access = imports.get("access", access)
-        self.plate_id = imports.get("plate_id", plate_id)
-        self.sample_no = imports.get("sample_no", sample_no)
-        self.samples_in = imports.get("samples_in", samples_in)
-        self.samples_out = imports.get("samples_out", samples_out)
         self.actual = imports.get("actual", actualizer)
         self.actual_pars = imports.get("actual_pars", actual_pars)
         self.result_dict = imports.get("result_dict", result_dict)
@@ -169,7 +161,7 @@ class Action(Decision):
 
     def __init__(
         self,
-        inputdict: dict = None,
+        inputdict: Optional[dict] = None,
         action_server: str = None,
         action_name: str = None,
         action_params: dict = {},
@@ -178,6 +170,10 @@ class Action(Decision):
         save_rcp: bool = False,
         save_datastream: bool = False,
         start_condition: Union[int, dict] = 3,
+        plate_id: Optional[int] = None,
+        sample_no: Optional[int] = None,
+        samples_in: Optional[list] = None,
+        samples_out: Optional[list] = None,
     ):
         super().__init__(inputdict)  # grab decision keys
         imports = {}
@@ -193,13 +189,14 @@ class Action(Decision):
         self.save_rcp = imports.get("save_rcp", save_rcp)
         self.save_datastream = imports.get("save_datastream", save_datastream)
         self.start_condition = imports.get("start_condition", start_condition)
+        self.plate_id = imports.get("plate_id", plate_id)
+        self.sample_no = imports.get("sample_no", sample_no)
+        self.samples_in = imports.get("samples_in", samples_in)
+        self.samples_out = imports.get("samples_out", samples_out)
         self.file_dict = defaultdict(lambda: defaultdict(dict))
         self.file_dict.update(imports.get("file_dict", {}))
         self.file_paths = imports.get("file_paths", [])
         self.data = imports.get("data", [])
-        # reassign these if specified in input
-        self.plate_id = imports.get("plate_id", self.plate_id)
-        self.sample_no = imports.get("sample_no", self.sample_no)
         check_args = {"server": self.action_server, "name": self.action_name}
         missing_args = [k for k, v in check_args.items() if v is None]
         if missing_args:
@@ -1024,10 +1021,6 @@ class Orch(Base):
         decision_dict: dict = None,
         orch_name: str = None,
         decision_label: str = None,
-        plate_id: int = None,
-        sample_no: int = None,
-        samples_in: list = [],
-        samples_out: list = [],
         actualizer: str = None,
         actual_pars: dict = {},
         result_dict: dict = {},
@@ -1038,10 +1031,6 @@ class Orch(Base):
             decision_dict,
             orch_name,
             decision_label,
-            plate_id,
-            sample_no,
-            samples_in,
-            samples_out,
             actualizer,
             actual_pars,
             result_dict,
@@ -1083,8 +1072,6 @@ class Orch(Base):
                 index=i,
                 uid=dec.decision_uuid,
                 label=dec.decision_label,
-                plate_id=dec.plate_id,
-                sample_no=dec.sample_no,
                 actualizer=dec.actual,
                 pars=dec.actual_pars,
                 access=dec.access,
@@ -1106,8 +1093,6 @@ class Orch(Base):
                     index=-1,
                     uid=dec.decision_uuid,
                     label=dec.decision_label,
-                    plate_id=dec.plate_id,
-                    sample_no=dec.sample_no,
                     actualizer=dec.actual,
                     pars=dec.actual_pars,
                     access=dec.access,
@@ -1119,8 +1104,6 @@ class Orch(Base):
                     index=-1,
                     uid=None,
                     label=None,
-                    plate_id=None,
-                    sample_no=None,
                     actualizer=None,
                     pars=None,
                     access=None,
@@ -1158,8 +1141,6 @@ class return_dec(BaseModel):
     index: int
     uid: str
     label: str
-    plate_id: int
-    sample_no: int
     actualizer: str
     pars: dict
     access: str

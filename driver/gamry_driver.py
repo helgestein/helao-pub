@@ -454,7 +454,8 @@ class gamry:
                 Dtaqmode = "GamryCOM.GamryDtaqOcv"
                 Dtaqtype = None
                 self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vm', 'Vsig', 'Ach_V', 'Overload_HEX', 'StopTest', 'unknown1', 'unknown2', 'unknown3']
-                self.pstat.SetCtrlMode(self.GamryCOM.GstatMode)
+                # self.pstat.SetCtrlMode(self.GamryCOM.GstatMode)
+                self.pstat.SetCtrlMode(self.GamryCOM.PstatMode)
             else:
                 return {"measurement_setup": f'mode_{mode}_not_supported'}
 
@@ -572,7 +573,14 @@ class gamry:
 
             
             # turn on the potentiostat output
-            self.pstat.SetCell(self.GamryCOM.CellOn)
+            if self.IO_meas_mode == Gamry_modes.OCV:
+                self.pstat.SetCell(self.GamryCOM.CellMon)
+            else:
+                self.pstat.SetCell(self.GamryCOM.CellOn)
+
+
+
+
             
             
             # Use the following code to discover events:
@@ -1232,8 +1240,11 @@ class gamry:
                 self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
     
                 try:
+                    # self.IO_sigramp.Init(
+                    #     self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.GstatMode
+                    # )
                     self.IO_sigramp.Init(
-                        self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.GstatMode
+                        self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.PstatMode
                     )
                     err_code = "0"
                 except Exception as e:

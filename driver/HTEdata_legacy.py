@@ -181,9 +181,9 @@ class HTEdata:
         except Exception:
             return None
 
-    async def get_last_liquid_sample_no(self):
+    async def get_last_liquid_sample_no(self, past_no):
         lastno = await self.echeDB.count_IDs()
-        return lastno
+        return lastno+past_no+1
 
 
     async def get_liquid_sample_no(self, liquid_sample_no):
@@ -198,7 +198,8 @@ class HTEdata:
 
     async def create_new_liquid_sample_no(self, DUID: str, AUID: str, source: str, sourcevol_mL: str, volume_mL: str,
                               action_time: str, chemical: str, mass: str,
-                              supplier: str, lot_number: str, servkey: str):
+                              supplier: str, lot_number: str, servkey: str,
+                              plate_id: int = None, sample_no: int = None):
 
 
         
@@ -221,7 +222,9 @@ class HTEdata:
                      mass=self.str_to_strarray(mass),
                      supplier=self.str_to_strarray(supplier),
                      lot_number=self.str_to_strarray(lot_number),
-                     servkey=servkey)
+                     servkey=servkey,
+                     plate_id = plate_id,
+                     sample_no = sample_no)
         
 
         newID = await self.echeDB.new_ID(entry) 

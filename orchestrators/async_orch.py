@@ -277,19 +277,19 @@ async def run_dispatch_loop():
             await asyncio.sleep(2)
             # creating folder structure for decission
             # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
-            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
+            # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
+            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__{D.label}'
            
             # open new file and write header
             # rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}__{D.uid}.prercp'
             rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}.prercp'
             rcpdatafile_dec.filepath = os.path.join(orch.local_data_dump,  D.save_path)
-            print(' ... #######', D.save_path)
-            print(' ... #######', os.path.join(orch.local_data_dump,  D.save_path))
 
 
             D_prercp_dict = dict(uid = f'{D.uid}',
                                 plate_id = f'{D.plate_id}',
                                 sample_no = f'{D.sample_no}',
+                                label = f'{D.label}',
                                 actualizer = f'{D.actualizer}',
                                 actualizerparams = D.actualizerparams,
                                 save_path = os.path.normpath(D.save_path),
@@ -344,11 +344,11 @@ async def run_dispatch_loop():
                                                                    prev_action_retval = None,
                                                                    plate_id = D.plate_id,
                                                                    sample_no = [D.sample_no],
-                                                                   sample_x = [],
-                                                                   sample_y = [],
-                                                                   sample_elements = [],
-                                                                   sample_composition = [], 
-                                                                   sample_code = [],
+                                                                   sample_x = [D.sample_x],
+                                                                   sample_y = [D.sample_y],
+                                                                   sample_elements = [D.elements],
+                                                                   sample_composition = [D.composition],
+                                                                   sample_code = [D.code],
                                                                    DUID = D.uid,
                                                                    AUID = A.uid,
                                                                    actiontime = A.actiontime,
@@ -450,13 +450,18 @@ async def run_dispatch_loop():
 @app.post(f"/{servKey}/action_wait")
 async def action_wait(waittime: float = 0.0):
     """Sleep action"""
+    print('##################################################################')
     print(' ... wait action:', waittime)
+    print('##################################################################')
     await asyncio.sleep(waittime)
+    print('##################################################################')
+    print(' ... wait action done')
+    print('##################################################################')
     return {}
 
 
 @app.post(f"/{servKey}/append_decision")
-def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams):
+def append_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams):
     """Add a decision object to the end of the decision queue.
 
     Args:
@@ -474,6 +479,12 @@ def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, ac
                 uid=uid,
                 plate_id=plate_id,
                 sample_no=sample_no,
+                label = label,
+                elements = elements,
+                code = code,
+                sample_x = sample_x,
+                sample_y = sample_y,
+                composition = composition,
                 actualizer=action_lib[actualizer],
                 actualizerparams=json.loads(actparams),
             )
@@ -483,7 +494,7 @@ def append_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, ac
 
 
 @app.post(f"/{servKey}/prepend_decision")
-def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, actparams: list):
+def prepend_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams: list):
     """Add a decision object to the start of the decision queue.
 
     Args:
@@ -501,6 +512,12 @@ def prepend_decision(uid: str, plate_id: int, sample_no: int, actualizer: str, a
                 uid=uid,
                 plate_id=plate_id,
                 sample_no=sample_no,
+                label = label,
+                elements = elements,
+                code = code,
+                sample_x = sample_x,
+                sample_y = sample_y,
+                composition = composition,
                 actualizer=action_lib[actualizer],
                 actualizerparams=actparams,
             )

@@ -217,6 +217,8 @@ async def create_new_liquid_sample_no(DUID: str = '',
                           supplier: str = '',
                           lot_number: str = '',
                           servkey: str = servKey,
+                          plate_id: int = None, 
+                          sample_no: int = None,
                           action_params = ''
                           ):
     '''use CAS for chemical if available. Written on bottles of chemicals with all other necessary information.\n
@@ -247,7 +249,9 @@ async def create_new_liquid_sample_no(DUID: str = '',
                                                   mass,
                                                   supplier,
                                                   lot_number,
-                                                  servkey)},
+                                                  servkey,
+                                                  plate_id,
+                                                  sample_no)},
     )
     await stat.set_idle()
     return retc
@@ -256,12 +260,12 @@ async def create_new_liquid_sample_no(DUID: str = '',
 
 
 @app.post(f"/{servKey}/get_last_liquid_sample_no")
-async def get_last_liquid_sample_no(action_params = ''):
+async def get_last_liquid_sample_no(past_no: int = -1, action_params = ''):
     await stat.set_run()
     retc = return_class(
         measurement_type="data_command",
         parameters={"command": "get_last_liquid_sample_no"},
-        data={"liquid_sample": await dataserv.get_last_liquid_sample_no()},
+        data={"liquid_sample": await dataserv.get_last_liquid_sample_no(past_no)},
     )
     await stat.set_idle()
     return retc

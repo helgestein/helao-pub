@@ -182,6 +182,13 @@ class C_async_operator:
         self.input_sampleno = TextInput(value="", title="sample no", disabled=False, width=330, height=40)
         self.input_plateid = TextInput(value="", title="plate id", disabled=False, width=60, height=40)
         self.input_plateid.on_change('value', self.callback_changed_plateid)
+        self.input_label = TextInput(value="nolabel", title="label", disabled=False, width=120, height=40)
+
+        self.input_elements = TextInput(value="", title="elements", disabled=False, width=120, height=40)
+        self.input_code = TextInput(value="", title="code", disabled=False, width=60, height=40)
+        self.input_composition = TextInput(value="", title="composition", disabled=False, width=220, height=40)
+
+
 
         self.plot_mpmap = figure(title="PlateMap", height=300,x_axis_label='X (mm)', y_axis_label='Y (mm)',width = 640)
         #taptool = plot_mpmap.select(type=TapTool)
@@ -215,6 +222,8 @@ class C_async_operator:
                 [Paragraph(text="""Load sample list from file:""", width=600, height=30)],
                 [self.button_load_sample_list],
                 [self.input_plateid, self.input_sampleno],
+                [self.input_elements, self.input_code, self.input_composition],
+                [self.input_label],
                 Spacer(height=10),
                 [self.plot_mpmap],
                 Spacer(height=10),
@@ -322,6 +331,7 @@ class C_async_operator:
                 print(' ... selected sampleid:', PMnum[0])
                 platex = self.pmdata[PMnum[0]]['x']
                 platey = self.pmdata[PMnum[0]]['y']
+                code = self.pmdata[PMnum[0]]["code"]
                 #MarkerXYplate[selMarker] = (platex,platey,1)
                 #MarkerSample[selMarker] = pmdata[PMnum[0]]["Sample"]
                 #MarkerIndex[selMarker] = PMnum[0]
@@ -331,12 +341,19 @@ class C_async_operator:
                 buf = ""
                 # TODO: test on other platemap
                 for fraclet in ("A", "B", "C", "D", "E", "F", "G", "H"):
-                    if self.pmdata[PMnum[0]][fraclet] > 0:
-                        buf = "%s%s%d " % (buf,fraclet, self.pmdata[PMnum[0]][fraclet]*100)
+                    # if self.pmdata[PMnum[0]][fraclet] > 0:
+#                    buf = "%s%s%d " % (buf,fraclet, self.pmdata[PMnum[0]][fraclet]*100)
+                    buf = "%s%s_%s " % (buf,fraclet, self.pmdata[PMnum[0]][fraclet])
                 if len(buf) == 0:
                     buf = "-"
                 operator_doc.add_next_tick_callback(partial(self.update_samples,str(PMnum[0])))
                 operator_doc.add_next_tick_callback(partial(self.update_xysamples,str(platex), str(platey)))
+                operator_doc.add_next_tick_callback(partial(self.update_composition,buf))
+                operator_doc.add_next_tick_callback(partial(self.update_code,str(code)))
+
+
+
+
                 #MarkerFraction[selMarker] = buf
         ##    elif:
                 # remove old Marker point
@@ -352,6 +369,7 @@ class C_async_operator:
     def callback_changed_plateid(self, attr, old, new):
         print(attr, old, new)
         asyncio.gather(self.get_pm(new))
+        asyncio.gather(self.get_elements_plateid(new))
 
 
     def callback_start(self, event):
@@ -412,9 +430,16 @@ class C_async_operator:
         selaction = self.actions_dropdown.value
         selplateid = self.input_plateid.value
         selsample = self.input_sampleno.value
+        sellabel = self.input_label.value
+        elements = self.input_elements.value
+        code  = self.input_code.value
+        composition = self.input_composition.value
+
+
         print(' ... selected action from list:', selaction)
         print(' ... selected plateid:', selplateid)
         print(' ... selected sample:', selsample)
+        print(' ... selected label:', sellabel)
 
         actparams = []
         for paraminput in self.param_input:
@@ -425,6 +450,12 @@ class C_async_operator:
         params = {'uid':f'{newuid}',
              'plate_id':f'{selplateid}', 
              'sample_no':f'{selsample}', 
+             'label':f'{sellabel}', 
+             'elements':f'{elements}',
+             'code':f'{code}',
+             'sample_x':'',
+             'sample_y':'',
+             'composition':f'{composition}',
              'actualizer':f'{selaction}',
              'actparams':json.dumps(actparams)}
         return params
@@ -517,6 +548,31 @@ class C_async_operator:
         if len(old_point)>0:
             self.plot_mpmap.renderers.remove(old_point[0])
         self.plot_mpmap.square(x, y, size=5, color=None, alpha=0.5, line_color='black',name="PMplot")
+
+
+    async def get_elements_plateid(self, plateid: int):
+        '''gets plate elements from aligner server'''
+
+        #plateid = '4534'
+        url = f"http://{self.datahost}:{self.dataport}/{self.dataserv}/get_elements_plateid"
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, params={'plateid':plateid}) as resp:
+                response = await resp.json()
+                print(response)
+                elements = response['data']['elements']
+                operator_doc.add_next_tick_callback(partial(self.update_elements, elements))
+
+        
+    def update_elements(self, elements):
+        self.input_elements.value = ','.join(elements) 
+
+        
+    def update_composition(self, composition):
+        self.input_composition.value = composition
+
+        
+    def update_code(self, code):
+        self.input_code.value = code
 
 
     def get_sample_list(self, attr, old_file, new_file):

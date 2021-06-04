@@ -194,6 +194,7 @@ class gamry:
         self.def_action_params = Action_params()
         self.action_params = self.def_action_params.as_dict()
 
+
     ##########################################################################
     # This is main Gamry measurement loop which always needs to run
     # else if measurement is done in FastAPI calls we will get timeouts
@@ -277,13 +278,25 @@ class gamry:
                 
             else:
                 self.pstat = None
+
+
+
                 print(f' ... No potentiostat is connected on DevID {devid}! Have you turned it on?')
 
         except Exception as e:
             # this will lock up the potentiostat server 
             # happens when a not activated Gamry is connected and turned on
             # TODO: find a way to avoid it
+            print('##########################################################')
+            print('##########################################################')
+            print('##########################################################')
+            print('##########################################################')
             print(' ... fatal error initializing Gamry:', e)
+            print('##########################################################')
+            print('##########################################################')
+            print('##########################################################')
+            print('##########################################################')
+            print('##########################################################')
 
     ##########################################################################
     # Open connection to Gamry
@@ -680,7 +693,10 @@ class gamry:
                 sink_status = self.dtaqsink.status
 
 
+            self.dtaq.Run(False)
             self.pstat.SetCell(self.GamryCOM.CellOff)
+
+
 
             # close file
             await datafile.close_file_async()

@@ -332,8 +332,8 @@ class Decision:
         self.elements = elements
         self.code = code
         self.composition = composition
-        self.sample_x = sample_x,
-        self.sample_y = sample_y,
+        self.sample_x = sample_x
+        self.sample_y = sample_y
         self.actualizer = actualizer
         self.actualizerparams = actualizerparams
         # self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'

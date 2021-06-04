@@ -69,7 +69,7 @@ class PALmethods(str, Enum):
     fillfixed = 'lcfc_fill_hardcodedvolume.cam'
     fill = 'lcfc_fill.cam'
     test = 'relay_actuation_test2.cam'
-    dilute = 'dilute.cam'
+    dilute = 'lcfc_dilute.cam'
     deepclean = 'lcfc_deep_clean.cam'
 
 
@@ -411,7 +411,7 @@ class cPAL:
         await datafile.close_file_async()
     
 
-    async def update_PAL_system_vial_table(self, tray: int, slot: int, vial: int, vol_mL: float, liquid_sample_no: int):
+    async def update_PAL_system_vial_table(self, tray: int, slot: int, vial: int, vol_mL: float, liquid_sample_no: int, dilute: bool = False):
         tray -= 1
         slot -= 1
         vial -= 1
@@ -425,7 +425,15 @@ class cPAL:
                     await self.backup_PAL_system_vial_table()
                     return True
                 else:
-                    return False            
+                    if dilute is True:
+                        self.trays[tray].slots[slot].vials[vial] = True
+                        self.trays[tray].slots[slot].vol_mL[vial] = self.trays[tray].slots[slot].vol_mL[vial]+vol_mL
+#                        self.trays[tray].slots[slot].liquid_sample_no[vial] = liquid_sample_no
+                        # backup file
+                        await self.backup_PAL_system_vial_table()
+                        return True
+                    else:
+                        return False            
             else:
                 return False
         else:
@@ -479,7 +487,7 @@ class cPAL:
                     vol_mL = self.trays[tray].slots[slot].vials[vial]
                     liquid_sample_no = self.trays[tray].slots[slot].liquid_sample_no[vial]
 #                    await self.backup_PAL_system_vial_table()
-                    return liquid_sample_no, vol_mL
+                    #return liquid_sample_no, vol_mL
 #                else:
 #                    return False            
 #            else:
@@ -765,7 +773,8 @@ class cPAL:
         error = None
         plate_id = None
         sample_no = None
-
+        oldvial = None
+        
         # (1) check if we have free vial slots
         if PALparams.method == PALmethods.archive:
             newvialpos = await self.get_new_vial_position(req_vol = PALparams.volume_uL/1000.0)
@@ -778,6 +787,10 @@ class cPAL:
                 error = 'no_free_vial_slot'
         elif PALparams.method == PALmethods.dilute:           
             oldvial = await self.get_vial_liquid_sample_no(PALparams.dest_tray, PALparams.dest_slot, PALparams.dest_vial)
+            
+            print('##########################################################')
+            print(oldvial)
+            print('##########################################################')
             if oldvial['liquid_sample_no'] is not None:
                 pass
             else:
@@ -818,7 +831,8 @@ class cPAL:
             if error is None:
                 if PALparams.method == PALmethods.deepclean:
                     new_liquid_sample_no = 0
-                    pass
+                elif PALparams.method == PALmethods.dilute: 
+                    new_liquid_sample_no = oldvial['liquid_sample_no']
                 else:
                
                     sourceelecrolyte = await self.get_sample_no_json(PALparams.liquid_sample_no)
@@ -835,12 +849,15 @@ class cPAL:
                     
                     
                     
-                    
                     new_liquid_sample_no = await self.create_new_liquid_sample_no(DUID, AUID, source=PALparams.liquid_sample_no, sourcevol_mL = PALparams.volume_uL/1000.0,
                                                          volume_mL = PALparams.volume_uL/1000.0, action_time=actiontime, chemical=source_chemical,
                                                          mass=source_mass, supplier=source_supplier, lot_number=source_lotnumber,
                                                          servkey=self.servkey, plate_id = plate_id, sample_no = sample_no)
         
+
+
+
+
                 path_methodfile = os.path.join( self.method_path,  PALparams.method.value)
                 
         
@@ -921,11 +938,22 @@ class cPAL:
                 # update now the vial warehouse before PAL command gets executed
                 # only needs to be updated if
                 if  PALparams.dest_tray is not None:
-                    retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
-                                                            slot = PALparams.dest_slot,
-                                                            vial = PALparams.dest_vial,
-                                                            vol_mL = PALparams.volume_uL/1000.0,
-                                                            liquid_sample_no = new_liquid_sample_no)
+                    
+                    if PALparams.method == PALmethods.dilute:
+                        retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
+                                                                slot = PALparams.dest_slot,
+                                                                vial = PALparams.dest_vial,
+                                                                vol_mL = PALparams.volume_uL/1000.0,
+                                                                liquid_sample_no = new_liquid_sample_no,
+                                                                dilute = True)
+                    elif PALparams.method == PALmethods.deepclean:
+                        retval = True
+                    else:
+                        retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
+                                                                slot = PALparams.dest_slot,
+                                                                vial = PALparams.dest_vial,
+                                                                vol_mL = PALparams.volume_uL/1000.0,
+                                                                liquid_sample_no = new_liquid_sample_no)
                     if retval == False:
                         error = 'vial_slot_not_available'
     
@@ -1031,7 +1059,7 @@ class cPAL:
             
             
             # wait another 30sec for program to close
-            await asyncio.sleep(20)
+            await asyncio.sleep(30)
 
 
 
@@ -1361,9 +1389,6 @@ async def run_method(liquid_sample_no: int,
                tool: str = 'LS3',
                source: str = 'electrolyte_res',
                volume_uL: int = 0, # uL
-#               dest_tray: int = 2, # will be filled via call to vial warehouse table
-#               dest_slot: int = 1, # will be filled via call to vial warehouse table
-#               dest_vial: int = 1, # will be filled via call to vial warehouse table
                #logfile: str = 'TestLogFile.txt',
                totalvials: int = 1,
                sampleperiod: str = '0.0',
@@ -1374,6 +1399,9 @@ async def run_method(liquid_sample_no: int,
                wash2: bool = False,
                wash3: bool = False,
                wash4: bool = False,
+               dest_tray: int = None, # will be filled via call to vial warehouse table
+               dest_slot: int = None, # will be filled via call to vial warehouse table
+               dest_vial: int = None, # will be filled via call to vial warehouse table
                action_params = '', #optional parameters
                
                
@@ -1425,9 +1453,9 @@ async def run_method(liquid_sample_no: int,
                 'PAL_tool':  tool,
                 'PAL_source': source,
                 'PAL_volume_uL': volume_uL,
-                # 'PAL_dest_tray': dest_tray, # will be filled via call to vial warehouse table
-                # 'PAL_dest_slot': dest_slot, # will be filled via call to vial warehouse table
-                # 'PAL_dest_vial': dest_vial, # will be filled via call to vial warehouse table
+                'PAL_dest_tray': dest_tray, # will be filled via call to vial warehouse table
+                'PAL_dest_slot': dest_slot, # will be filled via call to vial warehouse table
+                'PAL_dest_vial': dest_vial, # will be filled via call to vial warehouse table
                 #'logfile': logfile,
                 'wash1': wash1,
                 'wash2': wash2,
@@ -1445,9 +1473,9 @@ async def run_method(liquid_sample_no: int,
                                               tool = tool,
                                               source = source,
                                               volume_uL = volume_uL,
-                                              dest_tray = None, #dest_tray, # will be filled via call to vial warehouse table
-                                              dest_slot = None, #dest_slot, # will be filled via call to vial warehouse table
-                                              dest_vial = None, #dest_vial, # will be filled via call to vial warehouse table
+                                              dest_tray = dest_tray, # will be filled via call to vial warehouse table
+                                              dest_slot = dest_slot, # will be filled via call to vial warehouse table
+                                              dest_vial = dest_vial, # will be filled via call to vial warehouse table
                                               #logfile,
                                               wash1 = wash1,
                                               wash2 = wash2,

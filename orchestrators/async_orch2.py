@@ -77,7 +77,7 @@ async def startup_event():
     decision queue for testing.
     """
     global orch
-    orch = Orch(servKey, app)
+    orch = await Orch(app)
 
 
 @app.websocket(f"/ws_status")
@@ -100,27 +100,61 @@ async def websocket_data(websocket: WebSocket):
     await orch.ws_data(websocket)
 
 
+# @app.post(f"/start")
+# async def start_process():
+#     """Begin processing decision and action queues."""
+#     if orch.loop_state == "stopped":
+#         if orch.actions or orch.decisions:  # resume actions from a paused run
+#             await orch.run_dispatch_loop()
+#         else:
+#             print("decision list is empty")
+#     else:
+#         print("already running")
+#     return {}
+
 @app.post(f"/start")
 async def start_process():
     """Begin processing decision and action queues."""
     if orch.loop_state == "stopped":
         if orch.actions or orch.decisions:  # resume actions from a paused run
-            await orch.run_dispatch_loop()
+            await orch.start_loop()
         else:
             print("decision list is empty")
     else:
         print("already running")
     return {}
 
-
-@app.post(f"/stop")
-async def stop_process():
-    """Stop processing decision and action queues."""
+@app.post(f"/estop")
+async def estop_process():
+    """Emergency stop decision and action queues, interrupt running actions."""
     if orch.loop_state == "started":
-        await orch.intend_stop()
+        await orch.estop_loop()
+    elif orch.loop_state == "E-STOP":
+        print("orchestrator E-STOP flag already raised")
     else:
         print("orchestrator is not running")
     return {}
+
+
+@app.post(f"/stop")
+async def stop_process():
+    """Stop processing decision and action queues after current actions finish."""
+    if orch.loop_state == "started":
+        await orch.intend_stop()
+    elif orch.loop_state == "E-STOP":
+        print("orchestrator E-STOP flag was raised; nothing to stop")
+    else:
+        print("orchestrator is not running")
+    return {}
+
+
+@app.post(f"/clear_estop")
+async def clear_estop():
+    """Remove emergency stop condition."""
+    if orch.loop_state != "E-STOP":
+        print("orchestrator is not currently in E-STOP")
+    else:
+        await orch.clear_estop()
 
 
 @app.post(f"/skip")

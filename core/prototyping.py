@@ -7,7 +7,7 @@ import shutil
 from copy import copy
 from collections import defaultdict, deque
 from socket import gethostname
-from time import ctime, time, strftime, strptime, sleep
+from time import ctime, time, strftime, strptime 
 from datetime import datetime
 from typing import Optional, List, Union
 
@@ -168,7 +168,7 @@ class Action(Decision):
         action_enum: int = None,
         action_abbr: str = None,
         save_rcp: bool = False,
-        save_datastream: bool = False,
+        save_data: bool = False,
         start_condition: Union[int, dict] = 3,
         plate_id: Optional[int] = None,
         sample_no: Optional[int] = None,
@@ -187,7 +187,7 @@ class Action(Decision):
         self.action_enum = imports.get("action_enum", action_enum)
         self.action_abbr = imports.get("action_abbr", action_abbr)
         self.save_rcp = imports.get("save_rcp", save_rcp)
-        self.save_datastream = imports.get("save_datastream", save_datastream)
+        self.save_data = imports.get("save_data", save_data)
         self.start_condition = imports.get("start_condition", start_condition)
         self.plate_id = imports.get("plate_id", plate_id)
         self.sample_no = imports.get("sample_no", sample_no)
@@ -260,8 +260,8 @@ class Base(object):
     def __init__(
         self,
         fastapp: HelaoFastAPI,
-        save_root: Optional[str] = None,
         technique_name: Optional[str] = None,
+        save_root: Optional[str] = None,
         calibration: dict = {},
     ):
         self.server_name = fastapp.helao_srv
@@ -318,14 +318,20 @@ class Base(object):
                 self.endpoints.append(route.name)
         print(f"Found {len(self.status)} endpoints for status monitoring.")
 
-    async def add_status(self, act_name: str, act_uuid):
+    async def add_status(self, act_name: str, act_uuid: str):
         self.status[act_name].append(act_uuid)
         print(f"Added {act_uuid} to {act_name} status list.")
         await self.status_q.put({act_name: self.status[act_name]})
 
-    async def clear_status(self, act_name: str, act_uuid):
+    async def clear_status(self, act_name: str, act_uuid: str):
         self.status[act_name].remove(act_uuid)
         print(f"Removed {act_uuid} from {act_name} status list.")
+        await self.status_q.put({act_name: self.status[act_name]})
+
+    async def set_estop(self, act_name: str, act_uuid: str):
+        self.status[act_name].remove(act_uuid)
+        self.status[act_name].append(f"{act_uuid}__estop")
+        print(f"E-STOP {act_uuid} on {act_name} status.")
         await self.status_q.put({act_name: self.status[act_name]})
 
     def get_endpoint_urls(self, app: HelaoFastAPI):
@@ -425,29 +431,32 @@ class Base(object):
 
     async def log_status_task(self, retry_limit: int = 5):
         "Self-subscribe to status queue, log status changes, POST to clients."
-        async for status_msg in self.status_q.subscribe():
-            self.status.update(status_msg)
-            for client_addr in self.status_clients:
-                async with aiohttp.ClientSession() as session:
-                    success = False
-                    for _ in range(retry_limit):
-                        async with session.post(
-                            f"http://{client_addr}/update_status",
-                            params={"server": self.server_name, "status": status_msg},
-                        ) as resp:
-                            response = await resp
-                        if response.status < 400:
-                            success = True
-                            break
-                if success:
-                    print(
-                        f"Updated {self.server_name} status to {status_msg} on {client_addr}."
-                    )
-                else:
-                    print(
-                        f"Failed to push status message to {client_addr} after {retry_limit} attempts."
-                    )
-            # TODO:write to log if save_root exists
+        try:
+            async for status_msg in self.status_q.subscribe():
+                self.status.update(status_msg)
+                for client_addr in self.status_clients:
+                    async with aiohttp.ClientSession() as session:
+                        success = False
+                        for _ in range(retry_limit):
+                            async with session.post(
+                                f"http://{client_addr}/update_status",
+                                params={"server": self.server_name, "status": status_msg},
+                            ) as resp:
+                                response = await resp
+                            if response.status < 400:
+                                success = True
+                                break
+                    if success:
+                        print(
+                            f"Updated {self.server_name} status to {status_msg} on {client_addr}."
+                        )
+                    else:
+                        print(
+                            f"Failed to push status message to {client_addr} after {retry_limit} attempts."
+                        )
+                # TODO:write to log if save_root exists
+        except asyncio.CancelledError:
+            print("status logger task was cancelled")
 
     async def detach_subscribers(self):
         await self.status_q.put(StopAsyncIteration)
@@ -456,16 +465,19 @@ class Base(object):
 
     async def sync_ntp_task(self, resync_time: int = 600):
         "Regularly sync with NTP server."
-        while True:
-            time_inst = await aiofiles.open("ntpLastSync.txt", "r")
-            ntp_last_sync = await time_inst.readline()
-            await time_inst.close()
-            self.ntp_last_sync = float(ntp_last_sync.strip())
-            if time() - self.ntp_last_sync > resync_time:
-                self.get_ntp_time()
-            else:
-                wait_time = time() - self.ntp_last_sync
-                await asyncio.sleep(wait_time)
+        try:
+            while True:
+                time_inst = await aiofiles.open("ntpLastSync.txt", "r")
+                ntp_last_sync = await time_inst.readline()
+                await time_inst.close()
+                self.ntp_last_sync = float(ntp_last_sync.strip())
+                if time() - self.ntp_last_sync > resync_time:
+                    self.get_ntp_time()
+                else:
+                    wait_time = time() - self.ntp_last_sync
+                    await asyncio.sleep(wait_time)
+        except asyncio.CancelledError:
+            print("ntp sync task was cancelled")
 
     async def shutdown(self):
         await self.detach_subscribers()
@@ -486,6 +498,8 @@ class Base(object):
         ):
             self.base = base
             self.active = action
+            self.header = header
+            self.column_names = [x.strip() for x in header.split("\n")[-1].replace("%columns=", "").replace("\t", ",").split(",")]
             self.active.set_atime(offset=self.base.ntp_offset)
             self.file_conn = None
             decision_date = self.active.decision_timestamp.split(".")[0]
@@ -493,7 +507,7 @@ class Base(object):
             year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
             if not self.base.save_root:
                 print("Root save directory not specified, cannot save action results.")
-                self.active.save_datastream = False
+                self.active.save_data = False
                 self.active.save_rcp = False
                 self.active.output_dir = None
             else:
@@ -531,7 +545,7 @@ class Base(object):
                     }
                 )
                 await self.write_to_rcp(initial_dict)
-                if self.active.save_datastream is not False:
+                if self.active.save_data:
                     if header:
                         if isinstance(header, list):
                             header_lines = len(header)
@@ -550,9 +564,19 @@ class Base(object):
                         {filename: file_info}
                     )
                     await self.set_output_file(filename, header)
+                    # self.data_streamer = asyncio.create_task(self.transfer_data())
             await self.base.add_status(self.active.action_name, self.active.action_uuid)
             self.data_logger = asyncio.create_task(self.log_data_task())
             self.base.actives[self.active.action_uuid] = self.active.as_dict()
+            
+        # async def transfer_data(self):
+        #     "Transfers queue data from driver class to Base class multisubscriber queue."
+        #     try:
+        #         while True:
+        #             data_msg = await self.datastream.get()
+        #             await self.base.data_q.put(data_msg)
+        #     except asyncio.CancelledError:
+        #         print("data streamer was cancelled")
 
         async def set_output_file(self, filename: str, header: Optional[str] = None):
             "Set active save_path, write header if supplied."
@@ -577,21 +601,30 @@ class Base(object):
 
         async def log_data_task(self):
             "Self-subscribe to data queue, write to present file path."
-            async for data_msg in self.base.data_q.subscribe():
-                # dataMsg should be a dict {uuid: list of values or a list of list of values}
-                if (
-                    self.active.action_uuid in data_msg.keys()
-                ):  # only write data for this action
-                    if isinstance(data_msg[0], list):
-                        lines = "\n".join(
-                            [",".join([str(x) for x in l]) for l in data_msg]
-                        )
-                        self.active.data += data_msg
-                    else:
-                        lines = ",".join([str(x) for x in data_msg])
-                        self.active.data.append(data_msg)
-                    if self.file_conn:
-                        await self.write_live_data(lines)
+            try:
+                async for data_msg in self.base.data_q.subscribe():
+                    # dataMsg should be a dict {uuid: list of values or a list of list of values}
+                    if (
+                        self.active.action_uuid in data_msg.keys()
+                    ):  # only write data for this action
+                        data_val = data_msg[self.active.action_uuid]
+                        if isinstance(data_val, list):
+                            lines = "\n".join(
+                                [",".join([str(x) for x in l]) for l in data_val]
+                            )
+                            self.active.data += data_msg
+                        elif isinstance(data_val, dict):
+                            columns = [data_val[col] for col in self.column_names]
+                            lines = "\n".join(
+                                [",".join([str(x) for x in l]) for l in zip(*columns)]
+                            )
+                        else:
+                            lines = ",".join([str(x) for x in data_msg])
+                            self.active.data.append(data_msg)
+                        if self.file_conn:
+                            await self.write_live_data(lines)
+            except asyncio.CancelledError:
+                print("data logger task was cancelled")
 
         async def write_file(
             self,
@@ -647,11 +680,12 @@ class Base(object):
             await file_instance.write(output_str)
             await file_instance.close()
 
-        async def finish_act(self):
+        async def finish(self):
             "Close file_conn, finish rcp, copy aux, set endpoint status, and move active dict to past."
             if self.file_conn:
                 await self.file_conn.close()
                 self.file_conn = None
+                # self.data_streamer.cancel()
             if self.active.file_dict:
                 await self.write_to_rcp(self.active.file_dict)
             await self.base.clear_status(
@@ -691,15 +725,7 @@ class Base(object):
         self.actives[action.action_uuid] = await Base.Active(
             self, action, file_type, file_group, filename, header
         )
-
-    async def release_action(self, action_uuid: str):
-        if action_uuid in self.actives.keys():
-            finished_act = await self.actives[action_uuid].finish_act()
-            _ = self.actives.pop([action_uuid], None)
-            return finished_act
-        else:
-            print(f"Specified action uuid {action_uuid} was not found.")
-            return None
+        return self.actives[action.action_uuid]
 
     async def get_active_info(self, action_uuid: str):
         if action_uuid in self.actives.keys():
@@ -731,11 +757,11 @@ class Orch(Base):
 
     def __init__(
         self,
-        server_name: str,
         fastapp: HelaoFastAPI,
+        technique_name: Optional[str] = None,
         save_root: Optional[str] = None,
     ):
-        super.__init__(server_name, fastapp, save_root)
+        super.__init__(fastapp, technique_name, save_root)
         self.import_actualizers()
         # instantiate decision/experiment queue, action queue
         self.decisions = deque([])
@@ -753,7 +779,9 @@ class Orch(Base):
 
         # separate from global state, signals dispatch loop control [skip|stop|None]
         self.loop_intent = None
+        self.loop_task = None
         self.status_subscriber = asyncio.create_task(self.subscribe_all())
+        
 
     def import_actualizers(self, library_path: str = None):
         """Import actualizer functions into environment."""
@@ -814,7 +842,7 @@ class Orch(Base):
             )
 
     async def update_status(self, act_serv: str, status_dict: dict):
-        """Dict update method for received action server status messages.
+        """Dict update method for action server to push status messages.
 
         Async task for updating orch status dict {act_serv_key: {act_name: [act_uuid]}}
         """
@@ -835,9 +863,17 @@ class Orch(Base):
 
     async def update_global_state_task(self):
         """Self-subscribe to global_q and update status dict."""
-        async for _ in self.global_q.subscribe():
+        async for status_dict in self.global_q.subscribe():
+            estop_uuids = []
+            for act_serv, act_named in status_dict.items():
+                for act_name, uuids in act_named.items():
+                    for uuid in uuids:
+                        if uuid.endswith("__estop"):
+                            estop_uuids.append((act_serv, act_name, uuid))
             running_states, _ = self.check_global_state()
-            if len(running_states) == 0:
+            if estop_uuids and self.loop_state=="started":
+                await self.estop_loop()
+            elif len(running_states) == 0:
                 self.global_state = "idle"
             else:
                 self.global_state = "busy"
@@ -878,131 +914,172 @@ class Orch(Base):
                 response = await resp.text()
                 return response
 
-    async def run_dispatch_loop(self):
+    async def dispatch_loop_task(self):
         """Parse decision and action queues, and dispatch actions while tracking run state flags."""
         print(" ... running operator orch")
         print(" ... orch status:", self.global_state)
         # clause for resuming paused action list
         print(" ... orch descisions: ", self.decisions)
-
-        self.loop_state = "started"
-        while self.loop_state == "started" and (self.actions or self.decisions):
-            await asyncio.sleep(
-                0.001
-            )  # allows status changes to affect between actions, also enforce unique timestamp
-            if not self.actions:
-                print(" ... getting actions from new decision")
-                # generate uids when populating, generate timestamp when acquring
-                self.last_decision = copy(self.active_decision)
-                self.active_decision = self.decisions.popleft()
-                self.active_decision.set_dtime(offset=self.ntp_offset)
-                actual = self.active_decision.actual
-                # additional actualizer params should be stored in decision.actual_pars
-                unpacked_acts = self.action_lib[actual](self.active_decision)
-                for i, act in enumerate(unpacked_acts):
-                    act.action_enum = i
-                    act.gen_uuid()
-                self.actions = deque(unpacked_acts)  # TODO:update actualizer code
-                print(" ... got ", self.actions)
-                print(" ... optional params ", self.active_decision.actual_pars)
-            else:
-                if self.loop_intent == "stop":
-                    print(" ... stopping orchestrator")
-                    # monitor status of running actions, then end loop
-                    async for _ in self.global_q.subscribe():
-                        if self.global_state == "idle":
-                            self.loop_state = "stopped"
-                            await self.intend_none()
-                            break
-                elif self.loop_intent == "skip":
-                    # clear action queue, forcing next decision
-                    self.actions.clear()
-                    await self.intend_none()
-                    print(" ... skipping to next decision")
+        try:
+            self.loop_state = "started"
+            while self.loop_state == "started" and (self.actions or self.decisions):
+                await asyncio.sleep(
+                    0.001
+                )  # allows status changes to affect between actions, also enforce unique timestamp
+                if not self.actions:
+                    print(" ... getting actions from new decision")
+                    # generate uids when populating, generate timestamp when acquring
+                    self.last_decision = copy(self.active_decision)
+                    self.active_decision = self.decisions.popleft()
+                    self.active_decision.set_dtime(offset=self.ntp_offset)
+                    actual = self.active_decision.actual
+                    # additional actualizer params should be stored in decision.actual_pars
+                    unpacked_acts = self.action_lib[actual](self.active_decision)
+                    for i, act in enumerate(unpacked_acts):
+                        act.action_enum = i
+                        # act.gen_uuid()
+                    self.actions = deque(unpacked_acts)  # TODO:update actualizer code
+                    print(" ... got ", self.actions)
+                    print(" ... optional params ", self.active_decision.actual_pars)
                 else:
-                    # all action blocking is handled like preempt, check Action requirements
-                    A = self.actions.popleft()
-                    # append previous results to current action
-                    A.result_dict = self.active_decision.result_dict
-                    # see async_dispatcher for unpacking
-                    if isinstance(A.start_condition, int):
-                        if A.start_condition == 0:
-                            print(" ... orch is dispatching an unconditional action")
-                        else:
-                            if A.start_condition == 1:
-                                print(
-                                    " ... orch is waiting for endpoint to become available"
-                                )
-                                async for _ in self.global_q.subscribe():
-                                    endpoint_free = (
-                                        len(
-                                            self.global_status[A.action_server][
-                                                A.action_name
+                    if self.loop_intent == "stop":
+                        print(" ... stopping orchestrator")
+                        # monitor status of running actions, then end loop
+                        async for _ in self.global_q.subscribe():
+                            if self.global_state == "idle":
+                                self.loop_state = "stopped"
+                                await self.intend_none()
+                                break
+                    elif self.loop_intent == "skip":
+                        # clear action queue, forcing next decision
+                        self.actions.clear()
+                        await self.intend_none()
+                        print(" ... skipping to next decision")
+                    else:
+                        # all action blocking is handled like preempt, check Action requirements
+                        A = self.actions.popleft()
+                        # append previous results to current action
+                        A.result_dict = self.active_decision.result_dict
+                        # see async_dispatcher for unpacking
+                        if isinstance(A.start_condition, int):
+                            if A.start_condition == 0:
+                                print(" ... orch is dispatching an unconditional action")
+                            else:
+                                if A.start_condition == 1:
+                                    print(
+                                        " ... orch is waiting for endpoint to become available"
+                                    )
+                                    async for _ in self.global_q.subscribe():
+                                        endpoint_free = (
+                                            len(
+                                                self.global_status[A.action_server][
+                                                    A.action_name
+                                                ]
+                                            )
+                                            == 0
+                                        )
+                                        if endpoint_free:
+                                            break
+                                elif A.start_condition == 2:
+                                    print(
+                                        " ... orch is waiting for server to become available"
+                                    )
+                                    async for _ in self.global_q.subscribe():
+                                        server_free = all(
+                                            [
+                                                len(uuid_list) == 0
+                                                for _, uuid_list in self.global_status[
+                                                    A.action_server
+                                                ].items()
                                             ]
                                         )
-                                        == 0
-                                    )
-                                    if endpoint_free:
-                                        break
-                            elif A.start_condition == 2:
-                                print(
-                                    " ... orch is waiting for server to become available"
-                                )
-                                async for _ in self.global_q.subscribe():
-                                    server_free = all(
-                                        [
-                                            len(uuid_list) == 0
-                                            for _, uuid_list in self.global_status[
-                                                A.action_server
-                                            ].items()
-                                        ]
-                                    )
-                                    if server_free:
-                                        break
-                            else:  # start_condition is 3 or unsupported value
-                                print(" ... orch is waiting for all actions to finish")
-                                async for _ in self.global_q.subscribe():
-                                    running_states, _ = self.check_global_state()
-                                    global_free = len(running_states) == 0
-                                    if global_free:
-                                        break
-                    elif isinstance(A.start_condition, dict):
-                        print(
-                            " ... waiting for multiple conditions on external servers"
-                        )
-                        condition_dict = A.start_condition
-                        async for _ in self.global_q.subscribe():
-                            conditions_free = all(
-                                [
-                                    len(self.global_status[k][v] == 0)
-                                    for k, vlist in condition_dict.items()
-                                    if vlist and isinstance(vlist, list)
-                                    for v in vlist
-                                ]
-                                + [
-                                    len(uuid_list) == 0
-                                    for k, v in condition_dict.items()
-                                    if v == [] or v is None
-                                    for _, uuid_list in self.global_status[k].items()
-                                ]
+                                        if server_free:
+                                            break
+                                else:  # start_condition is 3 or unsupported value
+                                    print(" ... orch is waiting for all actions to finish")
+                                    async for _ in self.global_q.subscribe():
+                                        running_states, _ = self.check_global_state()
+                                        global_free = len(running_states) == 0
+                                        if global_free:
+                                            break
+                        elif isinstance(A.start_condition, dict):
+                            print(
+                                " ... waiting for multiple conditions on external servers"
                             )
-                            if conditions_free:
-                                break
-                    else:
-                        print(" ... invalid start condition, waiting for all actions to finish")
-                        async for _ in self.global_q.subscribe():
-                            running_states, _ = self.check_global_state()
-                            global_free = len(running_states) == 0
-                            if global_free:
-                                break
-                    print(f"dispatching action {A.action} on server {A.server}")
-                    result = await self.async_dispatcher(A)
-                    self.active_decision.result_dict[A.action_enum] = result
-        print(" ... decision queue is empty")
-        print(" ... stopping operator orch")
-        self.loop_state = "stopped"
+                            condition_dict = A.start_condition
+                            async for _ in self.global_q.subscribe():
+                                conditions_free = all(
+                                    [
+                                        len(self.global_status[k][v] == 0)
+                                        for k, vlist in condition_dict.items()
+                                        if vlist and isinstance(vlist, list)
+                                        for v in vlist
+                                    ]
+                                    + [
+                                        len(uuid_list) == 0
+                                        for k, v in condition_dict.items()
+                                        if v == [] or v is None
+                                        for _, uuid_list in self.global_status[k].items()
+                                    ]
+                                )
+                                if conditions_free:
+                                    break
+                        else:
+                            print(
+                                " ... invalid start condition, waiting for all actions to finish"
+                            )
+                            async for _ in self.global_q.subscribe():
+                                running_states, _ = self.check_global_state()
+                                global_free = len(running_states) == 0
+                                if global_free:
+                                    break
+                        print(f"dispatching action {A.action} on server {A.server}")
+                        result = await self.async_dispatcher(A)
+                        self.active_decision.result_dict[A.action_enum] = result
+            print(" ... decision queue is empty")
+            print(" ... stopping operator orch")
+            self.loop_state = "stopped"
+            await self.intend_none()
+            return True
+        except asyncio.CancelledError:
+            return False
+
+    async def start_loop(self):
+        if self.loop_state == "stopped":
+            self.loop_task = asyncio.create_task(self.dispatch_loop_task())
+        elif self.loop_state == "E-STOP":
+            print("E-STOP flag was raised, clear E-STOP before starting.")
+        else:
+            print("loop already started.")
+        return self.loop_state
+
+    async def estop_loop(self):
+        self.loop_state = "E-STOP"
+        self.loop_task.cancel()
+        await self.force_stop_running_actions()
         await self.intend_none()
-        return True
+
+    async def force_stop_running_actions(self):
+        running_uuids = []
+        estop_uuids = []
+        for act_serv, act_named in self.global_status.items():
+            for act_name, uuids in act_named.items():
+                for uuid in uuids:
+                    uuid_tup = (act_serv, act_name, uuid)
+                    if uuid.endswith("__estop"):
+                        estop_uuids.append(uuid_tup)
+                    else:
+                        running_uuids.append(uuid_tup)
+        running_servers = list(set([serv for serv, _, _ in running_uuids]))
+        for serv in running_servers:
+            serv_conf = self.world_cfg["servers"][serv]
+            async with aiohttp.ClientSession() as session:
+                print(f"Sending force-stop request to {serv}")
+                async with session.post(
+                    f"http://{serv_conf['host']}:{serv_conf['port']}/force_stop"
+                ) as resp:
+                    response = await resp.text()
+                    print(response)
 
     async def intend_skip(self):
         await asyncio.sleep(0.001)
@@ -1015,6 +1092,26 @@ class Orch(Base):
     async def intend_none(self):
         await asyncio.sleep(0.001)
         self.loop_intent = None
+        
+    async def clear_estop(self):
+        running_uuids = []
+        estop_uuids = []
+        for act_serv, act_named in self.global_status.items():
+            for act_name, uuids in act_named.items():
+                for uuid in uuids:
+                    uuid_tup = (act_serv, act_name, uuid)
+                    if uuid.endswith("__estop"):
+                        estop_uuids.append(uuid_tup)
+                    else:
+                        running_uuids.append(uuid_tup)
+        cleared_status = copy(self.global_status)
+        for serv,act,uuid in estop_uuids:
+            print(f"clearing E-STOP {act} on {serv}")
+            cleared_status[serv][act] = cleared_status[serv][act].remove(uuid)
+        await self.global_q.put(cleared_status)
+        print(f"resetting dispatch loop state")
+        self.loop_state = "stopped"
+        print(f"{len(running_uuids)} running actions did not fully stop after E-STOP was raised")
 
     async def add_decision(
         self,

@@ -3,6 +3,7 @@
 The 'gamry' device class exposes potentiostat measurement functions provided by the
 GamryCOM comtypes Win32 module. Class methods are specific to Gamry devices. Device 
 configuration is read from config/config.py. 
+
 """
 
 import comtypes
@@ -12,13 +13,14 @@ import time
 from enum import Enum
 import psutil
 from time import strftime
-from classes import LocalDataHandler
+# from classes import LocalDataHandler
 #from classes import sample_class
 import os
-from classes import action_runparams
-from classes import Action_params
+# from classes import action_runparams
+# from classes import Action_params
 import json
-
+from prototyping import Action, Base
+from typing import Optional
 
 class Gamry_modes(str, Enum):
     CA = "CA"
@@ -106,11 +108,11 @@ class GamryDtaqEvents(object):
             # self.buffer[time.time()] = self.acquired_points[-1]
             # self.buffer_size += sys.getsizeof(self.acquired_points[-1]
 
-    def _IGamryDtaqEvents_OnDataAvailable(self, this):
+    def _IGamryDtaqEvents_OnDataAvailable(self):
         self.cook()
         self.status = "measuring"
 
-    def _IGamryDtaqEvents_OnDataDone(self, this):
+    def _IGamryDtaqEvents_OnDataDone(self):
         self.cook()  # a final cook
         self.status = "done"
 
@@ -123,21 +125,25 @@ class dummy_sink:
         self.status = "idle"
 
 
+# due to async status handling and delayed result paradigm, this gamry class requires an
+# action server to operate
 class gamry:
-    def __init__(self, config_dict, stat):
-        # save instrument config
-        self.config_dict = config_dict
+    def __init__(self, actServ: Base):
+
+        self.base = actServ
+        self.config_dict = actServ['server_cfg']['params']
+
         # get Gamry object (Garmry.com)
-       
         # a busy gamrycom can lock up the server
         self.kill_GamryCom()
         self.GamryCOM = client.GetModule(['{BD962F0D-A990-4823-9CF5-284D1CDD9C6D}', 1, 0])
         #self.GamryCOM = client.GetModule(self.config_dict["path_to_gamrycom"])
 
-
         self.pstat = None
-         # will get the statushandler from the server to set the idle status after measurment
-        self.stat = stat
+        self.action = None # for passing action object from technique method to measure loop
+        
+        self.active = None # for holding active action object, clear this at end of measurement
+         # status is handled through active, call active.finish()
 
         if not 'dev_id' in self.config_dict:
             self.config_dict['dev_id'] = 0
@@ -156,25 +162,22 @@ class gamry:
 
         
         # for Dtaq
-        self.wsdataq = asyncio.Queue()
         self.dtaqsink = dummy_sink()
         self.dtaq = None
         # empty the data before new one is collected
         #self.data = collections.defaultdict(list)
         
         # for global IOloop
-        self.IO_do_meas = False
+        self.IO_signalq = asyncio.Queue(1) # replaces while loop w/async trigger
+        self.IO_do_meas = False # signal flag for intent (start/stop)
+        self.IO_measuring = False # status flag of measurement
         self.IO_meas_mode = None
         self.IO_sigramp = None
         self.IO_TTLwait = -1
         self.IO_TTLsend = -1
-        self.IO_estop = False
+        # self.IO_estop = False
         self.IO_Irange = Gamry_Irange('auto')
         
-        # parameters which will be parsed via fastapi calls
-        # will contain status uid, name, and additional parameters from previous server calls of a decision
-        self.runparams = action_runparams
-
         myloop = asyncio.get_event_loop()
         #add meas IOloop
         myloop.create_task(self.IOloop())
@@ -183,48 +186,59 @@ class gamry:
         # for saving data localy
         self.FIFO_epoch = None
         #self.FIFO_header = ''
-        self.FIFO_gamryheader = '' # measuement specific, will be reset each measurement
-        self.FIFO_name = ''
-        self.FIFO_dir = ''
-        self.FIFO_column_headings = []
+        #self.FIFO_gamryheader = '' # measuement specific, will be reset each measurement
+        #self.FIFO_name = ''
+        #self.FIFO_dir = ''
+        #self.FIFO_column_headings = []
         self.FIFO_Gamryname = ''
         # holds all sample information
         #self.FIFO_sample = sample_class()
         
-        self.def_action_params = Action_params()
-        self.action_params = self.def_action_params.as_dict()
+        ### passing Action dict will contain all UID and action paramter information ###
+        # self.runparams = action_runparams        
+        # self.def_action_params = Action_params()
+        # self.action_params = self.def_action_params.as_dict()
 
     ##########################################################################
     # This is main Gamry measurement loop which always needs to run
     # else if measurement is done in FastAPI calls we will get timeouts
     ##########################################################################
     async def IOloop(self):
-        while True:
-            await asyncio.sleep(0.5)
-            if self.IO_do_meas:
-                # are we in estop?
-                if not self.IO_estop:
-                    print(' ... Gramry got measurement request')
-                    await self.measure()
-                    # we need to close the connection else the Gamry is still is use 
-                    # which can cause trouble if the script ends witout closing the connection
-                    await self.close_connection()
-                    self.IO_do_meas = False
-                    # need to check here again in case estop was triggered during
-                    # measurement
-                    # need to set the current meas to idle first 
-                    await self.stat.set_idle(self.runparams.statuid, self.runparams.statname)
-                    if self.IO_estop:
-                        print(' ... Gramry is in estop.')
-                        await self.stat.set_estop()
+        try:
+            while True:
+                self.IO_do_meas = await self.IO_signalq.get()
+                if self.IO_do_meas and not self.IO_measuring:
+                    # are we in estop?
+                    if not self.IO_estop:
+                        print(' ... Gamry got measurement request')
+                        await self.measure()
+                        # we need to close the connection else the Gamry is still is use
+                        # which can cause trouble if the script ends witout closing the connection
+                        await self.close_connection()
+                        self.IO_do_meas = False
+                        # need to check here again in case estop was triggered during
+                        # measurement
+                        # need to set the current meas to idle first
+                        # await self.stat.set_idle(self.runparams.statuid, self.runparams.statname)
+                        if self.IO_estop:
+                            print(' ... Gamry is in estop.')
+                            # await self.stat.set_estop()
+                        else:
+                            print(' ... setting Gamry to idle')
+                            # await self.stat.set_idle()
+                        print(' ... Gamry measurement is done')
                     else:
-                        print(' ... setting Gamry to idle')
-#                        await self.stat.set_idle()
-                    print(' ... Gramry measurement is done')
+                        self.IO_do_meas = False
+                        print(' ... Gamry is in estop.')
+                        # await self.stat.set_estop()
+                elif self.IO_do_meas and self.IO_measuring:
+                    print(' ... got measurement request but Gamry is busy')
+                elif not self.IO_do_meas and self.IO_measuring:
+                    print(' ... got stop request, measurement will stop next cycle')
                 else:
-                    self.IO_do_meas = False
-                    print(' ... Gramry is in estop.')
-                    await self.stat.set_estop()
+                    print(' ... got stop request but Gamry is idle')
+        except asyncio.CancelledError:
+            print("IOloop task was cancelled")
 
 
     ##########################################################################
@@ -353,10 +367,6 @@ class gamry:
             self.pstat.SetCell(self.GamryCOM.CellOff)
             #####pstat.InstrumentSpecificInitialize ()
             self.pstat.SetPosFeedEnable(False) # False
-
-
-
-
 
             self.pstat.SetIEStability(self.GamryCOM.StabilityFast)#pstat.SetStability (StabilityFast)
             #Fast (0), Medium (1), Slow (2)
@@ -498,10 +508,7 @@ class gamry:
                 # - init time delay
                 # - conditioning
                 # - sampling mode: fast, noise reject, surface
-                
 
-
-            self.FIFO_gamryheader += f'\n%ierangemode={self.IO_Irange.name}'
 
             # push the signal ramp over
             try:
@@ -547,7 +554,7 @@ class gamry:
                     #     if (bits & 0x08):
                     #         break
                     break # for testing, we don't want to wait forever
-                    await asyncio.sleep(0.001)
+                    # await asyncio.sleep(0.001)
                     
             # second, send a trigger
             # TODO: need to reset trigger first during init to high/low
@@ -599,27 +606,22 @@ class gamry:
             sink_status = self.dtaqsink.status
             counter = 0
 
-            # open new file and write header
-            datafile = LocalDataHandler()
-            datafile.filename = self.FIFO_name
-            datafile.filepath = self.FIFO_dir
-            # if header is != '' then it will be written when file is opened first time
-            # not if the file already exists
-            #datafile.fileheader = ''
-            await datafile.open_file_async()
-          
 
-            # ANEC2 will also measure more then one sample at a time, so we need to have a list of samples
-            await datafile.write_sampleinfo_async(self.action_params)
+            ############ use action-based file writer ############
+            # write header lines with one function call
             
-            # write Gamry specific data
-            await datafile.write_data_async('%gamry='+str(self.FIFO_Gamryname))
-            await datafile.write_data_async(self.FIFO_gamryheader)
-            await datafile.write_data_async('%techniqueparamsname=')
-            await datafile.write_data_async('%techniquename='+str(self.IO_meas_mode.name))
-            await datafile.write_data_async('%epoch_ns='+str(self.FIFO_epoch))
-            await datafile.write_data_async('%version=0.1')
-            await datafile.write_data_async('%column_headings='+'\t'.join(self.FIFO_column_headings))
+            self.FIFO_gamryheader = '\n'.join([
+                    f'%gamry={self.FIFO_Gamryname}',
+                    self.FIFO_gamryheader,
+                    f'%ierangemode={self.IO_Irange.name}',
+                    f'%techniqueparamsname=',
+                    f'%techniquename={self.IO_meas_mode.name}',
+                    f'%epoch_ns={self.FIFO_epoch}',
+                    f'%version=0.1',
+                    f'%column_headings={"\t".join(self.FIFO_column_headings)}'
+                ])
+            
+            self.active = await self.base.contain_action(self.action, file_type='gamry_pstat_file', file_group='pstat_files', header= self.FIFO_gamryheader)
 
             while sink_status != "done" and self.IO_do_meas:
             #while sink_status == "measuring":
@@ -632,13 +634,6 @@ class gamry:
                     # need some await points
                     await asyncio.sleep(0.001)
                     tmp_datapoints = self.dtaqsink.acquired_points[counter]
-                    #print(tmp_datapoints)
-                    #print(counter)
-                    if self.wsdataq.full():
-                        _ = await self.wsdataq.get()
-                        self.wsdataq.task_done()
-                    #print(' ... ',tmp_datapoints)
-                    
                     # Need to get additional data for EIS
                     if self.IO_meas_mode == Gamry_modes.EIS:
                         test = list(tmp_datapoints)
@@ -649,40 +644,25 @@ class gamry:
                         test.append(self.dtaqsink.dtaq.Zfreq())
                         test.append(self.dtaqsink.dtaq.Zmod())
                         tmp_datapoints = tuple(test)
-
-                    # TODO: add data quality control here
-
-
-
-                    
                     # send data with asigned headings to wsqueue
                     # print(' ... gamry putting new data on dataq')
-                    await self.wsdataq.put({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
-                    
-                    
-                    # put new data in file
-                    await datafile.write_data_async('\t'.join([str(num) for num in tmp_datapoints]))
+                    if self.active:
+                        if self.active.save_data:
+                            await self.active.enqueue_data({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
                     counter += 1
-    
-                # this copies the complete chunk of data again and again
-                # what we are going to do with this?
-                #dtaqarr = self.dtaqsink.acquired_points
-                #self.data = dtaqarr
-
                 sink_status = self.dtaqsink.status
-
-
             self.pstat.SetCell(self.GamryCOM.CellOff)
-
-            # close file
-            await datafile.close_file_async()
-            # not needed if we always use same file and have global header etc
-            del datafile
+            self.dtaq.Run(False)
 
             # delete this at the very last step
             del connection
             # connection will be closed in IOloop
             #self.close_connection()
+
+            await self.active.finish()
+            self.active = None
+            self.action = None
+            
             return {"measure": f'done_{self.IO_meas_mode}'}
         else:
             return {"measure": "not initialized"}
@@ -698,66 +678,46 @@ class gamry:
     ##########################################################################
     #  stops measurement, writes all data and returns from meas loop
     ##########################################################################
-    async def stop(self, runparams: action_runparams):
+    async def stop(self):
         # turn off cell and run before stopping meas loop
-        if self.IO_do_meas:
-            self.pstat.SetCell(self.GamryCOM.CellOff)
-            self.dtaq.Run(False)
+        if self.IO_measuring:
             # file and Gamry connection will be closed with the meas loop
-            self.IO_do_meas = False
-            # await self.stat.set_idle(runparams.statuid, runparams.statname)
-        # else:
-        #     #was already stopped so need to set to idle here
-        await self.stat.set_idle(runparams.statuid, runparams.statname)
+            await self.IO_signalq.put(False)
 
 
     ##########################################################################
-    #  same as estop, but also sets flag
+    #  same as stop, set or clear estop flag with switch parameter
     ##########################################################################
-    async def estop(self, switch, runparams: action_runparams):
+    async def estop(self, switch):
         # should be the same as stop()
-
-        if self.IO_do_meas:
-            self.IO_estop = switch
+        self.IO_estop = switch
+        if self.IO_measuring:
             if switch:
-                # if self.IO_do_meas:
-                self.pstat.SetCell(self.GamryCOM.CellOff)
-                self.dtaq.Run(False)
-                # file and Gamry connection will be closed with the meas loop
-                self.IO_do_meas = False
-        else:
-            #was already stopped so need to set to idle here
-            if switch:
-                await self.stat.set_estop()
-            # else:
-        await self.stat.set_idle(runparams.statuid, runparams.statname)
+                await self.IO_signalq.put(False)
+                await self.base.set_estop(self.active.active.action_name, self.active.active.action_uuid)
+                # can only set action server estop on a running uuid
 
 
     ##########################################################################
     #  LSV definition
     ##########################################################################
     async def technique_LSV(self, 
-        Vinit: float, 
-        Vfinal: float, 
-        ScanRate: float, 
-        SampleRate: float,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action,
     ):
+        Vinit = A.action_params['Vinit']
+        Vfinal = A.action_params['Vfinal']
+        ScanRate = A.action_params['ScanRate']
+        SampleRate = A.action_params['SampleRate']
+        TTLwait = A.action_params['TTLwait']
+        TTLsend = A.action_params['TTLsend']
+        Irange = A.action_params['Irange']
+
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -766,7 +726,6 @@ class gamry:
                 await self.measurement_setup(1.0/SampleRate, self.IO_meas_mode)
                 # setup the experiment specific signal ramp
                 self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalRamp")
-    
                 try:
                     self.IO_sigramp.Init(
                         self.pstat, Vinit, Vfinal, ScanRate, SampleRate, self.GamryCOM.PstatMode
@@ -777,71 +736,59 @@ class gamry:
     
                 eta = abs(Vfinal - Vinit)/ScanRate #+delay
                 
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Vinit={Vinit}\n'
-                self.FIFO_gamryheader += f'%Vinit={Vfinal}\n'
-                self.FIFO_gamryheader += f'%scanrate={ScanRate}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
-
-                self.set_filedir()
-                
+                # setup partial header which will be completed in measure loop
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Vinit={Vinit}',
+                    f'%Vfinal={Vfinal}',
+                    f'%scanrate={ScanRate}',
+                    f'%samplerate={SampleRate}',
+                    f'%eta={eta}'
+                ])
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
-            elif self.IO_do_meas:
-                err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
+            elif self.IO_measuring:
+                err_code = "meas already in progress"
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
-            
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                "Vinit": Vinit,
-                "Vfinal": Vfinal,
-                "ScanRate": ScanRate,
-                "SampleRate": SampleRate,
-            },
+        
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
 
     ##########################################################################
     #  CA definition
     ##########################################################################
     async def technique_CA(self, 
-        Vval: float, 
-        Tval: float, 
-        SampleRate: float,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action,
     ):
+        Vval = A.action_params['Vval']
+        Tval = A.action_params['Tval']
+        SampleRate = A.action_params['SampleRate']
+        TTLwait = A.action_params['TTLwait']
+        TTLsend = A.action_params['TTLsend']
+        Irange = A.action_params['Irange']
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
-
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -850,7 +797,6 @@ class gamry:
                 await self.measurement_setup(1.0/SampleRate, self.IO_meas_mode)
                 # setup the experiment specific signal ramp
                 self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
-    
                 try:
                     self.IO_sigramp.Init(
                         self.pstat, Vval, Tval, SampleRate, self.GamryCOM.PstatMode
@@ -862,68 +808,59 @@ class gamry:
     
                 eta = Tval #+delay
     
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Vval={Vval}\n'
-                self.FIFO_gamryheader += f'%Tval={Tval}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
-
-                self.set_filedir()
-
+                # setup partial header which will be completed in measure loop
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Vval={Vval}',
+                    f'%Tval={Tval}',
+                    f'%samplerate={SampleRate}',
+                    f'%eta={eta}'
+                ])
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
-            elif self.IO_do_meas:
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
+            elif self.IO_measuring:
                 err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
             
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                "Vval": Vval,
-                "Tval": Tval,
-                "SampleRate": SampleRate
-            },
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
 
     ##########################################################################
     #  CP definition
     ##########################################################################
     async def technique_CP(self, 
-        Ival: float, 
-        Tval: float, 
-        SampleRate: float,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action,
     ):
+        Ival = A.action_params['Ival'] 
+        Tval = A.action_params['Tval'] 
+        SampleRate = A.action_params['SampleRate'] 
+        TTLwait = A.action_params['TTLwait'] 
+        TTLsend = A.action_params['TTLsend'] 
+        Irange = A.action_params['Irange'] 
+
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -932,7 +869,6 @@ class gamry:
                 await self.measurement_setup(1.0/SampleRate, self.IO_meas_mode)
                 # setup the experiment specific signal ramp
                 self.IO_sigramp = client.CreateObject("GamryCOM.GamrySignalConst")
-    
                 try:
                     self.IO_sigramp.Init(
                         self.pstat, Ival, Tval, SampleRate, self.GamryCOM.GstatMode
@@ -943,77 +879,66 @@ class gamry:
                     print(' ... Gamry Error:', err_code)
     
                 eta = Tval  #+delay
-    
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Ival={Ival}\n'
-                self.FIFO_gamryheader += f'%Tval={Tval}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
-    
-                self.set_filedir()
-    
+
+                # setup partial header which will be completed in measure loop
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Ival={Ival}',
+                    f'%Tval={Tval}',
+                    f'%samplerate={SampleRate}',
+                    f'%eta={eta}'
+                ])
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
             elif self.IO_do_meas:
                 err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
 
-
-            
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                "Ival": Ival,
-                "Tval": Tval,
-                "SampleRate": SampleRate
-            },
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
 
     async def technique_CV(self,
-        Vinit: float,
-        Vapex1: float,
-        Vapex2: float,
-        Vfinal: float,
-        ScanInit: float,
-        ScanApex: float,
-        ScanFinal: float,
-        HoldTime0: float,
-        HoldTime1: float,
-        HoldTime2: float,
-        SampleRate: float,
-        Cycles: int,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action
     ):
+        Vinit = A.action_params['Vinit'] 
+        Vapex1 = A.action_params['Vapex1'] 
+        Vapex2 = A.action_params['Vapex2'] 
+        Vfinal = A.action_params['Vfinal'] 
+        ScanInit = A.action_params['ScanInit'] 
+        ScanApex = A.action_params['ScanApex'] 
+        ScanFinal = A.action_params['ScanFinal'] 
+        HoldTime0 = A.action_params['HoldTime0'] 
+        HoldTime1 = A.action_params['HoldTime1'] 
+        HoldTime2 = A.action_params['HoldTime2'] 
+        SampleRate = A.action_params['SampleRate'] 
+        Cycles = A.action_params['Cycles'] 
+        TTLwait = A.action_params['TTLwait'] 
+        TTLsend = A.action_params['TTLsend'] 
+        Irange = A.action_params['Irange'] 
+
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1049,89 +974,71 @@ class gamry:
                 eta += abs(Vapex2 - Vapex1)/ScanApex * Cycles
                 eta += abs(Vapex2 - Vapex1)/ScanApex * 2.0 * (Cycles-1) #+delay
     
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Vinit={Vinit}\n'
-                self.FIFO_gamryheader += f'%Vapex1={Vapex1}\n'
-                self.FIFO_gamryheader += f'%Vapex2={Vapex2}\n'
-                self.FIFO_gamryheader += f'%Vfinal={Vfinal}\n'
-                self.FIFO_gamryheader += f'%scaninit={ScanInit}\n'
-                self.FIFO_gamryheader += f'%scanapex={ScanApex}\n'
-                self.FIFO_gamryheader += f'%scanfinal={ScanFinal}\n'
-                self.FIFO_gamryheader += f'%holdtime0={HoldTime0}\n'
-                self.FIFO_gamryheader += f'%holdtime1={HoldTime1}\n'
-                self.FIFO_gamryheader += f'%holdtime2={HoldTime2}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%cycles={Cycles}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Vinit={Vinit}',
+                    f'%Vapex1={Vapex1}',
+                    f'%Vapex2={Vapex2}',
+                    f'%Vfinal={Vfinal}',
+                    f'%scaninit={ScanInit}',
+                    f'%scanapex={ScanApex}',
+                    f'%scanfinal={ScanFinal}',
+                    f'%holdtime0={HoldTime0}',
+                    f'%holdtime1={HoldTime1}',
+                    f'%holdtime2={HoldTime2}',
+                    f'%samplerate={SampleRate}',
+                    f'%cycles={Cycles}',
+                    f'%eta={eta}'
+                ])
     
-                self.set_filedir()
-
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
-            elif self.IO_do_meas:
-                err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
+            elif self.IO_measuring:
+                err_code = "meas already in progress"
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
 
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                "Vinit": Vinit,
-                "Vapex1": Vapex1,
-                "Vapex2": Vapex2,
-                "Vfinal": Vfinal,
-                "ScanInit": ScanInit,
-                "ScanApex": ScanApex,
-                "ScanFinal": ScanFinal,
-                "HoldTime0": HoldTime0,
-                "HoldTime1": HoldTime1,
-                "HoldTime2": HoldTime2,
-                "SampleRate": SampleRate,
-                "Cycles": Cycles,
-            },
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
 
     ##########################################################################
     #  EIS definition
     ##########################################################################
     async def technique_EIS(self, 
-        Vval,
-        Tval,
-        Freq,
-        RMS,
-        Precision,
-        SampleRate,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action
     ):
+        Vval = A.action_params['Vval']
+        Tval = A.action_params['Tval']
+        Freq = A.action_params['Freq']
+        RMS = A.action_params['RMS']
+        Precision = A.action_params['Precision']
+        SampleRate = A.action_params['SampleRate']
+        TTLwait = A.action_params['TTLwait']
+        TTLsend = A.action_params['TTLsend']
+        Irange = A.action_params['Irange']
+
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1151,77 +1058,65 @@ class gamry:
     
                 eta = Tval
                 
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Vval={Vval}\n'
-                self.FIFO_gamryheader += f'%Tval={Tval}\n'
-                self.FIFO_gamryheader += f'%freq={Freq}\n'
-                self.FIFO_gamryheader += f'%rms={RMS}\n'
-                self.FIFO_gamryheader += f'%precision={Precision}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Vval={Vval}',
+                    f'%Tval={Tval}',
+                    f'%freq={Freq}',
+                    f'%rms={RMS}',
+                    f'%precision={Precision}',
+                    f'%samplerate={SampleRate}',
+                    f'%eta={eta}'
+                ])
                 
-                
-                self.set_filedir()
-                
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
-            elif self.IO_do_meas:
-                err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
+            elif self.IO_measuring:
+                err_code = "meas already in progress"
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
             
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                'Vval':Vval,
-                'Tval':Tval,
-                'freq':Freq,
-                'RMS':RMS,
-                'precision':Precision,
-                'samplerate':SampleRate
-            },
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
 
     ##########################################################################
     #  OCV definition
     ##########################################################################
     async def technique_OCV(self, 
-        Tval: float, 
-        SampleRate: float,
-        runparams: action_runparams,
-        TTLwait: int = -1,
-        TTLsend: int = -1,
-        Irange: Gamry_Irange = 'auto'
+        A: Action
     ):
+        Tval = A.action_params['Tval']
+        SampleRate = A.action_params['SampleRate']
+        runparams = A.action_params['runparams']
+        TTLwait = A.action_params['TTLwait']
+        TTLsend = A.action_params['TTLsend']
+        Irange = A.action_params['Irange']
         """The OCV class manages data acquisition for a Controlled Voltage I-V curve. However, it is a special purpose curve
         designed for measuring the open circuit voltage over time. The measurement is made in the Potentiostatic mode but with the Cell
         Switch open. The operator may set a voltage stability limit. When this limit is met the Ocv terminates."""
+
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                try:
-                    # use parsed version
-                    self.action_params = json.loads(runparams.action_params)
-                except Exception:
-                    # use default
-                    self.action_params = self.def_action_params.as_dict()
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1242,45 +1137,36 @@ class gamry:
     
                 eta = Tval #+delay
     
-                self.FIFO_gamryheader = ''
-                self.FIFO_gamryheader += f'%Tval={Tval}\n'
-                self.FIFO_gamryheader += f'%samplerate={SampleRate}\n'
-                self.FIFO_gamryheader += f'%eta={eta}'
+                self.FIFO_gamryheader = '\n'.join([
+                    f'%Tval={Tval}',
+                    f'%samplerate={SampleRate}',
+                    f'%eta={eta}'
+                ])
     
-                self.set_filedir()
-    
+                # let measure loop know we have an action object
+                self.action = A
                 # signal the IOloop to start the measrurement
-                self.runparams = runparams
-                self.IO_do_meas = True
-                # idle will bet set in main function after meas is done
-            elif self.IO_do_meas:
-                err_code = "meas already in progress"            
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
+                await self.IO_signalq.put(True)
+                # wait for data to appear in multisubscriber queue before returning active dict
+                async for data_msg in self.base.data_q.subscribe():
+                    for act_name, act_uuids in data_msg.items():
+                        if A.action_name == act_name and A.uuid in act_uuids:
+                            activeAct = self.active
+                            activeDict = activeAct.active.as_dict()
+            elif self.IO_measuring:
+                err_code = "meas already in progress"
             else:
                 err_code = "not initialized"
-                await self.stat.set_idle(runparams.statuid, runparams.statname)
         else:
             err_code = retval["potentiostat_connection"]
-            await self.stat.set_idle(runparams.statuid, runparams.statname)
             print('###############################################################')
             print(retval)
             print('###############################################################')
 
-        return {
-            "measurement_type": self.IO_meas_mode,
-            "parameters": {
-                "Tval": Tval,
-                "SampleRate": SampleRate
-            },
+        activeDict['data'] = {
             "err_code": err_code,
-            "eta": eta,
-            "datafile": os.path.join(self.FIFO_dir,self.FIFO_name)
+            "eta": eta
         }
+        return activeDict
 
-    def set_filedir(self):
-        samplenostr = '_'.join([str(sample) for sample in self.action_params['sample_no']])
-        self.FIFO_name = f'sampleno{samplenostr}__gamry__{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
-        # self.FIFO_dir = self.local_data_dump
-        # self.local_data_dump will be skipped if second param is absolute path
-        self.FIFO_dir = os.path.join(self.local_data_dump,self.action_params['save_folder'])
-        print(' ... saving to:',self.FIFO_dir)
+  

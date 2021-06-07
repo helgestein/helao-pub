@@ -30,16 +30,12 @@ Manual Bugfixes:
 
 import os
 import sys
-import json
 from importlib import import_module
-#from asyncio import Queue
-#from time import strftime
 import asyncio
 
 
 import uvicorn
-from fastapi import FastAPI, WebSocket
-from fastapi.openapi.utils import get_flat_params
+from fastapi import WebSocket
 from munch import munchify
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -47,14 +43,8 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 
-from classes import StatusHandler
-from classes import return_status
-from classes import return_class
-from classes import wsConnectionManager
-from classes import sample_class
-from classes import getuid
-from classes import action_runparams
-from classes import Action_params
+from typing import Optional
+from prototyping import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
@@ -78,343 +68,269 @@ else:
     from gamry_driver import Gamry_Irange
 
 
-app = FastAPI(title=servKey,
+app = HelaoFastAPI(config, servKey, title=servKey,
               description="Gamry instrument/action server", version=1.0)
 
 
 @app.on_event("startup")
 def startup_event():
-    global stat
-    stat = StatusHandler()
+    global actserv
+    actserv = Base(app)
     global poti
     poti = gamry(S.params, stat)
-    global wsdata
-    wsdata = wsConnectionManager()
-    global wsstatus
-    wsstatus = wsConnectionManager()
 
 
-@app.websocket(f"/{servKey}/ws_data")
-async def websocket_data(websocket: WebSocket):
-    await wsdata.send(websocket, poti.wsdataq, 'Gamry_data')
-
-
-# as the technique calls will only start the measurment but won't return the final results
-@app.websocket(f"/{servKey}/ws_status")
+@app.websocket(f"/ws_status")
 async def websocket_status(websocket: WebSocket):
-    await wsstatus.send(websocket, stat.q, 'Gamry_status')
-  
-        
+    """Broadcast status messages.
+
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_status(websocket)
+
+
+@app.websocket(f"/ws_data")
+async def websocket_data(websocket: WebSocket):
+    """Broadcast status dicts.
+
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_data(websocket)
+    
+
 @app.post(f"/{servKey}/get_status")
 def status_wrapper():
-    return stat.dict
-    # return return_status(
-    #     measurement_type="get_status",
-    #     parameters={},
-    #     status=stat.dict,
-    # )
+    return actserv.status
 
 
 @app.post(f"/{servKey}/get_meas_status")
-async def get_meas_status(action_params = ''):
+async def get_meas_status(action_dict: Optional[dict]=None):
     """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
-    return return_status(
-        measurement_type="gamry_command",
-    parameters={
-        "command": "get_meas_status",
-        "parameters": {},
-    },
-        status=await poti.status(),
-    )
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "get_meas_status"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"status": await poti.status()})
+    finished_act = await active.finish()
+    return finished_act.as_dict()
 
-
-# @app.post(f"/{servKey}/set_sample")
-# async def set_sample(
-#     samples: sample_class,
-#     action_params = ''
-# ):
-#     """setup the experiment desciption to be included in the output file"""
-#     uuid = getuid(servKey)
-#     await stat.set_run(uuid, "set_sample")
-#     poti.FIFO_sample = samples
-#     await stat.set_idle(uuid, "set_sample")
-    
 
 @app.post(f"/{servKey}/run_LSV")
 async def run_LSV(
-    Vinit: float = 0.0,         # Initial value in volts or amps.
-    Vfinal: float = 1.0,        # Final value in volts or amps.
-    ScanRate: float = 1.0,      # Scan rate in volts/second or amps/second.
-    SampleRate: float = 0.01,   # Time between data acquisition samples in seconds.
-    TTLwait: int = -1,          # -1 disables, else select TTL 0-3
-    TTLsend: int = -1,           # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
+    Vinit: Optional[float] = 0.0,         # Initial value in volts or amps.
+    Vfinal: Optional[float] = 1.0,        # Final value in volts or amps.
+    ScanRate: Optional[float] = 1.0,      # Scan rate in volts/second or amps/second.
+    SampleRate: Optional[float] = 0.01,   # Time between data acquisition samples in seconds.
+    TTLwait: Optional[int] = -1,          # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1,           # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
+    action_dict: Optional[dict] = None, #optional parameters
 ):
     """Linear Sweep Voltammetry (unlike CV no backward scan is done), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_LSV",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_LSV",
-        "parameters": {
-            'Vinit':Vinit,
-            'Vfinal':Vfinal,
-            'scanrate':ScanRate,
-            'samplerate':SampleRate
-            },
-    },
-    data=await poti.technique_LSV(Vinit, Vfinal, ScanRate, SampleRate, runparams, TTLwait, TTLsend, IErange)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_LSV"
+        A.action_params['Vinit'] = Vinit
+        A.action_params['Vfinal'] = Vfinal
+        A.action_params['ScanRate'] = ScanRate
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_LSV(A)
+    return active_dict
 
 
 @app.post(f"/{servKey}/run_CA")
 async def run_CA(
-    Vval: float = 0.0,
-    Tval: float = 10.0,
-    SampleRate: float = 0.01,    # Time between data acquisition samples in seconds.
-    TTLwait: int = -1, # -1 disables, else select TTL 0-3
-    TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
-#    Vlimit: float = 10.0,
-#    EQDelay: float = 5.0
+    Vval: Optional[float] = 0.0,
+    Tval: Optional[float] = 10.0,
+    SampleRate: Optional[float] = 0.01,    # Time between data acquisition samples in seconds.
+    TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
+    action_dict: Optional[dict]=None, #optional parameters
 ):
-
     """Chronoamperometry (current response on amplied potential), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CA",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_CA",
-        "parameters": {
-            'Vval': Vval,
-            'Tval': Tval,
-            'samplerate':SampleRate
-            },
-    },
-    data=await poti.technique_CA(Vval, Tval, SampleRate, runparams, TTLwait, TTLsend, IErange)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_CA"
+        A.action_params['Vval'] = Vval
+        A.action_params['Tval'] = Tval
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_CA(A)
+    return active_dict
 
 
 @app.post(f"/{servKey}/run_CP")
 async def run_CP(
-    Ival: float = 0.0,
-    Tval: float = 10.0,
-    SampleRate: float = 1.0,      # Time between data acquisition samples in seconds.
-    TTLwait: int = -1, # -1 disables, else select TTL 0-3
-    TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
-#    Vlimit: float = 10.0,
-#    EQDelay: float = 5.0
+    Ival: Optional[float] = 0.0,
+    Tval: Optional[float] = 10.0,
+    SampleRate: Optional[float] = 1.0,      # Time between data acquisition samples in seconds.
+    TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
+    action_dict: Optional[dict]=None, #optional parameters
 ):
     """Chronopotentiometry (Potential response on controlled current), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CP",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_CP",
-        "parameters": {
-            'Ival':Ival,
-            'Tval':Tval,
-            'samplerate':SampleRate
-            },
-    },
-    data=await poti.technique_CP(Ival, Tval, SampleRate, runparams, TTLwait, TTLsend, IErange)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_CP"
+        A.action_params['Ival'] = Ival
+        A.action_params['Tval'] = Tval
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_CP(A)
+    return active_dict
 
 
 @app.post(f"/{servKey}/run_CV")
 async def run_CV(
-    Vinit: float = 0.0,           # Initial value in volts or amps.
-    Vapex1: float = 1.0,          # Apex 1 value in volts or amps.
-    Vapex2: float = -1.0,         # Apex 2 value in volts or amps.
-    Vfinal: float = 0.0,          # Final value in volts or amps.
-    ScanRate: float = 1.0,        # Apex scan rate in volts/second or amps/second.
-    SampleRate: float = 0.01,     # Time between data acquisition steps.
-    Cycles: int = 1,
-    TTLwait: int = -1, # -1 disables, else select TTL 0-3
-    TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
+    Vinit: Optional['float'] = 0.0,           # Initial value in volts or amps.
+    Vapex1: Optional['float'] = 1.0,          # Apex 1 value in volts or amps.
+    Vapex2: Optional['float'] = -1.0,         # Apex 2 value in volts or amps.
+    Vfinal: Optional['float'] = 0.0,          # Final value in volts or amps.
+    ScanRate: Optional['float'] = 1.0,        # Apex scan rate in volts/second or amps/second.
+    SampleRate: Optional['float'] = 0.01,     # Time between data acquisition steps.
+    Cycles: Optional['int'] = 1,
+    TTLwait: Optional['int'] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional['int'] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional['Gamry_Irange'] = 'auto',
+    action_dict: Optional[dict]=None, #optional parameters
 ):
     """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions), use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_CV",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_CV",
-        "parameters": {},
-    },
-    # the cv can be more complex but we simply will use the same scanrates etc
-    # technique_CV(self,
-    #         Vinit: float,
-    #         Vapex1: float,
-    #         Vapex2: float,
-    #         Vfinal: float,
-    #         ScanInit: float,
-    #         ScanApex: float,
-    #         ScanFinal: float,
-    #         HoldTime0: float,
-    #         HoldTime1: float,
-    #         HoldTime2: float,
-    #         SampleRate: float,
-    #         Cycles: int,
-    #     ):
-    data=await poti.technique_CV(
-        Vinit,
-        Vapex1,
-        Vapex2,
-        Vfinal,
-        ScanRate,
-        ScanRate,
-        ScanRate,
-        0.0,
-        0.0,
-        0.0,
-        SampleRate,
-        Cycles,
-        runparams,
-        TTLwait,
-        TTLsend,
-        IErange
-        )
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
-
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_CV"
+        A.action_params['Vinit'] = Vinit
+        A.action_params['Vapex1'] = Vapex1
+        A.action_params['Vapex2'] = Vapex2
+        A.action_params['Vfinal'] = Vfinal
+        A.action_params['ScanRate'] = ScanRate
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['Cycles'] = Cycles
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_CV(A)
+    return active_dict
 
 @app.post(f"/{servKey}/run_EIS")
 async def run_EIS(
-    Vval: float = 0.0,
-    Tval: float = 10.0,
-    Freq: float = 1000.0,
-    RMS: float = 0.02, 
-    Precision: float = 0.001, #The precision is used in a Correlation Coefficient (residual power) based test to determine whether or not to measure another cycle.
-    SampleRate: float = 0.01,
-    TTLwait: int = -1, # -1 disables, else select TTL 0-3
-    TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
+    Vval: Optional[float] = 0.0,
+    Tval: Optional[float] = 10.0,
+    Freq: Optional[float] = 1000.0,
+    RMS: Optional[float] = 0.02, 
+    Precision: Optional[float] = 0.001, #The precision is used in a Correlation Coefficient (residual power) based test to determine whether or not to measure another cycle.
+    SampleRate: Optional[float] = 0.01,
+    TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
+    action_dict: Optional[dict]=None, #optional parameters
 ):
     """use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_EIS",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_EIS",
-        "parameters": {
-            'Vval':Vval,
-            'Tval':Tval,
-            'freq':Freq,
-            'RMS':RMS,
-            'precision':Precision,
-            'samplerate':SampleRate
-            },
-    },
-    data=await poti.technique_EIS(Vval, Tval, Freq, RMS, Precision, SampleRate, runparams, TTLwait, TTLsend, IErange)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
-
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_CV"
+        A.action_params['Vval'] = Vval
+        A.action_params['Tval'] = Tval
+        A.action_params['Freq'] = Freq
+        A.action_params['RMS'] = RMS
+        A.action_params['Precision'] = Precision
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_EIS(A)
+    return active_dict
 
 
 @app.post(f"/{servKey}/run_OCV")
 async def run_OCV(
-    Tval: float = 10.0,
-    SampleRate: float = 0.01,
-    TTLwait: int = -1, # -1 disables, else select TTL 0-3
-    TTLsend: int = -1, # -1 disables, else select TTL 0-3
-    IErange: Gamry_Irange = 'auto',
-    action_params = '', #optional parameters
+    Tval: Optional[float] = 10.0,
+    SampleRate: Optional[float] = 0.01,
+    TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
+    action_dict: Optional[dict]=None, #optional parameters
 ):
     """use 4bit bitmask for triggers."""
-    runparams = action_runparams(uid=getuid(servKey), name="run_OCV",  action_params = action_params)
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-    measurement_type="gamry_command",
-    parameters={
-        "command": "run_OCV",
-        "parameters": {
-            'Tval':Tval,
-            'samplerate':SampleRate
-                },
-    },
-    data=await poti.technique_OCV(Tval, SampleRate, runparams, TTLwait, TTLsend, IErange)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "run_OCV"
+        A.action_params['Tval'] = Tval
+        A.action_params['SampleRate'] = SampleRate
+        A.action_params['TTLwait'] = TTLwait
+        A.action_params['TTLsend'] = TTLsend
+        A.action_params['IErange'] = IErange
+    active_dict = poti.technique_OCV(A)
+    return active_dict
 
 
 @app.post(f"/{servKey}/stop")
-async def stop(action_params = ''):
+async def stop(action_dict: Optional[dict]=None):
     """Stops measurement in a controlled way."""
-    runparams = action_runparams(uid=getuid(servKey), name="stop")
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-        measurement_type="gamry_command",
-        parameters={"command": "stop"},
-        data = await poti.stop(runparams)
-    )
-    # will be set within the driver
-    #await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "stop"
+    active = await actserv.cotnain_action(A)
+    await active.enqueue_data({"stop_result": await poti.stop()})
+    finished_act = await active.finish()
+    return finished_act.as_dict()
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True, action_params = ''):
+async def estop(switch: Optional[bool] = True, action_dict: Optional[dict]=None):
     """Same as stop, but also sets estop flag."""
-    runparams = action_runparams(uid=getuid(servKey), name="estop")
-    await stat.set_run(runparams.statuid, runparams.statname)
-    retc = return_class(
-        measurement_type="gamry_command",
-        parameters={"command": "estop"},
-        data = await poti.estop(switch, runparams),
-    )
-    # will be set within the driver
-    #await stat.set_estop()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        switch = A.action_params["switch"]
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "estop"
+        A.action_params["switch"] = switch
+    active = await actserv.cotnain_action(A)
+    await active.enqueue_data({"estop_result": await poti.estop(switch)})
+    finished_act = await active.finish()
+    return finished_act.as_dict()
 
 
 @app.post('/endpoints')
 def get_all_urls():
-    url_list = []
-    for route in app.routes:
-        routeD = {'path': route.path,
-                  'name': route.name
-                  }
-        if 'dependant' in dir(route):
-            flatParams = get_flat_params(route.dependant)
-            paramD = {par.name: {
-                'outer_type': str(par.outer_type_).split("'")[1],
-                'type': str(par.type_).split("'")[1],
-                'required': par.required,
-                'shape': par.shape,
-                'default': par.default
-            } for par in flatParams}
-            routeD['params'] = paramD
-        else:
-            routeD['params'] = []
-        url_list.append(routeD)
-    return url_list
+    """Return a list of all endpoints on this server."""
+    return actserv.get_endpoint_urls(app)
 
 
 @app.post("/shutdown")

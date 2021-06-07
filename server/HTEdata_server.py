@@ -7,7 +7,6 @@ from importlib import import_module
 import uvicorn
 
 from fastapi import WebSocket
-from fastapi.openapi.utils import get_flat_params
 from munch import munchify
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -16,16 +15,14 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 
 from typing import Optional
-from prototyping import Action, Decision, HelaoFastAPI, Base
+from prototyping import Action, HelaoFastAPI, Base
 
-from classes import getuid
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
-
 
 
 # check if 'mode' setting is present
@@ -55,7 +52,7 @@ def startup_event():
     global dataserv
     dataserv = HTEdata(S.params)
     global actserv
-    actserv = Base(servKey, app)
+    actserv = Base(app)
 
 
 @app.websocket(f"/ws_status")
@@ -96,7 +93,7 @@ async def get_elements_plateid(plateid: Optional[str]=None, action_dict: Optiona
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"elements": dataserv.get_elements_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -113,7 +110,7 @@ async def get_platemap_plateid(plateid: Optional[str]=None, action_dict: Optiona
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"map": dataserv.get_platemap_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -130,7 +127,7 @@ async def get_platexycalibration(plateid: Optional[str]=None, action_dict: Optio
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"matrix": None})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -147,7 +144,7 @@ async def save_platexycalibration(plateid: Optional[str]=None, action_dict: Opti
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"matrix": None})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -164,7 +161,7 @@ async def check_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -181,7 +178,7 @@ async def check_printrecord_plateid(plateid: Optional[str]=None, action_dict: Op
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_printrecord_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -198,7 +195,7 @@ async def check_annealrecord_plateid(plateid: Optional[str]=None, action_dict: O
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_annealrecord_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -214,7 +211,7 @@ async def get_info_plateid(plateid: Optional[str]=None, action_dict: Optional[di
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"info": dataserv.get_info_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -230,7 +227,7 @@ async def get_rcp_plateid(plateid: Optional[str]=None, action_dict: Optional[dic
         A.action_params['plateid'] = plateid
     active = await actserv.contain_action(A)
     await active.enqueue_data({"info": dataserv.get_rcp_plateidstr(plateid)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -287,7 +284,7 @@ async def create_new_liquid_sample_no(
                                                   lot_number,
                                                   servkey)},
     )
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -301,7 +298,7 @@ async def get_last_liquid_sample_no(action_dict: Optional[dict]=None):
         A.action_name = "get_last_liquid_sample_no"
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_last_liquid_sample_no()})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -318,7 +315,7 @@ async def get_liquid_sample_no(liquid_sample_no: Optional[int]=None, action_dict
         A.action_params['liquid_sample_no'] = liquid_sample_no
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no(liquid_sample_no)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 
@@ -334,7 +331,7 @@ async def get_liquid_sample_no_json(liquid_sample_no: Optional[int]=None, action
         A.action_params['liquid_sample_no'] = liquid_sample_no
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no_json(liquid_sample_no)})
-    finished_act = await actserv.release_action(A.action_uuid)
+    finished_act = await active.finish()
     return finished_act.as_dict()
 
 

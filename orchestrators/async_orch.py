@@ -66,6 +66,7 @@ sys.path.append(os.path.join(helao_root, "core"))
 from classes import OrchHandler, Decision, Action, getuid
 from classes import Action_params
 from classes import LocalDataHandler
+# from classes import StatusHandler
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
@@ -98,6 +99,10 @@ def startup_event():
     monitor_states coroutine which runs forever, and append dummy decisions to the
     decision queue for testing.
     """
+    # global stat
+    # stat = StatusHandler()
+
+
     global orch
     orch = OrchHandler(C, servKey)
     # TODO: write class method to launch monitor_states coro in current event loop
@@ -277,8 +282,7 @@ async def run_dispatch_loop():
             await asyncio.sleep(2)
             # creating folder structure for decission
             # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
-            # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
-            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__{D.label}'
+            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
            
             # open new file and write header
             # rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}__{D.uid}.prercp'
@@ -286,14 +290,15 @@ async def run_dispatch_loop():
             rcpdatafile_dec.filepath = os.path.join(orch.local_data_dump,  D.save_path)
 
 
-            D_prercp_dict = dict(uid = f'{D.uid}',
+            D_prercp_dict = dict(technique_name = f'{orch.technique_name}',
+                                uid = f'{D.uid}',
                                 plate_id = f'{D.plate_id}',
                                 sample_no = f'{D.sample_no}',
                                 label = f'{D.label}',
                                 actualizer = f'{D.actualizer}',
                                 actualizerparams = D.actualizerparams,
                                 save_path = os.path.normpath(D.save_path),
-                                aux_files = f'{D.aux_files}'
+                                aux_files = f'{D.aux_files}',
                                 )
 
 
@@ -359,7 +364,8 @@ async def run_dispatch_loop():
                 
                 
 
-                A_prercp_start_dict = dict(decision = f'{A.decision}',
+                A_prercp_start_dict = dict(technique_name  = f'{orch.technique_name }',
+                                           decision = f'{A.decision}',
                                            server_key = f'{A.server}',
                                            action = f'{A.action}',
                                            action_pars = A.pars,
@@ -368,7 +374,7 @@ async def run_dispatch_loop():
                                            uid = f'{A.uid}',
                                            created_at = f'{A.created_at}',
                                            actiontime = f'{A.actiontime}',
-                                           save_path = os.path.normpath(A.save_path)
+                                           save_path = os.path.normpath(A.save_path),
                                            )
 
                 # decision level pre-rcp, start part
@@ -447,17 +453,21 @@ async def run_dispatch_loop():
     return True
 
 
-@app.post(f"/{servKey}/action_wait")
-async def action_wait(waittime: float = 0.0):
-    """Sleep action"""
-    print('##################################################################')
-    print(' ... wait action:', waittime)
-    print('##################################################################')
-    await asyncio.sleep(waittime)
-    print('##################################################################')
-    print(' ... wait action done')
-    print('##################################################################')
-    return {}
+# @app.post(f"/{servKey}/action_wait")
+# async def action_wait(waittime: float = 0.0):
+#     """Sleep action"""
+    
+#     uid = getuid(servKey)
+#     await stat.set_run(uid, "action_wait")
+#     print('##################################################################')
+#     print(' ... wait action:', waittime)
+#     print('##################################################################')
+#     await asyncio.sleep(waittime)
+#     print('##################################################################')
+#     print(' ... wait action done')
+#     print('##################################################################')
+#     await stat.set_idle(uid, "action_wait")
+#     return {}
 
 
 @app.post(f"/{servKey}/append_decision")

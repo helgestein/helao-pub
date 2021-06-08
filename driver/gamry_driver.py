@@ -782,6 +782,8 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
+
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -865,6 +867,7 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
 
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
@@ -948,6 +951,7 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1038,6 +1042,7 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1156,6 +1161,7 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1246,6 +1252,8 @@ class gamry:
                 except Exception:
                     # use default
                     self.action_params = self.def_action_params.as_dict()
+                    self.action_params['actiontime'] = strftime("%Y%m%d.%H%M%S")
+
                 self.IO_Irange = Irange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
@@ -1306,7 +1314,10 @@ class gamry:
 
     def set_filedir(self):
         samplenostr = '_'.join([str(sample) for sample in self.action_params['sample_no']])
-        self.FIFO_name = f'sampleno{samplenostr}__gamry__{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+#        self.FIFO_name = f'sampleno{samplenostr}__gamry__{self.IO_meas_mode.name}_{strftime("%Y%m%d_%H%M%S%z.txt")}'
+        self.FIFO_name = f'sampleno{samplenostr}__gamry__{self.IO_meas_mode.name}_{self.action_params["actiontime"]}.txt'
+
+
         # self.FIFO_dir = self.local_data_dump
         # self.local_data_dump will be skipped if second param is absolute path
         self.FIFO_dir = os.path.join(self.local_data_dump,self.action_params['save_folder'])

@@ -5,6 +5,7 @@ config = dict()
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
 local_data_dump=r'C:\INST\RUNS'
+technique_name  = 'adss'
 
 # we define all the servers here so that the overview is a bit better
 config["servers"] = dict(
@@ -18,7 +19,8 @@ config["servers"] = dict(
         fast="async_orch",
         path=".",
         params=dict(
-            local_data_dump=f'{local_data_dump}'
+            local_data_dump=f'{local_data_dump}',
+            technique_name  = technique_name 
             )
     ),
     ##########################################################################
@@ -221,6 +223,14 @@ config["servers"] = dict(
                 'continue':'PXI-6284/port2/line7',  #P2.7 #PFI15
                 'done':'PXI-6284/port2/line3',  #P2.3 #PFI11
                 },
+        )
+    ),
+    actionflow=dict(
+        host="127.0.0.1",
+        port=8008,
+        group="server",
+        fast="actionflowcontrol_server",
+        params = dict(
         )
     ),
     ##########################################################################

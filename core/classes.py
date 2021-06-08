@@ -199,7 +199,8 @@ class OrchHandler:
         self.STATES = {S: requests.post(
             f"http://{self.C[S].host}:{self.C[S].port}/{S}/get_status").json() for S in self.fastServers}
         self.orch_servKey = orch_servKey
-        self.local_data_dump=self.C[self.orch_servKey].params.get('local_data_dump','C:\\temp')
+        self.local_data_dump = self.C[self.orch_servKey].params.get('local_data_dump','C:\\temp')
+        self.technique_name = self.C[self.orch_servKey].params.get('technique_name','dummy')
         print('#############################################################')
         print(' ... orch will save all data to:', self.local_data_dump)
         print('#############################################################')

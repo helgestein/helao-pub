@@ -5,6 +5,7 @@ import sys
 from importlib import import_module
 import json
 import uvicorn
+import copy
 
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
@@ -92,10 +93,15 @@ class VT54():
     
     def first_empty(self):
         res = next((i for i, j in enumerate(self.vials) if not j), None)
-        # printing result
         print ("The values till first True value : " + str(res))
         return res
     
+
+    def first_full(self):
+        res = next((i for i, j in enumerate(self.vials) if j), None)
+        print ("The values till first False value : " + str(res))
+        return res
+
     
     def update_vials(self, vial_dict):
         for i, vial in enumerate(vial_dict):
@@ -499,6 +505,35 @@ class cPAL:
                 'vol_mL':vol_mL}
 
 
+
+    async def get_first_full_vial_position(self, vialtable = None):
+        new_tray = None
+        new_slot = None
+        new_vial = None
+        
+        if vialtable == None:
+            vialtable = self.trays
+
+        for tray_no, tray in enumerate(vialtable):
+            print(' ... tray', tray_no,tray)
+            if tray is not None:
+                for slot_no, slot in enumerate(tray.slots):
+                    if slot is not None:
+                        print(' .... slot ', slot_no,slot)
+                        print(' .... ',slot.type)
+                        position = slot.first_full()
+                        if position is not None:
+                            new_tray = tray_no + 1
+                            new_slot = slot_no + 1
+                            new_vial = position + 1
+                            break
+                        
+        
+        return {'tray': new_tray,
+                'slot': new_slot,
+                'vial': new_vial}
+
+
     async def get_new_vial_position(self, req_vol: float = 2.0):
         '''Returns an empty vial position for given max volume.\n
         For mixed vial sizes the req_vol helps to choose the proper vial for sample volume.\n
@@ -715,7 +750,11 @@ class cPAL:
             self.IO_PALparams = PALparams
 
             self.IO_remotedatafile = ''
-            self.FIFO_name = f'PAL__{strftime("%Y%m%d_%H%M%S%z.txt")}' # need to be txt at end
+            # self.FIFO_name = f'PAL__{strftime("%Y%m%d_%H%M%S%z.txt")}' # need to be txt at end
+            self.FIFO_name = f'PAL__{self.action_params["actiontime"]}.txt' # need to be txt at end
+            
+            
+            
             self.FIFO_dir = os.path.join(self.local_data_dump,self.action_params['save_folder'])
 
             print('##########################################################')
@@ -743,9 +782,6 @@ class cPAL:
             datafile = ''
             remotedatafile = ''
             await self.stat.set_idle(runparams.statuid, runparams.statname)
-
-
-
 
         return {
             "err_code": error,
@@ -785,9 +821,8 @@ class cPAL:
                 print(f' ... archiving liquid sample to tray {PALparams.dest_tray}, slot {PALparams.dest_slot}, vial {PALparams.dest_vial}')
             else:
                 error = 'no_free_vial_slot'
-        elif PALparams.method == PALmethods.dilute:           
-            oldvial = await self.get_vial_liquid_sample_no(PALparams.dest_tray, PALparams.dest_slot, PALparams.dest_vial)
-            
+        elif PALparams.method == PALmethods.dilute:
+            oldvial = await self.get_vial_liquid_sample_no(PALparams.dest_tray, PALparams.dest_slot, PALparams.dest_vial)            
             print('##########################################################')
             print(oldvial)
             print('##########################################################')
@@ -831,7 +866,7 @@ class cPAL:
             if error is None:
                 if PALparams.method == PALmethods.deepclean:
                     new_liquid_sample_no = 0
-                elif PALparams.method == PALmethods.dilute: 
+                elif PALparams.method == PALmethods.dilute:
                     new_liquid_sample_no = oldvial['liquid_sample_no']
                 else:
                
@@ -884,9 +919,8 @@ class cPAL:
                         # print('################',mysshclient_stderr)
                 if not unixpath.endswith("/"):
                     unixpath += '/'
-                print(' ... final', unixpath)
-        
-                unixlogfile = 'AUX__'+self.FIFO_name
+                print(' ... final', unixpath)        
+                unixlogfile = f'AUX{PALparams.cur_sample:08d}__'+self.FIFO_name
                 unixlogfilefull = unixpath+unixlogfile
                 sshcmd = f'touch {unixlogfilefull}'        
                 mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
@@ -1109,6 +1143,7 @@ class cPAL:
                     last_time = start_time
                     prev_timepoint = 0.0
                     diff_time = 0.0
+                    backuptrays = copy.deepcopy(self.trays)
                     
                     # for multipe vials we don't wait for first trigger
                     if self.IO_PALparams.totalvials > 1:
@@ -1125,7 +1160,28 @@ class cPAL:
                         # by having a loop here and sending a local modified
                         # PALparams to sendcommand
                         run_PALprams = self.IO_PALparams
-                        run_PALprams.cur_sample = vial+1
+                        run_PALprams.cur_sample = vial
+
+
+
+
+                        # it uses tray, slot, vial as start and then look for full vials 
+                        # starting at this position
+                        if self.IO_PALparams.method == PALmethods.dilute:
+                            newvialpos = await self.get_first_full_vial_position(vialtable = backuptrays)
+                            if newvialpos['tray'] is not None:
+                                print('######################################')
+                                print(newvialpos)
+                                print('######################################')
+                                backuptrays[newvialpos['tray']-1].slots[newvialpos['slot']-1].vials[newvialpos['vial']-1] = False
+                                run_PALprams.dest_tray = newvialpos['tray']
+                                run_PALprams.dest_slot = newvialpos['slot']
+                                run_PALprams.dest_vial = newvialpos['vial']
+                                print(f' ... diluting liquid sample in tray {run_PALprams.dest_tray}, slot {run_PALprams.dest_slot}, vial {run_PALprams.dest_vial}')
+                            else:
+                                print(' ... no full vial slots')
+                                break
+                                # error = 'no_full_vial_slots'
 
                         
                         # self.IO_PALparams.timeoffset corrects for offset between send ssh and coontinue (or any other offset)
@@ -1165,7 +1221,7 @@ class cPAL:
                             
 
                         print('#############################################')
-                        print(f' ... PAL waits {diff_time} for sending next command, requested was {self.IO_PALparams.sampleperiod[vial]}')
+                        print(f' ... PAL waits {diff_time} for sending next command')
                         print('#############################################')
 
                         if (diff_time > 0):
@@ -1320,6 +1376,19 @@ async def get_new_vial_position(req_vol: float = 2.0, action_params = ''):
         measurement_type="PAL_command",
         parameters={"command": "get_new_vial_position"},
         data={"position": await PAL.get_new_vial_position(req_vol)},
+    )
+    await stat.set_idle()
+    return retc
+
+
+
+@app.post(f"/{servKey}/get_first_full_vial_position")
+async def get_first_full_vial_position(action_params = ''):
+    await stat.set_run()
+    retc = return_class(
+        measurement_type="PAL_command",
+        parameters={"command": "get_first_full_vial_position"},
+        data={"position": await PAL.get_first_full_vial_position()},
     )
     await stat.set_idle()
     return retc

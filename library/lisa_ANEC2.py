@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(
     os.path.dirname(lib_root)), 'core'))
 
 # list valid actualizer functions 
-ACTUALIZERS = ['ADSS_CA_5', 'ADSS_CA', 'ADSS_CP', 'ADSS_CP10', 'orchtest']
+ACTUALIZERS = ['ADSS_CA_5','dilute_all', 'ADSS_CA', 'ADSS_CP', 'ADSS_CP10', 'orchtest']
 
 
 # z positions for ADSS cell
@@ -55,15 +55,15 @@ def orchtest(decisionObj: Decision, d_mm = '1.0'):
     
     
 
-    # turn on pump
-    action_list.append(Action(decision=decisionObj,
-                          server_key="nimax",
-                          action="run_task_Pumps",
-                          action_pars={"pumps": 'PeriPump',
-                                      "on": 0,
-                                      },
-                          preempt=False,
-                          block=False))    
+    # # turn on pump
+    # action_list.append(Action(decision=decisionObj,
+    #                       server_key="nimax",
+    #                       action="run_task_Pumps",
+    #                       action_pars={"pumps": 'PeriPump',
+    #                                   "on": 0,
+    #                                   },
+    #                       preempt=False,
+    #                       block=False))    
     
     # action_list.append(Action(decision=decisionObj,
     #                  server_key="PAL",
@@ -86,37 +86,71 @@ def orchtest(decisionObj: Decision, d_mm = '1.0'):
     #                  block=False))
 
 
-    # # OCV
-    action_list.append(Action(decision=decisionObj,
-                          server_key="potentiostat",
-                          action="run_OCV",
-                          action_pars={"Tval": '10',
-                                      "SampleRate": '1.0',
-                                      "TTLwait": '-1',
-                                      "TTLsend": '-1',
-                                      "IErange": 'auto',
-                                      },
-                          preempt=False,
-                          block=False))
-    
+    # # # OCV
     # action_list.append(Action(decision=decisionObj,
-    #                       server_key="orchestrator",
-    #                       action="action_wait",
-    #                       action_pars={"waittime": '10'},
-    #                       preempt=True,
+    #                       server_key="potentiostat",
+    #                       action="run_OCV",
+    #                       action_pars={"Tval": '10',
+    #                                   "SampleRate": '1.0',
+    #                                   "TTLwait": '-1',
+    #                                   "TTLsend": '-1',
+    #                                   "IErange": 'auto',
+    #                                   },
+    #                       preempt=False,
     #                       block=False))
-
-
-    # turn on pump
+    
     action_list.append(Action(decision=decisionObj,
-                          server_key="nimax",
-                          action="run_task_Pumps",
-                          action_pars={"pumps": 'PeriPump',
-                                      "on": 0,
+                          server_key="actionflow",
+                          action="action_wait",
+                          action_pars={"waittime": '10'},
+                          preempt=True,
+                          block=False))
+
+
+    # # turn on pump
+    # action_list.append(Action(decision=decisionObj,
+    #                       server_key="nimax",
+    #                       action="run_task_Pumps",
+    #                       action_pars={"pumps": 'PeriPump',
+    #                                   "on": 0,
+    #                                   },
+    #                       preempt=True,
+    #                       block=False))    
+    
+    return action_list
+
+
+
+def dilute_all(decisionObj: Decision, liquid_sample_no = '55', source= 'electrolyte_res', volume_uL = '800'):
+
+    action_list = []
+
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': f'{liquid_sample_no}', # signals to use last item in liquid sample DB
+                                      'method': 'lcfc_dilute.cam',
+                                      'tool':'LS3',
+                                      'source': f'{source}',
+                                      'volume_uL': f'{volume_uL}', # uL
+                                      'totalvials': '100', # need a huge number here else it will only fill the first 'totalvials', the loop will 'break' if no full are found
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      'wash1': 1, # dont use True or False but 0 AND 1
+                                      'wash2': 1,
+                                      'wash3': 1,
+                                      'wash4': 1,
                                       },
                           preempt=True,
+                          block=False))
+
+    action_list.append(Action(decision=decisionObj,
+                          server_key="actionflow",
+                          action="action_wait",
+                          action_pars={"waittime": '1'},
+                          preempt=True,
                           block=False))    
-    
     return action_list
 
 
@@ -217,7 +251,7 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
 
     # wait some time to pump in the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -270,7 +304,7 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
 
     # wait some time to pump out the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -411,7 +445,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
 
     # wait some time to pump in the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -534,7 +568,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
 
     # wait some time to pump out the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -692,7 +726,7 @@ def ADSS_CA_5(decisionObj: Decision,
 
     # wait some time to pump in the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -1235,7 +1269,7 @@ def ADSS_CA_5(decisionObj: Decision,
 
     # wait some time to pump out the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": '120'},
                           preempt=False,
@@ -1392,7 +1426,7 @@ def ADSS_CP10(decisionObj: Decision,
 
     # wait some time to pump in the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,
@@ -1572,7 +1606,7 @@ def ADSS_CP10(decisionObj: Decision,
 
     # wait some time to pump out the liquid
     action_list.append(Action(decision=decisionObj,
-                          server_key="orchestrator",
+                          server_key="actionflow",
                           action="action_wait",
                           action_pars={"waittime": f'{filltime}'},
                           preempt=False,

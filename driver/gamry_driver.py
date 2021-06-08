@@ -464,7 +464,7 @@ class gamry:
                 Dtaqmode = "GamryCOM.GamryDtaqOcv"
                 Dtaqtype = None
                 self.FIFO_column_headings = ['t_s', 'Ewe_V', 'Vm', 'Vsig', 'Ach_V', 'Overload_HEX', 'StopTest', 'unknown1', 'unknown2', 'unknown3']
-                self.pstat.SetCtrlMode(self.GamryCOM.GstatMode)
+                self.pstat.SetCtrlMode(self.GamryCOM.PstatMode)
             else:
                 return {"measurement_setup": f'mode_{mode}_not_supported'}
 
@@ -579,7 +579,10 @@ class gamry:
 
             
             # turn on the potentiostat output
-            self.pstat.SetCell(self.GamryCOM.CellOn)
+            if self.IO_meas_mode == Gamry_modes.OCV:
+                self.pstat.SetCell(self.GamryCOM.CellMon)
+            else:
+                self.pstat.SetCell(self.GamryCOM.CellOn)
             
             
             # Use the following code to discover events:
@@ -609,16 +612,16 @@ class gamry:
 
             ############ use action-based file writer ############
             # write header lines with one function call
-            
+            tmps_headings = "\t".join(self.FIFO_column_headings)
             self.FIFO_gamryheader = '\n'.join([
                     f'%gamry={self.FIFO_Gamryname}',
                     self.FIFO_gamryheader,
                     f'%ierangemode={self.IO_Irange.name}',
-                    f'%techniqueparamsname=',
+                    '%techniqueparamsname=',
                     f'%techniquename={self.IO_meas_mode.name}',
                     f'%epoch_ns={self.FIFO_epoch}',
-                    f'%version=0.1',
-                    f'%column_headings={"\t".join(self.FIFO_column_headings)}'
+                    '%version=0.1',
+                    f'%column_headings={tmps_headings}'
                 ])
             
             self.active = await self.base.contain_action(self.action, file_type='gamry_pstat_file', file_group='pstat_files', header= self.FIFO_gamryheader)
@@ -651,8 +654,8 @@ class gamry:
                             await self.active.enqueue_data({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
                     counter += 1
                 sink_status = self.dtaqsink.status
-            self.pstat.SetCell(self.GamryCOM.CellOff)
             self.dtaq.Run(False)
+            self.pstat.SetCell(self.GamryCOM.CellOff)
 
             # delete this at the very last step
             del connection
@@ -1128,7 +1131,7 @@ class gamry:
     
                 try:
                     self.IO_sigramp.Init(
-                        self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.GstatMode
+                        self.pstat, 0.0, Tval, SampleRate, self.GamryCOM.PstatMode
                     )
                     err_code = "0"
                 except Exception as e:

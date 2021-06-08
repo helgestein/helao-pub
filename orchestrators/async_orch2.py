@@ -53,7 +53,8 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, "config"))
 sys.path.append(os.path.join(helao_root, "driver"))
 sys.path.append(os.path.join(helao_root, "core"))
-from prototyping import Action, Decision, Orch, HelaoFastAPI
+#from prototyping import Action, Decision
+from prototyping import Orch, HelaoFastAPI
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
@@ -80,7 +81,7 @@ async def startup_event():
     orch = await Orch(app)
 
 
-@app.websocket(f"/ws_status")
+@app.websocket("/ws_status")
 async def websocket_status(websocket: WebSocket):
     """Subscribe to orchestrator status messages.
 
@@ -90,7 +91,7 @@ async def websocket_status(websocket: WebSocket):
     await orch.ws_status(websocket)
 
 
-@app.websocket(f"/ws_data")
+@app.websocket("/ws_data")
 async def websocket_data(websocket: WebSocket):
     """Subscribe to action server status dicts.
 
@@ -112,7 +113,7 @@ async def websocket_data(websocket: WebSocket):
 #         print("already running")
 #     return {}
 
-@app.post(f"/start")
+@app.post("/start")
 async def start_process():
     """Begin processing decision and action queues."""
     if orch.loop_state == "stopped":
@@ -124,7 +125,7 @@ async def start_process():
         print("already running")
     return {}
 
-@app.post(f"/estop")
+@app.post("/estop")
 async def estop_process():
     """Emergency stop decision and action queues, interrupt running actions."""
     if orch.loop_state == "started":
@@ -136,7 +137,7 @@ async def estop_process():
     return {}
 
 
-@app.post(f"/stop")
+@app.post("/stop")
 async def stop_process():
     """Stop processing decision and action queues after current actions finish."""
     if orch.loop_state == "started":
@@ -148,7 +149,7 @@ async def stop_process():
     return {}
 
 
-@app.post(f"/clear_estop")
+@app.post("/clear_estop")
 async def clear_estop():
     """Remove emergency stop condition."""
     if orch.loop_state != "E-STOP":
@@ -157,7 +158,7 @@ async def clear_estop():
         await orch.clear_estop()
 
 
-@app.post(f"/skip")
+@app.post("/skip")
 async def skip_decision():
     """Clear the present action queue while running."""
     if orch.loop_state == "started":
@@ -169,7 +170,7 @@ async def skip_decision():
     return {}
 
 
-@app.post(f"/{servKey}/clear_actions")
+@app.post("/{servKey}/clear_actions")
 async def clear_actions():
     """Clear the present action queue while stopped."""
     print("clearing action queue")
@@ -178,7 +179,7 @@ async def clear_actions():
     return {}
 
 
-@app.post(f"/{servKey}/clear_decisions")
+@app.post("/{servKey}/clear_decisions")
 async def clear_decisions():
     """Clear the present decision queue while stopped."""
     print("clearing decision queue")
@@ -263,22 +264,22 @@ async def prepend_decision(
     return {}
 
 
-@app.post(f"/list_decisions")
+@app.post("/list_decisions")
 def list_decisions():
     """Return the current list of decisions."""
     return orch.list_decisions()
 
-@app.post(f"/active_decision")
+@app.post("/active_decision")
 def active_decision():
     """Return the active decision."""
     return orch.get_decision(last=False)
 
-@app.post(f"/last_decision")
+@app.post("/last_decision")
 def last_decision():
     """Return the last decision."""
     return orch.get_decision(last=True)
 
-@app.post(f"/list_actions")
+@app.post("/list_actions")
 def list_actions():
     """Return the current list of actions."""
     return orch.list_actions()
@@ -293,7 +294,7 @@ def get_all_urls():
 @app.on_event("shutdown")
 def disconnect():
     """Run shutdown actions."""
-    emergencyStop = True
+    #emergencyStop = True
     time.sleep(0.75)
 
 

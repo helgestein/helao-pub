@@ -150,10 +150,10 @@ class gamry:
         # if not 'dev_family' in self.config_dict:
         #     self.config_dict['dev_family'] = 'Reference'
         
-        if not 'local_data_dump' in self.config_dict:
-            self.config_dict['local_data_dump'] = 'C:\\INST\\RUNS'
+        # if not 'local_data_dump' in self.config_dict:
+        #     self.config_dict['local_data_dump'] = 'C:\\INST\\RUNS'
         
-        self.local_data_dump = self.config_dict['local_data_dump']
+        # self.local_data_dump = self.config_dict['local_data_dump']
         
         self.Gamry_devid = self.config_dict['dev_id']
         # self.Gamry_family = self.config_dict['dev_family']
@@ -620,7 +620,7 @@ class gamry:
                     '%techniqueparamsname=',
                     f'%techniquename={self.IO_meas_mode.name}',
                     f'%epoch_ns={self.FIFO_epoch}',
-                    '%version=0.1',
+                    '%version=0.2',
                     f'%column_headings={tmps_headings}'
                 ])
             

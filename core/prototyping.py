@@ -268,28 +268,36 @@ class Base(object):
         self.server_cfg = fastapp.helao_cfg["servers"][self.server_name]
         self.world_cfg = fastapp.helao_cfg
         self.hostname = gethostname()
-        self.technique_name = (
-            self.server_name if technique_name is None else technique_name
-        )
+
+        if "technique_name" in self.server_cfg.keys() and technique_name is None:
+            print(
+                f" ... Found technique_name in config: {self.server_cfg['technique_name']}"
+            )
+            self.technique_name = self.server_cfg["technique_name"]
+        else:
+            self.technique_name = (
+                self.server_name if technique_name is None else technique_name
+            )
+
         self.calibration = calibration
         if "save_root" in self.server_cfg.keys():
             print(
-                f"Found root save directory in config: {self.server_cfg['save_root']}"
+                f" ... Found root save directory in config: {self.server_cfg['save_root']}"
             )
             self.save_root = self.server_cfg["save_root"]
         if save_root:
-            print(f"Root save directory was specified: {save_root}.")
+            print(f" ... Root save directory was specified: {save_root}.")
             if self.save_root:
-                print("Overriding 'save_root' specified in config.")
+                print(" ... Overriding 'save_root' specified in config.")
             self.save_root = save_root
         if not self.save_root:
             print(
-                "Warning: root save directory was not defined. Logs, RCPs, and data will not be written."
+                " ... Warning: root save directory was not defined. Logs, RCPs, and data will not be written."
             )
         else:
             if not os.path.isdir(self.save_root):
                 print(
-                    "Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written."
+                    " ... Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written."
                 )
                 self.save_root = None
         self.actives = {}
@@ -316,22 +324,22 @@ class Base(object):
             if route.path.startswith(f"/{self.server_name}"):
                 self.status[route.name] = []
                 self.endpoints.append(route.name)
-        print(f"Found {len(self.status)} endpoints for status monitoring.")
+        print(f" ... Found {len(self.status)} endpoints for status monitoring.")
 
     async def add_status(self, act_name: str, act_uuid: str):
         self.status[act_name].append(act_uuid)
-        print(f"Added {act_uuid} to {act_name} status list.")
+        print(f" ... Added {act_uuid} to {act_name} status list.")
         await self.status_q.put({act_name: self.status[act_name]})
 
     async def clear_status(self, act_name: str, act_uuid: str):
         self.status[act_name].remove(act_uuid)
-        print(f"Removed {act_uuid} from {act_name} status list.")
+        print(f" ... Removed {act_uuid} from {act_name} status list.")
         await self.status_q.put({act_name: self.status[act_name]})
 
     async def set_estop(self, act_name: str, act_uuid: str):
         self.status[act_name].remove(act_uuid)
         self.status[act_name].append(f"{act_uuid}__estop")
-        print(f"E-STOP {act_uuid} on {act_name} status.")
+        print(f" ... E-STOP {act_uuid} on {act_name} status.")
         await self.status_q.put({act_name: self.status[act_name]})
 
     def get_endpoint_urls(self, app: HelaoFastAPI):
@@ -368,13 +376,13 @@ class Base(object):
         await time_inst.write(self.ntp_last_sync)
         await time_inst.close()
         print(
-            f"retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}"
+            f" ... retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}"
         )
 
     async def attach_client(self, client_addr: str, retry_limit=5):
         "Add client for pushing status updates via HTTP POST."
         if client_addr in self.status_clients:
-            print(f"Client {client_addr} is already subscribed to status updates.")
+            print(f" ... Client {client_addr} is already subscribed to status updates.")
         else:
             self.status_clients.add(client_addr)
             print(f"Added {client_addr} to status subscriber list.")
@@ -392,11 +400,11 @@ class Base(object):
                         break
                 if success:
                     print(
-                        f"Updated {self.server_name} status to {current_status} on {client_addr}."
+                        f" ... Updated {self.server_name} status to {current_status} on {client_addr}."
                     )
                 else:
                     print(
-                        f"Failed to push status message to {client_addr} after {retry_limit} attempts."
+                        f" ... Failed to push status message to {client_addr} after {retry_limit} attempts."
                     )
 
     def detach_client(self, client_addr: str):
@@ -405,7 +413,7 @@ class Base(object):
             self.status_clients.remove(client_addr)
             print(f"Client {client_addr} will no longer receive status updates.")
         else:
-            print(f"Client {client_addr} is not subscribed.")
+            print(f" ... Client {client_addr} is not subscribed.")
 
     async def ws_status(self, websocket: WebSocket):
         "Subscribe to status queue and send message to websocket client."
@@ -415,7 +423,7 @@ class Base(object):
                 await websocket.send_text(json.dumps(status_msg))
         except WebSocketDisconnect:
             print(
-                f"Status websocket client {websocket.client[0]}:{websocket.client[1]} disconnected."
+                f" ... Status websocket client {websocket.client[0]}:{websocket.client[1]} disconnected."
             )
 
     async def ws_data(self, websocket: WebSocket):
@@ -426,7 +434,7 @@ class Base(object):
                 await websocket.send_text(json.dumps(data_msg))
         except WebSocketDisconnect:
             print(
-                f"Data websocket client {websocket.client[0]}:{websocket.client[1]} disconnected."
+                f" ... Data websocket client {websocket.client[0]}:{websocket.client[1]} disconnected."
             )
 
     async def log_status_task(self, retry_limit: int = 5):
@@ -448,15 +456,15 @@ class Base(object):
                                 break
                     if success:
                         print(
-                            f"Updated {self.server_name} status to {status_msg} on {client_addr}."
+                            f" ... Updated {self.server_name} status to {status_msg} on {client_addr}."
                         )
                     else:
                         print(
-                            f"Failed to push status message to {client_addr} after {retry_limit} attempts."
+                            f" ... Failed to push status message to {client_addr} after {retry_limit} attempts."
                         )
                 # TODO:write to log if save_root exists
         except asyncio.CancelledError:
-            print("status logger task was cancelled")
+            print(" ... status logger task was cancelled")
 
     async def detach_subscribers(self):
         await self.status_q.put(StopAsyncIteration)
@@ -477,7 +485,7 @@ class Base(object):
                     wait_time = time() - self.ntp_last_sync
                     await asyncio.sleep(wait_time)
         except asyncio.CancelledError:
-            print("ntp sync task was cancelled")
+            print(" ... ntp sync task was cancelled")
 
     async def shutdown(self):
         await self.detach_subscribers()
@@ -506,7 +514,7 @@ class Base(object):
             decision_time = self.active.decision_timestamp.split(".")[-1]
             year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
             if not self.base.save_root:
-                print("Root save directory not specified, cannot save action results.")
+                print(" ... Root save directory not specified, cannot save action results.")
                 self.active.save_data = False
                 self.active.save_rcp = False
                 self.active.output_dir = None
@@ -624,7 +632,7 @@ class Base(object):
                         if self.file_conn:
                             await self.write_live_data(lines)
             except asyncio.CancelledError:
-                print("data logger task was cancelled")
+                print(" ... data logger task was cancelled")
 
         async def write_file(
             self,
@@ -668,7 +676,7 @@ class Base(object):
             self.active.file_dict[self.active.filetech_key]["aux_files"].update(
                 {filename: file_info}
             )
-            print(f"Wrote {numlines} lines to {_output_path}")
+            print(f" ... Wrote {numlines} lines to {_output_path}")
 
         async def write_to_rcp(self, rcp_dict: dict):
             "Create new rcp if it doesn't exist, otherwise append rcp_dict to file."
@@ -705,7 +713,7 @@ class Base(object):
                 {filename: file_info}
             )
             print(
-                f"{filename} added to files_technique__{self.active.actionnum} / aux_files list."
+                f" ... {filename} added to files_technique__{self.active.actionnum} / aux_files list."
             )
 
         async def relocate_files(self):
@@ -732,7 +740,7 @@ class Base(object):
             action_dict = await self.actives[action_uuid].active.as_dict()
             return action_dict
         else:
-            print(f"Specified action uuid {action_uuid} was not found.")
+            print(f" ... Specified action uuid {action_uuid} was not found.")
             return None
 
 
@@ -788,13 +796,13 @@ class Orch(Base):
         if library_path is None:
             if "action_library_path" not in self.world_cfg.keys():
                 print(
-                    "library_path argument not specified and key is not present in config."
+                    " ... library_path argument not specified and key is not present in config."
                 )
                 return False
             library_path = self.world_cfg["action_library_path"]
         if not os.path.isdir(library_path):
             print(
-                f"library path {library_path} was specified but is not a valid directory"
+                f" ... library path {library_path} was specified but is not a valid directory"
             )
             return False
         sys.path.append(library_path)
@@ -803,7 +811,7 @@ class Orch(Base):
             tempd = import_module(actlib).__dict__
             self.action_lib.update({func: tempd[func] for func in tempd["ACTUALIZERS"]})
         print(
-            f"imported {len(self.world_cfg['action_libraries'])} actualizers specified by config."
+            f" ... imported {len(self.world_cfg['action_libraries'])} actualizers specified by config."
         )
         return True
 
@@ -832,13 +840,13 @@ class Orch(Base):
                     else:
                         fails.append(serv_key)
                         print(
-                            f"Failed to subscribe to {serv_key} at {serv_addr}:{serv_port}. Check connection."
+                            f" ... Failed to subscribe to {serv_key} at {serv_addr}:{serv_port}. Check connection."
                         )
         if len(fails) == 0:
             self.init_success = True
         else:
             print(
-                f"Orchestrator cannot process decisions unless all FastAPI servers in config file are accessible."
+                " ... Orchestrator cannot process decisions unless all FastAPI servers in config file are accessible."
             )
 
     async def update_status(self, act_serv: str, status_dict: dict):
@@ -853,11 +861,11 @@ class Orch(Base):
                 removed = set(last_dict[act_name]).difference(acts)
                 ongoing = set(acts).intersection(last_dict[act_name])
                 if removed:
-                    print(f"{act_serv}:{act_name} finished {','.join(removed)}")
+                    print(f" ... {act_serv}:{act_name} finished {','.join(removed)}")
                 if started:
-                    print(f"{act_serv}:{act_name} started {','.join(started)}")
+                    print(f" ... {act_serv}:{act_name} started {','.join(started)}")
                 if ongoing:
-                    print(f"{act_serv}:{act_name} ongoing {','.join(ongoing)}")
+                    print(f" ... {act_serv}:{act_name} ongoing {','.join(ongoing)}")
         self.global_status[act_serv].update(status_dict)
         await self.global_q.put(self.global_status)
 
@@ -867,9 +875,9 @@ class Orch(Base):
             estop_uuids = []
             for act_serv, act_named in status_dict.items():
                 for act_name, uuids in act_named.items():
-                    for uuid in uuids:
+                    for myuuid in uuids:
                         if uuid.endswith("__estop"):
-                            estop_uuids.append((act_serv, act_name, uuid))
+                            estop_uuids.append((act_serv, act_name, myuuid))
             running_states, _ = self.check_global_state()
             if estop_uuids and self.loop_state=="started":
                 await self.estop_loop()
@@ -877,7 +885,7 @@ class Orch(Base):
                 self.global_state = "idle"
             else:
                 self.global_state = "busy"
-                print(running_states)
+                print(' ... ', running_states)
 
     def check_global_state(self):
         """Return global state of action servers."""
@@ -1033,7 +1041,7 @@ class Orch(Base):
                                 global_free = len(running_states) == 0
                                 if global_free:
                                     break
-                        print(f"dispatching action {A.action} on server {A.server}")
+                        print(f" ... dispatching action {A.action} on server {A.server}")
                         result = await self.async_dispatcher(A)
                         self.active_decision.result_dict[A.action_enum] = result
             print(" ... decision queue is empty")
@@ -1048,9 +1056,9 @@ class Orch(Base):
         if self.loop_state == "stopped":
             self.loop_task = asyncio.create_task(self.dispatch_loop_task())
         elif self.loop_state == "E-STOP":
-            print("E-STOP flag was raised, clear E-STOP before starting.")
+            print(" ... E-STOP flag was raised, clear E-STOP before starting.")
         else:
-            print("loop already started.")
+            print(" ... loop already started.")
         return self.loop_state
 
     async def estop_loop(self):
@@ -1064,8 +1072,8 @@ class Orch(Base):
         estop_uuids = []
         for act_serv, act_named in self.global_status.items():
             for act_name, uuids in act_named.items():
-                for uuid in uuids:
-                    uuid_tup = (act_serv, act_name, uuid)
+                for myuuid in uuids:
+                    uuid_tup = (act_serv, act_name, myuuid)
                     if uuid.endswith("__estop"):
                         estop_uuids.append(uuid_tup)
                     else:
@@ -1074,7 +1082,7 @@ class Orch(Base):
         for serv in running_servers:
             serv_conf = self.world_cfg["servers"][serv]
             async with aiohttp.ClientSession() as session:
-                print(f"Sending force-stop request to {serv}")
+                print(f" ... Sending force-stop request to {serv}")
                 async with session.post(
                     f"http://{serv_conf['host']}:{serv_conf['port']}/force_stop"
                 ) as resp:
@@ -1098,20 +1106,20 @@ class Orch(Base):
         estop_uuids = []
         for act_serv, act_named in self.global_status.items():
             for act_name, uuids in act_named.items():
-                for uuid in uuids:
-                    uuid_tup = (act_serv, act_name, uuid)
+                for myuuid in uuids:
+                    uuid_tup = (act_serv, act_name, myuuid)
                     if uuid.endswith("__estop"):
                         estop_uuids.append(uuid_tup)
                     else:
                         running_uuids.append(uuid_tup)
         cleared_status = copy(self.global_status)
-        for serv,act,uuid in estop_uuids:
-            print(f"clearing E-STOP {act} on {serv}")
-            cleared_status[serv][act] = cleared_status[serv][act].remove(uuid)
+        for serv,act,myuuid in estop_uuids:
+            print(f" ... clearing E-STOP {act} on {serv}")
+            cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
         await self.global_q.put(cleared_status)
-        print(f"resetting dispatch loop state")
+        print(" ... resetting dispatch loop state")
         self.loop_state = "stopped"
-        print(f"{len(running_uuids)} running actions did not fully stop after E-STOP was raised")
+        print(f" ... {len(running_uuids)} running actions did not fully stop after E-STOP was raised")
 
     async def add_decision(
         self,
@@ -1141,26 +1149,26 @@ class Orch(Base):
             if self.active_decision is not None:
                 active_label = self.active_decision.decision_label
                 print(
-                    f"decision_label not specified, inheriting {active_label} from active decision"
+                    f" ... decision_label not specified, inheriting {active_label} from active decision"
                 )
                 D.decision_label = active_label
             elif self.last_decision is not None:
                 last_label = self.last_decision.decision_label
                 print(
-                    f"decision_label not specified, inheriting {last_label} from previous decision"
+                    f" ... decision_label not specified, inheriting {last_label} from previous decision"
                 )
                 D.decision_label = last_label
             else:
                 print(
-                    f"decision_label not specified, no past decisions to inherit so using default 'nolabel"
+                    " ... decision_label not specified, no past decisions to inherit so using default 'nolabel"
                 )
         await asyncio.sleep(0.001)
         if prepend:
             self.decisions.appendleft(D)
-            print(f"decision {D.decision_uuid} prepended to queue")
+            print(f" ... decision {D.decision_uuid} prepended to queue")
         else:
             self.decisions.append(D)
-            print(f"decision {D.decision_uuid} appended to queue")
+            print(f" ... decision {D.decision_uuid} appended to queue")
 
     def list_decisions(self):
         """Return the current queue of decisions."""

@@ -69,7 +69,7 @@ else:
 
 
 app = HelaoFastAPI(config, servKey, title=servKey,
-              description="Gamry instrument/action server", version=1.0)
+              description="Gamry instrument/action server", version=2.0)
 
 
 @app.on_event("startup")
@@ -77,10 +77,10 @@ def startup_event():
     global actserv
     actserv = Base(app)
     global poti
-    poti = gamry(S.params, stat)
+    poti = gamry(actserv)
 
 
-@app.websocket(f"/ws_status")
+@app.websocket("/ws_status")
 async def websocket_status(websocket: WebSocket):
     """Broadcast status messages.
 
@@ -90,7 +90,7 @@ async def websocket_status(websocket: WebSocket):
     await actserv.ws_status(websocket)
 
 
-@app.websocket(f"/ws_data")
+@app.websocket("/ws_data")
 async def websocket_data(websocket: WebSocket):
     """Broadcast status dicts.
 
@@ -131,7 +131,9 @@ async def run_LSV(
     IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict] = None, #optional parameters
 ):
-    """Linear Sweep Voltammetry (unlike CV no backward scan is done), use 4bit bitmask for triggers."""
+    """Linear Sweep Voltammetry (unlike CV no backward scan is done)\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:
@@ -159,7 +161,9 @@ async def run_CA(
     IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
-    """Chronoamperometry (current response on amplied potential), use 4bit bitmask for triggers."""
+    """Chronoamperometry (current response on amplied potential)\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:
@@ -186,7 +190,9 @@ async def run_CP(
     IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
-    """Chronopotentiometry (Potential response on controlled current), use 4bit bitmask for triggers."""
+    """Chronopotentiometry (Potential response on controlled current)\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:
@@ -217,7 +223,9 @@ async def run_CV(
     IErange: Optional['Gamry_Irange'] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
-    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions), use 4bit bitmask for triggers."""
+    """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:
@@ -237,6 +245,7 @@ async def run_CV(
     active_dict = poti.technique_CV(A)
     return active_dict
 
+
 @app.post(f"/{servKey}/run_EIS")
 async def run_EIS(
     Vval: Optional[float] = 0.0,
@@ -250,7 +259,10 @@ async def run_EIS(
     IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
-    """use 4bit bitmask for triggers."""
+    """Electrochemical Impendance Spectroscopy\n
+    NOT TESTED\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:
@@ -279,7 +291,9 @@ async def run_OCV(
     IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
-    """use 4bit bitmask for triggers."""
+    """mesasures open circuit potential\n
+    use 4bit bitmask for triggers\n
+    IErange depends on gamry model used (test actual limit before using)"""
     if action_dict:
         A = Action(action_dict)
     else:

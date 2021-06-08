@@ -93,5 +93,5 @@ dependencies:
   - nidaqmx-python
   - shortuuid
   - paramiko
-  
+  - ntplib
   

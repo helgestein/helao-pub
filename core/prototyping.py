@@ -265,28 +265,31 @@ class Base(object):
         self.server_cfg = fastapp.helao_cfg["servers"][self.server_name]
         self.world_cfg = fastapp.helao_cfg
         self.hostname = gethostname()
+        self.save_root = None
+        self.technique_name = None
+        
 
-        if "technique_name" in self.server_cfg.keys():
+        if "technique_name" in self.world_cfg.keys():
             print(
-                f" ... Found technique_name in config: {self.server_cfg['technique_name']}"
+                f" ... Found technique_name in config: {self.world_cfg['technique_name']}"
             )
-            self.technique_name = self.server_cfg["technique_name"]
+            self.technique_name = self.world_cfg["technique_name"]
         else:
             raise ValueError(
                 "Missing 'technique_name' in config, cannot create server object."
             )
 
         self.calibration = calibration
-        if "save_root" in self.server_cfg.keys():
+        if "save_root" in self.world_cfg.keys():
+            self.save_root = self.world_cfg["save_root"]
+            print(
+                f" ... Found root save directory in config: {self.world_cfg['save_root']}"
+            )
             if not os.path.isdir(self.save_root):
-                raise ValueError(
-                    " ... Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written."
-                )
-            else:
                 print(
-                    f" ... Found root save directory in config: {self.server_cfg['save_root']}"
+                    " ... Warning: root save directory does not exist. Creatig it."
                 )
-                self.save_root = self.server_cfg["save_root"]
+                os.makedirs(self.save_root)
         else:
             raise ValueError(
                 " ... Warning: root save directory was not defined. Logs, RCPs, and data will not be written."
@@ -801,7 +804,7 @@ class Orch(Base):
     """
 
     def __init__(self, fastapp: HelaoFastAPI):
-        super.__init__(fastapp)
+        super().__init__(fastapp)
         self.import_actualizers()
         # instantiate decision/experiment queue, action queue
         self.decisions = deque([])

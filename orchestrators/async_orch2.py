@@ -171,7 +171,7 @@ async def skip_decision():
     return {}
 
 
-@app.post("/{servKey}/clear_actions")
+@app.post("/clear_actions")
 async def clear_actions():
     """Clear the present action queue while stopped."""
     print("clearing action queue")
@@ -180,7 +180,7 @@ async def clear_actions():
     return {}
 
 
-@app.post("/{servKey}/clear_decisions")
+@app.post("/clear_decisions")
 async def clear_decisions():
     """Clear the present decision queue while stopped."""
     print("clearing decision queue")
@@ -189,7 +189,7 @@ async def clear_decisions():
     return {}
 
 
-@app.post(f"/{servKey}/append_decision")
+@app.post("/append_decision")
 async def append_decision(
     decision_dict: dict = None,
     orch_name: str = None,
@@ -227,7 +227,7 @@ async def append_decision(
     return {}
 
 
-@app.post(f"/{servKey}/prepend_decision")
+@app.post("/prepend_decision")
 async def prepend_decision(
     decision_dict: dict = None,
     orch_name: str = None,

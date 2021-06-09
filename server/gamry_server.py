@@ -33,7 +33,6 @@ import sys
 from importlib import import_module
 import asyncio
 
-
 import uvicorn
 from fastapi import WebSocket
 from munch import munchify
@@ -70,6 +69,7 @@ else:
 
 app = HelaoFastAPI(config, servKey, title=servKey,
               description="Gamry instrument/action server", version=2.0)
+
 
 
 @app.on_event("startup")
@@ -213,16 +213,16 @@ async def run_CP(
 
 @app.post(f"/{servKey}/run_CV")
 async def run_CV(
-    Vinit: Optional['float'] = 0.0,           # Initial value in volts or amps.
-    Vapex1: Optional['float'] = 1.0,          # Apex 1 value in volts or amps.
-    Vapex2: Optional['float'] = -1.0,         # Apex 2 value in volts or amps.
-    Vfinal: Optional['float'] = 0.0,          # Final value in volts or amps.
-    ScanRate: Optional['float'] = 1.0,        # Apex scan rate in volts/second or amps/second.
-    SampleRate: Optional['float'] = 0.01,     # Time between data acquisition steps.
-    Cycles: Optional['int'] = 1,
-    TTLwait: Optional['int'] = -1, # -1 disables, else select TTL 0-3
-    TTLsend: Optional['int'] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional['Gamry_Irange'] = 'auto',
+    Vinit: Optional[float] = 0.0,           # Initial value in volts or amps.
+    Vapex1: Optional[float] = 1.0,          # Apex 1 value in volts or amps.
+    Vapex2: Optional[float] = -1.0,         # Apex 2 value in volts or amps.
+    Vfinal: Optional[float] = 0.0,          # Final value in volts or amps.
+    ScanRate: Optional[float] = 1.0,        # Apex scan rate in volts/second or amps/second.
+    SampleRate: Optional[float] = 0.01,     # Time between data acquisition steps.
+    Cycles: Optional[int] = 1,
+    TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
+    IErange: Optional[Gamry_Irange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)\n

@@ -4,10 +4,8 @@ config = dict()
 # lists from input decision_id grouping
 #config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
-local_data_dump=r'C:\INST_dev2\RUNS'
-
 config["technique_name"] = 'adss'
-config["save_root"] = f'{local_data_dump}'
+config["save_root"] = r'C:\INST_dev2\RUNS'
 
 
 # we define all the servers here so that the overview is a bit better
@@ -20,7 +18,6 @@ config["servers"] = dict(
         port=8001,
         group="orchestrators",
         fast="async_orch2",
-        save_root = f'{local_data_dump}',
     ),
     ##########################################################################
     # Instrument Servers
@@ -87,7 +84,6 @@ config["servers"] = dict(
         group="server",
         fast="gamry_server",
         simulate=False, # choose between simulator(default) or real device
-        save_root = f'{local_data_dump}',
         params=dict(
             #path_to_gamrycom=r"C:\Program Files (x86)\Gamry Instruments\Framework\GamryCOM.exe"
             #dev_family = 'Interface', # 'Interface' or 'Reference', not need anymore, we can autodetect this

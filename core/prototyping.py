@@ -9,7 +9,8 @@ from collections import defaultdict, deque
 from socket import gethostname
 from time import ctime, time, strftime, strptime
 from datetime import datetime
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
+import types
 
 import numpy as np
 import shortuuid
@@ -143,7 +144,9 @@ class Decision(object):
             self.get_uuid()
 
     def as_dict(self):
-        return vars(self)
+        d = vars(self)
+        attr_only = {k: v for k,v in d.items() if type(v)!=types.FunctionType and not k.startswith("__")}
+        return attr_only
 
     def gen_uuid(self, orch_name: str = "orchestrator"):
         "server_name can be any string used in generating random uuid"
@@ -216,6 +219,68 @@ class Action(Decision):
         atime = datetime.now()
         atime = datetime.fromtimestamp(atime.timestamp() + offset)
         self.action_queue_time = atime.strftime("%Y%m%d.%H%M%S%f")
+        
+    def return_finished(self):
+        return return_finishedact(
+                technique_name = self.technique_name,
+                access = self.access,
+                orch_name = self.orch_name,
+                decision_timestamp = self.decision_timestamp,
+                decision_uuid = self.decision_uuid,
+                decision_enum = self.decision_enum,
+                decision_label = self.decision_label,
+                actualizer = self.actualizer,
+                actual_pars = self.actual_pars,
+                result_dict = self.result_dict,
+                action_server = self.action_server,
+                action_queue_time = self.action_queue_time,
+                action_real_time = getattr(self, 'action_real_time', default=None),
+                action_name = self.action_name,
+                action_params = self.action_params,
+                action_uuid = self.action_uuid,
+                action_enum = self.action_enum,
+                action_abbr = self.action_abbr,
+                actionnum = self.actionnum,
+                start_condition = self.start_condition,
+                save_rcp = self.save_rcp,
+                save_data = self.save_data,
+                samples_in = getattr(self, 'samples_in', default=None),
+                samples_out = getattr(self, 'samples_out', default=None),
+                output_dir = getattr(self, 'output_dir', default=None),
+                file_dict = getattr(self, 'file_dict', default=None),
+                column_names = getattr(self, 'column_names', default=None),
+                header = getattr(self, 'header', default=None),
+                data = getattr(self, 'data', default=None)
+        )
+    
+    def return_running(self):
+        return return_runningact(
+                technique_name = self.technique_name,
+                access = self.access,
+                orch_name = self.orch_name,
+                decision_timestamp = self.decision_timestamp,
+                decision_uuid = self.decision_uuid,
+                decision_enum = self.decision_enum,
+                decision_label = self.decision_label,
+                actualizer = self.actualizer,
+                actual_pars = self.actual_pars,
+                result_dict = self.result_dict,
+                action_server = self.action_server,
+                action_queue_time = self.action_queue_time,
+                action_real_time = getattr(self, 'action_real_time', default=None),
+                action_name = self.action_name,
+                action_params = self.action_params,
+                action_uuid = self.action_uuid,
+                action_enum = self.action_enum,
+                action_abbr = self.action_abbr,
+                actionnum = self.actionnum,
+                start_condition = self.start_condition,
+                save_rcp = self.save_rcp,
+                save_data = self.save_data,
+                samples_in = getattr(self, 'samples_in', default=None),
+                samples_out = getattr(self, 'samples_out', default=None),
+                output_dir = getattr(self, 'output_dir', default=None)
+        )
 
 
 class HelaoFastAPI(FastAPI):
@@ -783,7 +848,6 @@ class Base(object):
                 await async_copy(x, new_path)
 
 
-
 class Orch(Base):
     """Base class for async orchestrator with trigger support and pushed status update.
 
@@ -1332,3 +1396,69 @@ class return_actlist(BaseModel):
     """Return class for queried Action list."""
 
     actions: List[return_act]
+
+
+class return_finishedact(BaseModel):
+    """Standard return class for actions that finish with response."""
+    
+    technique_name: str
+    access: str 
+    orch_name: str
+    decision_timestamp: str
+    decision_uuid: str
+    decision_enum: str
+    decision_label: str 
+    actualizer: str 
+    actual_pars: dict 
+    result_dict: dict 
+    action_server: str 
+    action_queue_time: str
+    action_real_time: Optional[str]
+    action_name: str 
+    action_params: dict 
+    action_uuid: str
+    action_enum: str
+    action_abbr: str
+    actionnum: str
+    start_condition: Union[int, dict]
+    save_rcp: bool
+    save_data: bool
+    samples_in: Optional[dict]
+    samples_out: Optional[dict]
+    output_dir: Optional[str]
+    file_dict: Optional[dict]
+    column_names: Optional[list]
+    header: Optional[str]
+    data: Optional[list]
+    
+
+class return_runningact(BaseModel):
+    """Standard return class for actions that finish after response."""
+    
+    technique_name: str
+    access: str 
+    orch_name: str
+    decision_timestamp: str
+    decision_uuid: str
+    decision_enum: str
+    decision_label: str 
+    actualizer: str 
+    actual_pars: dict 
+    result_dict: dict 
+    action_server: str 
+    action_queue_time: str
+    action_real_time: Optional[str]
+    action_name: str 
+    action_params: dict 
+    action_uuid: str
+    action_enum: str
+    action_abbr: str
+    actionnum: str
+    start_condition: Union[int, dict]
+    save_rcp: bool
+    save_data: bool
+    samples_in: Optional[dict]
+    samples_out: Optional[dict]
+    output_dir: Optional[str]
+
+    

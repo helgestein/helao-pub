@@ -1146,7 +1146,9 @@ class Orch(Base):
         await asyncio.sleep(0.001)
         self.loop_intent = None
 
-    async def clear_estate(self):
+    async def clear_estate(self, clear_estop=True, clear_error=True):
+        if not clear_estop and not clear_error:
+            print(" ... both clear_estop and clear_error parameters are False, nothing to clear")
         running_uuids = []
         estop_uuids = []
         error_uuids = []
@@ -1161,14 +1163,19 @@ class Orch(Base):
                     else:
                         running_uuids.append(uuid_tup)
         cleared_status = copy(self.global_status)
-        for serv, act, myuuid in estop_uuids:
-            print(f" ... clearing E-STOP {act} on {serv}")
-            cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
+        if clear_estop:
+            for serv, act, myuuid in estop_uuids:
+                print(f" ... clearing E-STOP {act} on {serv}")
+                cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
+        if clear_error:
+            for serv, act, myuuid in error_uuids:
+                print(f" ... clearing error {act} on {serv}")
+                cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
         await self.global_q.put(cleared_status)
         print(" ... resetting dispatch loop state")
         self.loop_state = "stopped"
         print(
-            f" ... {len(running_uuids)} running actions did not fully stop after E-STOP was raised"
+            f" ... {len(running_uuids)} running actions did not fully stop after E-STOP/error was raised"
         )
 
     async def add_decision(

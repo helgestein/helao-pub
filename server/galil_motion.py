@@ -16,8 +16,7 @@ from importlib import import_module
 import json
 
 import uvicorn
-from fastapi import FastAPI, WebSocket
-from fastapi.openapi.utils import get_flat_params
+from fastapi import WebSocket
 from munch import munchify
 
 
@@ -389,46 +388,66 @@ async def move(
         elif mode == move_modes.homing:
             # not coordinate conversoion needed as these are not used (but length is still checked)
             pass
-        
+
 
     print(' ... final axis requested:',new_axis)
     print(' ... final d (',mode,') requested:', new_d_mm)
 
-    return_data = await motion.motor_move(new_d_mm, new_axis, speed, mode)
-    await active.enqueue_data({"return_data": return_data})
+    move_response = await motion.motor_move(new_d_mm, new_axis, speed, mode)
+    await active.enqueue_data({"move": move_response})
+    if move_response["err_code"]:
+        await active.set_error()
     finished_act = await active.finish()
     finished_dict = finished_act.as_dict()
     del finished_act
     return finished_dict
-        
+
 
 @app.post(f"/{servKey}/disconnect")
 async def disconnect(action_dict: Optional[dict]=None):
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "motor_disconnect_command"},
-        data=await motion.motor_disconnect(),
-    )
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "disconnect"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"disconnect": await motion.motor_disconnect()})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/query_positions")
 async def query_positions(action_dict: Optional[dict]=None):
-    await stat.set_run()
     # http://127.0.0.1:8001/motor/query/positions
-    retc = return_class(
-        measurement_type="motion_query",
-        parameters={"command": "query_positions"},
-        data=await motion.query_axis_position(await motion.get_all_axis())
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "query_positions"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"positions": await motion.query_axis_position(await motion.get_all_axis())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/query_position")
 async def query_position(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/query/position?axis=x
-    await stat.set_run()
+    if action_dict:
+        A = Action(action_dict)
+        axis = A.action_params['axis']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "query_position"
+        A.action_params['axis'] = axis
+    active = await actserv.contain_action(A)
     sepvals = [' ',',','\t',';','::',':']
     new_axis = None
     for sep in sepvals:
@@ -438,20 +457,25 @@ async def query_position(axis: Optional[str]=None, action_dict: Optional[dict]=N
     # single axis
     if new_axis == None:
         new_axis = axis
-
-    retc = return_class(
-        measurement_type="motion_query",
-        parameters={"command": "query_position", "parameters": {"axis": new_axis}},
-        data=await motion.query_axis_position(new_axis),
-    )
-    await stat.set_idle()
-    return retc
+    await active.enqueue_data({"position": await motion.query_axis_position(new_axis)})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/query_moving")
 async def query_moving(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
-    await stat.set_run()
+    if action_dict:
+        A = Action(action_dict)
+        axis = A.action_params['axis']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "query_moving"
+        A.action_params['axis'] = axis
+    active = await actserv.contain_action(A)
     sepvals = [' ',',','\t',';','::',':']
     new_axis = None
     for sep in sepvals:
@@ -461,20 +485,25 @@ async def query_moving(axis: Optional[str]=None, action_dict: Optional[dict]=Non
     # single axis
     if new_axis == None:
         new_axis = axis
-
-    retc = return_class(
-        measurement_type="motion_query",
-        parameters={"command": "query_axis_moving", "parameters": {"axis": new_axis}},
-        data=await motion.query_axis_moving(new_axis),
-    )
-    await stat.set_idle()
-    return retc
+    await active.enqueue_data({"moving": await motion.query_axis_moving(new_axis)})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/off")
 async def axis_off(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/off?axis=x
-    await stat.set_run()
+    if action_dict:
+        A = Action(action_dict)
+        axis = A.action_params['axis']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "off"
+        A.action_params['axis'] = axis
+    active = await actserv.contain_action(A)
     sepvals = [' ',',','\t',';','::',':']
     new_axis = None
     for sep in sepvals:
@@ -484,20 +513,25 @@ async def axis_off(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # single axis
     if new_axis == None:
         new_axis = axis
-        
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "motor_off", "parameters": {"axis": new_axis}},
-        data=await motion.motor_off(new_axis),
-    )
-    await stat.set_idle()
-    return retc
+    await active.enqueue_data({"off": await motion.motor_off(new_axis)})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/on")
 async def axis_on(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/on?axis=x
-    await stat.set_run()
+    if action_dict:
+        A = Action(action_dict)
+        axis = A.action_params['axis']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "on"
+        A.action_params['axis'] = axis
+    active = await actserv.contain_action(A)
     sepvals = [' ',',','\t',';','::',':']
     new_axis = None
     for sep in sepvals:
@@ -507,53 +541,63 @@ async def axis_on(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # single axis
     if new_axis == None:
         new_axis = axis
-
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "motor_on", "parameters": {"axis": new_axis}},
-        data=await motion.motor_on(new_axis),
-    )
-    await stat.set_idle()
-    return retc
+    await active.enqueue_data({"on": await motion.motor_on(new_axis)})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/stop")
 async def stop(action_dict: Optional[dict]=None):
-    await stat.set_run()
-    # http://127.0.0.1:8001/motor/set/stop
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "stop"},
-        data = await motion.motor_off(await motion.get_all_axis()),
-    )
-    await stat.set_idle()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "stop"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"stop": await motion.motor_off(await motion.get_all_axis())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
-@app.post(f"/{servKey}/reset")
-async def reset(action_dict: Optional[dict]=None):
-    """Resets Galil device. Only for emergency use!"""
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "reset"},
-        data = await motion.reset(),
-    )
-    await stat.set_idle()
-    return retc
+@app.post(f"/{servkey}/reset")
+async def reset(action_dict: optional[dict]=none):
+    """resets galil device. only for emergency use!"""
+    if action_dict:
+        a = action(action_dict)
+    else:
+        a = action()
+        a.action_server = servkey
+        a.action_name = "reset"
+    active = await actserv.contain_action(a)
+    await active.enqueue_data({"reset": await motion.motor_off(await motion.reset())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/estop")
 async def estop(switch: Optional[bool]=True, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/stop
-    await stat.set_run()
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "estop", "parameters": switch},
-        data = await motion.estop_axis(switch),
-    )
-    await stat.set_estop()
-    return retc
+    if action_dict:
+        A = Action(action_dict)
+        switch = A.action_params['switch']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "estop"
+        A.action_params['switch']
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"estop": await motion.estop_axis(switch)})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post('/endpoints')
@@ -573,12 +617,7 @@ def post_shutdown():
 def shutdown_event():
     global galil_motion_running
     galil_motion_running = False
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "shutdown"},
-        data=motion.shutdown_event(),
-    )
-    return retc
+    motion.shutdown_event(),
 
 
 if __name__ == "__main__":

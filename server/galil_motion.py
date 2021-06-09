@@ -16,8 +16,7 @@ from importlib import import_module
 import json
 
 import uvicorn
-from fastapi import FastAPI, WebSocket
-from fastapi.openapi.utils import get_flat_params
+from fastapi import WebSocket
 from munch import munchify
 
 
@@ -565,16 +564,16 @@ async def stop(action_dict: Optional[dict]=None):
     return finished_dict
 
 
-@app.post(f"/{servKey}/reset")
-async def reset(action_dict: Optional[dict]=None):
-    """Resets Galil device. Only for emergency use!"""
+@app.post(f"/{servkey}/reset")
+async def reset(action_dict: optional[dict]=none):
+    """resets galil device. only for emergency use!"""
     if action_dict:
-        A = Action(action_dict)
+        a = action(action_dict)
     else:
-        A = Action()
-        A.action_server = servKey
-        A.action_name = "reset"
-    active = await actserv.contain_action(A)
+        a = action()
+        a.action_server = servkey
+        a.action_name = "reset"
+    active = await actserv.contain_action(a)
     await active.enqueue_data({"reset": await motion.motor_off(await motion.reset())})
     finished_act = await active.finish()
     finished_dict = finished_act.as_dict()
@@ -618,12 +617,7 @@ def post_shutdown():
 def shutdown_event():
     global galil_motion_running
     galil_motion_running = False
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={"command": "shutdown"},
-        data=motion.shutdown_event(),
-    )
-    return retc
+    motion.shutdown_event(),
 
 
 if __name__ == "__main__":

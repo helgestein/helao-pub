@@ -279,17 +279,16 @@ class Base(object):
         self.calibration = calibration
         if "save_root" in self.server_cfg.keys():
             if not os.path.isdir(self.save_root):
-                print(
+                raise ValueError(
                     " ... Warning: root save directory was specified but does not exist. Logs, RCPs, and data will not be written."
                 )
-                self.save_root = None
             else:
                 print(
                     f" ... Found root save directory in config: {self.server_cfg['save_root']}"
                 )
                 self.save_root = self.server_cfg["save_root"]
         else:
-            print(
+            raise ValueError(
                 " ... Warning: root save directory was not defined. Logs, RCPs, and data will not be written."
             )
         self.actives = {}

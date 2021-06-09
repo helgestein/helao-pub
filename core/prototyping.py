@@ -309,10 +309,15 @@ class Base(object):
         self.ntp_server = "time.nist.gov"
         self.ntp_response = None
         self.ntp_offset = None  # add to system time for correction
+        self.ntp_last_sync = None
         if os.path.exists("ntpLastSync.txt"):
-            self.ntp_last_sync = open("ntpLastSync.txt", "r").readlines()[0].strip()
+            tmps = open("ntpLastSync.txt", "r").readlines() 
+            if len(tmps) > 0:
+                self.ntp_last_sync = tmps[0].strip()
+            else:
+                self.ntp_last_sync = None    
         elif self.ntp_last_sync is None:
-            self.get_ntp_time()
+            asyncio.gather(self.get_ntp_time())
         self.init_endpoint_status(fastapp)
         self.fast_urls = self.get_endpoint_urls(fastapp)
         self.status_logger = asyncio.create_task(self.log_status_task())
@@ -373,7 +378,7 @@ class Base(object):
         self.ntp_last_sync = response.orig_time
         self.ntp_offset = response.offset
         time_inst = await aiofiles.open("ntpLastSync.txt", "w")
-        await time_inst.write(self.ntp_last_sync)
+        await time_inst.write(str(self.ntp_last_sync))
         await time_inst.close()
         print(
             f" ... retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}"
@@ -769,7 +774,7 @@ class Orch(Base):
         technique_name: Optional[str] = None,
         save_root: Optional[str] = None,
     ):
-        super.__init__(fastapp, technique_name, save_root)
+        super().__init__(fastapp, technique_name, save_root)
         self.import_actualizers()
         # instantiate decision/experiment queue, action queue
         self.decisions = deque([])

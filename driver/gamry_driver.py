@@ -131,7 +131,7 @@ class gamry:
     def __init__(self, actServ: Base):
 
         self.base = actServ
-        self.config_dict = actServ['server_cfg']['params']
+        self.config_dict = actServ.server_cfg['params']
 
         # get Gamry object (Garmry.com)
         # a busy gamrycom can lock up the server

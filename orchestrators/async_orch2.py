@@ -78,7 +78,8 @@ async def startup_event():
     decision queue for testing.
     """
     global orch
-    orch = await Orch(app)
+    # orch = await Orch(app)
+    orch = Orch(app)
 
 
 @app.websocket("/ws_status")

@@ -94,7 +94,9 @@ async def get_elements_plateid(plateid: Optional[str]=None, action_dict: Optiona
     active = await actserv.contain_action(A)
     await active.enqueue_data({"elements": dataserv.get_elements_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_platemap_plateid")
@@ -111,7 +113,9 @@ async def get_platemap_plateid(plateid: Optional[str]=None, action_dict: Optiona
     active = await actserv.contain_action(A)
     await active.enqueue_data({"map": dataserv.get_platemap_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_platexycalibration")
@@ -128,7 +132,9 @@ async def get_platexycalibration(plateid: Optional[str]=None, action_dict: Optio
     active = await actserv.contain_action(A)
     await active.enqueue_data({"matrix": None})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/save_platexycalibration")
@@ -145,7 +151,9 @@ async def save_platexycalibration(plateid: Optional[str]=None, action_dict: Opti
     active = await actserv.contain_action(A)
     await active.enqueue_data({"matrix": None})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/check_plateid")
@@ -162,7 +170,9 @@ async def check_plateid(plateid: Optional[str]=None, action_dict: Optional[dict]
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/check_printrecord_plateid")
@@ -179,7 +189,9 @@ async def check_printrecord_plateid(plateid: Optional[str]=None, action_dict: Op
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_printrecord_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/check_annealrecord_plateid")
@@ -196,7 +208,9 @@ async def check_annealrecord_plateid(plateid: Optional[str]=None, action_dict: O
     active = await actserv.contain_action(A)
     await active.enqueue_data({"bool": dataserv.check_annealrecord_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_info_plateid")
@@ -212,7 +226,9 @@ async def get_info_plateid(plateid: Optional[str]=None, action_dict: Optional[di
     active = await actserv.contain_action(A)
     await active.enqueue_data({"info": dataserv.get_info_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_rcp_plateid")
@@ -228,7 +244,9 @@ async def get_rcp_plateid(plateid: Optional[str]=None, action_dict: Optional[dic
     active = await actserv.contain_action(A)
     await active.enqueue_data({"info": dataserv.get_rcp_plateidstr(plateid)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/create_new_liquid_sample_no")
@@ -285,7 +303,9 @@ async def create_new_liquid_sample_no(
                                                   servkey)},
     )
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_last_liquid_sample_no")
@@ -299,8 +319,9 @@ async def get_last_liquid_sample_no(action_dict: Optional[dict]=None):
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_last_liquid_sample_no()})
     finished_act = await active.finish()
-    return finished_act.as_dict()
-
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_liquid_sample_no")
@@ -316,7 +337,9 @@ async def get_liquid_sample_no(liquid_sample_no: Optional[int]=None, action_dict
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no(liquid_sample_no)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/get_liquid_sample_no_json")
@@ -332,7 +355,9 @@ async def get_liquid_sample_no_json(liquid_sample_no: Optional[int]=None, action
     active = await actserv.contain_action(A)
     await active.enqueue_data({"liquid_sample": await dataserv.get_liquid_sample_no_json(liquid_sample_no)})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post('/endpoints')

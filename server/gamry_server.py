@@ -117,7 +117,9 @@ async def get_meas_status(action_dict: Optional[dict]=None):
     active = await actserv.contain_action(A)
     await active.enqueue_data({"status": await poti.status()})
     finished_act = await active.finish()
-    return finished_act.as_dict()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/run_LSV")

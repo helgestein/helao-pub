@@ -11,22 +11,15 @@ driver code, and hard-coded to use 'galil' class (see "__main__").
 
 import os
 import sys
-import time
 from enum import Enum
 from importlib import import_module
 import json
-import asyncio
 
 import uvicorn
 from fastapi import FastAPI, WebSocket
 from fastapi.openapi.utils import get_flat_params
 from munch import munchify
-import numpy as np
-#from starlette.responses import StreamingResponse
-#import copy
-#import uuid
 
-#from websockets import WebSocket
 
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -35,26 +28,15 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(os.path.join(helao_root, 'core'))
 
 
-from classes import StatusHandler
-from classes import return_status
-from classes import return_class
 from classes import move_modes
-from classes import wsConnectionManager
-from classes import sample_class
-from classes import transformxy
+from typing import Optional
+from prototyping import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
 config = import_module(f"{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
-
-app = FastAPI(title=servKey,
-              description="Galil motion instrument/action server", version=1.0)
-
-galil_motion_running = True
-
-
 
 # check if 'simulate' settings is present
 if not 'simulate' in S:
@@ -67,6 +49,10 @@ if S.simulate:
 else:
     from galil_driver import galil
 
+app = HelaoFastAPI(config, servKey, title=servKey,
+              description="Galil motion instrument/action server", version=1.0)
+
+galil_motion_running = True
 
 class transformation_mode(str, Enum):
     motorxy = "motorxy"
@@ -74,125 +60,189 @@ class transformation_mode(str, Enum):
     instrxy = "instrxy"
 
 
+@app.on_event("startup")
+def startup_event():
+    global motion
+    motion = galil(S.params)
+    global actserv
+    actserv = Base(app)
+    
+
+@app.websocket(f"/ws_status")
+async def websocket_status(websocket: WebSocket):
+    """Broadcast status messages.
+
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_status(websocket)
+
+
+@app.websocket(f"/ws_data")
+async def websocket_data(websocket: WebSocket):
+    """Broadcast status dicts.
+
+    Args:
+      websocket: a fastapi.WebSocket object
+    """
+    await actserv.ws_data(websocket)
+    
+
+@app.post(f"/{servKey}/get_status")
+def status_wrapper():
+    return actserv.status
+
 
 @app.post(f"/{servKey}/setmotionref")
-async def setmotionref(action_params = ''):
+async def setmotionref(action_dict: Optional[dict]=None):
     """Set the reference position for xyz by 
     (1) homing xyz, 
     (2) set abs zero, 
     (3) moving by center counts back, 
     (4) set abs zero"""
-    await stat.set_run()
-    # http://127.0.0.1:8001/motor/query/positions
-    retc = return_class(
-        measurement_type="motion_setref",
-        parameters={"command": "setmotionref"},
-        data=await motion.setaxisref()
-    )
-    await stat.set_idle()
-    return retc
-
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "setmotionref"
+    active = await actserv.contain_action(A)
+    await active.enqueue_data({"setref": await motion.setaxisref()})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(platexy).tolist())}
 @app.post(f"/{servKey}/toMotorXY")
-def transform_platexy_to_motorxy(platexy, action_params = ''):
+async def transform_platexy_to_motorxy(platexy: Optional[str]=None, action_dict: Optional[dict]=None):
     """Converts plate to motor xy"""
+    if action_dict:
+        A = Action(action_dict)
+        platexy = A.action_params['platexy']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "toMotorXY"
+        A.action_params['platexy'] = platexy
+    active = await actserv.contain_action(A)
     motorxy = motion.transform.transform_platexy_to_motorxy(json.loads(platexy))
-    retc = return_class(
-        measurement_type="motion_calculation",
-        parameters={"command": "toMotorXY"},
-        data={"motorxy":json.dumps(motorxy.tolist())}
-    )
-    return retc
+    await active.enqueue_data({"motorxy": json.dumps(motorxy.tolist())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 # parse as {'M':json.dumps(np.matrix(M).tolist()),'platexy':json.dumps(np.array(motorxy).tolist())}
 @app.post(f"/{servKey}/toPlateXY")
-def transform_motorxy_to_platexy(motorxy, action_params = ''):
+async def transform_motorxy_to_platexy(motorxy: Optional[str]=None, action_dict: Optional[dict]=None):
     """Converts motor to plate xy"""
+    if action_dict:
+        A = Action(action_dict)
+        platexy = A.action_params['motorxy']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "toMotorXY"
+        A.action_params['motorxy'] = motorxy
+    active = await actserv.contain_action(A)
     platexy = motion.transform.transform_motorxy_to_platexy(json.loads(motorxy))
-    retc = return_class(
-        measurement_type="motion_calculation",
-        parameters={"command": "toPlateXY"},
-        data={"platexy":json.dumps(platexy.tolist())}
-    )
-    return retc
+    await active.enqueue_data({"platexy": json.dumps(platexy.tolist())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/MxytoMPlate")
-def MxytoMPlate(Mxy, action_params = ''):
+async def MxytoMPlate(Mxy: Optional[str]=None, action_dict: Optional[dict]=None):
     """removes Minstr from Msystem to obtain Mplate for alignment"""
+    if action_dict:
+        A = Action(action_dict)
+        Mxy = A.action_params['Mxy']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "MxytoMPlate"
+        A.action_params['Mxy'] = Mxy
+    active = await actserv.contain_action(A)
     Mplate = motion.transform.get_Mplate_Msystem(json.loads(Mxy))
-    retc = return_class(
-        measurement_type="motion_calculation",
-        parameters={"command": "MxytoMPlate"},
-        data={"Mplate":json.dumps(Mplate.tolist())}
-    )
-    return retc
-
-
-@app.on_event("startup")
-def startup_event():
-    global motion
-    motion = galil(S.params)
-    global stat
-    stat = StatusHandler()
-    
-    
-    # if "M_instr" not in S.params:
-    #     S.params["M_instr"] = [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]
-    
-    # global transform
-    # transform = transformxy(S.params["M_instr"])
-
-    
-    global wsstatus
-    wsstatus = wsConnectionManager()
-    global wsdata
-    wsdata = wsConnectionManager()
-
-
-@app.websocket(f"/{servKey}/ws_motordata")
-async def websocket_data(websocket: WebSocket):
-    await wsdata.send(websocket, motion.qdata, 'galil_motion_data')
-
-
-@app.websocket(f"/{servKey}/ws_status")
-async def websocket_status(websocket: WebSocket):
-    await wsstatus.send(websocket, stat.q, 'galil_motion_status')
+    await active.enqueue_data({"Mplate": json.dumps(Mplate.tolist())})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/download_alignmentmatrix")
-async def download_alignmentmatrix(newxyTransfermatrix, action_params = ''):
+async def download_alignmentmatrix(newxyTransfermatrix: Optional[str]=None, action_dict: Optional[dict]=None):
     """Get current in use Alignment from motion server"""
+    if action_dict:
+        A = Action(action_dict)
+        newxyTransfermatrix = A.action_params['newxyTransfermatrix']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "download_alignmentmatrix"
+        A.action_params['newxyTransfermatrix'] = newxyTransfermatrix
+    active = await actserv.contain_action(A)
     motion.transform.update_Mplatexy(json.loads(newxyTransfermatrix))
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/upload_alignmentmatrix")
-async def upload_alignmentmatrix(action_params = ''):
+async def upload_alignmentmatrix(action_dict: Optional[dict]=None):
     """Send new Alignment to motion server"""
-    return json.dumps(motion.transform.get_Mplatexy.tolist())
-
-
-@app.post(f"/{servKey}/get_status")
-def status_wrapper():
-    return stat.dict
+    if action_dict:
+        A = Action(action_dict)
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "download_alignmentmatrix"
+    active = await actserv.contain_action(A)
+    alignmentmatrix = json.dumps(motion.transform.get_Mplatexy.tolist())
+    await active.enqueue_data({"alignmentmatrix": alignmentmatrix})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
 
 
 @app.post(f"/{servKey}/move")
 async def move(
-    d_mm: str,
-    axis: str,
-    speed: int = None,
-    mode: move_modes = "relative",
-    transformation: transformation_mode = "motorxy", # default, nothing to do
-    action_params = ''
+    d_mm: Optional[str]=None,
+    axis: Optional[str]=None,
+    speed: Optional[int]=None,
+    mode: Optional[move_modes]="relative",
+    transformation: Optional[transformation_mode]="motorxy", # default, nothing to do
+    action_dict: Optional[dict]=None
 ):
     """Move a apecified {axis} by {d_mm} distance at {speed} using {mode} i.e. relative.
        Use Rx, Ry, Rz and not in combination with x,y,z only in motorxy.
        No z, Rx, Ry, Rz when platexy selected."""
-    await stat.set_run()
+    if action_dict:
+        A = Action(action_dict)
+        d_mm = A.action_params['d_mm']
+        axis = A.action_params['axis']
+        speed = A.action_params['speed']
+        mode = A.action_params['mode']
+        transformation = A.action_params['transformation']
+    else:
+        A = Action()
+        A.action_server = servKey
+        A.action_name = "move"
+        A.action_params['d_mm'] = d_mm
+        A.action_params['axis'] = axis
+        A.action_params['speed'] = speed
+        A.action_params['mode'] = mode
+        A.action_params['transformation'] = transformation
+    active = await actserv.contain_action(A)
+
     # http://127.0.0.1:8001/motor/set/move?d_mm=-20&axis=x
     stopping=False
     # TODO: no same axis in sequence
@@ -344,35 +394,16 @@ async def move(
     print(' ... final axis requested:',new_axis)
     print(' ... final d (',mode,') requested:', new_d_mm)
 
-
+    return_data = await motion.motor_move(new_d_mm, new_axis, speed, mode)
+    await active.enqueue_data({"return_data": return_data})
+    finished_act = await active.finish()
+    finished_dict = finished_act.as_dict()
+    del finished_act
+    return finished_dict
         
-    
-    retc = return_class(
-        measurement_type="motion_command",
-        parameters={
-            "command": "move_axis",
-            "parameters": {
-                "d_mm": new_d_mm,
-                "axis": new_axis,
-                "speed": speed,
-                "mode": mode,
-                "stopping": stopping,
-            },
-        },
-        data=await motion.motor_move(new_d_mm, new_axis, speed, mode),
-    )
-
-    # check for errors    
-    if all(retc.data['err_code']):
-        await stat.set_error()
-    else:
-        await stat.set_idle()
-
-    return retc
-
 
 @app.post(f"/{servKey}/disconnect")
-async def disconnect(action_params = ''):
+async def disconnect(action_dict: Optional[dict]=None):
     retc = return_class(
         measurement_type="motion_command",
         parameters={"command": "motor_disconnect_command"},
@@ -382,7 +413,7 @@ async def disconnect(action_params = ''):
 
 
 @app.post(f"/{servKey}/query_positions")
-async def query_positions(action_params = ''):
+async def query_positions(action_dict: Optional[dict]=None):
     await stat.set_run()
     # http://127.0.0.1:8001/motor/query/positions
     retc = return_class(
@@ -395,7 +426,7 @@ async def query_positions(action_params = ''):
 
 
 @app.post(f"/{servKey}/query_position")
-async def query_position(axis: str, action_params = ''):
+async def query_position(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/query/position?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -418,7 +449,7 @@ async def query_position(axis: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/query_moving")
-async def query_moving(axis: str, action_params = ''):
+async def query_moving(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/query/moving?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -441,7 +472,7 @@ async def query_moving(axis: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/off")
-async def axis_off(axis: str, action_params = ''):
+async def axis_off(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/off?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -464,7 +495,7 @@ async def axis_off(axis: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/on")
-async def axis_on(axis: str, action_params = ''):
+async def axis_on(axis: Optional[str]=None, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/on?axis=x
     await stat.set_run()
     sepvals = [' ',',','\t',';','::',':']
@@ -487,7 +518,7 @@ async def axis_on(axis: str, action_params = ''):
 
 
 @app.post(f"/{servKey}/stop")
-async def stop(action_params = ''):
+async def stop(action_dict: Optional[dict]=None):
     await stat.set_run()
     # http://127.0.0.1:8001/motor/set/stop
     retc = return_class(
@@ -500,7 +531,7 @@ async def stop(action_params = ''):
 
 
 @app.post(f"/{servKey}/reset")
-async def reset(action_params = ''):
+async def reset(action_dict: Optional[dict]=None):
     """Resets Galil device. Only for emergency use!"""
     await stat.set_run()
     retc = return_class(
@@ -513,7 +544,7 @@ async def reset(action_params = ''):
 
 
 @app.post(f"/{servKey}/estop")
-async def estop(switch: bool = True,action_params = ''):
+async def estop(switch: Optional[bool]=True, action_dict: Optional[dict]=None):
     # http://127.0.0.1:8001/motor/set/stop
     await stat.set_run()
     retc = return_class(
@@ -527,25 +558,8 @@ async def estop(switch: bool = True,action_params = ''):
 
 @app.post('/endpoints')
 def get_all_urls():
-    url_list = []
-    for route in app.routes:
-        routeD = {'path': route.path,
-                  'name': route.name
-                  }
-        if 'dependant' in dir(route):
-            flatParams = get_flat_params(route.dependant)
-            paramD = {par.name: {
-                'outer_type': str(par.outer_type_).split("'")[1],
-                'type': str(par.type_).split("'")[1],
-                'required': par.required,
-                'shape': par.shape,
-                'default': par.default
-            } for par in flatParams}
-            routeD['params'] = paramD
-        else:
-            routeD['params'] = []
-        url_list.append(routeD)
-    return url_list
+    """Return a list of all endpoints on this server."""
+    return actserv.get_endpoint_urls(app)
 
 
 @app.post("/shutdown")

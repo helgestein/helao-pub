@@ -591,7 +591,6 @@ class gamry:
 
             try:
                 # get current time and start measurement
-                self.FIFO_epoch =  time.time_ns()
                 self.dtaq.Run(True)
             except Exception as e:
                 print(' ... gamry error run')
@@ -619,12 +618,15 @@ class gamry:
                     f'%ierangemode={self.IO_Irange.name}',
                     '%techniqueparamsname=',
                     f'%techniquename={self.IO_meas_mode.name}',
-                    f'%epoch_ns={self.FIFO_epoch}',
+                    f'%epoch_ns=FIXME',
                     '%version=0.2',
                     f'%column_headings={tmps_headings}'
                 ])
             
             self.active = await self.base.contain_action(self.action, file_type='gamry_pstat_file', file_group='pstat_files', header= self.FIFO_gamryheader)
+            realtime = self.active.set_realtime()
+            # fix epoch
+            self.active.header.replace(f"%epoch_ns=FIXME", f"%epoch_ns={realtime}")
 
             while sink_status != "done" and self.IO_do_meas:
             #while sink_status == "measuring":
@@ -662,7 +664,7 @@ class gamry:
             # connection will be closed in IOloop
             #self.close_connection()
 
-            await self.active.finish()
+            _ = await self.active.finish()
             self.active = None
             self.action = None
             

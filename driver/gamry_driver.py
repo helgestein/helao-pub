@@ -30,7 +30,7 @@ class Gamry_modes(str, Enum):
     EIS = "EIS"
     OCV = "OCV"
 
-# class Gamry_Irange(str, Enum):
+# class Gamry_IErange(str, Enum):
 #     #NOTE: The ranges listed below are for 300 mA or 30 mA models. For 750 mA models, multiply the ranges by 2.5. For 600 mA models, multiply the ranges by 2.0.
 #     auto = 'auto'
 #     mode0 = '3pA'
@@ -51,7 +51,7 @@ class Gamry_modes(str, Enum):
 #     mode15 = '3kA'
 
 # for IFC1010
-class Gamry_Irange(str, Enum):
+class Gamry_IErange(str, Enum):
     #NOTE: The ranges listed below are for 300 mA or 30 mA models. For 750 mA models, multiply the ranges by 2.5. For 600 mA models, multiply the ranges by 2.0.
     auto = 'auto'
     mode0 = '1pA' # doesnt go that low
@@ -175,8 +175,8 @@ class gamry:
         self.IO_sigramp = None
         self.IO_TTLwait = -1
         self.IO_TTLsend = -1
-        # self.IO_estop = False
-        self.IO_Irange = Gamry_Irange('auto')
+        self.IO_estop = False
+        self.IO_IErange = Gamry_IErange('auto')
         
         myloop = asyncio.get_event_loop()
         #add meas IOloop
@@ -343,7 +343,7 @@ class gamry:
     async def measurement_setup(self, AcqFreq, mode: Gamry_modes = None, *argv):
         await asyncio.sleep(0.001)
         if self.pstat:
-            Irangesdict = dict(
+            IErangesdict = dict(
                 mode0 = 0,
                 mode1 = 1,
                 mode2 = 2,
@@ -405,16 +405,16 @@ class gamry:
             self.pstat.SetIERangeMode(True)
 
 
-            if self.IO_Irange == Gamry_Irange.auto:
+            if self.IO_IErange == Gamry_IErange.auto:
                 print(' ... auto I range selected')
                 self.pstat.SetIERange(0.03)
                 self.pstat.SetIERangeMode(True)
             else:
-                print(f' ... {self.IO_Irange.value} I range selected')
-                print(f' ... {Irangesdict[self.IO_Irange.name]} I range selected')
-                self.pstat.SetIERange(Irangesdict[self.IO_Irange.name])
+                print(f' ... {self.IO_IErange.value} I range selected')
+                print(f' ... {IErangesdict[self.IO_IErange.name]} I range selected')
+                self.pstat.SetIERange(IErangesdict[self.IO_IErange.name])
                 self.pstat.SetIERangeMode(False)
-            # elif self.IO_Irange == Gamry_Irange.mode0:
+            # elif self.IO_IErange == Gamry_IErange.mode0:
             #     self.pstat.SetIERangeMode(False)
             #     self.pstat.SetIERange(0)
 
@@ -615,7 +615,7 @@ class gamry:
             self.FIFO_gamryheader = '\n'.join([
                     f'%gamry={self.FIFO_Gamryname}',
                     self.FIFO_gamryheader,
-                    f'%ierangemode={self.IO_Irange.name}',
+                    f'%ierangemode={self.IO_IErange.name}',
                     '%techniqueparamsname=',
                     f'%techniquename={self.IO_meas_mode.name}',
                     f'%epoch_ns=FIXME',
@@ -715,15 +715,16 @@ class gamry:
         SampleRate = A.action_params['SampleRate']
         TTLwait = A.action_params['TTLwait']
         TTLsend = A.action_params['TTLsend']
-        Irange = A.action_params['Irange']
+        IErange = A.action_params['IErange']
 
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -758,7 +759,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_measuring:
                 err_code = "meas already in progress"
             else:
@@ -787,14 +788,15 @@ class gamry:
         SampleRate = A.action_params['SampleRate']
         TTLwait = A.action_params['TTLwait']
         TTLsend = A.action_params['TTLsend']
-        Irange = A.action_params['Irange']
+        IErange = A.action_params['IErange']
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -829,7 +831,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_measuring:
                 err_code = "meas already in progress"            
             else:
@@ -858,15 +860,16 @@ class gamry:
         SampleRate = A.action_params['SampleRate'] 
         TTLwait = A.action_params['TTLwait'] 
         TTLsend = A.action_params['TTLsend'] 
-        Irange = A.action_params['Irange'] 
+        IErange = A.action_params['IErange'] 
 
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -901,7 +904,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_do_meas:
                 err_code = "meas already in progress"            
             else:
@@ -936,15 +939,16 @@ class gamry:
         Cycles = A.action_params['Cycles'] 
         TTLwait = A.action_params['TTLwait'] 
         TTLsend = A.action_params['TTLsend'] 
-        Irange = A.action_params['Irange'] 
+        IErange = A.action_params['IErange'] 
 
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -1004,7 +1008,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_measuring:
                 err_code = "meas already in progress"
             else:
@@ -1036,15 +1040,16 @@ class gamry:
         SampleRate = A.action_params['SampleRate']
         TTLwait = A.action_params['TTLwait']
         TTLsend = A.action_params['TTLsend']
-        Irange = A.action_params['Irange']
+        IErange = A.action_params['IErange']
 
         # time expected for measurement to be completed
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -1082,7 +1087,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_measuring:
                 err_code = "meas already in progress"
             else:
@@ -1108,10 +1113,10 @@ class gamry:
     ):
         Tval = A.action_params['Tval']
         SampleRate = A.action_params['SampleRate']
-        runparams = A.action_params['runparams']
+        # runparams = A.action_params['runparams']
         TTLwait = A.action_params['TTLwait']
         TTLsend = A.action_params['TTLsend']
-        Irange = A.action_params['Irange']
+        IErange = A.action_params['IErange']
         """The OCV class manages data acquisition for a Controlled Voltage I-V curve. However, it is a special purpose curve
         designed for measuring the open circuit voltage over time. The measurement is made in the Potentiostatic mode but with the Cell
         Switch open. The operator may set a voltage stability limit. When this limit is met the Ocv terminates."""
@@ -1120,9 +1125,10 @@ class gamry:
         eta = 0.0
         # open connection, will be closed after measurement in IOloop
         retval = await self.open_connection()
+        activeDict = dict()
         if retval["potentiostat_connection"] == "connected":
             if self.pstat and not self.IO_do_meas:
-                self.IO_Irange = Irange
+                self.IO_IErange = IErange
                 self.IO_TTLwait = TTLwait
                 self.IO_TTLsend = TTLsend
                 # set parameters for IOloop meas
@@ -1157,7 +1163,7 @@ class gamry:
                     for act_name, act_uuids in data_msg.items():
                         if A.action_name == act_name and A.uuid in act_uuids:
                             activeAct = self.active
-                            activeDict = activeAct.active.as_dict()
+                            activeDict = activeAct.action.as_dict()
             elif self.IO_measuring:
                 err_code = "meas already in progress"
             else:

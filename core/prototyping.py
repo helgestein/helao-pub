@@ -140,15 +140,15 @@ class Decision(object):
         self.actual = imports.get("actual", actualizer)
         self.actual_pars = imports.get("actual_pars", actual_pars)
         self.result_dict = imports.get("result_dict", result_dict)
-        if self.decision_uuid is None and self.action.name:
-            self.get_uuid()
+        if self.decision_uuid is None and self.orch_name:
+            self.gen_uuid_decision()
 
     def as_dict(self):
         d = vars(self)
         attr_only = {k: v for k,v in d.items() if type(v)!=types.FunctionType and not k.startswith("__")}
         return attr_only
 
-    def gen_uuid(self, orch_name: str = "orchestrator"):
+    def gen_uuid_decision(self, orch_name: str = "orchestrator"):
         "server_name can be any string used in generating random uuid"
         if self.decision_uuid:
             print(f"decision_uuid: {self.decision_uuid} already exists")
@@ -206,9 +206,9 @@ class Action(Decision):
                 f'Action {" and ".join(missing_args)} not specified. Placeholder actions will only affect the action queue enumeration.'
             )
         if self.action_uuid is None and self.action_name:
-            self.get_uuid()
+            self.gen_uuid_action()
 
-    def gen_uuid(self):
+    def gen_uuid_action(self):
         if self.action_uuid:
             print(f"action_uuid: {self.action_uuid} already exists")
         else:
@@ -421,9 +421,12 @@ class Base(object):
         filename: Optional[str] = None,
         header: Optional[str] = None,
     ):
-        self.actives[action.action_uuid] = await Base.Active(
+        self.actives[action.action_uuid] = Base.Active(
             self, action, file_type, file_group, filename, header
         )
+        await self.actives[action.action_uuid].myinit()
+
+
         return self.actives[action.action_uuid]
 
     async def get_active_info(self, action_uuid: str):
@@ -567,7 +570,7 @@ class Base(object):
     class Active(object):
         """Active action holder which wraps data queing and rcp writing."""
 
-        async def __init__(
+        def __init__(
             self,
             base,  # outer instance
             action: Action,
@@ -579,6 +582,10 @@ class Base(object):
             self.base = base
             self.action = action
             self.header = header
+            self.file_type = file_type
+            self.filename = filename
+            self.file_group = file_group
+            
             self.column_names = [
                 x.strip()
                 for x in header.split("\n")[-1]
@@ -606,6 +613,9 @@ class Base(object):
                     f"{decision_time}_{self.action.decision_label}",
                     f"{self.action.action_queue_time}__{self.action.action_uuid}",
                 )
+
+
+        async def myinit(self):
             if self.action.save_rcp:
                 os.makedirs(self.action.output_dir, exist_ok=True)
                 self.action.actionnum = (
@@ -634,27 +644,28 @@ class Base(object):
                 )
                 await self.write_to_rcp(initial_dict)
                 if self.action.save_data:
-                    if header:
-                        if isinstance(header, list):
-                            header_lines = len(header)
-                            header = "\n".join(header)
+                    if self.header:
+                        if isinstance(self.header, list):
+                            header_lines = len(self.header)
+                            self.header = "\n".join(self.header)
                         else:
-                            header_lines = len(header.split("\n"))
+                            header_lines = len(self.header.split("\n"))
                         header_parts = ",".join(
-                            header.split("\n")[-1].replace(",", "\t").split()
+                            self.header.split("\n")[-1].replace(",", "\t").split()
                         )
-                        file_info = f"{file_type};{header_parts};{header_lines};{self.action.sample_no}"
+                        file_info = f"{self.file_type};{header_parts};{header_lines};{self.action.sample_no}"
                     else:
-                        file_info = f"{file_type};{self.action.sample_no}"
-                    if filename is None:  # generate filename
-                        filename = f"act{self.action.action_enum:02}_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
-                    self.action.file_dict[self.action.filetech_key][file_group].update(
-                        {filename: file_info}
+                        file_info = f"{self.file_type};{self.action.sample_no}"
+                    if self.filename is None:  # generate filename
+                        self.filename = f"act{self.action.action_enum:02}_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
+                    self.action.file_dict[self.action.filetech_key][self.file_group].update(
+                        {self.filename: file_info}
                     )
-                    await self.set_output_file(filename, header)
+                    await self.set_output_file(self.filename, self.header)
                     # self.data_streamer = asyncio.create_task(self.transfer_data())
             await self.add_status()
             self.data_logger = asyncio.create_task(self.log_data_task())
+
     
         async def add_status(self):
             self.base.status[self.action.action_name].append(self.action.action_uuid)

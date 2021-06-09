@@ -64,7 +64,7 @@ if S.simulate:
     from gamry_simulate import gamry
 else:
     from gamry_driver import gamry
-    from gamry_driver import Gamry_Irange
+    from gamry_driver import Gamry_IErange
 
 
 app = HelaoFastAPI(config, servKey, title=servKey,
@@ -130,7 +130,7 @@ async def run_LSV(
     SampleRate: Optional[float] = 0.01,   # Time between data acquisition samples in seconds.
     TTLwait: Optional[int] = -1,          # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1,           # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict] = None, #optional parameters
 ):
     """Linear Sweep Voltammetry (unlike CV no backward scan is done)\n
@@ -149,7 +149,7 @@ async def run_LSV(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_LSV(A)
+    active_dict = await poti.technique_LSV(A)
     return active_dict
 
 
@@ -160,7 +160,7 @@ async def run_CA(
     SampleRate: Optional[float] = 0.01,    # Time between data acquisition samples in seconds.
     TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """Chronoamperometry (current response on amplied potential)\n
@@ -178,7 +178,7 @@ async def run_CA(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_CA(A)
+    active_dict = await poti.technique_CA(A)
     return active_dict
 
 
@@ -189,7 +189,7 @@ async def run_CP(
     SampleRate: Optional[float] = 1.0,      # Time between data acquisition samples in seconds.
     TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """Chronopotentiometry (Potential response on controlled current)\n
@@ -207,7 +207,7 @@ async def run_CP(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_CP(A)
+    active_dict = await poti.technique_CP(A)
     return active_dict
 
 
@@ -222,7 +222,7 @@ async def run_CV(
     Cycles: Optional[int] = 1,
     TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)\n
@@ -244,7 +244,7 @@ async def run_CV(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_CV(A)
+    active_dict = await poti.technique_CV(A)
     return active_dict
 
 
@@ -258,7 +258,7 @@ async def run_EIS(
     SampleRate: Optional[float] = 0.01,
     TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """Electrochemical Impendance Spectroscopy\n
@@ -280,7 +280,7 @@ async def run_EIS(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_EIS(A)
+    active_dict = await poti.technique_EIS(A)
     return active_dict
 
 
@@ -290,7 +290,7 @@ async def run_OCV(
     SampleRate: Optional[float] = 0.01,
     TTLwait: Optional[int] = -1, # -1 disables, else select TTL 0-3
     TTLsend: Optional[int] = -1, # -1 disables, else select TTL 0-3
-    IErange: Optional[Gamry_Irange] = 'auto',
+    IErange: Optional[Gamry_IErange] = 'auto',
     action_dict: Optional[dict]=None, #optional parameters
 ):
     """mesasures open circuit potential\n
@@ -307,7 +307,7 @@ async def run_OCV(
         A.action_params['TTLwait'] = TTLwait
         A.action_params['TTLsend'] = TTLsend
         A.action_params['IErange'] = IErange
-    active_dict = poti.technique_OCV(A)
+    active_dict = await poti.technique_OCV(A)
     return active_dict
 
 

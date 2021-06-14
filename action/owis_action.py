@@ -88,6 +88,7 @@ def map_coordinates(c,key):
 #believe me, I am not happy about this, but it does not seem prudent right now to continue thinking of a workaround
 @app.get("/table/calibration")
 def calibration(x:str,m:str,y:str,d:float,minh:float=2,maxh:float=8,dh:float=.1,f:float=5,t:float=10,key:str='raman'):
+    print("beginning action")
     oceanurl = "http://{}:{}".format(config['servers']['oceanServer']['host'], config['servers']['oceanServer']['port'])
     z = config['owis']['coordinates'][config['owis']['roles'].index(key)][2]
     x0 = json.loads(x)
@@ -107,6 +108,7 @@ def calibration(x:str,m:str,y:str,d:float,minh:float=2,maxh:float=8,dh:float=.1,
         res.append(requests.get("{}/owis/move".format(url),params={"count":int((i+z+d)*10000),"motor":config['owis']['roles'].index(key)}).json())
         dat = requests.get("{}/ocean/readSpectrum".format(oceanurl),params={'t':1000000*t,'filename':"z_calibration_"+str(int(time.time()))+".json"}).json()
         inti = sum(dat['data']['intensities'])
+        print([i,inti])
         if inti > bestx[1]:
             bestx = [i+d,inti]
         res.append(dat)
@@ -117,6 +119,7 @@ def calibration(x:str,m:str,y:str,d:float,minh:float=2,maxh:float=8,dh:float=.1,
         res.append(requests.get("{}/owis/move".format(url),params={"count":int((i+z+d)*10000),"motor":config['owis']['roles'].index(key)}).json())
         dat = requests.get("{}/ocean/readSpectrum".format(oceanurl),params={'t':1000000*t,'filename':"z_calibration_"+str(int(time.time()))+".json"}).json()
         inti = sum(dat['data']['intensities'])
+        print([i,inti])
         if inti > bestm[1]:
             bestm = [i+d,inti]
         res.append(dat)
@@ -127,6 +130,7 @@ def calibration(x:str,m:str,y:str,d:float,minh:float=2,maxh:float=8,dh:float=.1,
         res.append(requests.get("{}/owis/move".format(url),params={"count":int((i+z+d)*10000),"motor":config['owis']['roles'].index(key)}).json())
         dat = requests.get("{}/ocean/readSpectrum".format(oceanurl),params={'t':1000000*t,'filename':"z_calibration_"+str(int(time.time()))+".json"}).json()
         inti = sum(dat['data']['intensities'])
+        print([i,inti])
         if inti > besty[1]:
             besty = [i+d,inti]
         res.append(dat)
@@ -153,7 +157,7 @@ def move_table(pos:str,key:str):
 @app.get("/table/moveprobe")
 def move_probe(z:float,probe:str):
     d = config['owis']['coordinates'][config['owis']['roles'].index(probe)][2]
-    res = requests.get("{}/owis/move".format(url),params={"count":int((d+z)*10000),"motor":config['owis']['roles'].index(probe)}).json()
+    res = requests.get("{}/owis/move".format(url),params={"count":int((d+z+config['owis']['coordinates'][config['owis']['roles'].index(probe)][2])*10000),"motor":config['owis']['roles'].index(probe)}).json()
     retc = return_class(parameters= {"z": z,"probe":probe,'units':{'z':'mm'}},data = res)
     return retc
 

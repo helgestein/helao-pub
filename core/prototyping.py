@@ -7,7 +7,7 @@ import shutil
 from copy import copy
 from collections import defaultdict, deque
 from socket import gethostname
-from time import ctime, time, strftime, strptime
+from time import ctime, time, strftime, strptime, time_ns
 from datetime import datetime
 from typing import Optional, List, Union, Dict
 import types
@@ -184,6 +184,21 @@ class Action(Decision):
         if inputdict:
             imports.update(inputdict)
         self.action_uuid = imports.get("action_uuid", None)
+        self.action_uuid = imports.get("decision_enum", None)
+        self.decision_label = imports.get("decision_label", None)
+        self.technique_name = imports.get("technique_name", None)
+        self.access = imports.get("access", None)
+        self.orch_name = imports.get("orch_name", None)
+        self.decision_timestamp = imports.get("decision_timestamp", None)
+        self.decision_uuid = imports.get("decision_uuid", None)
+        self.decision_enum = imports.get("decision_enum", None)
+        self.decision_label = imports.get("decision_label", None)
+        self.actualizer = imports.get("actualizer", None)
+        self.actual_pars = imports.get("actual_pars", None)
+        self.result_dict = imports.get("result_dict", None)
+        self.action_real_time = imports.get("action_real_time", None)
+        self.action_uuid = imports.get("action_uuid", None)
+        self.actionnum = imports.get("actionnum", None)
         self.action_queue_time = imports.get("action_queue_time", None)
         self.action_server = imports.get("action_server", action_server)
         self.action_name = imports.get("action_name", action_name)
@@ -199,6 +214,12 @@ class Action(Decision):
         self.file_dict.update(imports.get("file_dict", {}))
         self.file_paths = imports.get("file_paths", [])
         self.data = imports.get("data", [])
+        self.output_dir = imports.get("output_dir", None)
+        self.column_names = imports.get("column_names", None)
+        self.header = imports.get("header", None)
+        self.plate_id = imports.get("plate_id", None)
+        self.sample_no = imports.get("sample_no", None)
+        
         check_args = {"server": self.action_server, "name": self.action_name}
         missing_args = [k for k, v in check_args.items() if v is None]
         if missing_args:
@@ -208,6 +229,7 @@ class Action(Decision):
         if self.action_uuid is None and self.action_name:
             self.gen_uuid_action()
 
+
     def gen_uuid_action(self):
         if self.action_uuid:
             print(f"action_uuid: {self.action_uuid} already exists")
@@ -215,9 +237,10 @@ class Action(Decision):
             self.action_uuid = gen_uuid(self.action_name)
             print(f"action_uuid: {self.action_uuid} assigned")
 
-    def set_atime(self, offset: float = 0):
+    def set_atime(self, offset: float = 0.0):
         atime = datetime.now()
-        atime = datetime.fromtimestamp(atime.timestamp() + offset)
+        if offset is not None:
+            atime = datetime.fromtimestamp(atime.timestamp() + offset)
         self.action_queue_time = atime.strftime("%Y%m%d.%H%M%S%f")
         
     def return_finished(self):
@@ -234,7 +257,7 @@ class Action(Decision):
                 result_dict = self.result_dict,
                 action_server = self.action_server,
                 action_queue_time = self.action_queue_time,
-                action_real_time = getattr(self, 'action_real_time', default=None),
+                action_real_time = self.action_real_time,
                 action_name = self.action_name,
                 action_params = self.action_params,
                 action_uuid = self.action_uuid,
@@ -244,13 +267,13 @@ class Action(Decision):
                 start_condition = self.start_condition,
                 save_rcp = self.save_rcp,
                 save_data = self.save_data,
-                samples_in = getattr(self, 'samples_in', default=None),
-                samples_out = getattr(self, 'samples_out', default=None),
-                output_dir = getattr(self, 'output_dir', default=None),
-                file_dict = getattr(self, 'file_dict', default=None),
-                column_names = getattr(self, 'column_names', default=None),
-                header = getattr(self, 'header', default=None),
-                data = getattr(self, 'data', default=None)
+                samples_in = self.samples_in,
+                samples_out = self.samples_out,
+                output_dir = self.output_dir,
+                file_dict = self.file_dict,
+                column_names = self.column_names,
+                header = self.header,
+                data = self.data
         )
     
     def return_running(self):
@@ -267,7 +290,7 @@ class Action(Decision):
                 result_dict = self.result_dict,
                 action_server = self.action_server,
                 action_queue_time = self.action_queue_time,
-                action_real_time = getattr(self, 'action_real_time', default=None),
+                action_real_time = self.action_real_time,
                 action_name = self.action_name,
                 action_params = self.action_params,
                 action_uuid = self.action_uuid,
@@ -277,9 +300,9 @@ class Action(Decision):
                 start_condition = self.start_condition,
                 save_rcp = self.save_rcp,
                 save_data = self.save_data,
-                samples_in = getattr(self, 'samples_in', default=None),
-                samples_out = getattr(self, 'samples_out', default=None),
-                output_dir = getattr(self, 'output_dir', default=None)
+                samples_in = self.samples_in,
+                samples_out = self.samples_out,
+                output_dir = self.output_dir
         )
 
 
@@ -332,7 +355,6 @@ class Base(object):
         self.hostname = gethostname()
         self.save_root = None
         self.technique_name = None
-        
 
         if "technique_name" in self.world_cfg.keys():
             print(
@@ -425,8 +447,6 @@ class Base(object):
             self, action, file_type, file_group, filename, header
         )
         await self.actives[action.action_uuid].myinit()
-
-
         return self.actives[action.action_uuid]
 
     async def get_active_info(self, action_uuid: str):
@@ -444,6 +464,10 @@ class Base(object):
         self.ntp_response = response
         self.ntp_last_sync = response.orig_time
         self.ntp_offset = response.offset
+        print('#############################################################')
+        print(' ... ntp_offset: ', self.ntp_offset)
+        print('#############################################################')
+        
         time_inst = await aiofiles.open("ntpLastSync.txt", "w")
         await time_inst.write(str(self.ntp_last_sync))
         await time_inst.close()
@@ -581,11 +605,12 @@ class Base(object):
         ):
             self.base = base
             self.action = action
-            self.header = header
+            self.header = header #question: this or the action.header
             self.file_type = file_type
             self.filename = filename
             self.file_group = file_group
             
+                        
             self.column_names = [
                 x.strip()
                 for x in header.split("\n")[-1]
@@ -595,8 +620,18 @@ class Base(object):
             ]
             self.action.set_atime(offset=self.base.ntp_offset)
             self.file_conn = None
-            decision_date = self.action.decision_timestamp.split(".")[0]
-            decision_time = self.action.decision_timestamp.split(".")[-1]
+            if self.action.decision_timestamp is not None:
+                decision_date = self.action.decision_timestamp.split(".")[0]
+                decision_time = self.action.decision_timestamp.split(".")[-1]
+            else:
+                dtime = datetime.now()
+                # dtime = datetime.fromtimestamp(dtime.timestamp() + offset)
+                decision_timestamp = dtime.strftime("%Y%m%d.%H%M%S%f")
+                decision_date = decision_timestamp.split(".")[0]
+                decision_time = decision_timestamp.split(".")[-1]
+
+
+
             year_week = strftime("%y.%U", strptime(decision_date, "%Y%m%d"))
             if not self.base.save_root:
                 print(
@@ -606,6 +641,8 @@ class Base(object):
                 self.action.save_rcp = False
                 self.action.output_dir = None
             else:
+                self.action.save_data = True
+                self.action.save_rcp = True
                 self.action.output_dir = os.path.join(
                     self.base.save_root,
                     year_week,
@@ -616,6 +653,9 @@ class Base(object):
 
 
         async def myinit(self):
+            print('#################################################')
+            print('myinit')
+            print('#################################################')
             if self.action.save_rcp:
                 os.makedirs(self.action.output_dir, exist_ok=True)
                 self.action.actionnum = (
@@ -625,13 +665,13 @@ class Base(object):
                 initial_dict = {
                     "technique_name": self.base.technique_name,
                     "server_name": self.base.server_name,
-                    "orchestrator": self.base.orch_name,
+                    "orchestrator": self.action.orch_name,
                     "machine_name": self.base.hostname,
                     "access": self.action.access,
                     "samples_in": self.action.samples_in,
                     "output_dir": self.action.output_dir,
                 }
-                initial_dict.update(self.calibration)
+                initial_dict.update(self.base.calibration)
                 initial_dict.update(
                     {
                         "decision_uuid": self.action.decision_uuid,
@@ -639,7 +679,7 @@ class Base(object):
                         "action_uuid": self.action.action_uuid,
                         "action_enum": self.action.action_enum,
                         "action_name": self.action.action_name,
-                        f"{self.technique_name}_params__{self.action.actionnum}": self.action.action_params,
+                        f"{self.action.technique_name}_params__{self.action.actionnum}": self.action.action_params,
                     }
                 )
                 await self.write_to_rcp(initial_dict)
@@ -657,14 +697,20 @@ class Base(object):
                     else:
                         file_info = f"{self.file_type};{self.action.sample_no}"
                     if self.filename is None:  # generate filename
-                        self.filename = f"act{self.action.action_enum:02}_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
+                        if self.action.action_enum is not None:
+                            self.filename = f"act{self.action.action_enum:02}_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
+                        else:
+                            self.filename = f"actNone_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
                     self.action.file_dict[self.action.filetech_key][self.file_group].update(
                         {self.filename: file_info}
                     )
                     await self.set_output_file(self.filename, self.header)
                     # self.data_streamer = asyncio.create_task(self.transfer_data())
             await self.add_status()
-            self.data_logger = asyncio.create_task(self.log_data_task())
+            myloop = asyncio.get_event_loop()
+            myloop.create_task(self.log_data_task())
+            #self.data_logger = asyncio.create_task(self.log_data_task())
+            self.data_logger = myloop.create_task(self.log_data_task())
 
     
         async def add_status(self):
@@ -693,18 +739,24 @@ class Base(object):
             self, epoch_ns: Optional[float] = None, offset: Optional[float] = None
         ):
             if offset is None:
-                offset_ns = int(np.floor(self.base.ntp_offset * 1e9))
+                if self.base.ntp_offset is not None:
+                    offset_ns = int(np.floor(self.base.ntp_offset * 1e9))
+                else:
+                    offset_ns = 0.0
             else:
                 offset_ns = int(np.floor(offset * 1e9))
             if epoch_ns is None:
-                self.active.action_real_time = time.time_ns() + offset_ns
+                action_real_time = time_ns() + offset_ns
             else:
-                self.active.action_real_time = epoch_ns + offset_ns
-            return self.active.action_real_time
+                action_real_time = epoch_ns + offset_ns
+            return action_real_time
 
         async def set_output_file(self, filename: str, header: Optional[str] = None):
             "Set active save_path, write header if supplied."
-            output_path = os.path.join(self.active.output_dir, filename)
+            output_path = os.path.join(self.action.output_dir, filename)
+            print('#########################################################')
+            print(' ... writing data to:',output_path)
+            print('#########################################################')
             # create output file and set connection
             self.file_conn = await aiofiles.open(output_path, mode="a+")
             if header:
@@ -720,32 +772,50 @@ class Base(object):
                 await self.file_conn.write(output_str)
 
         async def enqueue_data(self, data):
-            data_msg = {self.active.action_uuid: data}
+            data_msg = {self.action.action_uuid: data}
             await self.base.data_q.put(data_msg)
 
         async def log_data_task(self):
             "Self-subscribe to data queue, write to present file path."
             try:
                 async for data_msg in self.base.data_q.subscribe():
+                    print('#################################################')
+                    print(' ... starting data logger')
+                    print('#################################################')
                     # dataMsg should be a dict {uuid: list of values or a list of list of values}
                     if (
-                        self.active.action_uuid in data_msg.keys()
+                        self.action.action_uuid in data_msg.keys()
                     ):  # only write data for this action
-                        data_val = data_msg[self.active.action_uuid]
+                        print('#################################################')
+                        print('1 ... starting data logger')
+                        print('#################################################')
+                        data_val = data_msg[self.action.action_uuid]
                         if isinstance(data_val, list):
+                            print('#################################################')
+                            print('2 ... starting data logger')
+                            print('#################################################')
                             lines = "\n".join(
                                 [",".join([str(x) for x in l]) for l in data_val]
                             )
-                            self.active.data += data_msg
+                            self.action.data += data_msg
                         elif isinstance(data_val, dict):
+                            print('#################################################')
+                            print('3 ... starting data logger')
+                            print('#################################################')
                             columns = [data_val[col] for col in self.column_names]
                             lines = "\n".join(
                                 [",".join([str(x) for x in l]) for l in zip(*columns)]
                             )
                         else:
+                            print('#################################################')
+                            print('4 ... starting data logger')
+                            print('#################################################')
                             lines = ",".join([str(x) for x in data_msg])
-                            self.active.data.append(data_msg)
+                            self.action.data.append(data_msg)
                         if self.file_conn:
+                            print('#################################################')
+                            print('5 ... starting data logger')
+                            print('#################################################')
                             await self.write_live_data(lines)
             except asyncio.CancelledError:
                 print(" ... data logger task was cancelled")
@@ -759,7 +829,10 @@ class Base(object):
             sample_str: Optional[str] = None,
         ):
             "Write complete file, not used with queue streaming."
-            _output_path = os.path.join(self.active.output_dir, filename)
+            _output_path = os.path.join(self.action.output_dir, filename)
+            print('#########################################################')
+            print(' ... writing non stream data to:',_output_path)
+            print('#########################################################')
             # create output file and set connection
             file_instance = await aiofiles.open(_output_path, mode="w")
             numlines = len(output_str.split("\n"))
@@ -789,7 +862,7 @@ class Base(object):
                 )
             await file_instance.write(output_str)
             await file_instance.close()
-            self.active.file_dict[self.active.filetech_key]["aux_files"].update(
+            self.action.file_dict[self.action.filetech_key]["aux_files"].update(
                 {filename: file_info}
             )
             print(f" ... Wrote {numlines} lines to {_output_path}")
@@ -797,8 +870,11 @@ class Base(object):
         async def write_to_rcp(self, rcp_dict: dict):
             "Create new rcp if it doesn't exist, otherwise append rcp_dict to file."
             output_path = os.path.join(
-                self.active.output_dir, f"{self.active.action_queue_time}.rcp"
+                self.action.output_dir, f"{self.action.action_queue_time}.rcp"
             )
+            print('#########################################################')
+            print(' ... writing rcp to:',output_path)
+            print('#########################################################')
             output_str = dict_to_rcp(rcp_dict)
             file_instance = await aiofiles.open(output_path, mode="a+")
             await file_instance.write(output_str)
@@ -826,6 +902,7 @@ class Base(object):
 
         async def finish(self):
             "Close file_conn, finish rcp, copy aux, set endpoint status, and move active dict to past."
+            print(' ... finishing data logging.')
             if self.file_conn:
                 await self.file_conn.close()
                 self.file_conn = None

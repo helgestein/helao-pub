@@ -85,8 +85,8 @@ def gamry_error_decoder(e):
     return e
 
 
-# definition of error handling things from gamry
 class GamryCOMError(Exception):
+    """definition of error handling things from gamry"""
     pass
 
 
@@ -117,10 +117,8 @@ class GamryDtaqEvents(object):
         self.status = "done"
 
 
-##########################################################################
-# Dummy class for when the Gamry is not used
-##########################################################################
 class dummy_sink:
+    """Dummy class for when the Gamry is not used"""
     def __init__(self):
         self.status = "idle"
 
@@ -189,7 +187,7 @@ class gamry:
         #self.FIFO_gamryheader = '' # measuement specific, will be reset each measurement
         #self.FIFO_name = ''
         #self.FIFO_dir = ''
-        #self.FIFO_column_headings = []
+        self.FIFO_column_headings = []
         self.FIFO_Gamryname = ''
         # holds all sample information
         #self.FIFO_sample = sample_class()
@@ -199,11 +197,10 @@ class gamry:
         # self.def_action_params = Action_params()
         # self.action_params = self.def_action_params.as_dict()
 
-    ##########################################################################
-    # This is main Gamry measurement loop which always needs to run
-    # else if measurement is done in FastAPI calls we will get timeouts
-    ##########################################################################
+
     async def IOloop(self):
+        """This is main Gamry measurement loop which always needs to run
+        else if measurement is done in FastAPI calls we will get timeouts"""
         try:
             while True:
                 self.IO_do_meas = await self.IO_signalq.get()
@@ -241,10 +238,8 @@ class gamry:
             print("IOloop task was cancelled")
 
 
-    ##########################################################################
-    # script can be blocked or crash if GamryCom is still open and busy
-    ##########################################################################
     def kill_GamryCom(self):
+        """script can be blocked or crash if GamryCom is still open and busy"""
         pyPids = {p.pid: p for p in psutil.process_iter(
             ['name', 'connections']) if p.info['name'].startswith('GamryCom')}
         
@@ -264,15 +259,13 @@ class gamry:
                 return False
 
 
-    ##########################################################################
-    # connect to a Gamry
-    ##########################################################################
     async def init_Gamry(self, devid):
+        """connect to a Gamry"""
         try:
             self.devices = client.CreateObject('GamryCOM.GamryDeviceList')
             print(' ... GamryDeviceList:', self.devices.EnumSections())
-
-            if len(self.devices.EnumSections()) >= devid:
+            print(' ... ',len(self.devices.EnumSections()))
+            if len(self.devices.EnumSections()) >= devid+1:
                 self.FIFO_Gamryname = self.devices.EnumSections()[devid]
                                 
                 if self.FIFO_Gamryname.find('IFC') == 0:
@@ -299,10 +292,9 @@ class gamry:
             # TODO: find a way to avoid it
             print(' ... fatal error initializing Gamry:', e)
 
-    ##########################################################################
-    # Open connection to Gamry
-    ##########################################################################
+
     async def open_connection(self):
+        """Open connection to Gamry"""
         # this just tries to open a connection with try/catch
         await asyncio.sleep(0.001)
         if not self.pstat:
@@ -319,10 +311,8 @@ class gamry:
             return {"potentiostat_connection": "error"}
 
 
-    ##########################################################################
-    # Close connection to Gamry
-    ##########################################################################
     async def close_connection(self):
+        """Close connection to Gamry"""
         # this just tries to close a connection with try/catch
         await asyncio.sleep(0.001)
         try:
@@ -336,11 +326,9 @@ class gamry:
             return {"potentiostat_connection": "error"}
 
 
-    ##########################################################################
-    # setting up the measurement parameters
-    # need to initialize and open connection to gamry first
-    ##########################################################################
     async def measurement_setup(self, AcqFreq, mode: Gamry_modes = None, *argv):
+        """setting up the measurement parameters
+        need to initialize and open connection to gamry first"""
         await asyncio.sleep(0.001)
         if self.pstat:
             IErangesdict = dict(
@@ -493,11 +481,9 @@ class gamry:
             return {"measurement_setup": "not initialized"}
 
 
-    ##########################################################################
-    # performing a measurement with the Gamry
-    # this is the main function for the instrument
-    ##########################################################################
     async def measure(self): 
+        """performing a measurement with the Gamry
+        this is the main function for the instrument"""
         await asyncio.sleep(0.001)
         if self.pstat:
             # TODO: 
@@ -624,7 +610,7 @@ class gamry:
                 ])
             
             self.active = await self.base.contain_action(self.action, file_type='gamry_pstat_file', file_group='pstat_files', header= self.FIFO_gamryheader)
-            realtime = self.active.set_realtime()
+            realtime = await self.active.set_realtime()
             # fix epoch
             self.active.header.replace(f"%epoch_ns=FIXME", f"%epoch_ns={realtime}")
 
@@ -650,10 +636,15 @@ class gamry:
                         test.append(self.dtaqsink.dtaq.Zmod())
                         tmp_datapoints = tuple(test)
                     # send data with asigned headings to wsqueue
-                    # print(' ... gamry putting new data on dataq')
                     if self.active:
-                        if self.active.save_data:
+                        if self.active.action.save_data:
+                            # print(' ... gamry pushing data:', {k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
                             await self.active.enqueue_data({k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
+                        # else:
+                            # print(' ... gamry not pushing data:', {k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
+                    # else:
+                        # print(' ... gamry not pushing data:', {k: [v] for k, v in zip(self.FIFO_column_headings, tmp_datapoints)})
+                        
                     counter += 1
                 sink_status = self.dtaqsink.status
             self.dtaq.Run(False)
@@ -663,7 +654,8 @@ class gamry:
             del connection
             # connection will be closed in IOloop
             #self.close_connection()
-
+            
+            print(' ... gamry finishes active action')
             _ = await self.active.finish()
             self.active = None
             self.action = None
@@ -673,27 +665,22 @@ class gamry:
             return {"measure": "not initialized"}
 
 
-    ##########################################################################
-    #  return status of data structure
-    ##########################################################################
     async def status(self):
+        """return status of data structure"""
         await asyncio.sleep(0.001)
         return self.dtaqsink.status
 
-    ##########################################################################
-    #  stops measurement, writes all data and returns from meas loop
-    ##########################################################################
+
     async def stop(self):
+        """stops measurement, writes all data and returns from meas loop"""
         # turn off cell and run before stopping meas loop
         if self.IO_measuring:
             # file and Gamry connection will be closed with the meas loop
             await self.IO_signalq.put(False)
 
 
-    ##########################################################################
-    #  same as stop, set or clear estop flag with switch parameter
-    ##########################################################################
     async def estop(self, switch):
+        """same as stop, set or clear estop flag with switch parameter"""
         # should be the same as stop()
         self.IO_estop = switch
         if self.IO_measuring:
@@ -703,12 +690,10 @@ class gamry:
                 # can only set action server estop on a running uuid
 
 
-    ##########################################################################
-    #  LSV definition
-    ##########################################################################
     async def technique_LSV(self, 
         A: Action,
     ):
+        """LSV definition"""
         Vinit = A.action_params['Vinit']
         Vfinal = A.action_params['Vfinal']
         ScanRate = A.action_params['ScanRate']
@@ -777,12 +762,10 @@ class gamry:
         return activeDict
 
 
-    ##########################################################################
-    #  CA definition
-    ##########################################################################
     async def technique_CA(self, 
         A: Action,
     ):
+        """CA definition"""
         Vval = A.action_params['Vval']
         Tval = A.action_params['Tval']
         SampleRate = A.action_params['SampleRate']
@@ -849,12 +832,10 @@ class gamry:
         return activeDict
 
 
-    ##########################################################################
-    #  CP definition
-    ##########################################################################
     async def technique_CP(self, 
         A: Action,
     ):
+        """CP definition"""
         Ival = A.action_params['Ival'] 
         Tval = A.action_params['Tval'] 
         SampleRate = A.action_params['SampleRate'] 
@@ -1026,12 +1007,10 @@ class gamry:
         return activeDict
 
 
-    ##########################################################################
-    #  EIS definition
-    ##########################################################################
     async def technique_EIS(self, 
         A: Action
     ):
+        """EIS definition"""
         Vval = A.action_params['Vval']
         Tval = A.action_params['Tval']
         Freq = A.action_params['Freq']
@@ -1105,12 +1084,10 @@ class gamry:
         return activeDict
 
 
-    ##########################################################################
-    #  OCV definition
-    ##########################################################################
     async def technique_OCV(self, 
         A: Action
     ):
+        """OCV definition"""
         Tval = A.action_params['Tval']
         SampleRate = A.action_params['SampleRate']
         # runparams = A.action_params['runparams']

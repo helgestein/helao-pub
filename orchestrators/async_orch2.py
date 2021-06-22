@@ -54,7 +54,7 @@ sys.path.append(os.path.join(helao_root, "config"))
 sys.path.append(os.path.join(helao_root, "driver"))
 sys.path.append(os.path.join(helao_root, "core"))
 #from prototyping import Action, Decision
-from prototyping import Orch, HelaoFastAPI
+from ..core.servers import Orch, HelaoFastAPI
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys

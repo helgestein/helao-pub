@@ -1,21 +1,18 @@
 # data management server for HTE
-
-import os
 import sys
-
+from typing import Optional
 from importlib import import_module
-import uvicorn
 
+import uvicorn
 from fastapi import WebSocket
 from munch import munchify
 
-helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(helao_root, 'config'))
-sys.path.append(os.path.join(helao_root, 'driver'))
-sys.path.append(os.path.join(helao_root, 'core'))
+# helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# sys.path.append(os.path.join(helao_root, 'config'))
+# sys.path.append(os.path.join(helao_root, 'driver'))
+# sys.path.append(os.path.join(helao_root, 'core'))
 
-from typing import Optional
-from prototyping import Action, HelaoFastAPI, Base
+from ..core.servers import Action, HelaoFastAPI, Base
 
 
 confPrefix = sys.argv[1]
@@ -33,7 +30,7 @@ if not 'mode' in S:
 
 if S.mode == "legacy":
     print("Legacy data managament mode")
-    from HTEdata_legacy import HTEdata
+    from ..driver.HTEdata_legacy import HTEdata
 elif S.mode == "modelyst":
     print("Modelyst data managament mode")
 #    from HTEdata_modelyst import HTEdata

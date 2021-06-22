@@ -21,29 +21,26 @@ low level device driver, so ../ws_data will only broadcast the device class's  p
 additional data streams may be added as separate websockets or reworked into present
 ../ws_data columar format with an additional tag column to differentiate streams
 
-
-
 Manual Bugfixes:
     https://github.com/chrullrich/comtypes/commit/6d3934b37a5d614a6be050cbc8f09d59bceefcca
 
 """
 
-import os
 import sys
-from importlib import import_module
 import asyncio
+from typing import Optional
+from importlib import import_module
 
 import uvicorn
 from fastapi import WebSocket
 from munch import munchify
 
-helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(helao_root, 'config'))
-sys.path.append(os.path.join(helao_root, 'driver'))
-sys.path.append(os.path.join(helao_root, 'core'))
+# helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# sys.path.append(os.path.join(helao_root, 'config'))
+# sys.path.append(os.path.join(helao_root, 'driver'))
+# sys.path.append(os.path.join(helao_root, 'core'))
 
-from typing import Optional
-from prototyping import Action, HelaoFastAPI, Base
+from ..core.servers import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]

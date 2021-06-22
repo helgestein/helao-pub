@@ -610,6 +610,7 @@ class gamry:
                 ])
             
             self.active = await self.base.contain_action(self.action, file_type='gamry_pstat_file', file_group='pstat_files', header= self.FIFO_gamryheader)
+            print(f"Active action uuid is {self.active.action.action_uuid}")
             realtime = await self.active.set_realtime()
             # fix epoch
             self.active.header.replace(f"%epoch_ns=FIXME", f"%epoch_ns={realtime}")

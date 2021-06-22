@@ -11,25 +11,22 @@ driver code, and hard-coded to use 'galil' class (see "__main__").
 
 import os
 import sys
+import json
 from enum import Enum
 from importlib import import_module
-import json
+from typing import Optional
 
 import uvicorn
 from fastapi import WebSocket
 from munch import munchify
 
+# helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+# sys.path.append(os.path.join(helao_root, 'config'))
+# sys.path.append(os.path.join(helao_root, 'driver'))
+# sys.path.append(os.path.join(helao_root, 'core'))
 
-
-helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(helao_root, 'config'))
-sys.path.append(os.path.join(helao_root, 'driver'))
-sys.path.append(os.path.join(helao_root, 'core'))
-
-
-from classes import move_modes
-from typing import Optional
-from prototyping import Action, HelaoFastAPI, Base
+from ..core.classes import move_modes
+from ..core.servers import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]

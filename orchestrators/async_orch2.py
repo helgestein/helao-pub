@@ -106,7 +106,7 @@ async def websocket_data(websocket: WebSocket):
 # async def start_process():
 #     """Begin processing decision and action queues."""
 #     if orch.loop_state == "stopped":
-#         if orch.actions or orch.decisions:  # resume actions from a paused run
+#         if orch.action_dq or orch.decision_dq:  # resume actions from a paused run
 #             await orch.run_dispatch_loop()
 #         else:
 #             print("decision list is empty")
@@ -118,7 +118,7 @@ async def websocket_data(websocket: WebSocket):
 async def start_process():
     """Begin processing decision and action queues."""
     if orch.loop_state == "stopped":
-        if orch.actions or orch.decisions:  # resume actions from a paused run
+        if orch.action_dq or orch.decision_dq:  # resume actions from a paused run
             await orch.start_loop()
         else:
             print("decision list is empty")
@@ -167,7 +167,7 @@ async def skip_decision():
     else:
         print("orchestrator not running, clearing action queue")
         await asyncio.sleep(0.001)
-        orch.actions.clear()
+        orch.action_dq.clear()
     return {}
 
 
@@ -176,7 +176,7 @@ async def clear_actions():
     """Clear the present action queue while stopped."""
     print("clearing action queue")
     await asyncio.sleep(0.001)
-    orch.actions.clear()
+    orch.action_dq.clear()
     return {}
 
 
@@ -185,7 +185,7 @@ async def clear_decisions():
     """Clear the present decision queue while stopped."""
     print("clearing decision queue")
     await asyncio.sleep(0.001)
-    orch.decisions.clear()
+    orch.decision_dq.clear()
     return {}
 
 
@@ -261,6 +261,45 @@ async def prepend_decision(
         result_dict,
         access,
         prepend=True,
+    )
+    return {}
+
+@app.post("/insert_decision")
+async def insert_decision(
+    idx: int,
+    decision_dict: dict = None,
+    orch_name: str = None,
+    decision_label: str = None,
+    actualizer: str = None,
+    actual_pars: dict = {},
+    result_dict: dict = {},
+    access: str = "hte",
+):
+    """Insert a decision object at decision queue index.
+
+    Args:
+      idx: index in decision queue for insertion, as int
+      decision_dict: Decision parameters (optional), as dict.
+      orch_name: Orchestrator server key (optional), as str.
+      plate_id: The sample's plate id (no checksum), as int.
+      sample_no: A sample number, as int.
+      actualizer: The name of the actualizer for building the action list, as str.
+      actual_pars: Actualizer parameters, as dict.
+      result_dict: Action responses dict keyed by action_enum.
+      access: Access control group, as str.
+
+    Returns:
+      Nothing.
+    """
+    await orch.add_decision(
+        decision_dict,
+        orch_name,
+        decision_label,
+        actualizer,
+        actual_pars,
+        result_dict,
+        access,
+        at_index=idx,
     )
     return {}
 

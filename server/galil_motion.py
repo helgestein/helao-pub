@@ -41,9 +41,9 @@ if not 'simulate' in S:
     S['simulate']= False
 if S.simulate:
     print('Galil motion simulator loaded.')
-    from galil_simulate import galil    
+    from ..driver.galil_simulate import galil    
 else:
-    from galil_driver import galil
+    from ..driver.galil_driver import galil
 
 app = HelaoFastAPI(config, servKey, title=servKey,
               description="Galil motion instrument/action server", version=1.0)
@@ -561,14 +561,14 @@ async def stop(action_dict: Optional[dict]=None):
     return finished_dict
 
 
-@app.post(f"/{servkey}/reset")
-async def reset(action_dict: optional[dict]=none):
+@app.post(f"/{servKey}/reset")
+async def reset(action_dict: Optional[dict]=None):
     """resets galil device. only for emergency use!"""
     if action_dict:
-        a = action(action_dict)
+        a = Action(action_dict)
     else:
-        a = action()
-        a.action_server = servkey
+        a = Action()
+        a.action_server = servKey
         a.action_name = "reset"
     active = await actserv.contain_action(a)
     await active.enqueue_data({"reset": await motion.motor_off(await motion.reset())})

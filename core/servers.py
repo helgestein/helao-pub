@@ -12,7 +12,8 @@ from copy import copy
 from collections import defaultdict, deque
 from socket import gethostname
 from time import ctime, time, strftime, strptime, time_ns
-from typing import Optional
+from typing import Optional, Union
+from math import floor
 
 import numpy as np
 import ntplib
@@ -661,7 +662,7 @@ class Orch(Base):
     Websockets are not used for critical communications. Orch will attach to all action
     servers listed in a config and maintain a dict of {serverName: status}, which is
     updated by POST requests from action servers. Orch will simultaneously dispatch as
-    many actions as possible in action queue until it encounters any of the following
+    many action_dq as possible in action queue until it encounters any of the following
     conditions:
       (1) last executed action is final action in queue
       (2) last executed action is blocking
@@ -678,21 +679,31 @@ class Orch(Base):
         super().__init__(fastapp)
         self.import_actualizers()
         # instantiate decision/experiment queue, action queue
-        self.decisions = deque([])
-        self.actions = deque([])
+        self.decision_dq = deque([])
+        self.action_dq = deque([])
+        self.dispatched_actions = {}
         self.active_decision = None
         self.last_decision = None
-        self.global_status = defaultdict(lambda: defaultdict(list))
-        self.global_q = MultisubscriberQueue()  # passes global_status dicts
+
+        # compilation of action server status dicts
+        self.global_state_dict = defaultdict(lambda: defaultdict(list))
+        self.global_q = MultisubscriberQueue()  # passes global_state_dict dicts
 
         # global state of all instruments as string [idle|busy] independent of dispatch loop
-        self.global_state = None
+        self.global_state_str = None
+
+        # uuid lists for estop and error tracking used by update_global_state_task
+        self.error_uuids = []
+        self.estop_uuids = []
+        self.running_uuids = []
 
         self.init_success = False  # need to subscribe to all fastapi servers in config
         self.loop_state = "stopped"  # present dispatch loop state [started|stopped]
 
         # separate from global state, signals dispatch loop control [skip|stop|None]
         self.loop_intent = None
+        
+        # pointer to dispatch_loop_task
         self.loop_task = None
         self.status_subscriber = asyncio.create_task(self.subscribe_all())
 
@@ -751,7 +762,7 @@ class Orch(Base):
             self.init_success = True
         else:
             print(
-                " ... Orchestrator cannot process decisions unless all FastAPI servers in config file are accessible."
+                " ... Orchestrator cannot process decision_dq unless all FastAPI servers in config file are accessible."
             )
 
     async def update_status(self, act_serv: str, status_dict: dict):
@@ -759,7 +770,7 @@ class Orch(Base):
 
         Async task for updating orch status dict {act_serv_key: {act_name: [act_uuid]}}
         """
-        last_dict = self.global_status[act_serv]
+        last_dict = self.global_state_dict[act_serv]
         for act_name, acts in status_dict.items():
             if set(acts) != set(last_dict[act_name]):
                 started = set(acts).difference(last_dict[act_name])
@@ -771,37 +782,43 @@ class Orch(Base):
                     print(f" ... {act_serv}:{act_name} started {','.join(started)}")
                 if ongoing:
                     print(f" ... {act_serv}:{act_name} ongoing {','.join(ongoing)}")
-        self.global_status[act_serv].update(status_dict)
-        await self.global_q.put(self.global_status)
+        self.global_state_dict[act_serv].update(status_dict)
+        await self.global_q.put(self.global_state_dict)
+
+    async def update_global_state(self, status_dict: dict):
+        _running_uuids = []
+        for act_serv, act_named in status_dict.items():
+            for act_name, uuids in act_named.items():
+                for myuuid in uuids:
+                    uuid_tup = (act_serv, act_name, myuuid)
+                    if myuuid.endswith("__estop"):
+                        self.estop_uuids.append(uuid_tup)
+                    elif myuuid.endswith("__error"):
+                        self.error_uuids.append(uuid_tup)
+                    else:
+                        _running_uuids.append(uuid_tup)
+        self.running_uuids = _running_uuids
 
     async def update_global_state_task(self):
         """Self-subscribe to global_q and update status dict."""
         async for status_dict in self.global_q.subscribe():
-            estop_uuids = []
-            error_uuids = []
-            for act_serv, act_named in status_dict.items():
-                for act_name, uuids in act_named.items():
-                    for myuuid in uuids:
-                        if myuuid.endswith("__estop"):
-                            estop_uuids.append((act_serv, act_name, myuuid))
-                        elif myuuid.endswith("__error"):
-                            error_uuids.append((act_serv, act_name, myuuid))
+            await self.update_global_state(status_dict)
             running_states, _ = self.check_global_state()
-            if estop_uuids and self.loop_state == "started":
+            if self.estop_uuids and self.loop_state == "started":
                 await self.estop_loop()
-            elif error_uuids and self.loop_state == "started":
-                self.global_state = "error"
+            elif self.error_uuids and self.loop_state == "started":
+                self.global_state_str = "error"
             elif len(running_states) == 0:
-                self.global_state = "idle"
+                self.global_state_str = "idle"
             else:
-                self.global_state = "busy"
+                self.global_state_str = "busy"
                 print(" ... ", running_states)
 
     def check_global_state(self):
         """Return global state of action servers."""
         running_states = []
         idle_states = []
-        for act_serv, act_dict in self.global_status.items():
+        for act_serv, act_dict in self.global_state_dict.items():
             for act_name, act_uuids in act_dict.items():
                 if len(act_uuids) == 0:
                     idle_states.append(f"{act_serv}:{act_name}")
@@ -810,7 +827,7 @@ class Orch(Base):
         return running_states, idle_states
 
     async def async_dispatcher(self, A: Action):
-        """Request non-blocking actions which may run concurrently.
+        """Request non-blocking action_dq which may run concurrently.
 
         Send action object to action server for processing.
 
@@ -833,22 +850,22 @@ class Orch(Base):
                 return response
 
     async def dispatch_loop_task(self):
-        """Parse decision and action queues, and dispatch actions while tracking run state flags."""
+        """Parse decision and action queues, and dispatch action_dq while tracking run state flags."""
         print(" ... running operator orch")
-        print(" ... orch status:", self.global_state)
+        print(" ... orch status:", self.global_state_str)
         # clause for resuming paused action list
-        print(" ... orch descisions: ", self.decisions)
+        print(" ... orch descisions: ", self.decision_dq)
         try:
             self.loop_state = "started"
-            while self.loop_state == "started" and (self.actions or self.decisions):
+            while self.loop_state == "started" and (self.action_dq or self.decision_dq):
                 await asyncio.sleep(
                     0.001
-                )  # allows status changes to affect between actions, also enforce unique timestamp
-                if not self.actions:
-                    print(" ... getting actions from new decision")
+                )  # allows status changes to affect between action_dq, also enforce unique timestamp
+                if not self.action_dq:
+                    print(" ... getting action_dq from new decision")
                     # generate uids when populating, generate timestamp when acquring
                     self.last_decision = copy(self.active_decision)
-                    self.active_decision = self.decisions.popleft()
+                    self.active_decision = self.decision_dq.popleft()
                     self.active_decision.technique_name = self.technique_name
                     self.active_decision.set_dtime(offset=self.ntp_offset)
                     actual = self.active_decision.actual
@@ -857,26 +874,27 @@ class Orch(Base):
                     for i, act in enumerate(unpacked_acts):
                         act.action_enum = f"{i}"
                         # act.gen_uuid()
-                    self.actions = deque(unpacked_acts)  # TODO:update actualizer code
-                    print(" ... got ", self.actions)
+                    self.action_dq = deque(unpacked_acts)  # TODO:update actualizer code
+                    self.dispatched_actions = {}
+                    print(" ... got ", self.action_dq)
                     print(" ... optional params ", self.active_decision.actual_pars)
                 else:
                     if self.loop_intent == "stop":
                         print(" ... stopping orchestrator")
-                        # monitor status of running actions, then end loop
+                        # monitor status of running action_dq, then end loop
                         async for _ in self.global_q.subscribe():
-                            if self.global_state == "idle":
+                            if self.global_state_str == "idle":
                                 self.loop_state = "stopped"
                                 await self.intend_none()
                                 break
                     elif self.loop_intent == "skip":
                         # clear action queue, forcing next decision
-                        self.actions.clear()
+                        self.action_dq.clear()
                         await self.intend_none()
                         print(" ... skipping to next decision")
                     else:
                         # all action blocking is handled like preempt, check Action requirements
-                        A = self.actions.popleft()
+                        A = self.action_dq.popleft()
                         # append previous results to current action
                         A.result_dict = self.active_decision.result_dict
                         # see async_dispatcher for unpacking
@@ -893,7 +911,7 @@ class Orch(Base):
                                     async for _ in self.global_q.subscribe():
                                         endpoint_free = (
                                             len(
-                                                self.global_status[A.action_server][
+                                                self.global_state_dict[A.action_server][
                                                     A.action_name
                                                 ]
                                             )
@@ -909,7 +927,7 @@ class Orch(Base):
                                         server_free = all(
                                             [
                                                 len(uuid_list) == 0
-                                                for _, uuid_list in self.global_status[
+                                                for _, uuid_list in self.global_state_dict[
                                                     A.action_server
                                                 ].items()
                                             ]
@@ -918,7 +936,7 @@ class Orch(Base):
                                             break
                                 else:  # start_condition is 3 or unsupported value
                                     print(
-                                        " ... orch is waiting for all actions to finish"
+                                        " ... orch is waiting for all action_dq to finish"
                                     )
                                     async for _ in self.global_q.subscribe():
                                         running_states, _ = self.check_global_state()
@@ -933,7 +951,7 @@ class Orch(Base):
                             async for _ in self.global_q.subscribe():
                                 conditions_free = all(
                                     [
-                                        len(self.global_status[k][v] == 0)
+                                        len(self.global_state_dict[k][v] == 0)
                                         for k, vlist in condition_dict.items()
                                         if vlist and isinstance(vlist, list)
                                         for v in vlist
@@ -942,7 +960,7 @@ class Orch(Base):
                                         len(uuid_list) == 0
                                         for k, v in condition_dict.items()
                                         if v == [] or v is None
-                                        for _, uuid_list in self.global_status[
+                                        for _, uuid_list in self.global_state_dict[
                                             k
                                         ].items()
                                     ]
@@ -951,7 +969,7 @@ class Orch(Base):
                                     break
                         else:
                             print(
-                                " ... invalid start condition, waiting for all actions to finish"
+                                " ... invalid start condition, waiting for all action_dq to finish"
                             )
                             async for _ in self.global_q.subscribe():
                                 running_states, _ = self.check_global_state()
@@ -961,6 +979,8 @@ class Orch(Base):
                         print(
                             f" ... dispatching action {A.action} on server {A.server}"
                         )
+                        # keep running list of dispatched actions
+                        self.dispatched_actions[A.action_enum] = copy(A)
                         result = await self.async_dispatcher(A)
                         self.active_decision.result_dict[A.action_enum] = result
             print(" ... decision queue is empty")
@@ -983,13 +1003,13 @@ class Orch(Base):
     async def estop_loop(self):
         self.loop_state = "E-STOP"
         self.loop_task.cancel()
-        await self.force_stop_running_actions()
+        await self.force_stop_running_action_q()
         await self.intend_none()
 
-    async def force_stop_running_actions(self):
+    async def force_stop_running_action_q(self):
         running_uuids = []
         estop_uuids = []
-        for act_serv, act_named in self.global_status.items():
+        for act_serv, act_named in self.global_state_dict.items():
             for act_name, uuids in act_named.items():
                 for myuuid in uuids:
                     uuid_tup = (act_serv, act_name, myuuid)
@@ -1023,33 +1043,21 @@ class Orch(Base):
     async def clear_estate(self, clear_estop=True, clear_error=True):
         if not clear_estop and not clear_error:
             print(" ... both clear_estop and clear_error parameters are False, nothing to clear")
-        running_uuids = []
-        estop_uuids = []
-        error_uuids = []
-        for act_serv, act_named in self.global_status.items():
-            for act_name, uuids in act_named.items():
-                for myuuid in uuids:
-                    uuid_tup = (act_serv, act_name, myuuid)
-                    if uuid.endswith("__estop"):
-                        estop_uuids.append(uuid_tup)
-                    elif uuid.endswith("__error"):
-                        error_uuids.append(uuid_tup)
-                    else:
-                        running_uuids.append(uuid_tup)
-        cleared_status = copy(self.global_status)
+        await self.update_global_state()
+        cleared_status = copy(self.global_state_dict)
         if clear_estop:
-            for serv, act, myuuid in estop_uuids:
+            for serv, act, myuuid in self.estop_uuids:
                 print(f" ... clearing E-STOP {act} on {serv}")
                 cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
         if clear_error:
-            for serv, act, myuuid in error_uuids:
+            for serv, act, myuuid in self.error_uuids:
                 print(f" ... clearing error {act} on {serv}")
                 cleared_status[serv][act] = cleared_status[serv][act].remove(myuuid)
         await self.global_q.put(cleared_status)
         print(" ... resetting dispatch loop state")
         self.loop_state = "stopped"
         print(
-            f" ... {len(running_uuids)} running actions did not fully stop after E-STOP/error was raised"
+            f" ... {len(self.running_uuids)} running action_dq did not fully stop after E-STOP/error was raised"
         )
 
     async def add_decision(
@@ -1061,7 +1069,8 @@ class Orch(Base):
         actual_pars: dict = {},
         result_dict: dict = {},
         access: str = "hte",
-        prepend=False,
+        prepend: Optional[bool] = False,
+        at_index: Optional[int] = None,
     ):
         D = Decision(
             decision_dict,
@@ -1091,18 +1100,20 @@ class Orch(Base):
                 D.decision_label = last_label
             else:
                 print(
-                    " ... decision_label not specified, no past decisions to inherit so using default 'nolabel"
+                    " ... decision_label not specified, no past decision_dq to inherit so using default 'nolabel"
                 )
         await asyncio.sleep(0.001)
-        if prepend:
-            self.decisions.appendleft(D)
+        if at_index:
+            self.decision_dq.insert(at_index)
+        elif prepend:
+            self.decision_dq.appendleft(D)
             print(f" ... decision {D.decision_uuid} prepended to queue")
         else:
-            self.decisions.append(D)
+            self.decision_dq.append(D)
             print(f" ... decision {D.decision_uuid} appended to queue")
 
     def list_decisions(self):
-        """Return the current queue of decisions."""
+        """Return the current queue of decision_dq."""
         declist = [
             return_dec(
                 index=i,
@@ -1112,9 +1123,9 @@ class Orch(Base):
                 pars=dec.actual_pars,
                 access=dec.access,
             )
-            for i, dec in enumerate(self.decisions)
+            for i, dec in enumerate(self.decision_dq)
         ]
-        retval = return_declist(decisions=declist)
+        retval = return_declist(decision_dq=declist)
         return retval
 
     def get_decision(self, last=False):
@@ -1145,11 +1156,11 @@ class Orch(Base):
                     access=None,
                 )
             ]
-        retval = return_declist(decisions=declist)
+        retval = return_declist(decision_dq=declist)
         return retval
 
     def list_actions(self):
-        """Return the current queue of actions."""
+        """Return the current queue of action_dq."""
         actlist = [
             return_act(
                 index=i,
@@ -1159,21 +1170,67 @@ class Orch(Base):
                 pars=act.action_params,
                 preempt=act.start_condition,
             )
-            for i, act in enumerate(self.actions)
+            for i, act in enumerate(self.action_dq)
         ]
-        retval = return_actlist(actions=actlist)
+        retval = return_actlist(action_dq=actlist)
         return retval
 
-    def supplement_error_action(self, inherit=False):
-        """Insert action at front of queue with subversion of errored action, inherit parameters if desired."""
-        pass
+    def supplement_error_action(self, check_uuid:str, sup_action: Action):
+        """Insert action at front of action queue with subversion of errored action, inherit parameters if desired."""
+        if self.error_uuids == []:
+            print("There are no error statuses to replace")
+        else:
+            matching_error = [tup for tup in self.error_uuids if tup[2]==check_uuid]
+            if matching_error:
+                _, _, error_uuid = matching_error[0]
+                EA = [A for _,A in self.dispatched_actions.items() if A.action_uuid==error_uuid][0]
+                new_enum = round(EA.action_enum + 0.01, 2) # up to 99 supplements
+                new_action = sup_action
+                new_action.action_enum = new_enum
+                self.action_dq.appendleft(new_action)
+            else:
+                print(f"uuid {check_uuid} not found in list of error statuses:")
+                print(', '.join(self.error_uuids))
         
     def remove_decision(self, by_index: Optional[int]=None, by_uuid: Optional[str]=None):
         """Remove decision in list by enumeration index or uuid."""
-        pass
+        if by_index:
+            i = by_index
+        elif by_uuid:
+            i = [i for i,D in enumerate(list(self.decision_dq)) if D.decision_uuid == by_uuid][0]
+        else:
+            print("No arguments given for locating existing decision to remove.")
+            return None
+        del self.decision_dq[i]
+        
     
-    def replace_action(self, inherit=False, by_index: Optional[int]=None, by_uuid: Optional[str]=None):
+    def replace_action(self, sup_action: Action, by_index: Optional[int]=None, by_uuid: Optional[str]=None, by_enum: Optional[Union[int, float]]=None):
         """Substitute a queued action."""
+        if by_index:
+            i = by_index
+        elif by_uuid:
+            i = [i for i,A in enumerate(list(self.action_dq)) if A.action_uuid == by_uuid][0]
+        elif by_enum:
+            i = [i for i,A in enumerate(list(self.action_dq)) if A.action_enum == by_enum][0]
+        else:
+            print("No arguments given for locating existing action to replace.")
+            return None
+        current_enum = self.action_dq[i].action_enum
+        new_action = sup_action
+        new_action.action_enum = current_enum
+        self.action_dq.insert(i,new_action)
+        del self.action_dq[i+1]
+            
+    def append_action(self, sup_action: Action):
+        """Add action to end of current action queue."""
+        if len(self.action_dq)==0:
+            last_enum = floor(max(list(self.dispatched_actions.keys())))
+        else:
+            last_enum = floor(self.action_dq[-1].action_enum)
+        new_enum = int(last_enum + 1)            
+        new_action = sup_action
+        new_action.action_enum = new_enum
+        self.action_dq.append(new_action)
     
     async def shutdown(self):
         await self.detach_subscribers()

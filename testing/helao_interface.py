@@ -66,11 +66,7 @@ while True:
         elif event.split('-')[1] == 'close':
             print(f"Killing {api}/{s}.py")
             l = list(psutil.process_iter())
-            #servers[s][1].send_signal(signal.CTRL_C_EVENT)
-            #time.sleep(2)
-            servers[s][1].wait(10)
-            print("tried to end clean")
-            time.sleep(2)
+            servers[s][1].terminate()
             servers[s][0].terminate()
             time.sleep(.1)
             terminated = [None,None]

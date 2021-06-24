@@ -5,7 +5,7 @@ GamryCOM comtypes Win32 module. Class methods are specific to Gamry devices. Dev
 configuration is read from config/config.py. 
 
 """
-
+import sys
 import comtypes
 import comtypes.client as client
 import asyncio
@@ -19,7 +19,12 @@ import os
 # from classes import action_runparams
 # from classes import Action_params
 import json
-from prototyping import Action, Base
+
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(helao_root)
+
+from core.servers import Base
+from core.schemas import Action
 from typing import Optional
 
 class Gamry_modes(str, Enum):
@@ -613,7 +618,7 @@ class gamry:
             print(f"Active action uuid is {self.active.action.action_uuid}")
             realtime = await self.active.set_realtime()
             # fix epoch
-            self.active.header.replace(f"%epoch_ns=FIXME", f"%epoch_ns={realtime}")
+            self.FIFO_gamryheader.replace(f"%epoch_ns=FIXME", f"%epoch_ns={realtime}")
 
             while sink_status != "done" and self.IO_do_meas:
             #while sink_status == "measuring":

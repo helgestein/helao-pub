@@ -23,7 +23,7 @@ import aiofiles
 from aiofiles.os import wrap
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.openapi.utils import get_flat_params
-from classes import MultisubscriberQueue
+from .helpers import MultisubscriberQueue
 
 from .helpers import dict_to_rcp
 from .schemas import Action, Decision
@@ -120,9 +120,8 @@ class Base(object):
         if os.path.exists("ntpLastSync.txt"):
             tmps = open("ntpLastSync.txt", "r").readlines() 
             if len(tmps) > 0:
-                self.ntp_last_sync = tmps[0].strip()
-            else:
-                self.ntp_last_sync = None    
+                self.ntp_last_sync, self.ntp_offset = tmps[0].strip().split(",")
+                self.ntp_offset = float(self.ntp_offset)
         elif self.ntp_last_sync is None:
             asyncio.gather(self.get_ntp_time())
         self.init_endpoint_status(fastapp)
@@ -136,7 +135,7 @@ class Base(object):
             if route.path.startswith(f"/{self.server_name}"):
                 self.status[route.name] = []
                 self.endpoints.append(route.name)
-        print(f" ... Found {len(self.status)} endpoints for status monitoring.")
+        print(f" ... Found {len(self.status)} endpoints for status monitoring on {self.server_name}.")
 
     def get_endpoint_urls(self, app: HelaoFastAPI):
         """Return a list of all endpoints on this server."""
@@ -195,7 +194,7 @@ class Base(object):
         print('#############################################################')
         
         time_inst = await aiofiles.open("ntpLastSync.txt", "w")
-        await time_inst.write(str(self.ntp_last_sync))
+        await time_inst.write(f"{self.ntp_last_sync},{self.ntp_offset}")
         await time_inst.close()
         print(
             f" ... retrieved time at {ctime(self.ntp_response.tx_timestamp)} from {self.ntp_server}"
@@ -214,12 +213,12 @@ class Base(object):
                 for _ in range(retry_limit):
                     async with session.post(
                         f"http://{client_addr}/update_status",
-                        params={"server": self.server_name, "status": current_status},
-                    ) as resp:
-                        response = await resp
-                    if response.status < 400:
-                        success = True
-                        break
+                        params={"server": self.server_name, "status": json.dumps(current_status)},
+                    ) as response:
+                        # response = await resp
+                        if response.status < 400:
+                            success = True
+                            break
                 if success:
                     print(
                         f" ... Updated {self.server_name} status to {current_status} on {client_addr}."
@@ -340,10 +339,11 @@ class Base(object):
                 self.column_names = [
                     x.strip()
                     for x in header.split("\n")[-1]
-                    .replace("%columns=", "")
+                    .replace("%columns=", "").replace("%column_headings=","")
                     .replace("\t", ",")
                     .split(",")
                 ]
+                print(self.column_names)
             self.action.set_atime(offset=self.base.ntp_offset)
             self.file_conn = None
             # if Action is not created from Decision+Actualizer, Action is independent
@@ -394,7 +394,6 @@ class Base(object):
                 initial_dict.update(
                     {
                         "decision_uuid": self.action.decision_uuid,
-                        "decision_enum": self.action.decision_enum,
                         "action_uuid": self.action.action_uuid,
                         "action_enum": self.action.action_enum,
                         "action_name": self.action.action_name,
@@ -402,7 +401,11 @@ class Base(object):
                     }
                 )
                 await self.write_to_rcp(initial_dict)
+
                 if self.action.save_data:
+                    sample_no = str(self.action.save_data).replace("True", "noSampleID")
+                    if self.action.plate_id is None:
+                        self.action.plate_id = 'noPlateID'
                     if self.action.header:
                         if isinstance(self.action.header, list):
                             header_lines = len(self.action.header)
@@ -412,14 +415,14 @@ class Base(object):
                         header_parts = ",".join(
                             self.action.header.split("\n")[-1].replace(",", "\t").split()
                         )
-                        file_info = f"{self.file_type};{header_parts};{header_lines};{self.action.sample_no}"
+                        file_info = f"{self.action.file_type};{header_parts};{header_lines};{sample_no}"
                     else:
-                        file_info = f"{self.file_type};{self.action.sample_no}"
+                        file_info = f"{self.action.file_type};{sample_no}"
                     if self.action.filename is None:  # generate filename
                         if self.action.action_enum is not None:
-                            self.action.filename = f"act{self.action.action_enum:02}_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
+                            self.action.filename = f"act{self.action.action_enum:.2f}_{self.action.action_abbr}__{self.action.plate_id}_{sample_no}.csv"
                         else:
-                            self.action.filename = f"actNone_{self.action.action_abbr}__{self.action.plate_id}_{self.action.sample_no}.csv"
+                            self.action.filename = f"actNone_{self.action.action_abbr}__{self.action.plate_id}_{sample_no}.csv"
                     self.action.file_dict[self.action.filetech_key][self.action.file_group].update(
                         {self.action.filename: file_info}
                     )
@@ -497,13 +500,12 @@ class Base(object):
 
         async def log_data_task(self):
             "Self-subscribe to data queue, write to present file path."
+            print('#################################################')
+            print(' ... starting data logger')
+            print('#################################################')
+            # data_msg should be a dict {uuid: list of values or a list of list of values}
             try:
                 async for data_msg in self.base.data_q.subscribe():
-                    print('#################################################')
-                    print(' ... starting data logger')
-                    print('#################################################')
-                    # data_msg should be a dict {uuid: list of values or a list of list of values}
-                    print(data_msg)
                     if (
                         self.action.action_uuid in data_msg.keys()
                     ):  # only write data for this action
@@ -523,16 +525,24 @@ class Base(object):
                             print('#################################################')
                             print('3 ... data logger: message is dict')
                             print('#################################################')
-                            columns = [data_val[col] for col in self.column_names]
+                            # print(self.column_names)
+                            # print(data_val)
+                            # for col in self.column_names:
+                            #     if col!='unknown1':
+                            #         print(col, data_val[col])
+                            columns = [data_val[col] for col in self.column_names if col!='unknown1']
+                            # print(columns)
                             lines = "\n".join(
                                 [",".join([str(x) for x in l]) for l in zip(*columns)]
                             )
+                            # print(lines)
                         else:
                             print('#################################################')
                             print('4 ... data logger: message is not dict or tuple/list')
                             print('#################################################')
                             lines = str(data_val)
                         self.action.data.append(data_msg)
+                        # print(self.action.data)
                         if self.file_conn:
                             print('#################################################')
                             print('5 ... data logger: writing lines to file')

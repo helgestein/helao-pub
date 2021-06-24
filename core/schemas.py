@@ -36,7 +36,7 @@ class Decision(object):
         self.actual = imports.get("actual", actualizer)
         self.actual_pars = imports.get("actual_pars", actual_pars)
         self.result_dict = imports.get("result_dict", result_dict)
-        if self.decision_uuid is None and self.orch_name:
+        if self.decision_uuid is None:
             self.gen_uuid_decision()
 
     def as_dict(self):
@@ -70,8 +70,9 @@ class Action(Decision):
         action_enum: str = None,
         action_abbr: str = None,
         save_rcp: bool = False,
-        save_data: bool = False,
+        save_data: Union[bool, int, str] = None, 
         start_condition: Union[int, dict] = 3,
+        plate_id: Optional[int] = None,
         samples_in: Optional[dict] = None,
         # samples_out: Optional[dict] = None,
     ):
@@ -89,6 +90,7 @@ class Action(Decision):
         self.save_rcp = imports.get("save_rcp", save_rcp)
         self.save_data = imports.get("save_data", save_data)
         self.start_condition = imports.get("start_condition", start_condition)
+        self.plate_id = imports.get("plate_id", plate_id)
         self.samples_in = imports.get("samples_in", samples_in)
         # the following attributes are set during Action dispatch but can be imported
         self.samples_out = imports.get("samples_out", None)
@@ -109,7 +111,7 @@ class Action(Decision):
             print(
                 f'Action {" and ".join(missing_args)} not specified. Placeholder actions will only affect the action queue enumeration.'
             )
-        if self.action_uuid is None and self.action_name:
+        if self.action_uuid is None:
             self.gen_uuid_action()
 
 
@@ -133,7 +135,6 @@ class Action(Decision):
                 orch_name = self.orch_name,
                 decision_timestamp = self.decision_timestamp,
                 decision_uuid = self.decision_uuid,
-                decision_enum = self.decision_enum,
                 decision_label = self.decision_label,
                 actualizer = self.actualizer,
                 actual_pars = self.actual_pars,
@@ -150,6 +151,7 @@ class Action(Decision):
                 start_condition = self.start_condition,
                 save_rcp = self.save_rcp,
                 save_data = self.save_data,
+                plate_id = self.plate_id,
                 samples_in = self.samples_in,
                 samples_out = self.samples_out,
                 output_dir = self.output_dir,
@@ -166,7 +168,6 @@ class Action(Decision):
                 orch_name = self.orch_name,
                 decision_timestamp = self.decision_timestamp,
                 decision_uuid = self.decision_uuid,
-                decision_enum = self.decision_enum,
                 decision_label = self.decision_label,
                 actualizer = self.actualizer,
                 actual_pars = self.actual_pars,
@@ -181,6 +182,7 @@ class Action(Decision):
                 action_abbr = self.action_abbr,
                 actionnum = self.actionnum,
                 start_condition = self.start_condition,
+                plate_id = self.plate_id,
                 save_rcp = self.save_rcp,
                 save_data = self.save_data,
                 samples_in = self.samples_in,

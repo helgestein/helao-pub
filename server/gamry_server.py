@@ -26,6 +26,7 @@ Manual Bugfixes:
 
 """
 
+import os
 import sys
 import asyncio
 from typing import Optional
@@ -35,16 +36,17 @@ import uvicorn
 from fastapi import WebSocket
 from munch import munchify
 
-# helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(helao_root)
 # sys.path.append(os.path.join(helao_root, 'config'))
 # sys.path.append(os.path.join(helao_root, 'driver'))
 # sys.path.append(os.path.join(helao_root, 'core'))
 
-from ..core.servers import Action, HelaoFastAPI, Base
+from core.servers import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
-config = import_module(f"{confPrefix}").config
+config = import_module(f"config.{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
 
@@ -58,10 +60,10 @@ if not 'simulate' in S:
 
 if S.simulate:
     print('Gamry simulator loaded.')
-    from gamry_simulate import gamry
+    from driver.gamry_simulate import gamry
 else:
-    from gamry_driver import gamry
-    from gamry_driver import Gamry_IErange
+    from driver.gamry_driver import gamry
+    from driver.gamry_driver import Gamry_IErange
 
 
 app = HelaoFastAPI(config, servKey, title=servKey,
@@ -101,6 +103,10 @@ async def websocket_data(websocket: WebSocket):
 def status_wrapper():
     return actserv.status
 
+@app.post(f"/attach_client")
+async def attach_client(client_addr: str):
+    await actserv.attach_client(client_addr)
+
 
 @app.post(f"/{servKey}/get_meas_status")
 async def get_meas_status(action_dict: Optional[dict]=None):
@@ -136,7 +142,7 @@ async def run_LSV(
     if action_dict:
         A = Action(action_dict)
     else:
-        A = Action()
+        A = Action(save_data=True)
         A.action_server = servKey
         A.action_name = "run_LSV"
         A.action_params['Vinit'] = Vinit

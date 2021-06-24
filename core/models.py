@@ -48,7 +48,6 @@ class return_finishedact(BaseModel):
     orch_name: str
     decision_timestamp: str
     decision_uuid: str
-    decision_enum: str
     decision_label: str 
     actualizer: str 
     actual_pars: dict 
@@ -82,7 +81,6 @@ class return_runningact(BaseModel):
     orch_name: str
     decision_timestamp: str
     decision_uuid: str
-    decision_enum: str
     decision_label: str 
     actualizer: str 
     actual_pars: dict 

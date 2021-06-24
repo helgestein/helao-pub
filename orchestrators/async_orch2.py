@@ -39,6 +39,7 @@ a OrchHandler class object, the core functionality of an async orchestrator.
 
 import sys
 import os
+import json
 import time
 import asyncio
 from importlib import import_module
@@ -50,18 +51,19 @@ from munch import munchify
 # Not packaging as a module for now, so we detect source file's root directory from CLI
 # execution and append config, driver, and core to sys.path
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(helao_root, "config"))
-sys.path.append(os.path.join(helao_root, "driver"))
-sys.path.append(os.path.join(helao_root, "core"))
+sys.path.append(helao_root)
+# sys.path.append(os.path.join(helao_root, "config"))
+# sys.path.append(os.path.join(helao_root, "driver"))
+# sys.path.append(os.path.join(helao_root, "core"))
 #from prototyping import Action, Decision
-from ..core.servers import Orch, HelaoFastAPI
+from core.servers import Orch, HelaoFastAPI
 
 # Load configuration using CLI launch parameters. For shorthand referencing the config
 # dictionary, we use munchify to convert into a dict-compatible object where dict keys
 # are also attributes.
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
-config = import_module(f"{confPrefix}").config
+config = import_module(f"config.{confPrefix}").config
 C = munchify(config)["servers"]
 O = C[servKey]
 app = HelaoFastAPI(
@@ -78,9 +80,15 @@ async def startup_event():
     decision queue for testing.
     """
     global orch
-    # orch = await Orch(app)
     orch = Orch(app)
 
+@app.post("/update_status")
+async def update_status(server: str, status: str):
+    await orch.update_status(act_serv=server, status_dict=json.loads(status))
+
+@app.post(f"/attach_client")
+async def attach_client(client_addr: str):
+    await orch.attach_client(client_addr)
 
 @app.websocket("/ws_status")
 async def websocket_status(websocket: WebSocket):
@@ -101,18 +109,6 @@ async def websocket_data(websocket: WebSocket):
     """
     await orch.ws_data(websocket)
 
-
-# @app.post(f"/start")
-# async def start_process():
-#     """Begin processing decision and action queues."""
-#     if orch.loop_state == "stopped":
-#         if orch.action_dq or orch.decision_dq:  # resume actions from a paused run
-#             await orch.run_dispatch_loop()
-#         else:
-#             print("decision list is empty")
-#     else:
-#         print("already running")
-#     return {}
 
 @app.post("/start")
 async def start_process():

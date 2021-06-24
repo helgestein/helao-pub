@@ -18,16 +18,17 @@ import uvicorn
 from fastapi import WebSocket
 from munch import munchify
 
-# helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(helao_root)
 # sys.path.append(os.path.join(helao_root, 'config'))
 # sys.path.append(os.path.join(helao_root, 'driver'))
 # sys.path.append(os.path.join(helao_root, 'core'))
 
-from ..core.servers import Action, HelaoFastAPI, Base
+from core.servers import Action, HelaoFastAPI, Base
 
 confPrefix = sys.argv[1]
 servKey = sys.argv[2]
-config = import_module(f"{confPrefix}").config
+config = import_module(f"config.{confPrefix}").config
 C = munchify(config)["servers"]
 S = C[servKey]
 
@@ -38,9 +39,9 @@ if not 'simulate' in S:
     S['simulate']= False
 if S.simulate:
     print('Galil I/O simulator loaded.')
-    from ..driver.galil_simulate import galil    
+    from driver.galil_simulate import galil    
 else:
-    from ..driver.galil_driver import galil
+    from driver.galil_driver import galil
 
 
 app = HelaoFastAPI(config, servKey, title=servKey,

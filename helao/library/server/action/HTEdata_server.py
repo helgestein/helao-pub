@@ -10,10 +10,6 @@ from munch import munchify
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
-# sys.path.append(os.path.join(helao_root, 'config'))
-# sys.path.append(os.path.join(helao_root, 'driver'))
-# sys.path.append(os.path.join(helao_root, 'core'))
-
 from core.servers import Action, HelaoFastAPI, Base
 
 

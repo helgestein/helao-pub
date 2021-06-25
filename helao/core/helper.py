@@ -3,12 +3,12 @@ Miscellaneous helper functions.
 
 """
 import os
-from tkinter import W
 import uuid
 import shortuuid
 import zipfile
 from typing import Any
 from asyncio import Queue
+
 
 def gen_uuid(label: str, trunc: int = 8):
     "Generate a uuid, encode with larger character set, and trucate."
@@ -155,7 +155,7 @@ class MultisubscriberQueue(object):
         if q in self.subscribers:
             self.subscribers.remove(q)
         else:
-            raise KeyError('subscriber queue does not exist')
+            raise KeyError("subscriber queue does not exist")
 
     async def put(self, data: Any):
         """

@@ -5,40 +5,21 @@ library. Class methods are specific to Galil devices. Device configuration is re
 config/config.py. 
 """
 
-#import sys
 import os
 import numpy as np
-import json
 import time
 import pathlib
-# import copy
 import asyncio
-from classes import transformxy
-from classes import move_modes
 
-
+from helao.core.schema import transformxy
+from helao.core.model import move_modes
+from helao.core.server import Base
 
 driver_path = os.path.dirname(__file__)
-
-# if __package__:
-#     # can import directly in package mode
-#     print("importing config vars from package path")
-# else:
-#     # interactive kernel mode requires path manipulation
-#     cwd = os.getcwd()
-#     pwd = os.path.dirname(cwd)
-#     if os.path.basename(pwd) == "helao-dev":
-#         sys.path.insert(0, pwd)
-#     if pwd in sys.path or os.path.basename(cwd) == "helao-dev":
-#         print("importing config vars from sys.path")
-#     else:
-#         raise ModuleNotFoundError("unable to find config vars, current working directory is {}".format(cwd))
-
 
 # install galil driver first
 # (helao) c:\Program Files (x86)\Galil\gclib\source\wrappers\python>python setup.py install
 import gclib
-
 
 #pathlib.Path(os.path.join(helao_root, 'visualizer\styles.css')).read_text()
 
@@ -48,8 +29,10 @@ class cmd_exception(ValueError):
 
 
 class galil:
-    def __init__(self, config_dict):
-        self.config_dict = config_dict
+    def __init__(self, actServ: Base):
+
+        self.base = actServ
+        self.config_dict = actServ.server_cfg["params"]
 
         self.config_dict["estop_motor"] = False
         self.config_dict["estop_io"] = False

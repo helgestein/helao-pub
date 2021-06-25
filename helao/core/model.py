@@ -2,7 +2,8 @@
 Standard classes for HelaoFastAPI server response objects.
 
 """
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union
+from enum import Enum
 from pydantic import BaseModel
 
 
@@ -42,21 +43,21 @@ class return_actlist(BaseModel):
 
 class return_finishedact(BaseModel):
     """Standard return class for actions that finish with response."""
-    
+
     technique_name: str
-    access: str 
+    access: str
     orch_name: str
     decision_timestamp: str
     decision_uuid: str
-    decision_label: str 
-    actualizer: str 
-    actual_pars: dict 
-    result_dict: dict 
-    action_server: str 
+    decision_label: str
+    actualizer: str
+    actual_pars: dict
+    result_dict: dict
+    action_server: str
     action_queue_time: str
     action_real_time: Optional[str]
-    action_name: str 
-    action_params: dict 
+    action_name: str
+    action_params: dict
     action_uuid: str
     action_enum: str
     action_abbr: str
@@ -71,25 +72,25 @@ class return_finishedact(BaseModel):
     column_names: Optional[list]
     header: Optional[str]
     data: Optional[list]
-    
+
 
 class return_runningact(BaseModel):
     """Standard return class for actions that finish after response."""
-    
+
     technique_name: str
-    access: str 
+    access: str
     orch_name: str
     decision_timestamp: str
     decision_uuid: str
-    decision_label: str 
-    actualizer: str 
-    actual_pars: dict 
-    result_dict: dict 
-    action_server: str 
+    decision_label: str
+    actualizer: str
+    actual_pars: dict
+    result_dict: dict
+    action_server: str
     action_queue_time: str
     action_real_time: Optional[str]
-    action_name: str 
-    action_params: dict 
+    action_name: str
+    action_params: dict
     action_uuid: str
     action_enum: str
     action_abbr: str
@@ -101,4 +102,14 @@ class return_runningact(BaseModel):
     samples_out: Optional[dict]
     output_dir: Optional[str]
 
-    
+
+class move_modes(str, Enum):
+    homing = "homing"
+    relative = "relative"
+    absolute = "absolute"
+
+
+class transformation_mode(str, Enum):
+    motorxy = "motorxy"
+    platexy = "platexy"
+    instrxy = "instrxy"

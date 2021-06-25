@@ -36,10 +36,10 @@ from importlib import import_module
 from munch import munchify
 
 helao_root = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(helao_root, 'config'))
 confPrefix = sys.argv[1]
-config = import_module(f"{confPrefix}").config
+config = import_module(f"helao.config.{confPrefix}").config
 conf = munchify(config)
+
 
 class Pidd:
     def __init__(self, pidFile, retries=3):
@@ -67,7 +67,7 @@ class Pidd:
 
     def list_pids(self):
         self.load_global()
-        return [(k, d['host'], d['port'], d['pid']) for k, d in self.d.items()]
+        return [(k, d["host"], d["port"], d["pid"]) for k, d in self.d.items()]
 
     def store_pid(self, k, host, port, pid):
         self.d[k] = {"host": host, "port": port, "pid": pid}
@@ -84,39 +84,40 @@ class Pidd:
             host = tup[1]
             proc = psutil.Process(pid)
             if proc.name() in self.PROC_NAMES:
-                connections = [c for c in proc.connections(
-                    'tcp4') if c.status == 'LISTEN']
+                connections = [
+                    c for c in proc.connections("tcp4") if c.status == "LISTEN"
+                ]
                 if (host, port) in [(c.laddr.ip, c.laddr.port) for c in connections]:
                     active.append(tup)
         return active
 
     def find_bokeh(self, host, port):
-        pyPids = {p.pid: p.info['connections'] for p in psutil.process_iter(
-            ['name', 'connections']) if p.info['name'].startswith('python')}
+        pyPids = {
+            p.pid: p.info["connections"]
+            for p in psutil.process_iter(["name", "connections"])
+            if p.info["name"].startswith("python")
+        }
         # print(pyPids)
-        match = {pid: connections for pid,
-                 connections in pyPids.items() if connections}
+        match = {pid: connections for pid, connections in pyPids.items() if connections}
         for pid, connections in match.items():
             if (host, port) in [(c.laddr.ip, c.laddr.port) for c in connections]:
                 return pid
-        raise Exception(
-            f"Could not find running bokeh server at {host}:{port}")
+        raise Exception(f"Could not find running bokeh server at {host}:{port}")
 
     def kill_server(self, k):
-        self.load_global() # reload in case any servers were appended
+        self.load_global()  # reload in case any servers were appended
         if k not in self.d.keys():
             print(f"Server '{k}' not found in pid dict.")
             return True
         else:
             active = self.list_active()
             if k not in [key for key, _, _, _ in active]:
-                print(
-                    f"Server '{k}' is not running, removing from global dict.")
+                print(f"Server '{k}' is not running, removing from global dict.")
                 del self.d[k]
                 return True
             else:
                 try:
-                    p = psutil.Process(self.d[k]['pid'])
+                    p = psutil.Process(self.d[k]["pid"])
                     for _ in range(self.RETRIES):
                         # os.kill(p.pid, signal.SIGTERM)
                         p.terminate()
@@ -126,7 +127,8 @@ class Pidd:
                             return True
                     if psutil.pid_exists(p.pid):
                         print(
-                            f"Failed to terminate server '{k}' after {self.RETRIES} retries.")
+                            f"Failed to terminate server '{k}' after {self.RETRIES} retries."
+                        )
                         return False
                 except Exception as e:
                     print(f"Error terminating server '{k}'")
@@ -175,7 +177,8 @@ def validateConfig(PIDD, confDict):
         hasCode = [k for k in serverDict.keys() if k in PIDD.codeKeys]
         if not all(hasKeys):
             print(
-                f"{server} config is missing {[k for k,b in zip(PIDD.reqKeys, hasKeys) if b]}.")
+                f"{server} config is missing {[k for k,b in zip(PIDD.reqKeys, hasKeys) if b]}."
+            )
             return False
         if not isinstance(serverDict["host"], str):
             print(f"{server} server 'host' is not a string")
@@ -187,20 +190,25 @@ def validateConfig(PIDD, confDict):
             print(f"{server} server 'group' is not a string")
             return False
         if hasCode:
-            if len(hasCode)!=1:
-                print(
-                    f"{server} cannot have more than one code key {PIDD.codeKeys}")
+            if len(hasCode) != 1:
+                print(f"{server} cannot have more than one code key {PIDD.codeKeys}")
                 return False
             if not isinstance(serverDict[hasCode[0]], str):
                 print(f"{server} server '{hasCode[0]}' is not a string")
                 return False
-            launchPath = os.path.join(serverDict["group"], serverDict[hasCode[0]]+".py")
+            launchPath = os.path.join(
+                "helao",
+                "library",
+                "server",
+                serverDict["group"],
+                serverDict[hasCode[0]] + ".py",
+            )
             if not os.path.exists(os.path.join(os.getcwd(), launchPath)):
                 print(
-                    f"{server} server code {serverDict['group']}/{serverDict[hasCode[0]]+'.py'} does not exist.")
+                    f"{server} server code helao/library/server/{serverDict['group']}/{serverDict[hasCode[0]]+'.py'} does not exist."
+                )
                 return False
-    serverAddrs = [
-        f"{d['host']}:{d['port']}" for d in confDict["servers"].values()]
+    serverAddrs = [f"{d['host']}:{d['port']}" for d in confDict["servers"].values()]
     if len(serverAddrs) != len(set(serverAddrs)):
         print("Server host:port locations are not unique.")
         return False
@@ -208,13 +216,15 @@ def validateConfig(PIDD, confDict):
 
 
 def wait_key():
-    ''' Wait for a key press on the console and return it. '''
+    """ Wait for a key press on the console and return it. """
     result = None
-    if os.name == 'nt':
+    if os.name == "nt":
         import msvcrt
+
         result = msvcrt.getch()
     else:
         import termios
+
         fd = sys.stdin.fileno()
 
         oldterm = termios.tcgetattr(fd)
@@ -235,7 +245,7 @@ def wait_key():
 def launcher(confPrefix, confDict):
 
     # API server launch priority (matches folders in root helao-dev/)
-    LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer", "operators"]
+    LAUNCH_ORDER = ["server", "action", "orchestrator", "visualizer", "operator"]
 
     pidd = Pidd(f"pids_{confPrefix}.pck")
     if not validateConfig(pidd, confDict):
@@ -246,8 +256,10 @@ def launcher(confPrefix, confDict):
     active = pidd.list_active()
     activeKHP = [(k, h, p) for k, h, p, _ in active]
     activeHP = [(h, p) for k, h, p, _ in active]
-    allGroup = {k: {sk: sv for sk, sv in confDict['servers'].items(
-    ) if sv['group'] == k} for k in LAUNCH_ORDER}
+    allGroup = {
+        k: {sk: sv for sk, sv in confDict["servers"].items() if sv["group"] == k}
+        for k in LAUNCH_ORDER
+    }
     pidd.A = munchify(allGroup)
     pidd.orchServs = []
     for group in LAUNCH_ORDER:
@@ -269,64 +281,82 @@ def launcher(confPrefix, confDict):
                 # if 'py' key is None, assume remotely started or monitored by a separate process
                 if servPy is None:
                     print(
-                        f"{server} does not specify one of ({pidd.codeKeys}) so process not be managed.")
+                        f"{server} does not specify one of ({pidd.codeKeys}) so process not be managed."
+                    )
                 elif servKHP in activeKHP:
                     print(
-                        f"{server} already running with pid [{active[activeKHP.index(servKHP)][3]}]")
+                        f"{server} already running with pid [{active[activeKHP.index(servKHP)][3]}]"
+                    )
                 elif servHP in activeHP:
-                    raise(
-                        f"Cannot start {server}, {servHost}:{servPort} is already in use.")
+                    raise (
+                        f"Cannot start {server}, {servHost}:{servPort} is already in use."
+                    )
                 else:
                     print(
-                        f"Launching {server} at {servHost}:{servPort} using {group}/{servPy}.py")
+                        f"Launching {server} at {servHost}:{servPort} using helao/library/server/{group}/{servPy}.py"
+                    )
                     if codeKey == "fast":
                         if group == "orchestrators":
                             pidd.orchServs.append(server)
-                        cmd = [
-                            "python", f"{group}/{servPy}.py", confPrefix, server]
+                        cmd = ["python", f"launcher.py", confPrefix, server]
                         p = subprocess.Popen(cmd, cwd=helao_root)
                         ppid = p.pid
                     elif codeKey == "bokeh":
-                        cmd = ["bokeh", "serve", f"--allow-websocket-origin={servHost}:{servPort}",
-                               "--address", servHost, "--port", f"{servPort}", f"{group}/{servPy}.py",
-                               "--args", confPrefix, server]
+                        cmd = [
+                            "bokeh",
+                            "serve",
+                            f"--allow-websocket-origin={servHost}:{servPort}",
+                            "--address",
+                            servHost,
+                            "--port",
+                            f"{servPort}",
+                            f"{group}/{servPy}.py",
+                            "--args",
+                            confPrefix,
+                            server,
+                        ]
                         p = subprocess.Popen(cmd, cwd=helao_root)
                         try:
                             time.sleep(3)
                             ppid = pidd.find_bokeh(servHost, servPort)
                         except:
                             print(
-                                f"Could not find running bokeh server at {servHost}:{servPort}")
+                                f"Could not find running bokeh server at {servHost}:{servPort}"
+                            )
                             print(
-                                "Unable to manage bokeh process. See bokeh output for correct PID.")
+                                "Unable to manage bokeh process. See bokeh output for correct PID."
+                            )
                             ppid = p.pid
                     else:
-                        print(f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py")
+                        print(
+                            f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py"
+                        )
                         continue
                     pidd.store_pid(server, servHost, servPort, ppid)
-        if group!=LAUNCH_ORDER[-1]:
+        if group != LAUNCH_ORDER[-1]:
             time.sleep(3)
     return pidd
 
 
+# def main():
 if __name__ == "__main__":
     pidd = launcher(confPrefix, config)
     result = None
-    while result not in [b'\x18', b'\x04']:
+    while result not in [b"\x18", b"\x04"]:
         print("CTRL-x to terminate process group. CTRL-d to disconnect.")
         result = wait_key()
-    if result == b'\x18':
+    if result == b"\x18":
         for server in pidd.orchServs:
             try:
-                print(f'Unsubscribing {server} websockets.')
+                print(f"Unsubscribing {server} websockets.")
                 S = pidd.A["orchestrators"][server]
                 requests.post(f"http://{S.host}:{S.port}/shutdown")
             except Exception as e:
-                print(' ... got error: ',e)
+                print(" ... got error: ", e)
         # in case a /shutdown is added to other FastAPI servers (not the shutdown without '/')
-        #KILL_ORDER = ["visualizer", "action", "server"] # orch are killed above
+        # KILL_ORDER = ["visualizer", "action", "server"] # orch are killed above
         # no /shutdown in visualizers
-        KILL_ORDER = ["action", "server"] # orch are killed above
+        KILL_ORDER = ["action", "server"]  # orch are killed above
         for group in KILL_ORDER:
             print(f"Shutting down {group} group.")
             if group in pidd.A:
@@ -338,9 +368,12 @@ if __name__ == "__main__":
                         # will produce a 404 if not found
                         requests.post(f"http://{S.host}:{S.port}/shutdown")
                     except Exception as e:
-                        print(' ... got error: ',e)
+                        print(" ... got error: ", e)
 
         pidd.close()
     else:
         print(
-            f"Disconnecting process monitor. Launch 'python helao.py {confPrefix}' to reconnect.")
+            f"Disconnecting process monitor. Launch 'python helao.py {confPrefix}' to reconnect."
+        )
+
+# main()

@@ -2,7 +2,9 @@ from decimal import Decimal
 import numpy as np
 import itertools as it
 from json import JSONEncoder
-
+import asyncio
+import json
+import h5py
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
@@ -194,8 +196,8 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
             if not np.array_equal(h5file[path + key].value, item):
                 raise ValueError('The data representation in the HDF5 file does not match the original dict.')
         elif isinstance(item, list):
-            h5file[path + key] = numpy.array(item)
-            if not h5file[path + key] == numpy.array(item):
+            h5file[path + key] = np.array(item)
+            if not h5file[path + key] == np.array(item):
                 raise ValueError('The data representation in the HDF5 file does not match the original dict.')
         # save dictionaries
         elif isinstance(item, dict):
@@ -205,7 +207,20 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
             #print(item)
             raise ValueError('Cannot save %s type.' % type(item))
 
-
-
+#exception handler for asyncio loop
+#just does the normal thing of shutting down the loop when it hits an exception, and telling you what the exception was
+#like it would if you were not using asyncio
+#thanks to roguelynn.com/words/asyncio-exception-handling
+def normal_exception_handler(loop,context):
+    print("it's me, the loop")
+    print(loop)
+    print(context)
+    #with open("C:/Users/Operator/Documents/data/normal_exception_handler.json",'w') as fil:
+    #    json.dump(dict(b="fooking prawns"),fil)
+    #print("ijn the loopj")
+    #loop.stop()
+    #print(context.get("exception",context['message']))
+    #if 'exception' in context.keys():
+    #    raise context['exception']
 
 

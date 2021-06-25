@@ -1,4 +1,5 @@
 # In order to run the orchestrator, which is at the highest level of Helao, all servers should be started. 
+from numpy.lib.npyio import load
 import requests
 import sys
 import os
@@ -35,13 +36,15 @@ async def infl():
         await doMeasurement(experiment)
 
 async def doMeasurement(experiment: str):
+    print(asyncio.get_running_loop().get_exception_handler())
+    raise Exception("they'll be dead soon, fucking kangaroos")
     global tracking,loop
     print('experiment: '+experiment)
     experiment = json.loads(experiment) # load experiment
     if isinstance(tracking['experiment'],int): # add header for new experiment if you already have initialized, nonempty experiment
         with h5py.File(tracking['path'], 'r') as session:
-            if session[f'/run_{tracking['run']}/experiment_{tracking['experiment']}'].keys() != ['meta']:
-                assert len(session[f'/run_{tracking['run']}/experiment_{tracking['experiment']}'].keys()) > 1
+            if session[f"/run_{tracking['run']}/experiment_{tracking['experiment']}"].keys() != ['meta']:
+                assert len(session[f"/run_{tracking['run']}/experiment_{tracking['experiment']}"].keys()) > 1
                 tracking['experiment'] += 1
     if 'r' in experiment['meta'].keys() and 'ma' in experiment['meta'].keys(): #calculate measurement areas for meta dict if relevant
         experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
@@ -70,48 +73,50 @@ async def doMeasurement(experiment: str):
             await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server,action))
             continue
         elif server == 'orchestrator':
-            experiment = await loop.run_in_executor(None,process_native_command,action,experiment,params)
+            #experiment = await loop.run_in_executor(None,lambda c,e: process_native_command(c,e,**params),action,experiment)
+            experiment = process_native_command(action,experiment,**params)
             continue
         elif server == 'analysis':
             continue
         elif server == 'learning':
             continue
-        save_dict_to_hdf5({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}},tracking['path'],path=f'/run_{tracking['run']}/experiment_{tracking['experiment']}',mode='a')
-    save_dict_to_hdf5({'meta':experiment['meta']},tracking['path'],path=f'run_{tracking['run']}/experiment_{tracking['experiment']}',mode='a') #add metadata to experiment
+        save_dict_to_hdf5({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}},tracking['path'],path=f"/run_{tracking['run']}/experiment_{tracking['experiment']}",mode='a')
+    save_dict_to_hdf5({'meta':experiment['meta']},tracking['path'],path=f"run_{tracking['run']}/experiment_{tracking['experiment']}",mode='a') #add metadata to experiment
 
 def process_native_command(command: str,experiment: dict,**params):
-    try:
-        return getattr(sys.modules[__name__],command)(experiment,**params)
-    except:#except what?
-        raise Exception("native command not recognized")
+    #try:
+    return getattr(sys.modules[__name__],command)(experiment,**params)
+    #except:#except what?
+    #    raise Exception("native command not recognized")
 
 
 def start(experiment: dict,**params):
     global tracking
-    h5dir = os.path.join(config['orchestrator']['path'],f'{params['collectionkey']}_{experiment['meta'][params['collectionkey']]}')
+    h5dir = os.path.join(config['orchestrator']['path'],f"{params['collectionkey']}_{experiment['meta'][params['collectionkey']]}")
     if not os.path.exists(h5dir): #ensure that the directory in which this session should be saved exists
         os.mkdir(experiment['meta']['path'])
     if os.listdir(h5dir) == []: #if dir is empty, create a session
         tracking['path'] = os.path.join(h5dir,os.path.basename(h5dir)+'_session_0.hdf5')
         save_dict_to_hdf5(dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y"))),tracking['path'])
     else: #otherwise grab most recent session in dir
-        tracking['path'] = os.path.join(h5dir,highestName(list(filter(lambda s: s[-5:]=='.hdf5',os.listdir(experiment['meta']['path']))))[:-5])
-
+        tracking['path'] = os.path.join(h5dir,highestName(list(filter(lambda s: s[-5:]=='.hdf5',os.listdir(h5dir)))))
     with h5py.File(tracking['path'], 'r') as session:
+        print("session on")
         if 'date' not in session['meta'].keys(): #assigns date to this session if necessary, or replaces session if too old
             session.close()
-            save_dict_to_hdf5(dict(date=datetime.date.today().strftime("%d/%m/%Y"))),tracking['path'],path='/meta',mode='a')
+            print("give date")
+            save_dict_to_hdf5(dict(date=datetime.date.today().strftime("%d/%m/%Y")),tracking['path'],path='/meta',mode='a')
         elif session['meta']['date'] != datetime.date.today().strftime("%d/%m/%Y"):
             print('current session is old, saving current session and creating new session')
             session.close()
             try:
                 print(requests.get("http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],'data','uploadhdf5'),
-                        params=dict(filename=sessionname+'.hdf5',filepath=experiment['meta']['path'])).json())
+                        params=dict(filename=os.path.basename(tracking['path']),filepath=os.path.dirname(tracking['path']))).json())
             except:
                 print('automatic upload of completed session failed')
             tracking['path'] = os.path.join(h5dir,incrementName(os.path.basename(tracking['path'])))
             save_dict_to_hdf5(dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y"))),tracking['path'])
-
+    print("here2")
     with h5py.File(tracking['path'], 'r') as session: #adds a new run to session to receive incoming data
         if "run_0" not in session.keys(): 
             session.close()
@@ -120,10 +125,11 @@ def start(experiment: dict,**params):
         else:
             run = incrementName(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys()))))) #don't put any keys in here that have length less than 4 i guess
             session.close()
-            save_dict_to_hdf5({run:dict(experiment_0={},meta=params)})
+            save_dict_to_hdf5({run:dict(experiment_0={},meta=params)},tracking['path'],mode='a')
             tracking['run'] = int(run[4:])
     tracking['experiment'] = 0
-    save_dict_to_hdf5(,path=f'/run_{run}/experiment_0',mode='a')
+    save_dict_to_hdf5({'meta':None},tracking['path'],path=f'/run_{run}/experiment_0',mode='a')
+    print("here3")
     return experiment
 
 def finish(experiment: dict,**params):
@@ -135,10 +141,11 @@ def finish(experiment: dict,**params):
     except:
         print('automatic upload of completed session failed')
     
-    #what is this going to be now
-    session = dict(meta=dict())
-    sessionname = incrementName(sessionname)
-    hdfdict.dump(session,os.path.join(experiment['meta']['path'],sessionname+'.hdf5'),mode='w')
+    tracking['path'] = os.path.join(os.path.dirname(tracking['path']),incrementName(os.path.basename(tracking['path'])))
+    tracking['run'] = None
+    tracking['experiment'] = None
+    tracking['current_action'] = None
+    save_dict_to_hdf5(dict(meta=dict()),tracking['path'])
     #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
     return experiment
     
@@ -157,6 +164,7 @@ async def memory():
     task = asyncio.create_task(infl())
     global loop
     loop = asyncio.get_event_loop()
+    loop.set_exception_handler(normal_exception_handler)
 
 @app.on_event("shutdown")
 def disconnect():

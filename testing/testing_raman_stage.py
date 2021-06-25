@@ -13,7 +13,7 @@ def hits_points(points):
     #soe = ["orchestrator/start","table/calibration"]
     #params = {"start":None,"calibration":dict(x=json.dumps([70,10]),m=json.dumps([70,20]),y=json.dumps([10,20]),d=2)}
     soe = ["orchestrator/start"]
-    params = {"start":None}
+    params = {"start":dict(collectionkey="substrate")}
     meta = dict(substrate=1,ma=[0,0],r=.00001)
     experiment = dict(soe=soe,params=params,meta=meta)
     requests.post("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'] ,13380 ,"orchestrator" ,"addExperiment"),params= dict(experiment=json.dumps(experiment)))
@@ -32,10 +32,10 @@ def hits_points(points):
 
 if __name__ == "__main__":
     #points = [[i,j] for i in numpy.linspace(3,75,145) for j in numpy.linspace(5,27,45)]
-    points = [[i,j] for i in numpy.linspace(2,22,201) for j in numpy.linspace(4,24,201)]
+    points = [[i,j] for i in numpy.linspace(22.1,42,200) for j in numpy.linspace(4,24,201)]
     #points = [[19,19],[20,20]]
     #hits_points(points[16261:])
-    hits_points(points[16229:])
+    hits_points(points[:5])
     #points2 = [[i,j] for i in numpy.linspace(10,20,101) for j in numpy.linspace(10,20,101)]
     #hits_points(points2[:10])
     #soe = ["orchestrator/start","table/calibration_1","table/calibration_2","table/calibration_3","table/calibration_4","table/calibration_5"]

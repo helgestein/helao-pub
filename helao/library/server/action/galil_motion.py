@@ -13,7 +13,7 @@ import json
 from importlib import import_module
 from typing import Optional
 
-from helao.core.model import move_modes, transformation_mode
+from helao.library.driver.galil_driver import move_modes, transformation_mode
 from helao.core.server import Action, makeActServ
 
 

@@ -101,15 +101,3 @@ class return_runningact(BaseModel):
     samples_in: Optional[dict]
     samples_out: Optional[dict]
     output_dir: Optional[str]
-
-
-class move_modes(str, Enum):
-    homing = "homing"
-    relative = "relative"
-    absolute = "absolute"
-
-
-class transformation_mode(str, Enum):
-    motorxy = "motorxy"
-    platexy = "platexy"
-    instrxy = "instrxy"

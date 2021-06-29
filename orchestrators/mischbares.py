@@ -73,8 +73,7 @@ async def doMeasurement(experiment: str):
             await loop.run_in_executor(None,lambda x: requests.get(x,params=params),"http://{}:{}/{}/{}".format(config['servers']['dataServer']['host'], config['servers']['dataServer']['port'],server,action))
             continue
         elif server == 'orchestrator':
-            #experiment = await loop.run_in_executor(None,lambda c,e: process_native_command(c,e,**params),action,experiment)
-            experiment = process_native_command(action,experiment,**params)
+            experiment = await loop.run_in_executor(None,lambda c,e: process_native_command(c,e,**params),action,experiment)
             continue
         elif server == 'analysis':
             continue
@@ -164,12 +163,19 @@ async def memory():
     task = asyncio.create_task(infl())
     global loop
     loop = asyncio.get_event_loop()
-    loop.set_exception_handler(normal_exception_handler)
+    global error
+    error = asyncio.create_task(raise_exceptions())
 
 @app.on_event("shutdown")
 def disconnect():
-    global task
+    global task, error
+    error.cancel()
     task.cancel()
             
+async def raise_exceptions():
+    global task
+    await task
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host= config['servers']['orchestrator']['host'], port= config['servers']['orchestrator']['port'])

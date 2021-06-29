@@ -21,11 +21,10 @@ import asyncio
 import aiohttp
 import aiofiles
 from aiofiles.os import wrap
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.openapi.utils import get_flat_params
 
-from helao.core.helper import MultisubscriberQueue
-from helao.core.helper import dict_to_rcp
+from helao.core.helper import MultisubscriberQueue, dict_to_rcp, eval_val
 from helao.core.schema import Action, Decision
 from helao.core.model import return_dec, return_declist, return_act, return_actlist
 
@@ -39,6 +38,15 @@ class HelaoFastAPI(FastAPI):
         super().__init__(*args, **kwargs)
         self.helao_cfg = helao_cfg
         self.helao_srv = helao_srv
+
+
+def setupAct(action_dict: dict, request: Request, scope: dict):
+    servKey, _, action_name = request.url.path.strip("/").partition("/")
+    A = Action(action_dict, action_server=servKey, action_name=action_name)
+    for k in request.query_params.keys():
+        if k not in A.action_params.keys() and k not in ["request", "action_dict"]:
+            A.action_params[k] = scope[k]
+    return A
 
 
 def makeActServ(
@@ -831,8 +839,14 @@ class Base(object):
                     output_str += "\n"
                 await self.file_conn.write(output_str)
 
-        async def enqueue_data(self, data):
-            data_msg = {self.action.action_uuid: data}
+        async def enqueue_data(self, data, errors: list = []):
+            data_msg = {
+                self.action.action_uuid: {
+                    "data": data,
+                    "action_name": self.action.action_name,
+                    "errors": errors,
+                }
+            }
             await self.base.data_q.put(data_msg)
 
         async def log_data_task(self):
@@ -849,7 +863,8 @@ class Base(object):
                         # print('#################################################')
                         # print('1 ... data logger: received message')
                         # print('#################################################')
-                        data_val = data_msg[self.action.action_uuid]
+                        data_dict = data_msg[self.action.action_uuid]
+                        data_val = data_dict["data"]
                         if isinstance(data_val, list) or isinstance(data_val, tuple):
                             # print('#################################################')
                             # print('2 ... data logger: message is tuple/list')
@@ -857,7 +872,6 @@ class Base(object):
                             lines = "\n".join(
                                 [",".join([str(x) for x in l]) for l in data_val]
                             )
-                            self.action.data += data_msg
                         elif isinstance(data_val, dict):
                             # print('#################################################')
                             # print('3 ... data logger: message is dict')

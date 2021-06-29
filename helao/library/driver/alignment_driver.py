@@ -107,12 +107,14 @@ class aligner:
                 return response
 
 
-    async def move(self, d_mm, axis, speed: int, mode):
+    async def move(self, multi_d_mm, multi_axis, speed: int, mode):
         url = f"http://{self.motorhost}:{self.motorport}/{self.motorserv}/move"
-        if speed == None:
-            pars = {'d_mm':f"{d_mm}",'axis':f"{axis}",'mode':f"{mode}"}
-        else:
-            pars = {'d_mm':f"{d_mm}",'axis':f"{axis}",'speed':f"{speed}",'mode':f"{mode}"}
+        pars = {
+            'mulit_d_mm': multi_d_mm,
+            'multi_axis': multi_axis,
+            'speed': speed,
+            'mode': mode
+            }
         async with aiohttp.ClientSession() as session:
             async with session.post(url, params=pars) as resp:
                 response = await resp.json()

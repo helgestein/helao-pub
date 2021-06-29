@@ -29,8 +29,8 @@ Manual Bugfixes:
 import asyncio
 from typing import Optional
 from importlib import import_module
-
-from helao.core.server import Action, makeActServ
+from fastapi import Request
+from helao.core.server import makeActServ, setupAct
 
 
 def makeApp(confPrefix, servKey):
@@ -61,23 +61,17 @@ def makeApp(confPrefix, servKey):
     )
 
     @app.post(f"/{servKey}/get_meas_status")
-    async def get_meas_status(action_dict: Optional[dict] = None):
+    async def get_meas_status(request: Request, action_dict: Optional[dict] = None):
         """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "get_meas_status"
+        A = setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data({"status": await app.driver.status()})
         finished_act = await active.finish()
-        finished_dict = finished_act.as_dict()
-        del finished_act
-        return finished_dict
+        return finished_act.as_dict()
 
     @app.post(f"/{servKey}/run_LSV")
     async def run_LSV(
+        request: Request,
         Vinit: Optional[float] = 0.0,  # Initial value in volts or amps.
         Vfinal: Optional[float] = 1.0,  # Final value in volts or amps.
         ScanRate: Optional[float] = 1.0,  # Scan rate in volts/second or amps/second.
@@ -92,24 +86,14 @@ def makeApp(confPrefix, servKey):
         """Linear Sweep Voltammetry (unlike CV no backward scan is done)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action(save_data=True)
-            A.action_server = servKey
-            A.action_name = "run_LSV"
-            A.action_params["Vinit"] = Vinit
-            A.action_params["Vfinal"] = Vfinal
-            A.action_params["ScanRate"] = ScanRate
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_LSV(A)
         return active_dict
 
     @app.post(f"/{servKey}/run_CA")
     async def run_CA(
+        request: Request,
         Vval: Optional[float] = 0.0,
         Tval: Optional[float] = 10.0,
         SampleRate: Optional[
@@ -123,23 +107,14 @@ def makeApp(confPrefix, servKey):
         """Chronoamperometry (current response on amplied potential)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "run_CA"
-            A.action_params["Vval"] = Vval
-            A.action_params["Tval"] = Tval
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_CA(A)
         return active_dict
 
     @app.post(f"/{servKey}/run_CP")
     async def run_CP(
+        request: Request,
         Ival: Optional[float] = 0.0,
         Tval: Optional[float] = 10.0,
         SampleRate: Optional[
@@ -153,23 +128,14 @@ def makeApp(confPrefix, servKey):
         """Chronopotentiometry (Potential response on controlled current)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "run_CP"
-            A.action_params["Ival"] = Ival
-            A.action_params["Tval"] = Tval
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_CP(A)
         return active_dict
 
     @app.post(f"/{servKey}/run_CV")
     async def run_CV(
+        request: Request,
         Vinit: Optional[float] = 0.0,  # Initial value in volts or amps.
         Vapex1: Optional[float] = 1.0,  # Apex 1 value in volts or amps.
         Vapex2: Optional[float] = -1.0,  # Apex 2 value in volts or amps.
@@ -187,27 +153,14 @@ def makeApp(confPrefix, servKey):
         """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "run_CV"
-            A.action_params["Vinit"] = Vinit
-            A.action_params["Vapex1"] = Vapex1
-            A.action_params["Vapex2"] = Vapex2
-            A.action_params["Vfinal"] = Vfinal
-            A.action_params["ScanRate"] = ScanRate
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["Cycles"] = Cycles
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_CV(A)
         return active_dict
 
     @app.post(f"/{servKey}/run_EIS")
     async def run_EIS(
+        request: Request,
         Vval: Optional[float] = 0.0,
         Tval: Optional[float] = 10.0,
         Freq: Optional[float] = 1000.0,
@@ -225,26 +178,14 @@ def makeApp(confPrefix, servKey):
         NOT TESTED\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "run_CV"
-            A.action_params["Vval"] = Vval
-            A.action_params["Tval"] = Tval
-            A.action_params["Freq"] = Freq
-            A.action_params["RMS"] = RMS
-            A.action_params["Precision"] = Precision
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_EIS(A)
         return active_dict
 
     @app.post(f"/{servKey}/run_OCV")
     async def run_OCV(
+        request: Request,
         Tval: Optional[float] = 10.0,
         SampleRate: Optional[float] = 0.01,
         TTLwait: Optional[int] = -1,  # -1 disables, else select TTL 0-3
@@ -255,47 +196,33 @@ def makeApp(confPrefix, servKey):
         """mesasures open circuit potential\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "run_OCV"
-            A.action_params["Tval"] = Tval
-            A.action_params["SampleRate"] = SampleRate
-            A.action_params["TTLwait"] = TTLwait
-            A.action_params["TTLsend"] = TTLsend
-            A.action_params["IErange"] = IErange
+        A = setupAct(action_dict, request, locals())
+        A.save_data = True
         active_dict = await app.driver.technique_OCV(A)
         return active_dict
 
     @app.post(f"/{servKey}/stop")
-    async def stop(action_dict: Optional[dict] = None):
+    async def stop(
+        request: Request,
+        action_dict: Optional[dict] = None,
+        ):
         """Stops measurement in a controlled way."""
-        if action_dict:
-            A = Action(action_dict)
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "stop"
+        A = setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data({"stop_result": await app.driver.stop()})
         finished_act = await active.finish()
         return finished_act.as_dict()
 
     @app.post(f"/{servKey}/estop")
-    async def estop(switch: Optional[bool] = True, action_dict: Optional[dict] = None):
+    async def estop(
+        request: Request,
+        switch: Optional[bool] = True,
+        action_dict: Optional[dict] = None
+        ):
         """Same as stop, but also sets estop flag."""
-        if action_dict:
-            A = Action(action_dict)
-            switch = A.action_params["switch"]
-        else:
-            A = Action()
-            A.action_server = servKey
-            A.action_name = "estop"
-            A.action_params["switch"] = switch
+        A = setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data({"estop_result": await app.driver.estop(switch)})
+        await active.enqueue_data({"estop_result": await app.driver.estop(**A.action_params)})
         finished_act = await active.finish()
         return finished_act.as_dict()
 

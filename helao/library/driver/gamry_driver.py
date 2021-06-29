@@ -840,7 +840,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(
@@ -876,7 +876,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(
@@ -912,7 +912,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(
@@ -981,7 +981,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(
@@ -1022,7 +1022,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(
@@ -1054,7 +1054,7 @@ class gamry:
         )
 
         # common
-        self.IO_IErange = IErange
+        self.IO_IErange = Gamry_IErange(IErange)
         self.IO_TTLwait = TTLwait
         self.IO_TTLsend = TTLsend
         activeDict = await self.technique_wrapper(

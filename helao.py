@@ -140,7 +140,7 @@ class Pidd:
         print(active)
 
         activeserver = [k for k, _, _, _ in active]
-        KILL_ORDER = ["operators", "visualizer", "action", "server", "orchestrators"]
+        KILL_ORDER = ["operator", "visualizer", "action", "orchestrator"]
         for group in KILL_ORDER:
             print(f"Killing {group} group.")
             if group in pidd.A:
@@ -245,7 +245,7 @@ def wait_key():
 def launcher(confPrefix, confDict):
 
     # API server launch priority (matches folders in root helao-dev/)
-    LAUNCH_ORDER = ["server", "action", "orchestrator", "visualizer", "operator"]
+    LAUNCH_ORDER = ["action", "orchestrator", "visualizer", "operator"]
 
     pidd = Pidd(f"pids_{confPrefix}.pck")
     if not validateConfig(pidd, confDict):

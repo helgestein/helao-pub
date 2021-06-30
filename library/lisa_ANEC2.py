@@ -71,7 +71,7 @@ def orchtest(decisionObj: Decision, d_mm = '1.0'):
     #                  action_pars={'liquid_sample_no': 1,
     #                               'method': 'lcfc_fill_hardcodedvolume.cam',
     #                               'tool':'LS3',
-    #                               'source': 'electrolyte_res',
+    #                               'source': 'elec_res1',
     #                               'volume_uL': '30000', # uL
     #                               'totalvials': '1',
     #                               'sampleperiod': '0.0',
@@ -121,7 +121,7 @@ def orchtest(decisionObj: Decision, d_mm = '1.0'):
 
 
 
-def dilute_all(decisionObj: Decision, liquid_sample_no = '55', source= 'electrolyte_res', volume_uL = '800'):
+def dilute_all(decisionObj: Decision, liquid_sample_no = '55', source= 'elec_res2', volume_uL = '500'):
 
     action_list = []
 
@@ -219,7 +219,7 @@ def ADSS_CP(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0', liquid_sample_n
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '30000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -413,7 +413,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '10000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -517,7 +517,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -620,15 +620,16 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
 
 #-0.21-0.059*9.53
 #-0.77227
-pot_offset = -0.21-0.059*9.53
+#pot_offset = -0.21-0.059*9.53
 def ADSS_CA_5(decisionObj: Decision,
               x_mm = '10.0', y_mm = '10.0',
               liquid_sample_no = '3',
-              potential1 = f'{pot_offset+1.23+0.2}', 
-              potential2 = f'{pot_offset+1.23+0.4}', 
-              potential3 = f'{pot_offset+1.23+0.6}', 
-              potential4 = f'{pot_offset+1.23+0.8}', 
-              potential5 = f'{pot_offset+1.23+1.0}', 
+              potential1 = 1.23+0.2,
+              potential2 = 1.23+0.4,
+              potential3 = 1.23+0.6, 
+              potential4 = 1.23+0.8, 
+              potential5 = 1.23+1.0,
+              erhe = -0.21-0.059*9.53,
               duration = '1320', OCV_duration = '60', samplerate = '1', filltime = 10.0):
            
     """Chronoamperometry (current response on amplied potential):\n
@@ -694,7 +695,7 @@ def ADSS_CA_5(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '10000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -769,7 +770,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{potential1}',
+                         action_pars={"Vval": f'{erhe+potential1}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -801,7 +802,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -830,7 +831,7 @@ def ADSS_CA_5(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '1000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -875,7 +876,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{potential2}',
+                         action_pars={"Vval": f'{erhe+potential2}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -907,7 +908,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -934,7 +935,7 @@ def ADSS_CA_5(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '1000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -979,7 +980,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{potential3}',
+                         action_pars={"Vval": f'{erhe+potential3}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1011,7 +1012,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -1038,7 +1039,7 @@ def ADSS_CA_5(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '1000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -1083,7 +1084,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{potential4}',
+                         action_pars={"Vval": f'{erhe+potential4}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1115,7 +1116,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -1143,7 +1144,7 @@ def ADSS_CA_5(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '1000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -1187,7 +1188,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{potential5}',
+                         action_pars={"Vval": f'{erhe+potential5}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1219,7 +1220,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                           server_key="PAL",
                           action="run_method",
-                          action_pars={'liquid_sample_no': '-3', # signals to use third last item in liquid sample DB
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
                                       'source': 'lcfc_res',
@@ -1394,7 +1395,7 @@ def ADSS_CP10(decisionObj: Decision,
                          action_pars={'liquid_sample_no': f'{liquid_sample_no}',
                                       'method': 'lcfc_fill_hardcodedvolume.cam',
                                       'tool':'LS3',
-                                      'source': 'electrolyte_res',
+                                      'source': 'elec_res1',
                                       'volume_uL': '30000', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',

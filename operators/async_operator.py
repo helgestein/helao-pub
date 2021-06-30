@@ -442,8 +442,10 @@ class C_async_operator:
         print(' ... selected label:', sellabel)
 
         actparams = []
+        actparams_names = []
         for paraminput in self.param_input:
             actparams.append(str(paraminput.value))
+            actparams_names.append(str(paraminput.title))            
             print(' ... aditional action param:',paraminput.value)
 
         newuid = getuid('operator')
@@ -457,7 +459,8 @@ class C_async_operator:
              'sample_y':'',
              'composition':f'{composition}',
              'actualizer':f'{selaction}',
-             'actparams':json.dumps(actparams)}
+             'actparams':json.dumps(actparams),
+             'actparams_names':json.dumps(actparams_names)}
         return params
 
 

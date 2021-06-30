@@ -297,6 +297,7 @@ async def run_dispatch_loop():
                                 label = f'{D.label}',
                                 actualizer = f'{D.actualizer}',
                                 actualizerparams = D.actualizerparams,
+                                actualizerparams_names = D.actualizerparams_names,
                                 save_path = os.path.normpath(D.save_path),
                                 aux_files = f'{D.aux_files}',
                                 )
@@ -471,7 +472,7 @@ async def run_dispatch_loop():
 
 
 @app.post(f"/{servKey}/append_decision")
-def append_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams):
+def append_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams, actparams_names):
     """Add a decision object to the end of the decision queue.
 
     Args:
@@ -497,6 +498,7 @@ def append_decision(uid: str, plate_id: int, sample_no: int, label: str, element
                 composition = composition,
                 actualizer=action_lib[actualizer],
                 actualizerparams=json.loads(actparams),
+                actualizerparams_names=actparams_names,
             )
         )
     )
@@ -504,7 +506,7 @@ def append_decision(uid: str, plate_id: int, sample_no: int, label: str, element
 
 
 @app.post(f"/{servKey}/prepend_decision")
-def prepend_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams: list):
+def prepend_decision(uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer: str, actparams, actparams_names):
     """Add a decision object to the start of the decision queue.
 
     Args:
@@ -530,6 +532,7 @@ def prepend_decision(uid: str, plate_id: int, sample_no: int, label: str, elemen
                 composition = composition,
                 actualizer=action_lib[actualizer],
                 actualizerparams=actparams,
+                actualizerparams_names=actparams_names,
             )
         )
     )

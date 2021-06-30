@@ -325,7 +325,19 @@ class Action_params():
 
 
 class Decision:
-    def __init__(self, uid: str, plate_id: int, sample_no: int, label: str, elements: str, code: str, composition: str, sample_x: str, sample_y: str, actualizer, actualizerparams = []):
+    def __init__(self, 
+                 uid: str, 
+                 plate_id: int, 
+                 sample_no: int, 
+                 label: str, 
+                 elements: str, 
+                 code: str, 
+                 composition: str, 
+                 sample_x: str, 
+                 sample_y: str, 
+                 actualizer, 
+                 actualizerparams = [],
+                 actualizerparams_names = []):
         self.uid = uid
         self.plate_id = plate_id
         self.sample_no = sample_no
@@ -337,6 +349,7 @@ class Decision:
         self.sample_y = sample_y
         self.actualizer = actualizer
         self.actualizerparams = actualizerparams
+        self.actualizerparams_names = actualizerparams_names
         # self.created_at = f'{strftime("%Y%m%d.%H%M%S%z")}'
         self.save_path = ''
         self.aux_files = []

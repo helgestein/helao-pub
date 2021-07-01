@@ -177,15 +177,13 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
         key = str(key)
         if isinstance(item, list):
             item = np.array(item)
-            #print(item)
         if not isinstance(key, str):
             raise ValueError("dict keys must be strings to save to hdf5")
         # save strings, numpy.int64, and numpy.float64 types
         if isinstance(item, (np.int64, np.float64, str, np.float, float, np.float32,int)):
-            #print( 'here' )
             h5file[path + key] = item
-        if not h5file[path + key].value == item:
-            raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+            if not h5file[path + key][()] == item:
+                raise ValueError('The data representation in the HDF5 file does not match the original dict.')
         # save numpy arrays
         elif isinstance(item, np.ndarray):
             try:
@@ -193,7 +191,7 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
             except:
                 item = np.array(item).astype('|S9')
                 h5file[path + key] = item
-            if not np.array_equal(h5file[path + key].value, item):
+            if not np.array_equal(h5file[path + key][()], item):
                 raise ValueError('The data representation in the HDF5 file does not match the original dict.')
         elif isinstance(item, list):
             h5file[path + key] = np.array(item)
@@ -202,9 +200,10 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
         # save dictionaries
         elif isinstance(item, dict):
             recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+        elif item == None:
+            h5file.create_group(path + key)
         # other types cannot be saved and will result in an error
         else:
-            #print(item)
             raise ValueError('Cannot save %s type.' % type(item))
 
 

@@ -471,7 +471,7 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -622,15 +622,15 @@ def ADSS_CA(decisionObj: Decision, x_mm = '10.0', y_mm = '10.0',liquid_sample_no
 #-0.77227
 #pot_offset = -0.21-0.059*9.53
 def ADSS_CA_5(decisionObj: Decision,
-              x_mm = '10.0', y_mm = '10.0',
-              liquid_sample_no = '3',
-              potential1 = 1.23+0.2,
-              potential2 = 1.23+0.4,
-              potential3 = 1.23+0.6, 
-              potential4 = 1.23+0.8, 
-              potential5 = 1.23+1.0,
-              erhe = -0.21-0.059*9.53,
-              duration = '1320', OCV_duration = '60', samplerate = '1', filltime = 10.0):
+              x_mm: float = 10.0, y_mm: float = 10.0,
+              liquid_sample_no: int = '3',
+              potential1: float = 1.23+0.2,
+              potential2: float = 1.23+0.4,
+              potential3: float = 1.23+0.6, 
+              potential4: float = 1.23+0.8, 
+              potential5: float = 1.23+1.0,
+              erhe: float = -0.21-0.059*9.53,
+              duration: float = 1320, OCV_duration: float = 60, samplerate: float = 1, filltime: float = 10.0):
            
     """Chronoamperometry (current response on amplied potential):\n
         x_mm / y_mm: plate coordinates of sample;\n
@@ -638,8 +638,20 @@ def ADSS_CA_5(decisionObj: Decision,
         duration (sec): how long the potential is applied;\n
         samplerate (sec): sampleperiod of Gamry;\n
         filltime (sec): how long it takes to fill the cell with liquid or empty it."""
-    action_list = []
 
+    potential1 = float(potential1)+float(erhe)
+    potential2 = float(potential2)+float(erhe)
+    potential3 = float(potential3)+float(erhe)
+    potential4 = float(potential4)+float(erhe)
+    potential5 = float(potential5)+float(erhe)
+    print(potential1)
+    print(potential2)
+    print(potential3)
+    print(potential4)
+    print(potential5)
+
+
+    action_list = []
     # move z to home
     action_list.append(Action(decision=decisionObj,
                          server_key="motor",
@@ -756,7 +768,7 @@ def ADSS_CA_5(decisionObj: Decision,
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -770,7 +782,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{erhe+potential1}',
+                         action_pars={"Vval": f'{potential1}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -862,7 +874,7 @@ def ADSS_CA_5(decisionObj: Decision,
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -876,7 +888,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{erhe+potential2}',
+                         action_pars={"Vval": f'{potential2}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -966,7 +978,7 @@ def ADSS_CA_5(decisionObj: Decision,
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -980,7 +992,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{erhe+potential3}',
+                         action_pars={"Vval": f'{potential3}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1070,7 +1082,7 @@ def ADSS_CA_5(decisionObj: Decision,
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -1084,7 +1096,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{erhe+potential4}',
+                         action_pars={"Vval": f'{potential4}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1174,7 +1186,7 @@ def ADSS_CA_5(decisionObj: Decision,
                           action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
                                       'method': 'lcfc_archive.cam',
                                       'tool':'LS3',
-                                      'source': '',
+                                      'source': 'lcfc_res',
                                       'volume_uL': '200', # uL
                                       'totalvials': '1',
                                       'sampleperiod': '0.0',
@@ -1188,7 +1200,7 @@ def ADSS_CA_5(decisionObj: Decision,
     action_list.append(Action(decision=decisionObj,
                          server_key="potentiostat",
                          action="run_CA",
-                         action_pars={"Vval": f'{erhe+potential5}',
+                         action_pars={"Vval": f'{potential5}',
                                       "Tval": f'{duration}',
                                       "SampleRate": f'{samplerate}',
                                       "TTLwait": '-1',
@@ -1301,16 +1313,16 @@ def ADSS_CA_5(decisionObj: Decision,
 
 
     # move z to home
-    action_list.append(Action(decision=decisionObj,
-                         server_key="motor",
-                         action="move",
-                         action_pars={"d_mm": f'{z_home}',
-                                      "axis": "z",
-                                      "mode": "absolute",
-                                      "transformation": "instrxy",
-                                      },
-                         preempt=True,
-                         block=False))
+    # action_list.append(Action(decision=decisionObj,
+    #                      server_key="motor",
+    #                      action="move",
+    #                      action_pars={"d_mm": f'{z_home}',
+    #                                   "axis": "z",
+    #                                   "mode": "absolute",
+    #                                   "transformation": "instrxy",
+    #                                   },
+    #                      preempt=True,
+    #                      block=False))
 
 
     return action_list
@@ -1634,16 +1646,16 @@ def ADSS_CP10(decisionObj: Decision,
                           block=False))
 
     # move z to home
-    action_list.append(Action(decision=decisionObj,
-                         server_key="motor",
-                         action="move",
-                         action_pars={"d_mm": f'{z_home}',
-                                      "axis": "z",
-                                      "mode": "absolute",
-                                      "transformation": "instrxy",
-                                      },
-                         preempt=True,
-                         block=False))
+    # action_list.append(Action(decision=decisionObj,
+    #                      server_key="motor",
+    #                      action="move",
+    #                      action_pars={"d_mm": f'{z_home}',
+    #                                   "axis": "z",
+    #                                   "mode": "absolute",
+    #                                   "transformation": "instrxy",
+    #                                   },
+    #                      preempt=True,
+    #                      block=False))
 
 
     return action_list

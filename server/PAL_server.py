@@ -1456,7 +1456,7 @@ async def get_first_full_vial_position(action_params = ''):
 async def run_method(liquid_sample_no: int, 
                method: PALmethods = PALmethods.fillfixed,#lcfc_fill_hardcodedvolume.cam',
                tool: str = 'LS3',
-               source: str = 'electrolyte_res',
+               source: str = 'elec_res1',
                volume_uL: int = 0, # uL
                #logfile: str = 'TestLogFile.txt',
                totalvials: int = 1,

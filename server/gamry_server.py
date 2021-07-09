@@ -367,7 +367,7 @@ async def run_OCV(
 @app.post(f"/{servKey}/stop")
 async def stop(action_params = ''):
     """Stops measurement in a controlled way."""
-    runparams = action_runparams(uid=getuid(servKey), name="stop")
+    runparams = action_runparams(uid=getuid(servKey), name="stop",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
         measurement_type="gamry_command",
@@ -382,7 +382,7 @@ async def stop(action_params = ''):
 @app.post(f"/{servKey}/estop")
 async def estop(switch: bool = True, action_params = ''):
     """Same as stop, but also sets estop flag."""
-    runparams = action_runparams(uid=getuid(servKey), name="estop")
+    runparams = action_runparams(uid=getuid(servKey), name="estop",  action_params = action_params)
     await stat.set_run(runparams.statuid, runparams.statname)
     retc = return_class(
         measurement_type="gamry_command",

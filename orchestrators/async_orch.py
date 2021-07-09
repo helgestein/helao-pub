@@ -282,7 +282,7 @@ async def run_dispatch_loop():
             await asyncio.sleep(2)
             # creating folder structure for decission
             # D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel__{D.uid}'
-            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__nolabel'
+            D.save_path = f'{strftime("%y.%U")}\\{strftime("%Y%m%d")}\\{strftime("%H%M%S")}__{D.label}'
            
             # open new file and write header
             # rcpdatafile_dec.filename = f'{strftime("%Y%m%d.%H%M%S")}__{D.uid}.prercp'

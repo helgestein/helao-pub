@@ -810,6 +810,9 @@ class cPAL:
         plate_id = None
         sample_no = None
         oldvial = None
+        # shh_retries = 10
+        # ssh_retries_counter = 0
+        ssh_connect = False
         
         # (1) check if we have free vial slots
         if PALparams.method == PALmethods.archive:
@@ -882,127 +885,142 @@ class cPAL:
                     print(' ... source_supplier:', source_supplier)
                     print(' ... source_lotnumber:', source_lotnumber)
                     
-                    
-                    
                     new_liquid_sample_no = await self.create_new_liquid_sample_no(DUID, AUID, source=PALparams.liquid_sample_no, sourcevol_mL = PALparams.volume_uL/1000.0,
                                                          volume_mL = PALparams.volume_uL/1000.0, action_time=actiontime, chemical=source_chemical,
                                                          mass=source_mass, supplier=source_supplier, lot_number=source_lotnumber,
                                                          servkey=self.servkey, plate_id = plate_id, sample_no = sample_no)
-        
-
-
-
 
                 path_methodfile = os.path.join( self.method_path,  PALparams.method.value)
                 
-        
+
                 # open SSH to PAL
-                k = paramiko.RSAKey.from_private_key_file(self.sshkey)
-                mysshclient = paramiko.SSHClient()
-                mysshclient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                mysshclient.connect(hostname=self.sshhost, username=self.sshuser, pkey=k)
-        
-                # creating folder first on rshs
-                print('##############################################################')
-                unixpath = '/cygdrive/c'
-                print()
-                for path in self.FIFO_unixdir.split('/'):
-                    
-                    unixpath += '/'+path
-                    print(' ... adding',path, ' ... ',unixpath)
-                    if path != '':
-                        sshcmd = f'mkdir {unixpath}'
-                        print(' ... cmd', sshcmd)
-                        mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
-                        # print('################',mysshclient_stdin)
-                        # print('################',mysshclient_stdout)
-                        # print('################',mysshclient_stderr)
-                if not unixpath.endswith("/"):
-                    unixpath += '/'
-                print(' ... final', unixpath)        
-                unixlogfile = f'AUX{PALparams.cur_sample:08d}__'+self.FIFO_name
-                unixlogfilefull = unixpath+unixlogfile
-                sshcmd = f'touch {unixlogfilefull}'        
-                mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
-        
-        
-                auxheader = 'Date\tMethod\tTool\tSource\tDestinationTray\tDestinationSlot\tDestinationVial\tVolume\r\n' # for \r\n
-                # sshcmd = f'cd {unixpath}'
-                # print(' .... ', sshcmd)
-                # mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
-                # sshcmd = f'echo "{auxheader}" > {unixlogfile}'
-                sshcmd = f'echo -e "{auxheader}" > {unixlogfilefull}'
-                print(' .... ', sshcmd)
-                mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
-        
-                print(' ... final', unixlogfilefull)
-                print('##############################################################')        
+                while not ssh_connect:
+                    try:
+                        k = paramiko.RSAKey.from_private_key_file(self.sshkey)
+                        mysshclient = paramiko.SSHClient()
+                        mysshclient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                        mysshclient.connect(hostname=self.sshhost, username=self.sshuser, pkey=k)
+                        ssh_connect = True
+                    except Exception:
+                        ssh_connect = False
+                        print('##############################################################')
+                        print(' ... SSH connection error. Retrying in 1 seconds.')
+                        print('##############################################################')
+                        await asyncio.sleep(1)
+                        
+                try:
+                    # creating folder first on rshs
+                    print('##############################################################')
+                    unixpath = '/cygdrive/c'
+                    print()
+                    for path in self.FIFO_unixdir.split('/'):
+                        
+                        unixpath += '/'+path
+                        print(' ... adding',path, ' ... ',unixpath)
+                        if path != '':
+                            sshcmd = f'mkdir {unixpath}'
+                            print(' ... cmd', sshcmd)
+                            mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
+                            # print('################',mysshclient_stdin)
+                            # print('################',mysshclient_stdout)
+                            # print('################',mysshclient_stderr)
+                    if not unixpath.endswith("/"):
+                        unixpath += '/'
+                    print(' ... final', unixpath)        
+                    unixlogfile = f'AUX{PALparams.cur_sample:08d}__'+self.FIFO_name
+                    unixlogfilefull = unixpath+unixlogfile
+                    sshcmd = f'touch {unixlogfilefull}'        
+                    mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
+            
+            
+                    auxheader = 'Date\tMethod\tTool\tSource\tDestinationTray\tDestinationSlot\tDestinationVial\tVolume\r\n' # for \r\n
+                    # sshcmd = f'cd {unixpath}'
+                    # print(' .... ', sshcmd)
+                    # mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
+                    # sshcmd = f'echo "{auxheader}" > {unixlogfile}'
+                    sshcmd = f'echo -e "{auxheader}" > {unixlogfilefull}'
+                    print(' .... ', sshcmd)
+                    mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(sshcmd)
+            
+                    print(' ... final', unixlogfilefull)
+                    print('##############################################################')        
                                 
         
         
-                # path_logfile = self.log_file
-                path_logfile = os.path.join(self.FIFO_dir, 'AUX__'+self.FIFO_name) # need to be txt at end
-                self.IO_remotedatafile = path_logfile
-                
-                wash1 = 'False'
-                wash2 = 'False'
-                wash3 = 'False'
-                wash4 = 'False'
-
-
-                if PALparams.wash1 is True:
-                    wash1 = 'True'
-
-                if PALparams.wash2 is True:
-                    wash2 = 'True'
-
-                if PALparams.wash3 is True:
-                    wash3 = 'True'
-
-                if PALparams.wash4 is True:
-                    wash4 = 'True'
-
-
-
-
-                cmd_to_execute = f'tmux new-window PAL  /loadmethod "{path_methodfile}" "{PALparams.tool};{PALparams.source};{PALparams.volume_uL};{PALparams.dest_tray};{PALparams.dest_slot};{PALparams.dest_vial};{wash1};{wash2};{wash3};{wash4};{path_logfile}" /start /quit'
-                print(' ... PAL command:')
-                print(cmd_to_execute)
-        
-                # update now the vial warehouse before PAL command gets executed
-                # only needs to be updated if
-                if  PALparams.dest_tray is not None:
+                    # path_logfile = self.log_file
+                    path_logfile = os.path.join(self.FIFO_dir, 'AUX__'+self.FIFO_name) # need to be txt at end
+                    self.IO_remotedatafile = path_logfile
                     
-                    if PALparams.method == PALmethods.dilute:
-                        retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
-                                                                slot = PALparams.dest_slot,
-                                                                vial = PALparams.dest_vial,
-                                                                vol_mL = PALparams.volume_uL/1000.0,
-                                                                liquid_sample_no = new_liquid_sample_no,
-                                                                dilute = True)
-                    elif PALparams.method == PALmethods.deepclean:
-                        retval = True
-                    else:
-                        retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
-                                                                slot = PALparams.dest_slot,
-                                                                vial = PALparams.dest_vial,
-                                                                vol_mL = PALparams.volume_uL/1000.0,
-                                                                liquid_sample_no = new_liquid_sample_no)
-                    if retval == False:
-                        error = 'vial_slot_not_available'
+                    wash1 = 'False'
+                    wash2 = 'False'
+                    wash3 = 'False'
+                    wash4 = 'False'
     
+    
+                    if PALparams.wash1 is True:
+                        wash1 = 'True'
+    
+                    if PALparams.wash2 is True:
+                        wash2 = 'True'
+    
+                    if PALparams.wash3 is True:
+                        wash3 = 'True'
+    
+                    if PALparams.wash4 is True:
+                        wash4 = 'True'
+
+
+
+
+                    cmd_to_execute = f'tmux new-window PAL  /loadmethod "{path_methodfile}" "{PALparams.tool};{PALparams.source};{PALparams.volume_uL};{PALparams.dest_tray};{PALparams.dest_slot};{PALparams.dest_vial};{wash1};{wash2};{wash3};{wash4};{path_logfile}" /start /quit'
+                    #cmd_to_execute = f'tmux new-window PAL  /loadmethod "{path_methodfile}" "{PALparams.tool};{PALparams.source};{PALparams.volume_uL};{PALparams.dest_tray};{PALparams.dest_slot};{PALparams.dest_vial};{wash1};{wash2};{wash3};{wash4};{path_logfile}" /start'
+                    print(' ... PAL command:')
+                    print(cmd_to_execute)
         
+                    # update now the vial warehouse before PAL command gets executed
+                    # only needs to be updated if
+                    if  PALparams.dest_tray is not None:
+                        
+                        if PALparams.method == PALmethods.dilute:
+                            retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
+                                                                    slot = PALparams.dest_slot,
+                                                                    vial = PALparams.dest_vial,
+                                                                    vol_mL = PALparams.volume_uL/1000.0,
+                                                                    liquid_sample_no = new_liquid_sample_no,
+                                                                    dilute = True)
+                        elif PALparams.method == PALmethods.deepclean:
+                            retval = True
+                        else:
+                            retval = await self.update_PAL_system_vial_table(tray = PALparams.dest_tray,
+                                                                    slot = PALparams.dest_slot,
+                                                                    vial = PALparams.dest_vial,
+                                                                    vol_mL = PALparams.volume_uL/1000.0,
+                                                                    liquid_sample_no = new_liquid_sample_no)
+                        if retval == False:
+                            error = 'vial_slot_not_available'
         
+            
+            
+
+                except Exception:
+                    print('##############################################################')
+                    print(' ... SSH connection error 1. Could not send commands.')
+                    print('##############################################################')
+                    error = 'ssh_error'
+
+                try:
+                    if error is None:
+                        ssh_time = time.time_ns()
+                        mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(cmd_to_execute)
+                        mysshclient.close()
+                except Exception:
+                    print('##############################################################')
+                    print(' ... SSH connection error 2. Could not send commands.')
+                    print('##############################################################')
+                    error = 'ssh_error'
+            
+            
                 if error is None:
-                    ssh_time = time.time_ns()
-                    mysshclient_stdin, mysshclient_stdout, mysshclient_stderr = mysshclient.exec_command(cmd_to_execute)
-                    mysshclient.close()
-            
-            
-            
-             
-            
-                    
                     # only wait if triggers are configured
                     if self.triggers:
                         print(' ... waiting for PAL start trigger')

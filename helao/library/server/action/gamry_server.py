@@ -63,7 +63,7 @@ def makeApp(confPrefix, servKey):
     @app.post(f"/{servKey}/get_meas_status")
     async def get_meas_status(request: Request, action_dict: Optional[dict] = None):
         """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data({"status": await app.driver.status()})
         finished_act = await active.finish()
@@ -86,7 +86,7 @@ def makeApp(confPrefix, servKey):
         """Linear Sweep Voltammetry (unlike CV no backward scan is done)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_LSV(A)
         return active_dict
@@ -107,7 +107,7 @@ def makeApp(confPrefix, servKey):
         """Chronoamperometry (current response on amplied potential)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_CA(A)
         return active_dict
@@ -128,7 +128,7 @@ def makeApp(confPrefix, servKey):
         """Chronopotentiometry (Potential response on controlled current)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_CP(A)
         return active_dict
@@ -153,7 +153,7 @@ def makeApp(confPrefix, servKey):
         """Cyclic Voltammetry (most widely used technique for acquireing information about electrochemical reactions)\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_CV(A)
         return active_dict
@@ -178,7 +178,7 @@ def makeApp(confPrefix, servKey):
         NOT TESTED\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_EIS(A)
         return active_dict
@@ -196,7 +196,7 @@ def makeApp(confPrefix, servKey):
         """mesasures open circuit potential\n
         use 4bit bitmask for triggers\n
         IErange depends on gamry model used (test actual limit before using)"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         A.save_data = True
         active_dict = await app.driver.technique_OCV(A)
         return active_dict
@@ -207,7 +207,7 @@ def makeApp(confPrefix, servKey):
         action_dict: Optional[dict] = None,
         ):
         """Stops measurement in a controlled way."""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data({"stop_result": await app.driver.stop()})
         finished_act = await active.finish()
@@ -220,7 +220,7 @@ def makeApp(confPrefix, servKey):
         action_dict: Optional[dict] = None
         ):
         """Same as stop, but also sets estop flag."""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data({"estop_result": await app.driver.estop(**A.action_params)})
         finished_act = await active.finish()

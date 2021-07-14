@@ -40,12 +40,18 @@ class HelaoFastAPI(FastAPI):
         self.helao_srv = helao_srv
 
 
-def setupAct(action_dict: dict, request: Request, scope: dict):
+async def setupAct(action_dict: dict, request: Request, scope: dict):
     servKey, _, action_name = request.url.path.strip("/").partition("/")
+    body_params = await request.json()
+    param_names = list(body_params.keys()) + list(request.query_params.keys())
+    scope.update(body_params)
     A = Action(action_dict, action_server=servKey, action_name=action_name)
-    for k in request.query_params.keys():
+    for k in param_names:
         if k not in A.action_params.keys() and k not in ["request", "action_dict"]:
-            A.action_params[k] = scope[k]
+            if scope[k] is not None:
+                A.action_params[k] = scope[k]
+            else:
+                print(k, "is None")
     return A
 
 
@@ -1060,6 +1066,7 @@ class Orch(Base):
 
         # compilation of action server status dicts
         self.global_state_dict = defaultdict(lambda: defaultdict(list))
+        self.global_state_dict['_internal']['async_dispatcher'] = []
         self.global_q = MultisubscriberQueue()  # passes global_state_dict dicts
 
         # global state of all instruments as string [idle|busy] independent of dispatch loop
@@ -1220,7 +1227,7 @@ class Orch(Base):
                 f"http://{act_addr}:{act_port}/{A.action_server}/{A.action_name}",
                 params=Adict,
             ) as resp:
-                response = await resp.text()
+                response = await resp.json()
                 return response
 
     async def dispatch_loop_task(self):

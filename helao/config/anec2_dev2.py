@@ -48,23 +48,23 @@ config["servers"] = dict(
                 C=1.0/6396.315722,#1.0/6395.45,
                 D=1.0/3154.787,#1.0/3154.787,
             ),
-            galil_ip_str="192.168.200.23",
+            galil_ip_str="192.168.200.234",
             def_speed_count_sec=10000,
             max_speed_count_sec=25000,
-            ipstr="192.168.200.23",
+            ipstr="192.168.200.234",
             axis_id=dict(
-                x="C",
+                x="D",
                 y="B",
                 z="A",
-                Rz="D",
+                Rz="C",
                 #t="E",
                 #u="F"
                 ),
             axis_zero=dict(
                 A=0.0, #z
-                B=52.0, #y
+                B=77.0, #y
                 C=77.0, #x
-                D=0.0, #Rz
+                D=52.0, #Rz
                 #t="E",
                 #u="F"
                 ),

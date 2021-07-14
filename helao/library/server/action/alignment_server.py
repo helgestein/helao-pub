@@ -32,7 +32,7 @@ def makeApp(confPrefix, servKey):
         """Return the current motor position"""
         # gets position of all axis, but use only axis defined in aligner server params
         # can also easily be 3d axis (but not implemented yet so only 2d for now)
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.get_position())
         finished_act = await active.finish()
@@ -48,7 +48,7 @@ def makeApp(confPrefix, servKey):
         mode: Optional[move_modes] = "relative",
         action_dict: Optional[dict] = None
     ):
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         # A.action_params['stopping'] = False
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.move(**A.action_params))
@@ -59,7 +59,7 @@ def makeApp(confPrefix, servKey):
     # only for alignment bokeh server
     @app.post(f"/{servKey}/private/MxytoMPlate")
     async def private_MxytoMPlate(request: Request, Mxy: Optional[List[List[float]]], action_dict: Optional[dict]=None):
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.MxytoMPlate(Mxy))
         finished_act = await active.finish()
@@ -69,7 +69,7 @@ def makeApp(confPrefix, servKey):
     # only for alignment bokeh server
     @app.post(f"/{servKey}/private/toPlateXY")
     async def private_toPlateXY(request: Request, motorxy: Optional[List[List[float]]], action_dict: Optional[dict]=None):
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.motor_to_platexy(**A.action_params))
         finished_act = await active.finish()
@@ -78,7 +78,7 @@ def makeApp(confPrefix, servKey):
     # only for alignment bokeh server
     @app.post(f"/{servKey}/private/toMotorXY")
     async def private_toMotorXY(request: Request, platexy: Optional[List[List[float]]], action_dict: Optional[dict]=None):
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.plate_to_motorxy(**A.action_params))
         finished_act = await active.finish()
@@ -88,7 +88,7 @@ def makeApp(confPrefix, servKey):
     @app.post(f"/{servKey}/private/align_get_PM")
     async def private_align_get_PM(request: Request, action_dict: Optional[dict]=None):
         """Returns the PM for the alignment Visualizer"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.get_PM())
         finished_act = await active.finish()
@@ -98,7 +98,7 @@ def makeApp(confPrefix, servKey):
     @app.post(f"/{servKey}/private/ismoving")
     async def private_align_ismoving(request: Request, axis: str="xy", action_dict: Optional[dict]=None):
         """check if motor is moving"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.ismoving(**A.action_params))
         finished_act = await active.finish()
@@ -110,7 +110,7 @@ def makeApp(confPrefix, servKey):
         request: Request, Transfermatrix: Optional[List[List[int]]]=None, errorcode: Optional[str]=None, action_dict: Optional[dict]=None, 
     ):
         """the bokeh server will send its Transfermatrix back with this"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         # saving params from bokehserver so we can send them back
         app.driver.newTransfermatrix = Transfermatrix
@@ -135,7 +135,7 @@ def makeApp(confPrefix, servKey):
     ):
         """Starts alignment process and returns TransferMatrix"""
         print("Getting alignment for:", plateid)
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         await active.enqueue_data(await app.driver.get_alignment(**A.action_params))
         finished_act = await active.finish()
@@ -148,7 +148,7 @@ def makeApp(confPrefix, servKey):
     @app.post(f"/{servKey}/align_status")
     async def align_status(request: Request, action_dict: Optional[dict]=None):
         """Return status of current alignment"""
-        A = setupAct(action_dict, request, locals())
+        A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
         data={
             "aligning": await app.driver.is_aligning(),  # true when in progress, false otherwise

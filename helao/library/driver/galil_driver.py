@@ -91,6 +91,11 @@ class galil:
             self.g.GOpen("%s --direct -s ALL" % (self.config_dict["galil_ip_str"]))
             print(self.g.GInfo())
             self.c = self.g.GCommand  # alias the command callable
+            self.c("SH; PF 10.0")
+            axis_init = [("MT", 2), ("CE", 4), ("TW", 32000)]
+            for ax in self.config_dict['axis_id'].values():
+                for ac, av in axis_init:
+                    self.c(f"{ac}{ax}={av}")
         except Exception:
             # todo retrzy counter
             print("###########################################################")
@@ -159,15 +164,15 @@ class galil:
             # go slow to find the same position every time
             # first a fast move to find the switch
             retc1 = await self.motor_move(
-                [0 for ax in axis], axis, None, move_modes.homing
+                [0 for ax in axis], axis, None, move_modes.homing, "motorxy"
             )
             # move back 2mm
             retc1 = await self.motor_move(
-                [2 for ax in axis], axis, None, move_modes.relative
+                [2 for ax in axis], axis, None, move_modes.relative, "motorxy"
             )
             # approach switch again very slow to get better zero position
             retc1 = await self.motor_move(
-                [0 for ax in axis], axis, 1000, move_modes.homing
+                [0 for ax in axis], axis, 1000, move_modes.homing, "motorxy"
             )
 
             retc2 = await self.motor_move(
@@ -178,6 +183,7 @@ class galil:
                 [ax for ax in axis],
                 None,
                 move_modes.relative,
+                "motorxy"
             )
 
             # set absolute zero to current position
@@ -402,6 +408,7 @@ class galil:
                 stopping = False
 
             # first we check if we have the right axis specified
+            # if 1:
             if axis in self.config_dict["axis_id"].keys():
                 ax = self.config_dict["axis_id"][axis]
             else:
@@ -416,6 +423,7 @@ class galil:
 
             # check if the motors are moving if so return an error message
             # recalculate the distance in mm into distance in counts
+            # if 1:
             try:
                 print(" ... count_to_mm:", ax, self.config_dict["count_to_mm"][ax])
                 float_counts = (
@@ -448,6 +456,7 @@ class galil:
                 ret_counts.append(None)
                 continue
 
+            # if 1:
             try:
                 # the logic here is that we assemble a command sequence
                 # here we decide if we move relative, home, or move absolute
@@ -493,7 +502,7 @@ class galil:
                 ret_counts.append(counts)
                 # time = counts/ counts_per_second
 
-                continue
+                # continue
             except Exception:
                 ret_moved_axis.append(None)
                 ret_speed.append(None)
@@ -603,7 +612,7 @@ class galil:
         axlett = "ABCDEFGH"
         axlett = axlett[0 : len(q.split(","))]
         inv_axis_id = {d: v for v, d in self.config_dict["axis_id"].items()}
-        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(axlett)}
+        ax_abc_to_xyz = {l: inv_axis_id[l] for i, l in enumerate(axlett) if l in inv_axis_id.keys()}
         # this puts the counts back to motor mm
         pos = {
             axl: int(r) * self.config_dict["count_to_mm"][axl]

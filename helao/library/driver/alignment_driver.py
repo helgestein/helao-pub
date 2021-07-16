@@ -20,18 +20,18 @@ class aligner:
 
         # TODO: Need to be replaced later for ORCH call, instead direct call
         self.motorserv = self.config_dict['motor_server']
-        self.motorhost = self.C[self.motorserv].host
-        self.motorport = self.C[self.motorserv].port
+        self.motorhost = self.C[self.motorserv]['host']
+        self.motorport = self.C[self.motorserv]['port']
 
         self.visserv = self.config_dict['vis_server']
-        self.vishost = self.C[self.visserv].host
-        self.visport = self.C[self.visserv].port
+        self.vishost = self.C[self.visserv]['host']
+        self.visport = self.C[self.visserv]['port']
 
         # TODO: need another way to get which data_server to use?
         # do this via orch call later
         self.dataserv = self.config_dict['data_server']
-        self.datahost = self.C[self.dataserv].host
-        self.dataport = self.C[self.dataserv].port
+        self.datahost = self.C[self.dataserv]['host']
+        self.dataport = self.C[self.dataserv]['port']
 
 
         # stores the plateid
@@ -45,16 +45,16 @@ class aligner:
         # these are the params the Visulalizer needs
         self.plateid = plateid
         if motor in self.C.keys():
-            self.motorhost = self.C[motor].host
-            self.motorport = self.C[motor].port
+            self.motorhost = self.C[motor]['host']
+            self.motorport = self.C[motor]['port']
             self.motorserv = motor
         else:
             print(f'Alignment Error. {motor} server not found.')
             return []
 
         if data in self.C.keys():
-            self.datahost = self.C[data].host
-            self.dataport = self.C[data].port
+            self.datahost = self.C[data]['host']
+            self.dataport = self.C[data]['port']
             self.dataserv = data
         else:
             print(f'Alignment Error. {data} server not found.')

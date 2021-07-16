@@ -408,6 +408,7 @@ class Base(object):
         self.hostname = gethostname()
         self.save_root = None
         self.technique_name = None
+        self.aloop = asyncio.get_running_loop()
 
         if "technique_name" in self.world_cfg.keys():
             print(
@@ -451,8 +452,8 @@ class Base(object):
             asyncio.gather(self.get_ntp_time())
         self.init_endpoint_status(fastapp)
         self.fast_urls = self.get_endpoint_urls(fastapp)
-        self.status_logger = asyncio.create_task(self.log_status_task())
-        self.ntp_syncer = asyncio.create_task(self.sync_ntp_task())
+        self.status_logger = self.aloop.create_task(self.log_status_task())
+        self.ntp_syncer = self.aloop.create_task(self.sync_ntp_task())
 
     def init_endpoint_status(self, app: FastAPI):
         "Populate status dict with FastAPI server endpoints for monitoring."
@@ -698,8 +699,9 @@ class Base(object):
                     year_week,
                     decision_date,
                     f"{decision_time}_{self.action.decision_label}",
-                    f"{self.action.action_queue_time}__{self.action.action_uuid}",
+                    f"{self.action.action_queue_time}__{self.action.action_server}__{self.action.action_name}__{self.action.action_uuid}",
                 )
+            self.data_logger = self.base.aloop.create_task(self.log_data_task())
 
         async def myinit(self):
             # print('#################################################')
@@ -760,9 +762,6 @@ class Base(object):
                     ].update({self.action.filename: file_info})
                     await self.set_output_file(self.action.filename, self.action.header)
             await self.add_status()
-            self.data_logger = asyncio.create_task(self.log_data_task())
-            # myloop = asyncio.get_event_loop()
-            # self.data_logger = myloop.create_task(self.log_data_task())
 
         async def add_status(self):
             self.base.status[self.action.action_name].append(self.action.action_uuid)
@@ -794,7 +793,7 @@ class Base(object):
                 {self.action.action_name: self.base.status[self.action.action_name]}
             )
 
-        async def set_error(self):
+        async def set_error(self, err_msg: Optional[str]=None):
             self.base.status[self.action.action_name].remove(self.action.action_uuid)
             self.base.status[self.action.action_name].append(
                 f"{self.action.action_uuid}__error"
@@ -802,6 +801,10 @@ class Base(object):
             print(
                 f" ... ERROR {self.action.action_uuid} on {self.action.action_name} status."
             )
+            if err_msg:
+                self.action.error_code = err_msg
+            else:
+                self.action.error_code = "-1 unspecified error"
             await self.base.status_q.put(
                 {self.action.action_name: self.base.status[self.action.action_name]}
             )
@@ -838,9 +841,9 @@ class Base(object):
         async def write_live_data(self, output_str: str):
             "Appends lines to file_conn."
             if self.file_conn:
-                # print('#########################################################')
-                # print(' ... appending data to file connection')
-                # print('#########################################################')
+                print('#########################################################')
+                print(' ... appending data to file connection')
+                print('#########################################################')
                 if not output_str.endswith("\n"):
                     output_str += "\n"
                 await self.file_conn.write(output_str)
@@ -857,12 +860,14 @@ class Base(object):
 
         async def log_data_task(self):
             "Self-subscribe to data queue, write to present file path."
-            print("#################################################")
+            print("#########################################################")
             print(" ... starting data logger")
-            print("#################################################")
+            print("#########################################################")
             # data_msg should be a dict {uuid: list of values or a list of list of values}
             try:
                 async for data_msg in self.base.data_q.subscribe():
+                    print(data_msg)
+                    print(self.action.action_uuid)
                     if (
                         self.action.action_uuid in data_msg.keys()
                     ):  # only write data for this action
@@ -871,44 +876,45 @@ class Base(object):
                         # print('#################################################')
                         data_dict = data_msg[self.action.action_uuid]
                         data_val = data_dict["data"]
-                        if isinstance(data_val, list) or isinstance(data_val, tuple):
-                            # print('#################################################')
-                            # print('2 ... data logger: message is tuple/list')
-                            # print('#################################################')
-                            lines = "\n".join(
-                                [",".join([str(x) for x in l]) for l in data_val]
-                            )
-                        elif isinstance(data_val, dict):
-                            # print('#################################################')
-                            # print('3 ... data logger: message is dict')
-                            # print('#################################################')
-                            # print(self.column_names)
-                            # print(data_val)
-                            # for col in self.column_names:
-                            #     if col!='unknown1':
-                            #         print(col, data_val[col])
-                            columns = [
-                                data_val[col]
-                                for col in self.column_names
-                                if col != "unknown1"
-                            ]
-                            # print(columns)
-                            lines = "\n".join(
-                                [",".join([str(x) for x in l]) for l in zip(*columns)]
-                            )
-                            # print(lines)
-                        else:
-                            # print('#################################################')
-                            # print('4 ... data logger: message is not dict or tuple/list')
-                            # print('#################################################')
-                            lines = str(data_val)
-                        self.action.data.append(data_msg)
-                        # print(self.action.data)
+                        # if isinstance(data_val, list) or isinstance(data_val, tuple):
+                        #     # print('#################################################')
+                        #     # print('2 ... data logger: message is tuple/list')
+                        #     # print('#################################################')
+                        #     lines = "\n".join(
+                        #         [",".join([str(x) for x in l]) for l in data_val]
+                        #     )
+                        # elif isinstance(data_val, dict):
+                        #     # print('#################################################')
+                        #     # print('3 ... data logger: message is dict')
+                        #     # print('#################################################')
+                        #     # print(self.column_names)
+                        #     # print(data_val)
+                        #     # for col in self.column_names:
+                        #     #     if col!='unknown1':
+                        #     #         print(col, data_val[col])
+                        #     columns = [
+                        #         data_val[col]
+                        #         for col in self.column_names
+                        #         if col != "unknown1"
+                        #     ]
+                        #     # print(columns)
+                        #     lines = "\n".join(
+                        #         [",".join([str(x) for x in l]) for l in zip(*columns)]
+                        #     )
+                        #     # print(lines)
+                        # else:
+                        #     # print('#################################################')
+                        #     # print('4 ... data logger: message is not dict or tuple/list')
+                        #     # print('#################################################')
+                        #     lines = str(data_val)
+                        self.action.data.append(data_val)
+                        print(self.action.data)
                         if self.file_conn:
-                            # print('#################################################')
-                            # print('5 ... data logger: writing lines to file')
-                            # print('#################################################')
-                            await self.write_live_data(lines)
+                            print('#################################################')
+                            print('5 ... data logger: writing lines to file')
+                            print('#################################################')
+                            await self.write_live_data(json.dumps(data_val))
+                            # await self.write_live_data(lines)
             except asyncio.CancelledError:
                 print(" ... data logger task was cancelled")
 
@@ -1002,6 +1008,7 @@ class Base(object):
 
         async def finish(self):
             "Close file_conn, finish rcp, copy aux, set endpoint status, and move active dict to past."
+            await asyncio.sleep(1)
             print(" ... finishing data logging.")
             if self.file_conn:
                 await self.file_conn.close()

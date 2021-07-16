@@ -150,7 +150,7 @@ def makeApp(confPrefix, servKey):
         """Return status of current alignment"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        data={
+        align_status={
             "aligning": await app.driver.is_aligning(),  # true when in progress, false otherwise
             "Transfermatrix": app.driver.newTransfermatrix,
             "plateid": app.driver.plateid,
@@ -158,7 +158,7 @@ def makeApp(confPrefix, servKey):
             "motor_server": app.driver.motorserv,
             "data_server": app.driver.dataserv,
         }
-        await active.enqueue_data(data)
+        await active.enqueue_data(align_status)
         finished_act = await active.finish()
         return finished_act.as_dict()
 

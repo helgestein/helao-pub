@@ -109,6 +109,7 @@ class Action(Decision):
         self.file_type = imports.get("file_type", None)
         self.filename = imports.get("filename", None)
         self.file_group = imports.get("file_group", None)
+        self.error_code = imports.get("error_code", "0")
 
         check_args = {"server": self.action_server, "name": self.action_name}
         missing_args = [k for k, v in check_args.items() if v is None]
@@ -132,65 +133,65 @@ class Action(Decision):
             atime = datetime.fromtimestamp(atime.timestamp() + offset)
         self.action_queue_time = atime.strftime("%Y%m%d.%H%M%S%f")
 
-    def return_finished(self):
-        return return_finishedact(
-            technique_name=self.technique_name,
-            access=self.access,
-            orch_name=self.orch_name,
-            decision_timestamp=self.decision_timestamp,
-            decision_uuid=self.decision_uuid,
-            decision_label=self.decision_label,
-            actualizer=self.actualizer,
-            actual_pars=self.actual_pars,
-            result_dict=self.result_dict,
-            action_server=self.action_server,
-            action_queue_time=self.action_queue_time,
-            action_real_time=self.action_real_time,
-            action_name=self.action_name,
-            action_params=self.action_params,
-            action_uuid=self.action_uuid,
-            action_enum=self.action_enum,
-            action_abbr=self.action_abbr,
-            actionnum=self.actionnum,
-            start_condition=self.start_condition,
-            save_rcp=self.save_rcp,
-            save_data=self.save_data,
-            plate_id=self.plate_id,
-            samples_in=self.samples_in,
-            samples_out=self.samples_out,
-            output_dir=self.output_dir,
-            file_dict=self.file_dict,
-            column_names=self.column_names,
-            header=self.header,
-            data=self.data,
-        )
+    # def return_finished(self):
+    #     return return_finishedact(
+    #         technique_name=self.technique_name,
+    #         access=self.access,
+    #         orch_name=self.orch_name,
+    #         decision_timestamp=self.decision_timestamp,
+    #         decision_uuid=self.decision_uuid,
+    #         decision_label=self.decision_label,
+    #         actualizer=self.actualizer,
+    #         actual_pars=self.actual_pars,
+    #         result_dict=self.result_dict,
+    #         action_server=self.action_server,
+    #         action_queue_time=self.action_queue_time,
+    #         action_real_time=self.action_real_time,
+    #         action_name=self.action_name,
+    #         action_params=self.action_params,
+    #         action_uuid=self.action_uuid,
+    #         action_enum=self.action_enum,
+    #         action_abbr=self.action_abbr,
+    #         actionnum=self.actionnum,
+    #         start_condition=self.start_condition,
+    #         save_rcp=self.save_rcp,
+    #         save_data=self.save_data,
+    #         plate_id=self.plate_id,
+    #         samples_in=self.samples_in,
+    #         samples_out=self.samples_out,
+    #         output_dir=self.output_dir,
+    #         file_dict=self.file_dict,
+    #         column_names=self.column_names,
+    #         header=self.header,
+    #         data=self.data,
+    #     )
 
-    def return_running(self):
-        return return_runningact(
-            technique_name=self.technique_name,
-            access=self.access,
-            orch_name=self.orch_name,
-            decision_timestamp=self.decision_timestamp,
-            decision_uuid=self.decision_uuid,
-            decision_label=self.decision_label,
-            actualizer=self.actualizer,
-            actual_pars=self.actual_pars,
-            result_dict=self.result_dict,
-            action_server=self.action_server,
-            action_queue_time=self.action_queue_time,
-            action_real_time=self.action_real_time,
-            action_name=self.action_name,
-            action_params=self.action_params,
-            action_uuid=self.action_uuid,
-            action_enum=self.action_enum,
-            action_abbr=self.action_abbr,
-            actionnum=self.actionnum,
-            start_condition=self.start_condition,
-            plate_id=self.plate_id,
-            save_rcp=self.save_rcp,
-            save_data=self.save_data,
-            samples_in=self.samples_in,
-            samples_out=self.samples_out,
-            output_dir=self.output_dir,
-        )
+    # def return_running(self):
+    #     return return_runningact(
+    #         technique_name=self.technique_name,
+    #         access=self.access,
+    #         orch_name=self.orch_name,
+    #         decision_timestamp=self.decision_timestamp,
+    #         decision_uuid=self.decision_uuid,
+    #         decision_label=self.decision_label,
+    #         actualizer=self.actualizer,
+    #         actual_pars=self.actual_pars,
+    #         result_dict=self.result_dict,
+    #         action_server=self.action_server,
+    #         action_queue_time=self.action_queue_time,
+    #         action_real_time=self.action_real_time,
+    #         action_name=self.action_name,
+    #         action_params=self.action_params,
+    #         action_uuid=self.action_uuid,
+    #         action_enum=self.action_enum,
+    #         action_abbr=self.action_abbr,
+    #         actionnum=self.actionnum,
+    #         start_condition=self.start_condition,
+    #         plate_id=self.plate_id,
+    #         save_rcp=self.save_rcp,
+    #         save_data=self.save_data,
+    #         samples_in=self.samples_in,
+    #         samples_out=self.samples_out,
+    #         output_dir=self.output_dir,
+    #     )
 

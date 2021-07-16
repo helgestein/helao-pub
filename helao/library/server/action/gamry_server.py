@@ -65,7 +65,8 @@ def makeApp(confPrefix, servKey):
         """Will return 'idle' or 'measuring'. Should be used in conjuction with eta to async.sleep loop poll"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data({"status": await app.driver.status()})
+        driver_status = await app.driver.status()
+        await active.enqueue_data({"status": driver_status})
         finished_act = await active.finish()
         return finished_act.as_dict()
 

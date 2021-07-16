@@ -310,7 +310,7 @@ def launcher(confPrefix, confDict):
                             servHost,
                             "--port",
                             f"{servPort}",
-                            f"{group}/{servPy}.py",
+                            f"helao/library/server/{group}/{servPy}.py",
                             "--args",
                             confPrefix,
                             server,

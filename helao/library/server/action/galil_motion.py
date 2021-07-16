@@ -136,7 +136,7 @@ def makeApp(confPrefix, servKey):
         move_response = await app.driver.motor_move(**A.action_params)
         await active.enqueue_data(move_response)
         if move_response["err_code"]:
-            await active.set_error()
+            await active.set_error(f"{move_response['err_code']}")
         finished_act = await active.finish()
         return finished_act.as_dict()
 

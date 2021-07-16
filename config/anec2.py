@@ -49,7 +49,7 @@ config["servers"] = dict(
             # 4x6 plate
             #M_instr = [[1,0,0,-76.525],[0,1,0,-50.875],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
             # 100mm wafer
-            M_instr = [[1,0,0,-76.525+(3*25.4-50)],[0,1,0,-50.875+2.71],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
+            M_instr = [[1,0,0,-76.525+(3*25.4-50)-0.5+0.75],[0,1,0,-50.875+2.71+5-3],[0,0,1,0],[0,0,0,1]], # instrument specific calibration
 
             count_to_mm=dict(
                 A=1.0/15835.31275,#1.0/15690.3,

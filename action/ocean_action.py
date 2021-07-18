@@ -10,6 +10,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
 
 
 app = FastAPI(title="ocean optics raman server V1", 
@@ -22,21 +23,21 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/oceanAction/read")
+@app.get("/ocean/read")
 def read(t:int,filename:str):
-    data = requests.get("{}/ocean/readSpectrum".format(url),params={'t':t,'filename':filename}).json()
+    data = requests.get("{}/oceanDriver/readSpectrum".format(url),params={'t':t,'filename':filename}).json()
     retc = return_class(parameters={"filename":filename,"t":t,'units':{'t':'µs'}}, data=data)
     return retc
 
-@app.get("/oceanAction/loadFile")
+@app.get("/ocean/loadFile")
 def loadFile(filename:str):
-    data = requests.get("{}/ocean/loadFile".format(url),params={'filename':filename}).json()
+    data = requests.get("{}/oceanDriver/loadFile".format(url),params={'filename':filename}).json()
     retc = return_class(parameters={'filename':filename}, data=data)
     return retc
 
 
 
 if __name__ == "__main__":
-    url = "http://{}:{}".format(config['servers']['oceanServer']['host'],config['servers']['oceanServer']['port'])
-    uvicorn.run(app,host=config['servers']['ramanServer']['host'],port=config['servers']['ramanServer']['port'])
+    url = config[serverkey]['url']
+    uvicorn.run(app,host=config['servers'][serverkey]['host'],port=config['servers'][serverkey]['port'])
     print("instantiated ocean optics raman action")

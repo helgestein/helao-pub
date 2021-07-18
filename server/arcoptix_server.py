@@ -13,6 +13,7 @@ sys.path.append(helao_root)
 from arcoptix_driver import arcoptix
 from util import compress_spectrum
 config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
 
 app = FastAPI(title="ocean driver", 
             description= " this is a fancy arctoptix ftir spectrometer driver server",
@@ -27,12 +28,12 @@ class return_class(BaseModel):
 @app.on_event("startup")
 def startup_event():
     global a,q
-    a = arcoptix(config['arcoptix'])
+    a = arcoptix(config[serverkey])
     q = asyncio.Queue()
 
 
 #416:2501
-@app.get("/arcoptix/spectrum")
+@app.get("/arcoptixDriver/spectrum")
 async def getSpectrum(filename:str,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
     data = a.getSpectrum(filename,time=time,av=av,wlrange=wlrange,wnrange=wnrange,inrange=inrange)
     await q.put({'wavelengths':data['wavelengths'],'intensities':data['intensities']})
@@ -40,25 +41,25 @@ async def getSpectrum(filename:str,time:bool=False,av:float=1,wlrange:str=None,w
                         data = data)
     return retc
 
-@app.get("/arcoptix/setGain")
+@app.get("/arcoptixDriver/setGain")
 def setGain(gain:int):
     data = a.setGain(gain)
     retc = return_class(parameters={"gain":gain},data=None)
     return retc
 
-@app.get("/arcoptix/saturation")
+@app.get("/arcoptixDriver/saturation")
 def getSaturation():
     data = a.getSaturation()
     retc = return_class(parameters=None,data={"saturation":data})
     return retc
 
-@app.get("/arcoptix/getGain")
+@app.get("/arcoptixDriver/getGain")
 def getGain():
     data = a.getGain()
     retc = return_class(parameters=None,data={"gain":data})
     return retc
 
-@app.get("/arcoptix/loadFile")
+@app.get("/arcoptixDriver/loadFile")
 def loadFile(filename:str):
     data = a.loadFile(filename)
     retc = return_class(parameters = {"filename" : filename},data = data)
@@ -74,5 +75,5 @@ async def websocket_messages(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=config['servers']['arcoptixServer']['host'], port=config['servers']['arcoptixServer']['port'])
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
     print("instantiated ftir spectrometer")

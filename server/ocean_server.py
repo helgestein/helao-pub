@@ -11,6 +11,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 from ocean_driver import ocean
 config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
 
 
 app = FastAPI(title="ocean driver", 
@@ -24,29 +25,29 @@ class return_class(BaseModel):
 @app.on_event("startup")
 def startup_event():
     global o,q
-    o = ocean(config['ocean'])
+    o = ocean(config[serverkey])
     q = asyncio.Queue()
 
-@app.get("/ocean/find")
+@app.get("/oceanDriver/find")
 def findDevice():
     device = o.findDevice()
     retc = return_class(parameters = None,data = {"device" : str(device)})
     return retc
 
-@app.get("/ocean/connect")
+@app.get("/oceanDriver/connect")
 def open():
     o.open()
     retc = return_class(parameters = None,data = None)
     return retc
 
-@app.get("/ocean/readSpectrum")
+@app.get("/oceanDriver/readSpectrum")
 async def readSpectrum(t:int,filename:str):
     data = o.readSpectrum(t,filename)
     await q.put({'wavelengths':data['wavelengths'],'intensities':data['intensities']})
     retc = return_class(parameters = {"filename" : filename, "t" : t,'units':{'t':'µs'}},data = data)
     return retc
 
-@app.get("/ocean/loadFile")
+@app.get("/oceanDriver/loadFile")
 def loadFile(filename:str):
     data = o.loadFile(filename)
     retc = return_class(parameters = {"filename" : filename},data = data)
@@ -68,5 +69,5 @@ async def websocket_messages(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=config['servers']['oceanServer']['host'], port=config['servers']['oceanServer']['port'])
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
     print("instantiated raman spectrometer")

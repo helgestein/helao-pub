@@ -86,11 +86,11 @@ def makeActServ(
         """
         await app.base.ws_data(websocket)
 
-    @app.post(f"/get_status")
+    @app.post("/get_status")
     def status_wrapper():
         return app.base.status
 
-    @app.post(f"/attach_client")
+    @app.post("/attach_client")
     async def attach_client(client_addr: str):
         await app.base.attach_client(client_addr)
 
@@ -99,10 +99,6 @@ def makeActServ(
         """Return a list of all endpoints on this server."""
         return app.base.get_endpoint_urls(app)
 
-    @app.post("/endpoints")
-    def get_all_urls():
-        """Return a list of all endpoints on this server."""
-        return app.get_endpoint_urls(app)
 
     return app
 

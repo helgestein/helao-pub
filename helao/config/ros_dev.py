@@ -6,7 +6,7 @@ config = dict()
 # lists from input decision_id grouping
 # config["action_libraries"] = ["lisa_sdc_demo"]
 config["action_libraries"] = ["lisa_ANEC2"]
-config["technique_name"] = "adss"
+config["technique_name"] = "rosdev"
 config["save_root"] = r"C:\INST_dev2\RUNS"
 
 

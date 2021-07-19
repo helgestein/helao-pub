@@ -29,10 +29,6 @@ app = FastAPI(title = "orchestrator", description = "A fancy complex server",ver
 
 @app.post("/orchestrator/addExperiment")
 async def sendMeasurement(experiment: str, thread: int = 0):
-    print(task)
-    print(error)
-    for t in experiment_tasks.values():
-        print(t)
     await scheduler_queue.put((experiment,thread))
 
 #receives all experiments, creates new threads, and sends experiments to the appropriate thread
@@ -91,10 +87,10 @@ async def doMeasurement(experiment: str, thread: int):
         async with locks[tracking[thread]['path']]:
             save_dict_to_hdf5({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')
             with h5py.File(tracking[thread]['path'], 'r') as session: #add metadata to experiment
-                l = list(session[f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}"].keys())
+                l = list(session[f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}"].keys())
                 if len(l) > 0 and 'meta' not in l: #disregard if you did not do any real actions this experiment, or if meta already added
                     session.close()
-                    save_dict_to_hdf5({'meta':experiment['meta']},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}/",mode='a')
+                    save_dict_to_hdf5({'meta':experiment['meta']},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')
 
 async def process_native_command(command: str,experiment: dict,**params):
     if command in ['start','finish','modify','wait']:
@@ -130,8 +126,7 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
             if 'date' not in session['meta'].keys(): #assigns date to this session if necessary, or replaces session if too old
                 session.close()
                 save_dict_to_hdf5(dict(date=datetime.date.today().strftime("%d/%m/%Y")),tracking[thread]['path'],path='/meta/',mode='a')
-            elif session['meta']['date'] != datetime.date.today().strftime("%d/%m/%Y"):
-                print(session['meta']['date'],datetime.date.today().strftime("%d/%m/%Y"))
+            elif session['meta/date/'][()] != datetime.date.today().strftime("%d/%m/%Y"):
                 print('current session is old, saving current session and creating new session')
                 session.close()
                 try:
@@ -148,12 +143,12 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
         with h5py.File(tracking[thread]['path'], 'r') as session: #adds a new run to session to receive incoming data
             if "run_0" not in session.keys(): 
                 session.close()
-                save_dict_to_hdf5(dict(run_0=dict(experiment_0=None,meta=meta)),tracking[thread]['path'],mode='a')
+                save_dict_to_hdf5({"run_0":{f"experiment_0:{thread}":None},"meta":meta},tracking[thread]['path'],mode='a')
                 tracking[thread]['run'] = 0
             else:
                 run = incrementName(highestName(list(filter(lambda k: k[:4]=="run_",list(session.keys()))))) #don't put any keys in here that have length less than 4 i guess
                 session.close()
-                save_dict_to_hdf5({run:dict(experiment_0=None,meta=meta)},tracking[thread]['path'],mode='a')
+                save_dict_to_hdf5({run:{f"experiment_0:{thread}":None,"meta":meta}},tracking[thread]['path'],mode='a')
                 tracking[thread]['run'] = int(run[4:])
         tracking[thread]['experiment'] = 0
         save_dict_to_hdf5({'meta':None},tracking[thread]['path'],path=f'/run_{tracking[thread]["run"]}/experiment_0:{thread}/',mode='a')
@@ -207,9 +202,12 @@ async def modify(experiment: dict,addresses,pointers):
 
 #pause experiment until given thread(s) complete(s) given action(s)
 #params:
-#   	address: path(s) below run to awaited address
+#   	addresses: path(s) below run to awaited address(es)
+#
+#address should generally be 2 keys deep, with the format "experiment/action"
 async def wait(experiment: dict,addresses):
     global tracking,locks
+    print(f"waiting on {addresses}")
     if not isinstance(addresses, list):
         addresses = [addresses]
     threads = [int(address.split('/')[0].split(':')[-1]) for address in addresses]
@@ -218,8 +216,9 @@ async def wait(experiment: dict,addresses):
         for i,address,thread in c:
             async with locks[tracking[thread]['path']]:
                 with h5py.File(tracking[thread]['path'], 'r') as session:
-                    k = addresses.split('/')[-1]
-                    path = '/'.join(addresses.split('/')[:-1])
+                    
+                    k = address.split('/')[-1]
+                    path = '/'.join(address.split('/')[:-1])
                     if k in session[f'run_{tracking[thread]["run"]}/'+path].keys():
                         del addresses[i]
                         del threads[i]

@@ -37,7 +37,7 @@ def makeApp(confPrefix, servKey):
         """Gets the elements from the screening print in the info file"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.get_elements_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.get_elements_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -47,7 +47,7 @@ def makeApp(confPrefix, servKey):
         """gets platemap"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.get_platemap_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.get_platemap_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -77,7 +77,7 @@ def makeApp(confPrefix, servKey):
         """checks that the plate_id (info file) exists"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.check_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.check_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -87,7 +87,7 @@ def makeApp(confPrefix, servKey):
         """checks that a print record exist in the info file"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.check_printrecord_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.check_printrecord_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -97,7 +97,7 @@ def makeApp(confPrefix, servKey):
         """checks that a anneal record exist in the info file"""
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.check_annealrecord_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.check_annealrecord_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -106,7 +106,7 @@ def makeApp(confPrefix, servKey):
     async def get_info_plateid(request: Request, plateid: Optional[str]=None, action_dict: Optional[dict]=None):
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.get_info_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.get_info_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 
@@ -115,7 +115,7 @@ def makeApp(confPrefix, servKey):
     async def get_rcp_plateid(request: Request, plateid: Optional[str]=None, action_dict: Optional[dict]=None):
         A = await setupAct(action_dict, request, locals())
         active = await app.base.contain_action(A)
-        await active.enqueue_data(app.driver.get_rcp_plateidstr(**A.action_params))
+        await active.enqueue_data(app.driver.get_rcp_plateid(**A.action_params))
         finished_act = await active.finish()
         return finished_act.as_dict()
 

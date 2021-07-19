@@ -40,11 +40,17 @@ class HelaoFastAPI(FastAPI):
         self.helao_srv = helao_srv
 
 
-async def setupAct(action_dict: dict, request: Request, scope: dict):
+async def setupAct(action_dict: dict, request: Request, scope: dict):   
     servKey, _, action_name = request.url.path.strip("/").partition("/")
+    print('##################################################################')
+    print(request.url.path)
+    
     body_params = await request.json()
+    print('body_params:',body_params)
+    print('query_params:',request.query_params)
     param_names = list(body_params.keys()) + list(request.query_params.keys())
     scope.update(body_params)
+    print('scope:',scope)
     A = Action(action_dict, action_server=servKey, action_name=action_name)
     for k in param_names:
         if k not in A.action_params.keys() and k not in ["request", "action_dict"]:
@@ -52,6 +58,7 @@ async def setupAct(action_dict: dict, request: Request, scope: dict):
                 A.action_params[k] = scope[k]
             else:
                 print(k, "is None")
+    print('##################################################################')
     return A
 
 
@@ -126,7 +133,7 @@ def makeOrchServ(
     async def update_status(server: str, status: str):
         await app.orch.update_status(act_serv=server, status_dict=json.loads(status))
 
-    @app.post(f"/attach_client")
+    @app.post("/attach_client")
     async def attach_client(client_addr: str):
         await app.orch.attach_client(client_addr)
 

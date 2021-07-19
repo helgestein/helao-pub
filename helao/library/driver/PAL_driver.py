@@ -1,18 +1,28 @@
 from enum import Enum
 import asyncio
+import aiohttp
+import os
+import paramiko
+import time
+from datetime import datetime
+from time import strftime
+
+from helao.core.schema import Action
+from helao.core.server import Base
+
 
 import nidaqmx
 from nidaqmx.constants import LineGrouping
-from nidaqmx.constants import Edge
-from nidaqmx.constants import AcquisitionType
-from nidaqmx.constants import TerminalConfiguration
-from nidaqmx.constants import VoltageUnits
-from nidaqmx.constants import CurrentShuntResistorLocation
-from nidaqmx.constants import UnitsPreScaled
-from nidaqmx.constants import CountDirection
-from nidaqmx.constants import TaskMode
-from nidaqmx.constants import SyncType
-from nidaqmx.constants import TriggerType
+#from nidaqmx.constants import Edge
+#from nidaqmx.constants import AcquisitionType
+#from nidaqmx.constants import TerminalConfiguration
+#from nidaqmx.constants import VoltageUnits
+#from nidaqmx.constants import CurrentShuntResistorLocation
+#from nidaqmx.constants import UnitsPreScaled
+#from nidaqmx.constants import CountDirection
+#from nidaqmx.constants import TaskMode
+#from nidaqmx.constants import SyncType
+#from nidaqmx.constants import TriggerType
 
 ##############################################################################
 # PAL classes
@@ -25,13 +35,18 @@ class PALmethods(str, Enum):
     fill = "lcfc_fill.cam"
     test = "relay_actuation_test2.cam"
 
-
 class Spacingmethod(str, Enum):
     linear = "linear"  # 1, 2, 3, 4, 5, ...
     geometric = "gemoetric"  # 1, 2, 4, 8, 16
     power = "power"
     exponential = "exponential"
 
+class PALtools(str, Enum):
+    LS1 = "LS1"
+    LS2 = "LS2"
+    LS3 = "LS3"
+
+#class
 
 class VT54:
     def __init__(self, max_vol_mL: float = 2.0):
@@ -181,6 +196,16 @@ class cPAL:
 
         # self.triggers = False
 
+
+        self.action = (
+            None  # for passing action object from technique method to measure loop
+        )
+
+        self.active = (
+            None  # for holding active action object, clear this at end of measurement
+        )
+
+
         # for global IOloop
         self.IO_do_meas = False
         self.IO_estop = False
@@ -216,13 +241,13 @@ class cPAL:
         self.def_action_params = Action_params()
         self.action_params = self.def_action_params.as_dict()
 
-    async def reset_PAL_system_vial_table(self):
+    async def reset_PAL_system_vial_table(self, A, myactive):
         # backup to json
         await self.backup_PAL_system_vial_table(reset=True)
         # full backup to csv
         for tray in range(len(self.trays)):
             for slot in range(3):  # each tray has 3 slots
-                await self.write_vial_holder_table_as_CSV(tray + 1, slot + 1)
+                await self.write_vial_holder_table_as_CSV(tray + 1, slot + 1, myactive)
         # reset PAL table
         # todo change that to a config config
         self.trays = [
@@ -360,48 +385,54 @@ class cPAL:
             return False
         pass
 
-    async def write_vial_holder_table_as_CSV(self, tray: int = 2, slot: int = 1):
+    async def write_vial_holder_table_as_CSV(self, tray, slot, myactive):
         # save full table as backup too
+        
+        
         await self.backup_PAL_system_vial_table()
 
         if self.trays[tray - 1] is not None:
             if self.trays[tray - 1].slots[slot - 1] is not None:
-                datafile = LocalDataHandler()
-                datafile.filename = f'VialTable__tray{tray}__slot{slot}__{datetime.now().strftime("%Y%m%d.%H%M%S%f")}.csv'
-                datafile.filepath = self.local_data_dump
-                print(
-                    " ... saving vial holder table to:",
-                    datafile.filepath,
-                    datafile.filename,
-                )
-                await datafile.open_file_async()
-                await datafile.write_data_async(
-                    ",".join(["vial_no", "liquid_sample_no", "vol_mL"])
-                )
+                tmp_output_str = ",".join(["vial_no", "liquid_sample_no", "vol_mL"])
+                
                 for i, _ in enumerate(self.trays[tray - 1].slots[slot - 1].vials):
-                    await datafile.write_data_async(
-                        ",".join(
-                            [
-                                str(i + 1),
-                                str(
-                                    self.trays[tray - 1]
-                                    .slots[slot - 1]
-                                    .liquid_sample_no[i]
-                                ),
-                                str(self.trays[tray - 1].slots[slot - 1].vol_mL[i]),
-                            ]
-                        )
+                    tmp_output_str += "\n"
+                    tmp_output_str += ",".join(
+                        [
+                            str(i + 1),
+                            str(
+                                self.trays[tray - 1]
+                                .slots[slot - 1]
+                                .liquid_sample_no[i]
+                            ),
+                            str(self.trays[tray - 1].slots[slot - 1].vol_mL[i]),
+                        ]
                     )
-                # await datafile.write_data_async('\t'.join(logdata))
-                await datafile.close_file_async()
+                # # await datafile.write_data_async('\t'.join(logdata))
+                # # await datafile.close_file_async()
+                await myactive.write_file(
+                    file_type = 'pal_vialtable_file',
+                    filename = f'VialTable__tray{tray}__slot{slot}__{datetime.now().strftime("%Y%m%d.%H%M%S%f")}.csv',
+                    output_str = tmp_output_str,
+                    header = None,
+                    sample_str = None
+                    )
 
-    async def get_vial_holder_table(self, tray: int = 2, slot: int = 1, csv=False):
+
+
+    async def get_vial_holder_table(self, A, myactive):
         """Returns vial tray sample table"""
+        
+        tray =  A.action_params["tray"]
+        slot =  A.action_params["slot"]
+        csv = A.action_params.get("csv", False)
+        
+        
         print(" ... getting table")
         if self.trays[tray - 1] is not None:
             if self.trays[tray - 1].slots[slot - 1] is not None:
                 if csv:
-                    await self.write_vial_holder_table_as_CSV(tray, slot)
+                    await self.write_vial_holder_table_as_CSV(tray, slot, myactive)
                 return self.trays[tray - 1].slots[slot - 1].as_dict()
             else:
                 return {}
@@ -551,7 +582,8 @@ class cPAL:
                 await asyncio.sleep(1)
         return True
 
-    async def initcommand(self, PALparams: cPALparams, runparams):
+    async def initcommand(self, A: Action):
+    # async def initcommand(self, PALparams: cPALparams, runparams):
         if not self.IO_do_meas:
             try:
                 # use parsed version
@@ -562,7 +594,24 @@ class cPAL:
                 self.action_params["actiontime"] = strftime("%Y%m%d.%H%M%S")
 
             self.runparams = runparams
-            self.IO_PALparams = PALparams
+            # self.IO_PALparams = PALparams
+            self.IO_PALparams = cPALparams(
+                liquid_sample_no = A.action_params["liquid_sample_no"],
+                method = A.action_params["method"],
+                tool = A.action_params["tool"],
+                source = A.action_params["source"],
+                volume_uL = A.action_params["volume_uL"],
+                dest_tray = A.action_params["dest_tray"],
+                dest_slot = A.action_params["dest_slot"],
+                dest_vial = A.action_params["dest_vial"],
+                totalvials = A.action_params["totalvials"],
+                sampleperiod = A.action_params["sampleperiod"],
+                spacingmethod = A.action_params["spacingmethod"],
+                spacingfactor = A.action_params["spacingfactor"],
+                )
+
+
+
 
             self.IO_remotedatafile = ""
             self.FIFO_name = (

@@ -2,7 +2,9 @@ from decimal import Decimal
 import numpy as np
 import itertools as it
 from json import JSONEncoder
-
+import asyncio
+import json
+import h5py
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
@@ -78,7 +80,7 @@ def list_to_dict(my_list):
 def dict_to_list(my_dict):
     return [v for v in my_dict.values()]
 
-
+#i think i did a bad job writing this function and the one below it. might see if i can phase them out...
 def incrementName(s:str):
     #i am incrementing names of runs, sessions, substrates, and measurement numbers numbers enough
     #go from run_1 to run_2 or from substrate_1_session_1.hdf5 to substrate_1_session_2.hdf5, etc...
@@ -138,9 +140,72 @@ def dict_address_set(address,d,val):
 #can't send files of more than 1MB over websockets as implemented in uvicorn
 #keep an eye on github.com/encode/uvicorn/pull/995
 #in the meantime, I am using this to average points and make spectrum files smaller for the visualizer
-#n is how many points should be compressed into a single point, keys tells you what keys to grab from the driver return dict
-def compress_spectrum(data,n,keys):
+#n is how many points should be compressed into a single point
+def compress_spectrum(data,n):
+    ret = {}
     for k,l in data.items():
-        if k in keys:
-            data[k] = [sum(l[i:i+n])/min(n,len(l)-i) for i in range(0,len(l),n)] 
-    return data
+        ret[k] = [sum(l[i:i+n])/min(n,len(l)-i) for i in range(0,len(l),n)] 
+    return ret
+
+#found online by Leon, slightly modified by us
+def save_dict_to_hdf5(dic, filename, path='/', mode='w'):
+    '''
+    Saves a dictioanry to a hdf5file.
+
+    This function was copied from stackoverflow.
+    '''
+    with h5py.File(filename, mode) as h5file:
+        recursively_save_dict_contents_to_group(h5file, path, dic)
+
+#found online by Leon, slightly modified by us
+def recursively_save_dict_contents_to_group( h5file, path, dic):
+    '''
+    Saves dictionary content to groups.
+
+    This function was copied from stackoverflow.
+    '''
+    # argument type checking
+    if not isinstance(dic, dict):
+        raise ValueError("must provide a dictionary")
+    if not isinstance(path, str):
+        raise ValueError("path must be a string")
+    if not isinstance(h5file, h5py._hl.files.File):
+        raise ValueError("must be an open h5py file")
+    # save items to the hdf5 file
+    for key, item in dic.items():
+        #print(key,item)
+        key = str(key)
+        if isinstance(item, list):
+            item = np.array(item)
+        if not isinstance(key, str):
+            raise ValueError("dict keys must be strings to save to hdf5")
+        # save strings, numpy.int64, and numpy.float64 types
+        if isinstance(item, (np.int64, np.float64, str, np.float, float, np.float32,int)):
+            h5file[path + key] = item
+            if not h5file[path + key][()] == item:
+                raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+        # save numpy arrays
+        elif isinstance(item, np.ndarray):
+            try:
+                h5file[path + key] = item
+            except:
+                item = np.array(item).astype('|S9')
+                h5file[path + key] = item
+            if not np.array_equal(h5file[path + key][()], item):
+                raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+        elif isinstance(item, list):
+            h5file[path + key] = np.array(item)
+            if not h5file[path + key] == np.array(item):
+                raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+        # save dictionaries
+        elif isinstance(item, dict):
+            recursively_save_dict_contents_to_group(h5file, path + key + '/', item)
+        elif item == None:
+            h5file.create_group(path + key)
+        # other types cannot be saved and will result in an error
+        else:
+            raise ValueError('Cannot save %s type.' % type(item))
+
+
+
+

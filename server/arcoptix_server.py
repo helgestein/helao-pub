@@ -20,7 +20,6 @@ app = FastAPI(title="ocean driver",
 
 
 class return_class(BaseModel):
-    measurement_type: str = None
     parameters: dict = None
     data: dict = None
 
@@ -31,26 +30,33 @@ def startup_event():
     a = arcoptix(config['arcoptix'])
     q = asyncio.Queue()
 
+
+#416:2501
 @app.get("/arcoptix/spectrum")
-async def getSpectrum(filename:str):
-    data = a.getSpectrum(filename)
-    await q.put(compress_spectrum(data,10,["wavelengths","intensities"]))
-    retc = return_class(parameters = {"filename" : filename},
+async def getSpectrum(filename:str,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
+    data = a.getSpectrum(filename,time=time,av=av,wlrange=wlrange,wnrange=wnrange,inrange=inrange)
+    await q.put({'wavelengths':data['wavelengths'],'intensities':data['intensities']})
+    retc = return_class(parameters = {"filename":filename,"time":time,"av":av,"wlrange":wlrange,"wnrange":wnrange,"inrange":inrange,"units":{"av":"s or #spectra"}},
                         data = data)
     return retc
 
-@app.get("/arcoptix/read")
-def readSpectrum(av:int=1):
-    a.readSpectrum(av)
-    retc = return_class(parameters = {"av" : av},data = None)
+@app.get("/arcoptix/setGain")
+def setGain(gain:int):
+    data = a.setGain(gain)
+    retc = return_class(parameters={"gain":gain},data=None)
     return retc
 
-@app.get("/arcoptix/readTime")
-def readSpectrumTime(time:float):
-    a.readSpectrumTime(time)
-    retc = return_class(parameters = {"time" : time,'units':'??'},data = None)
+@app.get("/arcoptix/saturation")
+def getSaturation():
+    data = a.getSaturation()
+    retc = return_class(parameters=None,data={"saturation":data})
     return retc
 
+@app.get("/arcoptix/getGain")
+def getGain():
+    data = a.getGain()
+    retc = return_class(parameters=None,data={"gain":data})
+    return retc
 
 @app.get("/arcoptix/loadFile")
 def loadFile(filename:str):

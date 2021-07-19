@@ -13,7 +13,6 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
 items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']
-
 layout = [[gui.Text(text=item,k=item),
            gui.Button("open",enable_events=True,k=item+"-open"),
            gui.Button("close",button_color='green',disabled=True,enable_events=True,k=item+"-close"),
@@ -26,16 +25,20 @@ while True:
     event, values = window.read(timeout=1000)
     ps = [p.pid for p in list(psutil.process_iter())]
     closed = []
-    for server in servers.items():
-        if not (server[1][1].pid in ps and server[1][0].pid in ps):
-            print(f"server {server[0]} seems to have closed unexpectedly")
-            closed.append(server[0])
-            window[server[0]+"-open"].update(disabled = False)
-            window[server[0]+"-close"].update(disabled = True)
-            window[server[0]+"-refresh"].update(disabled = True)
+    for s in servers.items():
+        if not (s[1][1].pid in ps and s[1][0].pid in ps):
+            print(f"Server {s[0]} seems to have closed unexpectedly")
+            closed.append(s[0])
+            window[s[0]+"-open"].update(disabled = False)
+            window[s[0]+"-close"].update(disabled = True)
+            window[s[0]+"-refresh"].update(disabled = True)
     for c in closed:
         del servers[c]
     if event == gui.WIN_CLOSED:
+        for s in servers.items():
+            s[1][0].terminate()
+            s[1][1].terminate()
+        print("All servers closed")
         break
     elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator']:
         s = event.split('-')[0]
@@ -44,7 +47,7 @@ while True:
             l = list(psutil.process_iter())
             cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
             print(f"Starting {api}/{s}")
-            p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True)
+            p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True, stderr=subprocess.STDOUT)
             time.sleep(.1)
             p1,p2 = None, None
             for p in psutil.process_iter():
@@ -57,14 +60,14 @@ while True:
                 print(f"server {s} failed to start")
             else:
                 servers.update({s:(p0,p2)})
-                window[event].update(disabled = True)
+                window[s+"-open"].update(disabled = True)
                 window[s+"-close"].update(disabled = False)
                 window[s+"-refresh"].update(disabled = False)
         elif event.split('-')[1] == 'close':
             print(f"Killing {api}/{s}.py")
             l = list(psutil.process_iter())
-            servers[s][0].terminate()
             servers[s][1].terminate()
+            servers[s][0].terminate()
             time.sleep(.1)
             terminated = [None,None]
             l2 = list(psutil.process_iter())
@@ -79,7 +82,7 @@ while True:
             else: 
                 del servers[s]
                 window[s+"-open"].update(disabled = False)
-                window[event].update(disabled = True)
+                window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
         elif event.split('-')[1] == 'refresh':
             print(f"Killing {api}/{s}.py")
@@ -100,7 +103,7 @@ while True:
             else: 
                 del servers[s]
                 window[s+"-open"].update(disabled = False)
-                window[event].update(disabled = True)
+                window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
 
                 cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
@@ -118,6 +121,6 @@ while True:
                     print(f"server {s} failed to start")
                 else:
                     servers.update({s:(p0,p2)})
-                    window[event].update(disabled = True)
+                    window[s+"-open"].update(disabled = True)
                     window[s+"-close"].update(disabled = False)
                     window[s+"-refresh"].update(disabled = False)

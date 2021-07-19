@@ -78,7 +78,7 @@ def bridge(exp_num: str, sources: str): #
     return retc
 
 
-def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):
+def interpret_input(sources, types, addresses, experiment_numbers=None):
     # sources is a single data source (jsonned object or file address) or a jsonned list of data sources
     # type is a string or jsonned list of strings telling you what data format(s) you are reading in
     # possible inputs: list of or individual kadi records, local files, the current session, pure data

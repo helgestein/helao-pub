@@ -49,6 +49,7 @@ def getPos():
 @app.on_event("startup")
 @app.on_event("shutdown")
 def safe_pos():
+    print("uhh")
     for i in range(len(config['owis']['safe_positions'])):
         if config['owis']['safe_positions'][i] != None:
             o.move(config['owis']['safe_positions'][i],i)

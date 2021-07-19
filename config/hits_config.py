@@ -15,13 +15,13 @@ config['kadi'] = dict(host = r"https://polis-kadi4mat.iam-cms.kit.edu",
 
 #r'C:\Program Files\ARCoptix\ARCspectro Rocket 2.4.9.13 - x64\ARCsoft.ARCspectroMd'
 #i don't know why a relative path is needed in scripts. it is not in terminal. but here we are.
-config['arcoptix'] = dict(dll = r'..\..\..\..\..\Program Files\ARCoptix\ARCspectro Rocket 2.4.9.13 - x64\ARCsoft.ARCspectroMd')
+config['arcoptix'] = dict(dll = r'..\..\..\..\..\Program Files\ARCoptix\ARCspectro Rocket 2.4.9.13 - x64\ARCsoft.ARCspectroMd',safepath = 'C:/Users/Operator/Documents/data/safe/ftir')
 
-config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data')
+config['orchestrator'] = dict(path=r'C:\Users\Operator\Documents\data',bpath=r'C:\Users\Operator\Documents\data\backup')
 
 config['owis'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM6', baud=9600, timeout=0.1),
                                 dict(port='COM9', baud=9600, timeout=0.1),dict(port='COM10', baud=9600, timeout=0.1)],
-                                coordinates=[None,None,(),()],roles=['x','y','ftir','raman'],
+                                coordinates=[None,None,(),(336.7,36.8,4.5,[[-1,0],[0,1]],True)],roles=['x','y','ftir','raman'],
                                 currents=[dict(mode=0,drive=40,hold=60),dict(mode=0,drive=50,hold=30),dict(mode=0,drive=50,hold=50),dict(mode=0,drive=50,hold=50)],
                                 safe_positions=[None,None,300000,300000])
 
@@ -30,3 +30,5 @@ config['launch'] = dict(server = ['owis_server','ocean_server','arcoptix_server'
                         orchestrator = ['mischbares'],
                         visualizer = ['hits_visualizer'],
                         process = [])
+
+config['ocean'] = dict(safepath = 'C:/Users/Operator/Documents/data/safe/raman')

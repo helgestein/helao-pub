@@ -24,7 +24,7 @@ class return_class(BaseModel):
 @app.on_event("startup")
 def startup_event():
     global o,q
-    o = ocean()
+    o = ocean(config['ocean'])
     q = asyncio.Queue()
 
 @app.get("/ocean/find")
@@ -42,7 +42,7 @@ def open():
 @app.get("/ocean/readSpectrum")
 async def readSpectrum(t:int,filename:str):
     data = o.readSpectrum(t,filename)
-    await q.put(data)
+    await q.put({'wavelengths':data['wavelengths'],'intensities':data['intensities']})
     retc = return_class(parameters = {"filename" : filename, "t" : t,'units':{'t':'µs'}},data = data)
     return retc
 

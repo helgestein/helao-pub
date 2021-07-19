@@ -1,6 +1,7 @@
 #implement a really stupid action
 import sys
 import time
+import random
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -20,13 +21,19 @@ app = FastAPI(title="arcoptix ftir server V1",
 
 class return_class(BaseModel):
     parameters: dict = None
-    data: str = None
+    data: dict = None
+
 
 @app.get("/dummy/lmao")
 def lmao(t:float):
     time.sleep(t)
     print(f"waiting for {t} seconds")
-    retc = return_class(parameters={'t':t,'units':{'t':'s'}},data="look at htis nice data")
+    retc = return_class(parameters={'t':t,'units':{'t':'s'}},data={'data':"look at htis nice data"})
+    return retc
+
+@app.get("/dummy/fakeml")
+def fakeml():
+    retc = return_class(parameters=None,data={'val1':random.randint(1,10),'val2':random.randint(1,10)})
     return retc
 
 if __name__ == "__main__":

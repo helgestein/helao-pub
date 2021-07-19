@@ -1,5 +1,4 @@
 # In order to run the orchestrator, which is at the highest level of Helao, all servers should be started. 
-from numpy.lib.npyio import load
 import requests
 import sys
 import os
@@ -7,13 +6,12 @@ import time
 from fastapi import FastAPI,BackgroundTasks
 from pydantic import BaseModel
 import json
-from copy import copy
 import uvicorn
-from typing import List
 from fastapi import FastAPI, Query
 import json
 import h5py
 import datetime
+from copy import copy
 import asyncio
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -39,7 +37,7 @@ async def scheduler():
         if thread not in experiment_queues.keys(): 
             experiment_queues.update({thread:asyncio.Queue()})
             experiment_tasks.update({thread:loop.create_task(infl(thread))})
-            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None}
+            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[]}
         await experiment_queues[thread].put(experiment)
 
 async def infl(thread):
@@ -59,7 +57,7 @@ async def doMeasurement(experiment: str, thread: int):
     if 'r' in experiment['meta'].keys() and 'ma' in experiment['meta'].keys(): #calculate measurement areas for meta dict if relevant
         experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     experiment['meta']['thread'] = thread #put thread in experiment so that native commands receive it.
-    if tracking[thread] == {'path':None,'run':None,'experiment':None,'current_action':None} and experiment['soe'][0].split('_')[0] != 'orchestrator/start':
+    if {k:v for k,v in tracking[thread].items() if k != 'history'} == {'path':None,'run':None,'experiment':None,'current_action':None} and experiment['soe'][0].split('_')[0] != 'orchestrator/start':
         tracking[thread]['path'] = tracking[thread-1]['path'] #set up tracking here if no start command
         tracking[thread]['run'] = tracking[thread-1]['run']
         tracking[thread]['experiment'] = 0
@@ -177,7 +175,7 @@ async def finish(experiment: dict):
     else:
         print(f'{l-1} threads still operating on {tracking[thread]["path"]}')
     #free up the thread
-    tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None}
+    tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[{'path':tracking[thread]['path'],'run':tracking[thread]['run']}]+tracking[thread]['history']}
     return experiment
     
 #set undefined values under experiment parameter dict
@@ -187,6 +185,7 @@ async def finish(experiment: dict):
 #   pointers: within param dict of experiment, addresses to transmit values to. parameter must have previously been initialized as "?"
 async def modify(experiment: dict,addresses,pointers):
     global tracking,locks
+    mainthread = experiment['meta']['thread']
     if not isinstance(addresses, list):
         addresses = [addresses]
     if not isinstance(pointers, list):
@@ -195,16 +194,32 @@ async def modify(experiment: dict,addresses,pointers):
     for address, pointer, thread in zip(addresses, pointers, threads):
         if dict_address(pointer, experiment['params']) != "?":
             raise Exception(f"pointer {pointer} is not intended to be written to")
-        async with locks[tracking[thread]['path']]:
-            with h5py.File(tracking[thread]['path'], 'r') as session:
-                dict_address_set(pointer, experiment['params'],session[f'run_{tracking[thread]["run"]}/'+address])
+        if tracking[thread]['path'] != None:
+            async with locks[tracking[thread]['path']]:
+                with h5py.File(tracking[thread]['path'], 'r') as session:
+                    val = session[f'run_{tracking[thread]["run"]}/'+address][()]
+                    dict_address_set(pointer, experiment['params'],val)
+                    print(f'pointer {pointer} in params for experiment {tracking[mainthread]["experiment"]} in thread {mainthread} set to {val}')
+        else:
+            for h in tracking[thread]['history']:
+                async with locks[h['path']]:
+                    with h5py.File(h['path'], 'r') as session:
+                        try:
+                            val = session[f'run_{h["run"]}/'+address][()]
+                        except:
+                            continue
+                        dict_address_set(pointer, experiment['params'],val)
+                        print(f'pointer {pointer} in params for experiment {tracking[mainthread]["experiment"]} in thread {mainthread} set to {val} from history')
+                        break
+            if dict_address(pointer,experiment['params']) == '?':
+                raise Exception('modify failed to find address in history')
     return experiment
 
 #pause experiment until given thread(s) complete(s) given action(s)
 #params:
 #   	addresses: path(s) below run to awaited address(es)
 #
-#address should generally be 2 keys deep, with the format "experiment/action"
+#address should generally be 2 keys deep, with the format "experiment/action". might have problems if this is not the case
 async def wait(experiment: dict,addresses):
     global tracking,locks
     print(f"waiting on {addresses}")
@@ -212,16 +227,31 @@ async def wait(experiment: dict,addresses):
         addresses = [addresses]
     threads = [int(address.split('/')[0].split(':')[-1]) for address in addresses]
     while addresses != []:
-        c = list(zip(range(len(addresses)),addresses, threads))
+        await asyncio.sleep(1) # give other processes a chance to look at the file...
+        c = list(zip(range(len(addresses)),copy(addresses), copy(threads)))
         for i,address,thread in c:
-            async with locks[tracking[thread]['path']]:
-                with h5py.File(tracking[thread]['path'], 'r') as session:
-                    
-                    k = address.split('/')[-1]
-                    path = '/'.join(address.split('/')[:-1])
-                    if k in session[f'run_{tracking[thread]["run"]}/'+path].keys():
-                        del addresses[i]
-                        del threads[i]
+            if tracking[thread]['path'] != None:
+                async with locks[tracking[thread]['path']]:
+                    with h5py.File(tracking[thread]['path'], 'r') as session:
+                        exp = address.split('/')[0]
+                        action = address.split('/')[1]
+                        if exp in session[f'run_{tracking[thread]["run"]}/'].keys():
+                            if action in session[f'run_{tracking[thread]["run"]}/{exp}'].keys():
+                                print(f"{addresses[i]} found")
+                                del addresses[i]
+                                del threads[i]
+            else:#if you are waiting on the results of a session that already finished, check history for path and run
+                for h in tracking[thread]['history']:
+                    async with locks[h['path']]:
+                        with h5py.File(h['path'], 'r') as session:
+                            exp = address.split('/')[0]
+                            action = address.split('/')[1]
+                            if exp in session[f'run_{h["run"]}/'].keys():
+                                if action in session[f'run_{h["run"]}/{exp}'].keys():
+                                    print(f"{addresses[i]} found in history")
+                                    del addresses[i]
+                                    del threads[i]
+                                    break
     return experiment
 
 @app.on_event("startup")

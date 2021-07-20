@@ -12,6 +12,24 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
+def keytofile(key:str):
+    
+    server = key.split(':')[0]
+    translationdict = {'owis':'owis_action','owisDriver':'owis_server',
+                        'ocean':'ocean_action','oceanDriver':'ocean_server',
+                        'kadi':'kadi_action','kadiDriver':'kadi_server',
+                        'arcoptix':'arcoptix_action','arcoptixDriver':'arcoptix_server',
+                        'orchestrator':'mischbares',
+                        'dummy':'dummy_action'}
+    return translationdict[server]
+
+    #works for drivers and actions, but not for visualizers, orchestrators, processes...
+    #if "Driver" in server:
+    #    return server[:-6] + "_driver.py"
+    #else:
+    #    return server + "_action.py"
+
+
 items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']
 layout = [[gui.Text(text=item,k=item),
            gui.Button("open",enable_events=True,k=item+"-open"),
@@ -27,7 +45,7 @@ while True:
     closed = []
     for s in servers.items():
         if not (s[1][1].pid in ps and s[1][0].pid in ps):
-            print(f"Server {s[0]} seems to have closed unexpectedly")
+            print(f"Server {keytofile(s[0])} with server key {s} seems to have closed unexpectedly")
             closed.append(s[0])
             window[s[0]+"-open"].update(disabled = False)
             window[s[0]+"-close"].update(disabled = True)
@@ -45,8 +63,8 @@ while True:
         api =  "server" if event.split('-')[0] in config['launch']['server'] else "action" if event.split('-')[0] in config['launch']['action'] else "orchestrators"
         if event.split('-')[1] == 'open':
             l = list(psutil.process_iter())
-            cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
-            print(f"Starting {api}/{s}")
+            cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+            print(f"Starting {api}/{keytofile(s)} with server key {s}")
             p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True, stderr=subprocess.STDOUT)
             time.sleep(.1)
             p1,p2 = None, None
@@ -57,14 +75,14 @@ while True:
                     if p.name() == 'python.exe':
                         p2 = p
             if not (p1.pid == p0.pid and p2 != None):
-                print(f"server {s} failed to start")
+                print(f"server {keytofile(s)} failed to start")
             else:
                 servers.update({s:(p0,p2)})
                 window[s+"-open"].update(disabled = True)
                 window[s+"-close"].update(disabled = False)
                 window[s+"-refresh"].update(disabled = False)
         elif event.split('-')[1] == 'close':
-            print(f"Killing {api}/{s}.py")
+            print(f"Killing {api}/{keytofile(s)}.py with server key {s}")
             l = list(psutil.process_iter())
             servers[s][1].terminate()
             servers[s][0].terminate()
@@ -78,14 +96,14 @@ while True:
                     if p.name() == 'python.exe':
                         terminated[1] = servers[s][1].pid
             if not terminated == [servers[s][0].pid,servers[s][1].pid]:
-                print(f"server {s} failed to close")
+                print(f"server {keytofile(s)} failed to close")
             else: 
                 del servers[s]
                 window[s+"-open"].update(disabled = False)
                 window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
         elif event.split('-')[1] == 'refresh':
-            print(f"Killing {api}/{s}.py")
+            print(f"Killing {api}/{keytofile(s)}.py with server key {s}")
             l = list(psutil.process_iter())
             servers[s][0].terminate()
             servers[s][1].terminate()
@@ -99,15 +117,15 @@ while True:
                     if p.name() == 'python.exe':
                         terminated[1] = servers[s][1].pid
             if not terminated == [servers[s][0].pid,servers[s][1].pid]:
-                print(f"server {s} failed to close")
+                print(f"server {keytofile(s)} failed to close")
             else: 
                 del servers[s]
                 window[s+"-open"].update(disabled = False)
                 window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
 
-                cmd = ["python", f"{api}/{s}.py", sys.argv[1]]
-                print(f"Starting {api}/{s}")
+                cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+                print(f"Starting {api}/{keytofile(s)} with server key {s}")
                 p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True)
                 time.sleep(.1)
                 p1,p2 = None, None
@@ -118,7 +136,7 @@ while True:
                         if p.name() == 'python.exe':
                             p2 = p
                 if not (p1.pid == p0.pid and p2 != None):
-                    print(f"server {s} failed to start")
+                    print(f"server {keytofile(s)} failed to start")
                 else:
                     servers.update({s:(p0,p2)})
                     window[s+"-open"].update(disabled = True)

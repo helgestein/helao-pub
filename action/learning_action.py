@@ -1,14 +1,18 @@
-#implement the learning action
 import sys
 sys.path.append('../driver')
 sys.path.append('../config')
 sys.path.append('../server')
-from mischbares_small import config
+#from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 import json
 import requests
 import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+
 
 app = FastAPI(title="Learning action V1", 
 description="This is a fancy learning server", 

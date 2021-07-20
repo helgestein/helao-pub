@@ -2,8 +2,8 @@ import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../action')
 sys.path.append(r'../config')
-from mischbares_small import config
-from ml_driver import DataUtilSim
+#from mischbares_small import config
+
 from celery import group
 import uvicorn
 from fastapi import FastAPI
@@ -11,10 +11,13 @@ from pydantic import BaseModel
 import json
 import requests
 import pickle
-
-
-#import data_analysis.analysis_action as ana
-
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(helao_root)
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+from ml_driver import DataUtilSim
 
 app = FastAPI(title="analysis action server",
               description="This is a test measure action",

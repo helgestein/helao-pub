@@ -1,7 +1,6 @@
 import sys
 sys.path.append(r"../driver")
 sys.path.append(r"../config")
-
 if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
     sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
 
@@ -10,16 +9,17 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
 from celery import group
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(helao_root)
+config = import_module(sys.argv[1]).config
 from measure_driver import dataAnalysis
-from mischbares_small import config
-
-
-# The only function that we need for our final test is "schwefel_function_single"
 
 app = FastAPI(title="measure action server",
               description="This is a test measure action",
               version="1.0")
-
 
 class return_class(BaseModel):
     parameters: dict = None

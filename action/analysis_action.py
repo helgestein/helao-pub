@@ -1,22 +1,21 @@
 import sys
-sys.path.append(r"../driver")
-sys.path.append(r"../config")
 sys.path.append(r"../")
-from util import highestName, dict_address
 import json
 from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
-from measure_driver import dataAnalysis
-from mischbares_small import config
 from celery import group
 import hdfdict
 import os
 import requests
 import pickle
-
-
-# implement the analysis action
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(helao_root)
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+from util import highestName, dict_address
+from measure_driver import dataAnalysis
 
 
 app = FastAPI(title="Analysis server V1",
@@ -24,10 +23,8 @@ app = FastAPI(title="Analysis server V1",
               version="1.0")
 
 
-
-
 kadiurl = None
-filepath = "C:/Users/jkflowers/Downloads"
+filepath = "C:/Users/LaborRatte23-3/Downloads"
 
 
 @app.get("/analysis/dummy")

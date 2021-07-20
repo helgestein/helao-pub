@@ -1,4 +1,3 @@
-
 import os
 import sys
 import websockets
@@ -15,8 +14,12 @@ from bokeh.models import Title, DataTable, TableColumn
 from bokeh.models.widgets import Paragraph
 from bokeh.plotting import figure, curdoc
 from tornado.ioloop import IOLoop
-from mischbares_small import config
-
+#from mischbares_small import config
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
 
 
 S = config['servers']['autolabServer']

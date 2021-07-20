@@ -2,12 +2,18 @@ import sys
 sys.path.append(r'../config')
 sys.path.append(r'../driver')
 sys.path.append(r'../server')
-from mischbares_small import config
+#from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+
+config = import_module(sys.argv[1]).config
 
 app = FastAPI(title="Motor action server V1", 
     description="This is a fancy lang motor action server", 

@@ -3,9 +3,12 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import sys
-sys.path.append('../driver')
-sys.path.append('../config')
-from mischbares_small import config
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+config = import_module(sys.argv[1]).config
 from minipump_driver import minipump
 
 app = FastAPI(title="Pump server V1",

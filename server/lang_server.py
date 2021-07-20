@@ -1,13 +1,15 @@
 import sys
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
-from lang_driver import langNet
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import json
-
+import os
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+config = import_module(sys.argv[1]).config
+from lang_driver import langNet
 
 app = FastAPI(title="Motor driver server V1",
     description="This is a fancy motor driver server",

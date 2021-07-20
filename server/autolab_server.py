@@ -1,17 +1,20 @@
-#this is the server
 import sys
-sys.path.append("../config")
-sys.path.append("../driver")
+import os
+import time
+import re
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+config = import_module(sys.argv[1]).config
 from autolab_driver import Autolab
-from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI, Query, WebSocket
 from pydantic import BaseModel
 import json
 from typing import List
-import os
-import time
-import re
+
+
 
 app = FastAPI(title="Autolab server V1",
     description="This is a very fancy autolab server",

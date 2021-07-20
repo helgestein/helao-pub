@@ -69,7 +69,7 @@ async def doMeasurement(experiment: str, thread: int):
         servertype = server.split(':')[0]
         if servertype in ['movement','motor','pumping','minipumping','echem','forceAction','table','oceanAction','ocean','owis','arcoptix','dummy']:
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
-        elif servertype == 'data':
+        elif servertype == 'kadi':
             await loop.run_in_executor(None,lambda x: requests.get(x,params=params),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
             continue
         elif servertype == 'orchestrator':

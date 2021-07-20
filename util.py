@@ -75,7 +75,7 @@ def plotTriangle(ax):
 
 
 def list_to_dict(my_list):
-    return {a:a_ for a,a_ in enumerate(my_list)}
+    return {str(a):a_ for a,a_ in enumerate(my_list)}
 
 def dict_to_list(my_dict):
     return [v for v in my_dict.values()]

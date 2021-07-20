@@ -8,8 +8,8 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 from kadi_driver import kadi
-from mischbares_small import config
-#config = import_module(sys.argv[1]).config
+#from mischbares_small import config
+config = import_module(sys.argv[1]).config
 
 
 #currently it seems like server needs to be restarted if there is an input error in any of your requests

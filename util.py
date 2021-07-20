@@ -75,7 +75,7 @@ def plotTriangle(ax):
 
 
 def list_to_dict(my_list):
-    return {a:a_ for a,a_ in enumerate(my_list)}
+    return {str(a):a_ for a,a_ in enumerate(my_list)}
 
 def dict_to_list(my_dict):
     return [v for v in my_dict.values()]
@@ -182,8 +182,8 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
         # save strings, numpy.int64, and numpy.float64 types
         if isinstance(item, (np.int64, np.float64, str, np.float, float, np.float32,int)):
             h5file[path + key] = item
-            if not h5file[path + key][()] == item:
-                raise ValueError('The data representation in the HDF5 file does not match the original dict.')
+            #if not h5file[path + key][()] == item:
+            #    raise ValueError('The data representation in the HDF5 file does not match the original dict.')
         # save numpy arrays
         elif isinstance(item, np.ndarray):
             try:

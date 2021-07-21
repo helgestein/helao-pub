@@ -16,9 +16,9 @@ from typing import List
 
 
 
-app = FastAPI(title="Autolab server V1",
+app = FastAPI(title="Autolab V2",
     description="This is a very fancy autolab server",
-    version="1.0",)
+    version="2.0",)
 
 class return_class(BaseModel):
     parameters: dict = None
@@ -36,38 +36,38 @@ def startup_event():
     a = Autolab(config['autolab'])
 
 
-@app.get("/potentiostat/ismeasuring")
+@app.get("/autolab/ismeasuring")
 def ismeasuring():
     ret = a.ismeasuring()
     retc = return_class(parameters= None,data = {'ismeasuring':ret})
     return retc
 
-@app.get("/potentiostat/potential")
+@app.get("/autolab/potential")
 def potential():
     ret = a.potential()
     retc = return_class(parameters= None,data = {'potential':ret,'units':'V'})
     return retc
 
-@app.get("/potentiostat/current")
+@app.get("/autolab/current")
 def current():
     ret = a.current()
     retc = return_class(parameters= None,data = {'current':ret,'units':'A'})
     return retc
 
-@app.get("/potentiostat/setcurrentrange")
+@app.get("/autolab/setcurrentrange")
 def setCurrentRange(crange: str):
     a.setCurrentRange(crange)
     res = [re.findall(r'(\d+)(\w+)', crange)[0]]
     retc = return_class(parameters= {'parameters':crange,'units': res[0][1]},data = None)
     return retc
 
-@app.get("/potentiostat/setstability")
+@app.get("/autolab/setstability")
 def setStability(stability:str):
     a.setStability(stability)
     retc = return_class(parameters={'stability':stability},data = None)
     return retc
 
-@app.get("/potentiostat/appliedpotential")
+@app.get("/autolab/appliedpotential")
 def appliedPotential():
     ret = a.appliedPotential()
     retc = return_class(parameters= None,data = {'appliedpotential':ret,'units':'V'})
@@ -85,19 +85,19 @@ async def websocket_messages(websocket: WebSocket):
 
 
 
-@app.get("/potentiostat/abort")
+@app.get("/autolab/abort")
 def abort():
     a.abort()
     retc = return_class(parameters= None,data= None)
     return retc
 
-@app.get("/potentiostat/cellonoff")
+@app.get("/autolab/cellonoff")
 def CellOnOff(onoff:str):
     a.CellOnOff(onoff)
     retc = return_class(parameters= {'onoff':onoff},data = None)
     return retc
 
-@app.get("/potentiostat/measure")
+@app.get("/autolab/measure")
 async def performMeasurement(procedure: str,setpointjson: str ,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
     setpoints = eval(setpointjson)
     #setpoint_keys = list(setpoints.keys())
@@ -114,7 +114,7 @@ async def performMeasurement(procedure: str,setpointjson: str ,plot:str,onoffaft
     return retc
 
 
-@app.get("/potentiostat/retrieve")
+@app.get("/autolab/retrieve")
 def retrieve(safepath:str,filename:str):
     conf = dict(safepath=safepath,filename=filename)
     path = os.path.join(conf['safepath'],conf['filename'])
@@ -129,4 +129,4 @@ def disconnect():
     a.disconnect()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=config['servers']['autolabServer']['host'], port=config['servers']['autolabServer']['port'])
+    uvicorn.run(app, host=config['servers']['autolab']['host'], port=config['servers']['autolab']['port'])

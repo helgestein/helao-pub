@@ -9,12 +9,12 @@ import json
 from copy import copy
 
 def test_fnc(action, params):
-    server = 'motor'
+    server = 'langDriver'
     action = action 
     params = params
     r = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['motorServer']['host'], 
-        config['servers']['motorServer']['port'],server , action),
+        config['servers']['langDriver']['host'], 
+        config['servers']['langDriver']['port'],server , action),
         params= params).json()
     print(r)
 

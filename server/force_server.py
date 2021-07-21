@@ -13,9 +13,9 @@ config = import_module(sys.argv[1]).config
 from megsv_driver import MEGSV
 
 
-app = FastAPI(title="MEGSV driver", 
-            description= " this is a fancy MEGSV driver server",
-            version= "1.0")
+app = FastAPI(title="Force driver", 
+            description= " this is a fancy force driver server",
+            version= "2.0")
 
 
 class return_class(BaseModel):
@@ -51,7 +51,7 @@ def release():
 
 
 if __name__ == "__main__":
-    m = MEGSV(config['megsv'])
-    uvicorn.run(app, host=config['servers']['megsvServer']['host'], port=config['servers']['megsvServer']['port'])
+    m = MEGSV(config['force'])
+    uvicorn.run(app, host=config['servers']['force']['host'], port=config['servers']['force']['port'])
     print("instantiated force sensor")
     

@@ -11,7 +11,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 from force_driver import MEGSV
-
+serverkey = sys.argv[2]
 
 app = FastAPI(title="Force driver", 
             description= " this is a fancy force driver server",
@@ -24,19 +24,19 @@ class return_class(BaseModel):
 
 
 
-@app.get("/force/connect")
+@app.get("/forceDriver/connect")
 def activate():
     m.activate()
     retc = return_class(parameters=None,data= None)
     return retc
 
-@app.get("/force/read")
+@app.get("/forceDriver/read")
 def read():
     data = m.read()
     retc = return_class(parameters=None,data= {"value": data, 'units':'internal units [-1.05,1.05]'})
     return retc
 
-@app.get("/force/readBuffer")
+@app.get("/forceDriver/readBuffer")
 def readBuffer():
     data = m.readBuffer()
     retc = return_class(parameters=None,data= {"values": data, 'units':'internal units [-1.05,1.05]'})
@@ -51,7 +51,8 @@ def release():
 
 
 if __name__ == "__main__":
-    m = MEGSV(config['force'])
-    uvicorn.run(app, host=config['servers']['force']['host'], port=config['servers']['force']['port'])
-    print("instantiated force sensor")
+    m = MEGSV(config[serverkey])
+    #uvicorn.run(app, host=config['servers']['force']['host'], port=config['servers']['force']['port'])
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
+    print("instantiated forcDriver sensor")
     

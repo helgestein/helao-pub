@@ -10,23 +10,24 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 from minipump_driver import minipump
+serverkey = sys.argv[2]
 
-app = FastAPI(title="Pump server V1",
+app = FastAPI(title="Pump server V2",
     description="This is a very fancy pump server",
-    version="1.0",)
+    version="2.0",)
 
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
 @app.on_event("shutdown")
-@app.get("/minipump/stopPump")
+@app.get("/minipumpDriver/stopPump")
 def stopPump(read:bool=False):
     ret = p.stopPump(read)
     retc = return_class(parameters={"read":read},data={'serial_response':ret})
     return retc
 
-@app.get("/minipump/primePump")
+@app.get("/minipumpDriver/primePump")
 def primePump(volume:int, speed:int, direction:int=1, read:bool=False):
     ret = p.primePump(volume, speed, direction, read)
     retc = return_class(parameters={"volume": volume,"speed": speed,"direction": direction,"read": read,
@@ -34,19 +35,19 @@ def primePump(volume:int, speed:int, direction:int=1, read:bool=False):
                         data={'serial_response':ret})
     return retc
 
-@app.get("/minipump/runPump")
+@app.get("/minipumpDriver/runPump")
 def runPump(read:bool=False):
     ret = p.runPump(read)
     retc = return_class(parameters={"read":read},data={'serial_response':ret})
     return retc
 
-@app.get("/minipump/readPump")
+@app.get("/minipumpDriver/readPump")
 def readPump():
     ret = p.readPump()
     retc = return_class(parameters=None,data={'serial_response':ret})
     return retc
 
-@app.get("/minipump/read")
+@app.get("/minipumpDriver/read")
 def read():
     ret = p.read()
     retc = return_class(parameters=None,data={'serial_response':ret})
@@ -54,5 +55,5 @@ def read():
 
 
 if __name__ == "__main__":
-    p = minipump(config['minipump'])
-    uvicorn.run(app, host=config['servers']['minipumpServer']['host'], port=config['servers']['minipumpServer']['port'])
+    p = minipump(config[serverkey])
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['host'])

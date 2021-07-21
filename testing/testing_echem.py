@@ -1,3 +1,4 @@
+import os
 import requests
 import sys
 sys.path.append(r'../config')
@@ -7,14 +8,20 @@ import time
 from config.mischbares_small import config
 import json
 from copy import copy
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
+config = import_module(sys.argv[1]).config
+
 
 def echem_test(action, params):
-    server = 'echem'
+    server = 'autolanDriver'
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['echemServer']['host'], 
-        config['servers']['echemServer']['port'],server , action),
+        config['servers']['autolabDriver']['host'], 
+        config['servers']['autolabDriver']['port'],server , action),
         params= params).json()
     return res
 

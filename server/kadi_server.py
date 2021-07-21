@@ -12,8 +12,6 @@ config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
 
-#currently it seems like server needs to be restarted if there is an input error in any of your requests
-
 app = FastAPI(title="KaDI4Mat Interface Driver V1",
     description="This is a very fancy data management server",
     version="1.0")

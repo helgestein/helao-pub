@@ -15,19 +15,19 @@ config = import_module(sys.argv[1]).config
 def keytofile(key:str):
     
     server = key.split(':')[0]
-    translationdict = {'owis':'owis_action','owisDriver':'owis_server',
-                        'ocean':'ocean_action','oceanDriver':'ocean_server',
-                        'kadi':'kadi_action','kadiDriver':'kadi_server',
-                        'arcoptix':'arcoptix_action','arcoptixDriver':'arcoptix_server',
-                        'orchestrator':'mischbares',
-                        'dummy':'dummy_action'}
-    return translationdict[server]
-
-    #works for drivers and actions, but not for visualizers, orchestrators, processes...
-    #if "Driver" in server:
-    #    return server[:-6] + "_driver.py"
-    #else:
-    #    return server + "_action.py"
+    #translationdict = {'owis':'owis_action','owisDriver':'owis_server',
+    #                    'ocean':'ocean_action','oceanDriver':'ocean_server',
+    #                    'kadi':'kadi_action','kadiDriver':'kadi_server',
+    #                    'arcoptix':'arcoptix_action','arcoptixDriver':'arcoptix_server',
+    #                    'orchestrator':'mischbares',
+    #                    'dummy':'dummy_action'}
+    #return translationdict[server]
+    if server == 'orchestrator':
+        return server+".py"
+    if "Driver" in server:
+        return server[:-6] + "_driver.py"
+    else:
+        return server + "_action.py"
 
 
 items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']

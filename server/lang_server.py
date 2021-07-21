@@ -11,9 +11,9 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 from lang_driver import langNet
 
-app = FastAPI(title="Motor driver server V1",
+app = FastAPI(title="Lang server V2",
     description="This is a fancy motor driver server",
-    version="1.0")
+    version="2.0")
 
 class return_class(BaseModel):
     parameters: dict = None
@@ -88,8 +88,8 @@ def shutDown():
  
 if __name__ == "__main__":
     l = langNet(config['lang'])
-    print('Port of lang Server: {}'.format(config['servers']['langServer']['port']))
+    print('Port of lang Server: {}'.format(config['servers']['lang']['port']))
 
-    uvicorn.run(app, host=config['servers']['langServer']['host'], port=config['servers']['langServer']['port'])
+    uvicorn.run(app, host=config['servers']['lang']['host'], port=config['servers']['lang']['port'])
     print("instantiated motor")
     

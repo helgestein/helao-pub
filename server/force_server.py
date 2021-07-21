@@ -10,7 +10,7 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
-from megsv_driver import MEGSV
+from force_driver import MEGSV
 
 
 app = FastAPI(title="Force driver", 

@@ -12,9 +12,9 @@ config = import_module(sys.argv[1]).config
 from pump_driver import pump
 
 
-app = FastAPI(title="Pump server V1",
+app = FastAPI(title="Pump server V2",
     description="This is a very fancy pump server",
-    version="1.0",)
+    version="2.0",)
 
 class return_class(BaseModel):
     parameters: dict = None
@@ -66,4 +66,4 @@ def shutdown():
 
 if __name__ == "__main__":
     p = pump(config['pump'])
-    uvicorn.run(app, host=config['servers']['pumpServer']['host'], port=config['servers']['pumpServer']['port'])
+    uvicorn.run(app, host=config['servers']['pump']['host'], port=config['servers']['pump']['port'])

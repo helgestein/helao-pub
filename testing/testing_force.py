@@ -9,12 +9,12 @@ import json
 from copy import copy
 
 def force_test(action, params):
-    server = 'forceDriver'
+    server = 'force'
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['forceDriver']['host'], 
-        config['servers']['forceDriver']['port'],server , action),
+        config['servers']['force']['host'], 
+        config['servers']['force']['port'],server , action),
         params= params).json()
     return res
 

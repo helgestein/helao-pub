@@ -9,12 +9,12 @@ import json
 from copy import copy
 
 def test_fnc(action, params):
-    server = 'langDriver'
+    server = 'lang'
     action = action 
     params = params
     r = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['langDriver']['host'], 
-        config['servers']['langDriver']['port'],server , action),
+        config['servers']['lang']['host'], 
+        config['servers']['lang']['port'],server , action),
         params= params).json()
     print(r)
 
@@ -40,9 +40,9 @@ plt.show()
 from time import sleep
 for j in range(64):
     print("{}, {}".format(x[j], y[j]))
-    dx = config['lang']['safe_sample_pos'][0] + x[j]
-    dy = config['lang']['safe_sample_pos'][1] + y[j]
-    dz = config['lang']['safe_sample_pos'][2]
+    dx = config['langDriver']['safe_sample_pos'][0] + x[j]
+    dy = config['langDriver']['safe_sample_pos'][1] + y[j]
+    dz = config['langDriver']['safe_sample_pos'][2]
     print("{},{},{}".format(dx, dy, dz))
     test_fnc('moveAbs', dict(dx=dx, dy=dy, dz=dz))
     #sleep(10)

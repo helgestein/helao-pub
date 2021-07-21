@@ -16,12 +16,12 @@ config = import_module(sys.argv[1]).config
 
 
 def echem_test(action, params):
-    server = 'autolanDriver'
+    server = 'autolab'
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['autolabDriver']['host'], 
-        config['servers']['autolabDriver']['port'],server , action),
+        config['servers']['autolab']['host'], 
+        config['servers']['autolab']['port'],server , action),
         params= params).json()
     return res
 

@@ -55,34 +55,29 @@ def schwefel_function_single(measurement_area: str, save_data_to: str = "../data
                         'key_y': f.tolist()})
     return retc
 
-
+###############put away the celery for the new version, to make the other part of infrastucture works first
 @app.get("/measureDriver/schwefel_function_group")
 def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_end: float = None, x_step: float = None, y_start: float = None,
                             y_end: float = None, y_step: float = None, save_data_to: str = "../data/schwefel_fnc_group.json"):
     if n == 2:
-        make_grid = d.make_grid.delay(x_start, x_end, x_step, y_start,
+        make_grid = d.make_grid(x_start, x_end, x_step, y_start,
                                       y_end, y_step, save_data_to="../data/binary.json")
-        grid_arr = make_grid.get()
-        f_task = group(d.schwefel_function.s(
-            vector_fnc='[{}, {}]'.format(x[0], x[1]), save_data_to="../data/schwefel_single.json") for x in grid_arr['steps'])
+        grid_arr = make_grid
+        f_task = [d.schwefel_function(vector_fnc='[{}, {}]'.format(x[0], x[1]), save_data_to="../data/schwefel_single.json") for x in grid_arr['steps']]
 
     if n == 3:
-        n_nary_task = d.make_n_nary.delay(
-            3, steps, save_data_to="../data/ternary.json")
-        comp = n_nary_task.get()
-        f_task = group(d.schwefel_function.s(
-            vector_fnc='[{},{},{}]'.format(x[0], x[1], x[2]), save_data_to="../data/schwefel_single.json") for x in comp['steps'])
+        n_nary_task = d.make_n_nary(3, steps, save_data_to="../data/ternary.json")
+        comp = n_nary_task
+        f_task = [d.schwefel_function(vector_fnc='[{},{},{}]'.format(x[0], x[1], x[2]), save_data_to="../data/schwefel_single.json") for x in comp['steps']]
 
     if n == 4:
-        n_nary_task = d.make_n_nary.delay(
-            4, steps, save_data_to="../data/quaternary.json")
-        comp = n_nary_task.get()
-        f_task = group(d.schwefel_function.s(
-            vector_fnc='[{}, {}, {}, {}]'.format(x[0], x[1], x[2], x[3]), save_data_to="../data/schwefel_single.json") for x in comp['data']['steps'])
+        n_nary_task = d.make_n_nary(4, steps, save_data_to="../data/quaternary.json")
+        comp = n_nary_task
+        f_task = [d.schwefel_function(vector_fnc='[{}, {}, {}, {}]'.format(x[0], x[1], x[2], x[3]), save_data_to="../data/schwefel_single.json") for x in comp['data']['steps']]
 
-    f = f_task()
+    f = f_task
     print(f)
-    result = f.get()
+    result = f
     with open(save_data_to, 'w') as res:
         json.dump(result, res)
     retc = return_class(parameters={'n': n}, data={'schwefel': result})

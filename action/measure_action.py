@@ -3,7 +3,6 @@ sys.path.append(r"../driver")
 sys.path.append(r"../config")
 if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
     sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
-
 import json
 from pydantic import BaseModel
 from fastapi import FastAPI
@@ -17,16 +16,16 @@ sys.path.append(helao_root)
 config = import_module(sys.argv[1]).config
 from measure_driver import dataAnalysis
 
-app = FastAPI(title="measure action server",
+app = FastAPI(title="measure measureDriver V2",
               description="This is a test measure action",
-              version="1.0")
+              version="2.0")
 
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
 
-@app.get("/measure/make_grid")
+@app.get("/measureDriver/make_grid")
 def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end: float, y_step: float, save_data_to: str = "../data/grid.json"):
     make_grid = d.make_grid.delay(x_start, x_end, x_step, y_start,
                                   y_end, y_step, save_data_to)
@@ -36,7 +35,7 @@ def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end
     return retc
 
 
-@app.get("/measure/make_n_nary")
+@app.get("/measureDriver/make_n_nary")
 def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
     n_nary_task = d.make_n_nary.delay(n, steps, save_data_to)
     comp = n_nary_task.get()
@@ -46,7 +45,7 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 # [dx,dy]
 
 
-@app.get("/measure/schwefelFunction")
+@app.get("/measureDriver/schwefelFunction")
 def schwefel_function_single(measurement_area: str, save_data_to: str = "../data/schwefel_fnc.json"):
     print(measurement_area)
     f = d.schwefel_function(measurement_area, save_data_to)
@@ -56,7 +55,7 @@ def schwefel_function_single(measurement_area: str, save_data_to: str = "../data
     return retc
 
 
-@app.get("/measure/schwefel_function_group")
+@app.get("/measureDriver/schwefel_function_group")
 def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_end: float = None, x_step: float = None, y_start: float = None,
                             y_end: float = None, y_step: float = None, save_data_to: str = "../data/schwefel_fnc_group.json"):
     if n == 2:
@@ -91,11 +90,10 @@ def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['measureServer']
-                                ['host'], config['servers']['measureServer']['port'])
-    port = 13368
-    host = "127.0.0.1"
-    print('Port of analysis Server: {}')
-    uvicorn.run(app, host=config['servers']['measureServer']
-                ['host'], port=config['servers']['measureServer']['port'])
-    print("instantiated analysis server")
+    url = "http://{}:{}".format(config['servers']['measureDriver']
+                                ['host'], config['servers']['measureDriver']['port'])
+
+    print('Port of measureDriver: {}')
+    uvicorn.run(app, host=config['servers']['measureDriver']
+                ['host'], port=config['servers']['measureDriver']['port'])
+    print("instantiated measureDriver")

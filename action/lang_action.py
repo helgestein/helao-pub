@@ -84,27 +84,27 @@ def moveAbsFar(dx: float, dy: float, dz: float):
 
 @app.get("/lang/moveHome")
 def moveHome():
-    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=config['langDriver']['safe_home_pos'][0], dy=config['langDriver']['safe_home_pos'][1], dz=config['langDriver']['safe_home_pos'][2])).json()
+    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=config[serverkey]['safe_home_pos'][0], dy=config[serverkey]['safe_home_pos'][1], dz=config[serverkey]['safe_home_pos'][2])).json()
     retc = return_class(parameters=None,data=res)
     return retc
 
 @app.get("/lang/moveWaste")
 def moveWaste(x: float=0, y: float=0, z: float=0): #these three coordinates define the home position. This helps us to align the positions based on the reference point 
-    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=x+config['langDriver']['safe_waste_pos'][0], dy=y+config['langDriver']['safe_waste_pos'][1], dz=z+config['langDriver']['safe_waste_pos'][2])).json()
+    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=x+config[serverkey]['safe_waste_pos'][0], dy=y+config[serverkey]['safe_waste_pos'][1], dz=z+config[serverkey]['safe_waste_pos'][2])).json()
     retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data=res)
     return retc
 
 @app.get("/lang/moveSample")
 def moveToSample(x: float=0, y: float=0, z: float=0):
-    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=x+config['langDriver']['safe_sample_pos'][0], dy=y+config['langDriver']['safe_sample_pos'][1], dz=z+config['langDriver']['safe_sample_pos'][2])).json()
+    res = requests.get("{}/langDriver/moveAbsFar".format(url), params=dict(dx=x+config[serverkey]['safe_sample_pos'][0], dy=y+config[serverkey]['safe_sample_pos'][1], dz=z+config[serverkey]['safe_sample_pos'][2])).json()
     retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data=res)
     return retc
 
 @app.get("/lang/RemoveDroplet")
 def removeDrop(x: float=0, y: float=0, z: float=0):
     raw = []
-    raw.append(requests.get("{}/langDriver/moveAbsFar".format(url), params= dict(dx = x + config['langDriver']['safe_waste_pos'][0], dy = y + config['langDriver']['safe_waste_pos'][1], dz = z + config['langDriver']['remove_drop'][2])).json()) # because referene will start from 2 
-    raw.append(requests.get("{}/langDriver/moveAbsFar".format(url), params= dict(dx = x + config['langDriver']['remove_drop'][0], dy = y + config['langDriver']['remove_drop'][1], dz = z + config['langDriver']['remove_drop'][2])).json())
+    raw.append(requests.get("{}/langDriver/moveAbsFar".format(url), params= dict(dx = x + config[serverkey]['safe_waste_pos'][0], dy = y + config[serverkey]['safe_waste_pos'][1], dz = z + config[serverkey]['remove_drop'][2])).json()) # because referene will start from 2 
+    raw.append(requests.get("{}/langDriver/moveAbsFar".format(url), params= dict(dx = x + config[serverkey]['remove_drop'][0], dy = y + config[serverkey]['remove_drop'][1], dz = z + config[serverkey]['remove_drop'][2])).json())
     res = requests.get("{}/langDriver/getPos".format(url)).json()
     raw.append(res)
     retc = return_class(parameters= {"x": x, "y": y, "z": z,'units':{'x':'mm','y':'mm','z':'mm'}},data={'raw':raw,'res':res['data']})

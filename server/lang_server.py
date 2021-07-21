@@ -89,8 +89,6 @@ def shutDown():
  
 if __name__ == "__main__":
     l = langNet(config[serverkey])
-    print('Port of lang Server: {}'.format(config['servers']['lang']['port']))
-
     uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
     print("instantiated motor")
     

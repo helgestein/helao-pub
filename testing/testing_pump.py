@@ -9,22 +9,22 @@ import json
 from copy import copy
 
 def pump_test(action, params):
-    server = 'pumping'
+    server = 'pump'
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['minipumpServer']['host'], 
-        config['servers']['minipumpServer']['port'],server , action),
+        config['servers']['pump']['host'], 
+        config['servers']['pump']['port'],server , action),
         params= params).json()
     return res
 
 def mini_pump_test(action, params):
-    server = 'minipumping'
+    server = 'minipump'
     action = action
     params = params
     res = requests.get("http://{}:{}/{}/{}".format(
-        config['servers']['minipumpingServer']['host'], 
-        config['servers']['minipumpingServer']['port'],server , action),
+        config['servers']['minipump']['host'], 
+        config['servers']['minipump']['port'],server , action),
         params= params).json()
     return res
 

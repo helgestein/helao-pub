@@ -67,7 +67,7 @@ async def doMeasurement(experiment: str, thread: int):
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
         servertype = server.split(':')[0]
-        if servertype in ['movement','motor','pumping','minipumping','echem','forceAction','table','oceanAction','ocean','owis','arcoptix','dummy']:
+        if servertype in ['movement','lang','pump','minipump','autolab','force','ocean','owis','arcoptix','dummy']:
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
         elif servertype == 'kadi':
             await loop.run_in_executor(None,lambda x: requests.get(x,params=params),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")

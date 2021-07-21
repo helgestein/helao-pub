@@ -3,7 +3,6 @@ import sys
 sys.path.append(r'../driver')
 sys.path.append(r'../config')
 sys.path.append(r'../server')
-#from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -15,9 +14,9 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
-app = FastAPI(title="Force sensor action server V1", 
-    description="This is a fancy force sensor action server", 
-    version="1.0")
+app = FastAPI(title="ForceDriver server V2", 
+    description="This is a fancy forceDriver sensor action server", 
+    version="2.0")
 
 
 class return_class(BaseModel):
@@ -26,7 +25,7 @@ class return_class(BaseModel):
 
 
 
-@app.get("/forceAction/read")
+@app.get("/forceDriver/read")
 def read():
     #read a force measurement from the buffer. if there is no measurement in the buffer, it will wait for one to arrive.
     while True:
@@ -39,7 +38,7 @@ def read():
 
 
 if __name__ == "__main__":
-    url = "http://{}:{}".format(config['servers']['megsvServer']['host'],config['servers']['megsvServer']['port'])
-    uvicorn.run(app,host=config['servers']['sensingServer']['host'],port=config['servers']['sensingServer']['port'])
-    print("instantiated force sensor action")
+    url = "http://{}:{}".format(config['servers']['force']['host'],config['servers']['force']['port'])
+    uvicorn.run(app,host=config['servers']['forceDriver']['host'],port=config['servers']['forceDriver']['port'])
+    print("instantiated forceDriver sensor")
     

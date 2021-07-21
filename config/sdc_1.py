@@ -45,9 +45,9 @@ config['autolab'] = dict(basep=r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.
                                        'gitt' : r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\GITT.nox',
                                        'gitt_eis' : r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\GITT_EIS.nox'})
 
-config['echem'] = dict(procedures=dict())
+config['autolabDriver'] = dict(procedures=dict())
 
-config['echem']['procedures']['ca'] = {'procedure': 'ca',
+config['autolabDriver']['procedures']['ca'] = {'procedure': 'ca',
                                        'setpoints': {'applypotential': {'Setpoint value': 0.735},
                                                      'recordsignal': {'Duration': 1000}},
                                        'plot': 'tCV',
@@ -57,7 +57,7 @@ config['echem']['procedures']['ca'] = {'procedure': 'ca',
                                        'parseinstructions': ['recordsignal']}
 
 
-config['echem']['procedures']['ocp'] = {'procedure': 'ocp',
+config['autolabDriver']['procedures']['ocp'] = {'procedure': 'ocp',
                                         'setpoints': {'FHLevel': {'Duration': 20}},
                                         'plot': 'tCV',
                                         'onoffafter': 'off',
@@ -65,7 +65,7 @@ config['echem']['procedures']['ocp'] = {'procedure': 'ocp',
                                         'filename': 'ocp.nox',
                                         'parseinstructions': ['FHLevel']}
 
-config['echem']['procedures']['ms'] = {'procedure': 'ms',
+config['autolabDriver']['procedures']['ms'] = {'procedure': 'ms',
                                        # 'setpoints': {'ExecCommandForeach': 'FIAMeasPotentiostatic': {} },
                                        'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
                                        'plot': 'impedance',
@@ -75,7 +75,7 @@ config['echem']['procedures']['ms'] = {'procedure': 'ms',
                                        'parseinstructions': ["FIAMeasurement", "FHLevel"]}
 
 
-config['echem']['procedures']['ocp_rf'] = {'procedure': 'ocp_rf',
+config['autolabDriver']['procedures']['ocp_rf'] = {'procedure': 'ocp_rf',
                                            'setpoints': {'FHRefDetermination': {'Timeout': 20}},
                                            'plot': 'tCV',
                                            'onoffafter': 'off',
@@ -84,7 +84,7 @@ config['echem']['procedures']['ocp_rf'] = {'procedure': 'ocp_rf',
                                            'parseinstructions': ['OCP determination']}
 
 
-config['echem']['procedures']['cp'] = {'procedure': 'cp',
+config['autolabDriver']['procedures']['cp'] = {'procedure': 'cp',
                                        'setpoints': {'applycurrent': {'Setpoint value': 7*(10**-6)},
                                                      'recordsignal': {'Duration': 600}},
                                        'plot': 'tCV',
@@ -93,7 +93,7 @@ config['echem']['procedures']['cp'] = {'procedure': 'cp',
                                        'filename': 'cp.nox',
                                        'parseinstructions': ['recordsignal']}
 
-config['echem']['procedures']['cv'] = {'procedure': 'cv',
+config['autolabDriver']['procedures']['cv'] = {'procedure': 'cv',
                                        'setpoints': {
                                            'FHSetSetpointPotential': {'Setpoint value': 0.4},
                                            'FHWait': {'Time': 2},
@@ -108,7 +108,7 @@ config['echem']['procedures']['cv'] = {'procedure': 'cv',
                                        'filename': 'cv.nox',
                                        'parseinstructions': ['CVLinearScanAdc164']}
 
-config['echem']['procedures']['eis'] = {'procedure': 'eis',
+config['autolabDriver']['procedures']['eis'] = {'procedure': 'eis',
                                         'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
                                         'plot': 'impedance',
                                         'onoffafter': 'off',
@@ -116,7 +116,7 @@ config['echem']['procedures']['eis'] = {'procedure': 'eis',
                                         'filename': 'eis.nox',
                                         'parseinstructions': ['FIAMeasPotentiostatic']}
 
-config['echem']['procedures']['pitt'] = {'procedure': 'pitt',
+config['autolabDriver']['procedures']['pitt'] = {'procedure': 'pitt',
                                         'setpoints': {
                                             'OCP determination': {'Timeout': 60},
                                             # charge loop range list list(proc.Commands['Charge loop'].CommandParameters['Values'].Value.RangeCollection)
@@ -131,7 +131,7 @@ config['echem']['procedures']['pitt'] = {'procedure': 'pitt',
                                         'filename': 'eis.nox',
                                         'parseinstructions': ['FIAMeasPotentiostatic']}
 
-config['echem']['procedures']['gitt'] = {'procedure': 'gitt',
+config['autolabDriver']['procedures']['gitt'] = {'procedure': 'gitt',
                                         'setpoints': {
                                             'Autolab control': {'WE(1).Current range': -2}, # 1=10A, 0=1A, -1=100mA, -2=10mA, -3=1mA, -4=100uA, -5=10uA, -6=1uA, -7=100nA, -8=10nA
                                             'OCP determination': {'Timeout': 10},
@@ -150,7 +150,7 @@ config['echem']['procedures']['gitt'] = {'procedure': 'gitt',
                                         'filename': 'eis.nox',
                                         'parseinstructions': ['FIAMeasPotentiostatic']}
 
-config['echem']['procedures']['gitt_eis'] = {'procedure': 'gitt_eis',
+config['autolabDriver']['procedures']['gitt_eis'] = {'procedure': 'gitt_eis',
                                         'setpoints': {
                                             'Autolab control 1': {'WE(1).Current range': -2},  # 1=10A, 0=1A, -1=100mA, -2=10mA, -3=1mA, -4=100uA, -5=10uA, -6=1uA, -7=100nA, -8=10nA
                                             'OCP determination 1': {'Timeout': 30},
@@ -182,7 +182,7 @@ config['lang'] = dict(vx=5, vy=5, vz=5, port='COM3',
                       safe_sample_pos=[3.0, 4.0, 0.0],
                       remove_drop=[3.0, -15.0, 9.5]) 
 
-config['megsv'] = dict(port=5,
+config['force'] = dict(port=5,
                        buffer_size=1,
                        dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
 
@@ -192,7 +192,7 @@ config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data')
 
 
 config['launch'] = dict(server = ['autolab_server','kadi_server','lang_server','megsv_server', 'minipump_server', 'pump_server'],
-                        action = ['analysis_action','echem_ocean','kadi_action','lang_action', 'learning_action', 'measure_action', 'minipumping_action', 'ml_action', 'pumping_action', 'sensing_mesgsv'],
+                        action = ['analysis_action','autolab_action','kadi_action','lang_action', 'learning_action', 'measure_action', 'minipumping_action', 'ml_action', 'pumping_action', 'sensing_mesgsv'],
                         orchestrator = ['mischbares'],
                         visualizer = ['autolab_visualizer'],
                         process = [])

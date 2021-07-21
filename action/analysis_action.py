@@ -16,9 +16,9 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 from util import highestName, dict_address
 from measure_driver import dataAnalysis
+serverkey = sys.argv[2]
 
-
-app = FastAPI(title="AnalysisDriver V2",
+app = FastAPI(title="Analysis V2",
               description="This is a fancy analysis server",
               version="2.0")
 
@@ -27,7 +27,7 @@ kadiurl = None
 filepath = "C:/Users/LaborRatte23-3/Downloads"
 
 
-@app.get("/analysisDriver/dummy")
+@app.get("/analysis/dummy")
 def bridge(exp_num: str, sources: str): #
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
@@ -160,9 +160,13 @@ def interpret_input(sources, types, addresses, experiment_numbers=None):
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['analysisDriver']
-                                ['host'], config['servers']['analysisDriver']['port'])
-    print('Port of analysisDriver: {}')
-    uvicorn.run(app, host=config['servers']['analysisDriver']
-                ['host'], port=config['servers']['analysisDriver']['port'])
-    print("instantiated analysisDriver")
+    url = config[serverkey]['url']
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
+                     port=config['servers'][serverkey]['port'])
+    
+    # url = "http://{}:{}".format(config['servers']['analysisDriver']
+    #                             ['host'], config['servers']['analysisDriver']['port'])
+    # print('Port of analysisDriver: {}')
+    # uvicorn.run(app, host=config['servers']['analysisDriver']
+    #             ['host'], port=config['servers']['analysisDriver']['port'])
+    # print("instantiated analysisDriver")

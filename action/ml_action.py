@@ -18,6 +18,7 @@ sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 from ml_driver import DataUtilSim
+serverkey = sys.argv[2]
 
 app = FastAPI(title="analysis action server",
               description="This is a test measure action",
@@ -72,9 +73,7 @@ def active_learning_random_forest_simulation(sources: str, x_query: str, save_da
 
 if __name__ == "__main__":
     d = DataUtilSim()
-    url = "http://{}:{}".format(config['servers']['learningServer']
-                                ['host'], config['servers']['learningServer']['port'])
-    print('Port of ml Server: {}')
-    uvicorn.run(app, host=config['servers']['learningServer']
-                ['host'], port=config['servers']['learningServer']['port'])
     print("instantiated ml server")
+    url = config[serverkey]['url']
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
+                port=config['servers'][serverkey]['port'])

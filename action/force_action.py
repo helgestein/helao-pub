@@ -13,6 +13,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
 
 app = FastAPI(title="ForceDriver server V2", 
     description="This is a fancy forceDriver sensor action server", 
@@ -25,11 +26,11 @@ class return_class(BaseModel):
 
 
 
-@app.get("/forceDriver/read")
+@app.get("/force/read")
 def read():
     #read a force measurement from the buffer. if there is no measurement in the buffer, it will wait for one to arrive.
     while True:
-        data = requests.get("{}/force/read".format(url)).json()
+        data = requests.get("{}/forceDriver/read".format(url)).json()
         if data['data']['value'] != None:
             break
     retc = return_class(parameters=None, data=data)
@@ -38,7 +39,12 @@ def read():
 
 
 if __name__ == "__main__":
-    url = "http://{}:{}".format(config['servers']['force']['host'],config['servers']['force']['port'])
-    uvicorn.run(app,host=config['servers']['forceDriver']['host'],port=config['servers']['forceDriver']['port'])
+    #url = "http://{}:{}".format(config['servers']['force']['host'],config['servers']['force']['port'])
+    #uvicorn.run(app,host=config['servers']['forceDriver']['host'],port=config['servers']['forceDriver']['port'])
+    
+    url = config[serverkey]['url']
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
+                     port=config['servers'][serverkey]['port'])
+    
     print("instantiated forceDriver sensor")
     

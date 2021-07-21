@@ -15,6 +15,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(helao_root)
 config = import_module(sys.argv[1]).config
 from measure_driver import dataAnalysis
+serverkey = sys.argv[2]
 
 app = FastAPI(title="measure measureDriver V2",
               description="This is a test measure action",
@@ -90,10 +91,13 @@ def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['measureDriver']
-                                ['host'], config['servers']['measureDriver']['port'])
+    #url = "http://{}:{}".format(config['servers']['measureDriver']
+    #                            ['host'], config['servers']['measureDriver']['port'])
 
-    print('Port of measureDriver: {}')
-    uvicorn.run(app, host=config['servers']['measureDriver']
-                ['host'], port=config['servers']['measureDriver']['port'])
-    print("instantiated measureDriver")
+    #print('Port of measureDriver: {}')
+    #uvicorn.run(app, host=config['servers']['measureDriver']
+    #            ['host'], port=config['servers']['measureDriver']['port'])
+    #print("instantiated measureDriver")
+    url = config[serverkey]['url']
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
+                     port=config['servers'][serverkey]['port'])

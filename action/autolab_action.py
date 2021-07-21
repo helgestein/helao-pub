@@ -21,6 +21,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
 
 app = FastAPI(title="Echem AutolabDriver V2",
     description="This is a very fancy echem action server",
@@ -31,7 +32,7 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/autolabDriver/measure/")
+@app.get("/autolab/measure/")
 def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
     """
     Measure a recipe and manipulate the parameters:
@@ -46,7 +47,7 @@ def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str
                         filename=filename,
                         parseinstructions=parseinstructions)
     
-    res = requests.get("{}/autolab/measure".format(poturl), 
+    res = requests.get("{}/autolabDriver/measure".format(poturl), 
                         params=measure_conf).json()
   
     retc = return_class(parameters= measure_conf,
@@ -54,53 +55,57 @@ def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str
     return retc
 
 
-@app.get("/autolabDriver/ismeasuring/")
+@app.get("/autolab/ismeasuring/")
 def ismeasuring():
-    res = requests.get("{}/autolab/ismeasuring".format(poturl)).json()
+    res = requests.get("{}/autolabDriver/ismeasuring".format(poturl)).json()
     retc = return_class(parameters= None,data = res)
     return retc
 
-@app.get("/autolabDriver/potential/")
+@app.get("/autolab/potential/")
 def potential():
-    res = requests.get("{}/autolab/potential".format(poturl)).json()
+    res = requests.get("{}/autolabDriver/potential".format(poturl)).json()
     retc = return_class(parameters= None,data = res)
     return retc
 
-@app.get("/autolabDriver/current/")
+@app.get("/autolab/current/")
 def current():
-    res = requests.get("{}/autolab/current".format(poturl)).json()
+    res = requests.get("{}/autolabDriver/current".format(poturl)).json()
     retc = return_class(parameters= None,data = res)
     return retc
 
-@app.get("/autolabDriver/setcurrentrange/")
+@app.get("/autolab/setcurrentrange/")
 def setCurrentRange(crange:str):
-    res = requests.get("{}/autolab/setcurrentrange".format(poturl),
+    res = requests.get("{}/autolabDriver/setcurrentrange".format(poturl),
                         params={'crange':crange}).json()
     retc = return_class(parameters= {'crange':crange},data = res)
     return retc
 
-@app.get("/autolabDriver/appliedpotential/")
+@app.get("/autolab/appliedpotential/")
 def appliedPotential():
-    res = requests.get("{}/autolab/appliedpotential".format(poturl)).json()
+    res = requests.get("{}/autolabDriver/appliedpotential".format(poturl)).json()
     retc = return_class(parameters= None,data =res)
     return retc
 
-@app.get("/autolabDriver/cellonoff/")
+@app.get("/autolab/cellonoff/")
 def CellOnOff(onoff:str):
-    res = requests.get("{}/autolab/cellonoff".format(poturl),
+    res = requests.get("{}/autolabDriver/cellonoff".format(poturl),
                         params={'onoff':onoff}).json()
     retc = return_class(parameters= {'cellonoff':onoff},data = res)
     return retc
 
-@app.get("/autolabDriver/retrieve")
+@app.get("/autolab/retrieve")
 def retrieve(safepath: str, filename: str):
     conf = dict(safepath= safepath,filename = filename)
-    res = requests.get("{}/autolab/retrieve".format(poturl),
+    res = requests.get("{}/autolabDriver/retrieve".format(poturl),
                         params=conf).json()
     retc = return_class(parameters= {'safepath':safepath,'filename':filename},data = res)
     return retc
 
 if __name__ == "__main__":
-    poturl = "http://{}:{}".format(config['servers']['autolab']['host'], config['servers']['autolab']['port'])
-    print('initialized autolabDriver starting the server')
-    uvicorn.run(app, host=config['servers']['autolabDriver']['host'], port=config['servers']['autolabDriver']['port'])
+    #poturl = "http://{}:{}".format(config['servers']['autolab']['host'], config['servers']['autolab']['port'])
+    print('initialized autolab starting the server')
+    #uvicorn.run(app, host=config['servers']['autolabDriver']['host'], port=config['servers']['autolabDriver']['port'])
+    url = config[serverkey]['url']
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
+                     port=config['servers'][serverkey]['port'])
+    

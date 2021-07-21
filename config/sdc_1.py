@@ -19,6 +19,11 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          analysis=dict(host="127.0.0.1", port=13369),
                          learning=dict(host="127.0.0.1", port=13363))
 
+config['measure'] = dict(url="http://127.0.0.1:13368")
+config['analysis'] = dict(url="http://127.0.0.1:13369")
+config['learning'] = dict(url="http://127.0.0.1:13363")
+
+
 config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
                             PAT=r"78ac200f0379afb4873c7b0ee71f5489946158fe882466a9", group='2')
 

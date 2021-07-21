@@ -2,7 +2,6 @@ import sys
 sys.path.append('../driver')
 sys.path.append('../config')
 sys.path.append('../server')
-#from mischbares_small import config
 import uvicorn
 from fastapi import FastAPI
 import json
@@ -14,11 +13,11 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
 
-app = FastAPI(title="Learning action V1", 
+app = FastAPI(title="LearningDriver V2", 
 description="This is a fancy learning server", 
-version="1.0")
+version="2.0")
 
-@app.get("learning/demo")
+@app.get("learningDriver/demo")
 def demo(session:str,experiment:str):
     session = json.loads(session)
     experiment = json.loads(experiment)
@@ -38,5 +37,5 @@ def demo(session:str,experiment:str):
 if __name__ == "__main__":
     #url = "http://{}:{}".format(config['servers']['kadiServer']['host'], config['servers']['kadiServer']['port'])
 
-    uvicorn.run(app, host=config['servers']['learningServer']['host'], port=config['servers']['learningServer']['port'])
-    print("instantiated learning action")
+    uvicorn.run(app, host=config['servers']['learningDriver']['host'], port=config['servers']['learningDriver']['port'])
+    print("instantiated learningDriver")

@@ -18,16 +18,16 @@ from util import highestName, dict_address
 from measure_driver import dataAnalysis
 
 
-app = FastAPI(title="Analysis server V1",
+app = FastAPI(title="AnalysisDriver V2",
               description="This is a fancy analysis server",
-              version="1.0")
+              version="2.0")
 
 
 kadiurl = None
 filepath = "C:/Users/LaborRatte23-3/Downloads"
 
 
-@app.get("/analysis/dummy")
+@app.get("/analysisDriver/dummy")
 def bridge(exp_num: str, sources: str): #
     """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
@@ -160,11 +160,9 @@ def interpret_input(sources, types, addresses, experiment_numbers=None):
 
 if __name__ == "__main__":
     d = dataAnalysis()
-    url = "http://{}:{}".format(config['servers']['analysisServer']
-                                ['host'], config['servers']['analysisServer']['port'])
-    port = 13369
-    host = "127.0.0.1"
-    print('Port of analysis Server: {}')
-    uvicorn.run(app, host=config['servers']['analysisServer']
-                ['host'], port=config['servers']['analysisServer']['port'])
-    print("instantiated analysis server")
+    url = "http://{}:{}".format(config['servers']['analysisDriver']
+                                ['host'], config['servers']['analysisDriver']['port'])
+    print('Port of analysisDriver: {}')
+    uvicorn.run(app, host=config['servers']['analysisDriver']
+                ['host'], port=config['servers']['analysisDriver']['port'])
+    print("instantiated analysisDriver")

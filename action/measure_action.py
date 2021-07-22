@@ -47,7 +47,8 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 
 
 @app.get("/measureDriver/schwefelFunction")
-def schwefel_function_single(x,y):
+def schwefel_function_single(x: float, y:float):
+    ### input : x, y are a random point from our substrate
     f = d.schwefel_function(x,y)
     #result = f.get()
     retc = return_class(parameters={'x':x,'y':y}, data={

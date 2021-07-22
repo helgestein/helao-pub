@@ -27,10 +27,10 @@ class return_class(BaseModel):
 
 
 @app.get("/measureDriver/make_grid")
-def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end: float, y_step: float, save_data_to: str = "../data/grid.json"):
-    make_grid = d.make_grid.delay(x_start, x_end, x_step, y_start,
+def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end: float, y_step: float):
+    make_grid = d.make_grid(x_start, x_end, x_step, y_start,
                                   y_end, y_step, save_data_to)
-    comp = make_grid.get()
+    comp = make_grid
     retc = return_class(parameters={'x_start': x_start, 'x_end': x_end, 'x_step': x_step, 'y_start': y_start,
                                     'y_end': y_end, 'y_step': y_step}, data=comp)
     return retc
@@ -47,7 +47,8 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 
 
 @app.get("/measureDriver/schwefelFunction")
-def schwefel_function_single(x : float, y: float):
+def schwefel_function_single(x: float , y:float):
+    ### input : x, y are a random point from our substrate
     f = d.schwefel_function(x,y)
     #result = f.get()
     retc = return_class(parameters={'x':x,'y':y}, data={
@@ -55,9 +56,9 @@ def schwefel_function_single(x : float, y: float):
     return retc
 
 ###############put away the celery for the new version, to make the other part of infrastucture works first
-@app.get("/measureDriver/schwefel_function_group")
+#@app.get("/measureDriver/schwefel_function_group")
 def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_end: float = None, x_step: float = None, y_start: float = None,
-                            y_end: float = None, y_step: float = None, save_data_to: str = "../data/schwefel_fnc_group.json"):
+                            y_end: float = None, y_step: float = None):
     if n == 2:
         make_grid = d.make_grid(x_start, x_end, x_step, y_start,
                                       y_end, y_step, save_data_to="../data/binary.json")
@@ -77,8 +78,7 @@ def schwefel_function_group(n: int, steps: int = None, x_start: float = None, x_
     f = f_task
     print(f)
     result = f
-    with open(save_data_to, 'w') as res:
-        json.dump(result, res)
+
     retc = return_class(parameters={'n': n}, data={'schwefel': result})
     return retc
 

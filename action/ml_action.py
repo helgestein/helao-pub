@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
-import pickle
+from util import hdf5_group_to_dict
 import os
 import h5py
 from importlib import import_module
@@ -40,8 +40,8 @@ def receiveData(path:str,run:int,address:str,modelid:int=0):
     if modelid not in data.keys():
         data[modelid] = []
     with h5py.File(path,'r') as h5file:
-        address = f'run_{run}/'+address
-        data[modelid].append(h5file[address])
+        address = f'run_{run}/'+address+'/'
+        data[modelid].append(hdf5_group_to_dict(h5file,address))
 
 @app.get("/learning/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):

@@ -207,5 +207,13 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
             raise ValueError('Cannot save %s type.' % type(item))
 
 
-
-
+def hdf5_group_to_dict(h5file, path):
+    dic = {}
+    for key, item in dic.items():
+        if isinstance(h5file[key],h5py._hl.group.Group):
+            dic.update({key:hdf5_group_to_dict(h5file,path+key+'/')})
+        elif isinstance(h5file[key],h5py._hl.dataset.Dataset):
+            dic.update{key:item[()]}
+        else:
+            raise ValueError(f'somehow {h5file[key]} is neither an hdf5 group nor dataset')
+    return dic

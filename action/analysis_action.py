@@ -32,27 +32,28 @@ def memory():
     global data = {}
 
 @app.get("/analysis/receiveData")
-def receiveData(path:str,run:int,addresses):
+def receiveData(path:str,run:int,addresses:dict):
     global data
-    d = []
     if modelid not in data.keys():
         data[modelid] = []
-    if not isinstance(addresses,list):
-        addresses = [addresses]
     with h5py.File(path,'r') as h5file:
-        for address in addresses:
-            address = f'run_{run}/'+address
-            d.append[h5file[address][()]]
-    data.update({tuple(addresses):d})
+        for address in addresses.values():
+            item = h5file[f'run_{run}/'+address]
+            if isinstance(h5file[key],h5py._hl.group.Group):
+                data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address)})
+            elif isinstance(h5file[key],h5py._hl.dataset.Dataset):
+                data.update{address:item[()]}
         
 @app.get("/analysis/dummy")
-def bridge(x_address,y_address,schwefel_address):
-    d = data[(x_addresses,y_address,schwefel_address)]
-    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}})
-
+def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
+    x = data[x_address]
+    y = data[y_address]
+    schwefel = data[schwefel_address]
+    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':x],'y':y},'y':{'schwefel':schwefel}})
+"""
 @app.get("/analysis/dummy")
 def bridge(exp_num: str, sources: str): #
-    """For now this is just a pass throught function that can get the result from measure action file and feed to ml server
+    For now this is just a pass throught function that can get the result from measure action file and feed to ml server
 
     Args:
         exp_num (float): [this is the experimental number]
@@ -74,7 +75,6 @@ def bridge(exp_num: str, sources: str): #
                 config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
         except:
             pass
-    """
 
     with open('C:/Users/LaborRatte23-3/Documents/session/sessionAnalysis.pck', 'rb') as banana:
         sources = pickle.load(banana)

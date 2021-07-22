@@ -47,8 +47,8 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 
 
 @app.get("/measureDriver/schwefelFunction")
-def schwefel_function_single(x,y, save_data_to: str = "../data/schwefel_fnc.json"):
-    f = d.schwefel_function(x,y, save_data_to)
+def schwefel_function_single(x,y):
+    f = d.schwefel_function(x,y)
     #result = f.get()
     retc = return_class(parameters={'x':x,'y':y}, data={
                         'key_y': f})

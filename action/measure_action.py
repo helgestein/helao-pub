@@ -38,8 +38,8 @@ def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end
 
 @app.get("/measureDriver/make_n_nary")
 def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
-    n_nary_task = d.make_n_nary.delay(n, steps, save_data_to)
-    comp = n_nary_task.get()
+    n_nary_task = d.make_n_nary(n, steps, save_data_to)
+    comp = n_nary_task
     retc = return_class(parameters={'n': n, 'steps': steps}, data=comp)
     return retc
 
@@ -47,12 +47,11 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 
 
 @app.get("/measureDriver/schwefelFunction")
-def schwefel_function_single(measurement_area: str, save_data_to: str = "../data/schwefel_fnc.json"):
-    print(measurement_area)
-    f = d.schwefel_function(measurement_area, save_data_to)
+def schwefel_function_single(x,y, save_data_to: str = "../data/schwefel_fnc.json"):
+    f = d.schwefel_function(x,y, save_data_to)
     #result = f.get()
-    retc = return_class(parameters={'measurement_area': measurement_area}, data={
-                        'key_y': f.tolist()})
+    retc = return_class(parameters={'x':x,'y':y}, data={
+                        'key_y': f})
     return retc
 
 ###############put away the celery for the new version, to make the other part of infrastucture works first

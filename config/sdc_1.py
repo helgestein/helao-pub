@@ -33,7 +33,7 @@ config['pumpDriver'] = dict(port='COM4', baud=9600, timeout=0.1, pumpAddr={
 config['pumpDriver']['pumpAddr'].update({i: i for i in range(20, 35)})
 config['pumpDriver']['pumpAddr']['all'] = 20
 
-config['pump'] = dict(url="http://127.0.0.1:13371")
+config['pump'] = dict(url="http://127.0.0.1:13370")
 
 
 config['autolabDriver'] = dict(basep=r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
@@ -55,7 +55,7 @@ config['autolabDriver'] = dict(basep=r"C:\Program Files\Metrohm Autolab\Autolab 
                                        'gitt_eis': r'C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\config\echemprocedures\GITT_EIS.nox'})
 
 config['autolab'] = dict(url="http://127.0.0.1:13394")
-config['autolab'] = dict(procedures=dict())
+config['autolab']['procedures'] = {}
 
 config['autolab']['procedures']['ca'] = {'procedure': 'ca',
                                                'setpoints': {'applypotential': {'Setpoint value': 0.735},
@@ -194,7 +194,7 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM3',
                             dllconfig=r"C:\Users\LaborRatte23-3\Documents\git\pyLang\config.LSControl",
                             )
 
-config['lang'] = dict(url="http://127.0.0.1:13381", forceurl="http://127.0.0.1:13378",
+config['lang'] = dict(url="http://127.0.0.1:13381", forceurl="http://127.0.0.1:13379",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                         safe_waste_pos=[3.0, -31.0, 0.0],
@@ -213,10 +213,10 @@ config['minipump'] = dict(url="http://127.0.0.1:13389")
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data', kadiurl="http://127.0.0.1:13377")
 
 
-config['launch'] = dict(server=['autolab_server', 'kadi_server', 'lang_server', 'force_server', 'minipump_server', 'pump_server'],
-                        action=['analysis_action', 'autolab_action', 'kadi_action', 'lang_action', 'learning_action',
-                                'measure_action', 'minipumping_action', 'ml_action', 'pumping_action', 'force_action'],
-                        orchestrator=['mischbares'],
+config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'minipumpDriver', 'pumpDriver'],
+                        action=['analysis', 'autolab', 'kadi', 'lang', 'learning',
+                                'measure', 'minipump', 'ml', 'pump', 'force'],
+                        orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])
 config['instrument'] = "sdc"

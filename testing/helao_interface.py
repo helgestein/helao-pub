@@ -23,11 +23,11 @@ def keytofile(key:str):
     #                    'dummy':'dummy_action'}
     #return translationdict[server]
     if server == 'orchestrator':
-        return server+".py"
+        return server
     if "Driver" in server:
-        return server[:-6] + "_driver.py"
+        return server[:-6] + "_server"
     else:
-        return server + "_action.py"
+        return server + "_action"
 
 
 items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']

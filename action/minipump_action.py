@@ -51,7 +51,7 @@ def flushSerial():
 
 
 if __name__ == "__main__":
-    url = config[serverkey]['url']
+    pumpurl = config[serverkey]['url']
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
                      port=config['servers'][serverkey]['port'])
     #pumpurl = "http://{}:{}".format(config['servers']['minipumpServer']['host'], config['servers']['minipumpServer']['port'])

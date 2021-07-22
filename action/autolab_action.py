@@ -105,7 +105,7 @@ if __name__ == "__main__":
     #poturl = "http://{}:{}".format(config['servers']['autolab']['host'], config['servers']['autolab']['port'])
     print('initialized autolab starting the server')
     #uvicorn.run(app, host=config['servers']['autolabDriver']['host'], port=config['servers']['autolabDriver']['port'])
-    url = config[serverkey]['url']
+    poturl = config[serverkey]['url']
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
                      port=config['servers'][serverkey]['port'])
     

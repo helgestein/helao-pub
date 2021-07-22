@@ -63,7 +63,7 @@ class dataAnalysis:
 
         return comp
 
-    def schwefel_function(self, measurement_area, save_data_to="../data/schwefel_fnc.json"):
+    def schwefel_function(self, x,y, save_data_to="../data/schwefel_fnc.json"):
 
         # you need to feed the meta[ma] in the format of string (since list is not readble by fastapi) .
         # upon aggrement the ma needs to change to experiment number (exp_num)
@@ -79,9 +79,7 @@ class dataAnalysis:
         Returns:
             [type]: [description]
         """
-        print(measurement_area)
-        vector_fnc = eval(measurement_area)
-        comp = np.array(vector_fnc)
+        comp = np.array([x,y])
         sch_comp = 1000 * np.array(comp) - 500
         result = 0
         for index, element in enumerate(sch_comp):

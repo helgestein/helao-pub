@@ -68,9 +68,13 @@ class DataUtilSim:
 
         return result
 
-    @staticmethod
-    @app.task(name='driver.ml_driver.gaussian_simulation')
-    def active_learning_random_forest_simulation(session, x_query, save_data_path='ml_data/ml_analysis.json', addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+    #@staticmethod
+    #@app.task(name='driver.ml_driver.gaussian_simulation')
+    def active_learning_random_forest_simulation(self, query, data)#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+        # this is how the data is created in the analyis action and should be transfer here
+        # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
+        # an example
+        # data = {'x': {'x': [1, 2, 2], 'y':[2, 3, 1]}, 'y':{'schwefel': [0.1, 0.4, 1]}}}
         """[summary]
 
         Args:
@@ -84,20 +88,25 @@ class DataUtilSim:
             [x_suggest]: [position of the next experiment]
         """
         #session = json.loads(session)
-        print(session)
-        print(addresses)
-        data = interpret_input(
-            session, "session", json.loads(addresses))
-        print(data)
-
-        key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
-        print(f"key_x: {key_x[0]}")
+        #print(session)
+        #print(addresses)
+        #data = interpret_input(
+        #    session, "session", json.loads(addresses))
+        #print(data)
+        x_query = query['x_query']
+        y_query = query['y_query']
+        x = data['x']['x']
+        y = data['x']['y']
+        key_x = np.array([[i,j] for i, j in zip(x,y)])
+        #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
+        #print(f"key_x: {key_x[0]}")
         # accumulated result at every step (n+1)
-        y_query = [d[1] for d in data]
-        print(f"y_query: {y_query}")
+        #y_query = [d[1] for d in data]
+        key_y = data['y']['schwefel']
+        #print(f"y_query: {y_query}")
         # we still need to check the format of the data
         # if x_query and y_query are string then:
-        x_query = json.loads(x_query)  # all the points of exp
+        #x_query = json.loads(x_query)  # all the points of exp
 
         # the key_x should be in following [[4, 5], [4, 6]...]
         #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
@@ -125,7 +134,7 @@ class DataUtilSim:
         # else:
         # move to the last added train position and pretend we meaure there
         # the actual value that was added in the last learning cycle is quin[train[-1]]
-        regr.fit(x_query[train_ix], y_query)
+        regr.fit(x_query[train_ix], y_query[train_ix])
         pred = regr.predict(x_query[test_ix])
 
         y_var = np.zeros([50, len(x_query[test_ix])])

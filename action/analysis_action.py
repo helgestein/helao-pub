@@ -29,7 +29,8 @@ class return_class(BaseModel):
 
 @app.on_event("startup")
 def memory():
-    global data = {}
+    global data 
+    data = {}
 
 @app.get("/analysis/receiveData")
 def receiveData(path:str,run:int,addresses:dict):

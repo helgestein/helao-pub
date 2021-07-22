@@ -32,7 +32,8 @@ class return_class(BaseModel):
 
 @app.on_event("startup")
 def memory():
-    global data = {}
+    global data
+    data = {}
 
 @app.get("/learning/receiveData")
 def receiveData(path:str,run:int,address:str,modelid:int=0):
@@ -54,7 +55,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(data: dict, query: dict, addresses: str = "schwefel_function/data/key_y"):
+def active_learning_random_forest_simulation(query: dict, address: str = "schwefel_function/data/key_y",modelid=0):
     """
     if sources == "session":
         sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
@@ -68,15 +69,13 @@ def active_learning_random_forest_simulation(data: dict, query: dict, addresses:
         except:
             pass
     """  
-    #print("i am in learning")
     #with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
     #    sources = pickle.load(banana)  
     #print(sources)
-    
+    global data
+    dat = data[modelid]
 
-    print("I am learning.")
-    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(
-        sources, x_query, save_data_path, addresses)
+    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(dat, query)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions

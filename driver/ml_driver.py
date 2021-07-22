@@ -70,7 +70,7 @@ class DataUtilSim:
 
     #@staticmethod
     #@app.task(name='driver.ml_driver.gaussian_simulation')
-    def active_learning_random_forest_simulation(self, query, data)#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+    def active_learning_random_forest_simulation(self, query, data):#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
         # this is how the data is created in the analyis action and should be transfer here
         # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
         # an example

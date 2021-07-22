@@ -22,10 +22,33 @@ app = FastAPI(title="Analysis V2",
               description="This is a fancy analysis server",
               version="2.0")
 
+class return_class(BaseModel):
+    parameters :dict = None
+    data: dict = None
 
-kadiurl = None
-filepath = "C:/Users/LaborRatte23-3/Downloads"
 
+@app.on_event("startup")
+def memory():
+    global data = {}
+
+@app.get("/analysis/receiveData")
+def receiveData(path:str,run:int,addresses):
+    global data
+    d = []
+    if modelid not in data.keys():
+        data[modelid] = []
+    if not isinstance(addresses,list):
+        addresses = [addresses]
+    with h5py.File(path,'r') as h5file:
+        for address in addresses:
+            address = f'run_{run}/'+address
+            d.append[h5file[address][()]]
+    data.update({tuple(addresses):d})
+        
+@app.get("/analysis/dummy")
+def bridge(x_address,y_address,schwefel_address):
+    d = data[(x_addresses,y_address,schwefel_address)]
+    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}})
 
 @app.get("/analysis/dummy")
 def bridge(exp_num: str, sources: str): #
@@ -70,7 +93,7 @@ def bridge(exp_num: str, sources: str): #
 
     #data = interpret_input(session,"session","dummy/data/key_y")
     retc = dict(
-        parameters={'exp_num': exp_num}, data=data)
+        parameters={'exp_num': exp_num}, data=data) #(x, y)
     # {'key_x': 'measurement_no_{}/motor/moveSample_0'.format(exp_num), 'key_y': key_y})
     return retc
 

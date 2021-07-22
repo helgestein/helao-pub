@@ -12,6 +12,7 @@ import json
 import requests
 import pickle
 import os
+import h5py
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
@@ -29,6 +30,18 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
+@app.on_event("startup")
+def memory():
+    global data = {}
+
+@app.get("/learning/receiveData")
+def receiveData(path:str,run:int,address:str,modelid:int=0):
+    global data
+    if modelid not in data.keys():
+        data[modelid] = []
+    with h5py.File(path,'r') as h5file:
+        address = f'run_{run}/'+address
+        data[modelid].append(h5file[address])
 
 @app.get("/learning/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):

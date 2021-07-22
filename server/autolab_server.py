@@ -3,7 +3,6 @@ import json
 from pydantic import BaseModel
 from fastapi import FastAPI, Query, WebSocket
 import uvicorn
-from autolab_driver import Autolab
 import sys
 import os
 import time
@@ -12,6 +11,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
+from autolab_driver import Autolab
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 

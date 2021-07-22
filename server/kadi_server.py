@@ -1,4 +1,3 @@
-from kadi_driver import kadi
 from fastapi import FastAPI
 import json
 import sys
@@ -8,6 +7,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
+from kadi_driver import kadi
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 

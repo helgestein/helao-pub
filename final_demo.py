@@ -8,8 +8,10 @@ from config.mischbares_small import config
 import time
 import requests
 from copy import copy
+
 import sys
 sys.path.append(r'../config')
+sys.path.append(r'../driver')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
 sys.path.append(r'../orchestrators')
@@ -24,9 +26,18 @@ def test_fnc(sequence):
         config['servers']['orchestrator']['host'], 13380, server, action), params=params).json()
 
 
+def schwefel_function(x, y):
+    comp = np.array([x,y])
+    sch_comp = 1000 * np.array(comp) - 500
+    result = 0
+    for index, element in enumerate(sch_comp):
+        result += - element * np.sin(np.sqrt(np.abs(element)))
+    result = (-result) / 1000
+    print(result)
+    return result
+
 # real run
-x, y = np.meshgrid([2.5 * i for i in range(20)],
-                   [2.5 * i for i in range(20)])
+x, y = np.meshgrid([2.5 * i for i in range(20)],[2.5 * i for i in range(20)])
 x, y = x.flatten(), y.flatten()
 x_query = np.array([[i, j] for i, j in zip(x, y)])
 first_arbitary_choice = random.choice(x_query)
@@ -34,7 +45,9 @@ dx0, dy0 = first_arbitary_choice[0], first_arbitary_choice[1]
 x_query = json.dumps(x_query.tolist())
 dz = config['lang']['safe_sample_pos'][2]
 
+y_query = [schwefel_function(x[0], x[1])for x in x_query]
 # need to specify the session name
+query = {'x_query': x_query, 'y_query': y_query}
 
 substrate = 50
 # in the first move we just choose one arbitary point
@@ -53,8 +66,8 @@ run_sequence = dict(soe=['motor/moveWaste_0', 'motor/RemoveDroplet_0','motor/mov
                                 moveSample_0= dict(x=0, y=0, z=0), 
                                 moveAbs_0 = dict(dx=dx0, dy=dy0, dz=dz),
                                 moveDown_0 = dict(dz=0.10, steps=1, maxForce=0.44, threshold= 0.120)),
-                                #schwefelFunction_0=dict(measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="C:/Users/LaborRatte23-3/Documents/schwefel_res/schwefel_fnc_{}.json".format(0)),
-                                #dummy_0=dict(exp_num='measurement_no_0', sources='session')), #, sources='session'  # key_y should be the output of the schwefel function
+                                schwefelFunction_0=dict(measurement_area=str([{}, {}]).format(dx0, dy0), save_data_to="C:/Users/LaborRatte23-3/Documents/schwefel_res/schwefel_fnc_{}.json".format(0)),
+                                dummy_0=dict(exp_num='measurement_no_0', sources='session')), #, sources='session'  # key_y should be the output of the schwefel function
                                 meta=dict(substrate=substrate, ma=[round(dx0 * 100)*10, round(dy0 * 100)*10],  r=0.005))
 test_fnc(run_sequence)
 #json.dumps(['moveAbs_0/dx', 'moveAbs_0/dy', 'schwefel_function_0/measurement_area'])

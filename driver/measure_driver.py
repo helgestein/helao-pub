@@ -63,9 +63,9 @@ class dataAnalysis:
 
         return comp
 
-    def schwefel_function(self, x,y):
+    def schwefel_function(self, x, y):
 
-        # you need to feed the meta[ma] in the format of string (since list is not readble by fastapi) .
+        # you need to feed the meta[ma] in the format of string (since list is not readble by fastapi) .-> not any more 
         # upon aggrement the ma needs to change to experiment number (exp_num)
         # the save path can be changed according to what we want
 

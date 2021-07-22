@@ -54,7 +54,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(sources: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = "schwefel_function/data/key_y"):
+def active_learning_random_forest_simulation(data: dict, query: dict, addresses: str = "schwefel_function/data/key_y"):
     """
     if sources == "session":
         sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
@@ -68,10 +68,10 @@ def active_learning_random_forest_simulation(sources: str, x_query: str, save_da
         except:
             pass
     """  
-    print("i am in learning")
-    with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
-        sources = pickle.load(banana)  
-    print(sources)
+    #print("i am in learning")
+    #with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
+    #    sources = pickle.load(banana)  
+    #print(sources)
     
 
     print("I am learning.")
@@ -83,7 +83,7 @@ def active_learning_random_forest_simulation(sources: str, x_query: str, save_da
     print(next_exp_dx, next_exp_dy, next_exp_pos)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
     return next_exp_dx, next_exp_dy, str(next_exp_pos)
-
+  
 if __name__ == "__main__":
     d = DataUtilSim()
     print("instantiated ml server")

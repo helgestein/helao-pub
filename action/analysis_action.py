@@ -8,7 +8,7 @@ from celery import group
 import hdfdict
 import os
 import requests
-import pickle
+from util import hdf5_group_to_dict
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
@@ -40,7 +40,7 @@ def receiveData(path:str,run:int,addresses:dict):
         for address in addresses.values():
             item = h5file[f'run_{run}/'+address]
             if isinstance(h5file[key],h5py._hl.group.Group):
-                data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address)})
+                data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address+'/')})
             elif isinstance(h5file[key],h5py._hl.dataset.Dataset):
                 data.update{address:item[()]}
         

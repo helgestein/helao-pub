@@ -12,6 +12,7 @@ import os
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
 sys.path.append(helao_root)
 config = import_module(sys.argv[1]).config
 from measure_driver import dataAnalysis
@@ -26,7 +27,7 @@ class return_class(BaseModel):
     data: dict = None
 
 
-@app.get("/measureDriver/make_grid")
+@app.get("/measure/make_grid")
 def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end: float, y_step: float):
     make_grid = d.make_grid(x_start, x_end, x_step, y_start,
                                   y_end, y_step, save_data_to)
@@ -36,7 +37,7 @@ def make_grid(x_start: float, x_end: float, x_step: float, y_start: float, y_end
     return retc
 
 
-@app.get("/measureDriver/make_n_nary")
+@app.get("/measure/make_n_nary")
 def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
     n_nary_task = d.make_n_nary(n, steps, save_data_to)
     comp = n_nary_task
@@ -46,7 +47,7 @@ def make_n_nary(n: int, steps: int, save_data_to: str = "../data/quin.json"):
 # [dx,dy]
 
 
-@app.get("/measureDriver/schwefelFunction")
+@app.get("/measure/schwefelFunction")
 def schwefel_function_single(x: float , y:float):
     ### input : x, y are a random point from our substrate
     f = d.schwefel_function(x,y)

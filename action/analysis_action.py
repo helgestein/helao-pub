@@ -8,14 +8,12 @@ from celery import group
 import hdfdict
 import os
 import requests
-from util import hdf5_group_to_dict
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
-from util import highestName, dict_address
-from measure_driver import dataAnalysis
+from util import highestName, dict_address,hdf5_group_to_dict
 serverkey = sys.argv[2]
 
 app = FastAPI(title="Analysis V2",
@@ -43,14 +41,14 @@ def receiveData(path:str,run:int,addresses:dict):
             if isinstance(h5file[key],h5py._hl.group.Group):
                 data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address+'/')})
             elif isinstance(h5file[key],h5py._hl.dataset.Dataset):
-                data.update{address:item[()]}
+                data.update({address:item[()]})
         
 @app.get("/analysis/dummy")
 def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
     x = data[x_address]
     y = data[y_address]
     schwefel = data[schwefel_address]
-    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':x],'y':y},'y':{'schwefel':schwefel}})
+    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
 """
 @app.get("/analysis/dummy")
 def bridge(exp_num: str, sources: str): #
@@ -180,10 +178,9 @@ def interpret_input(sources, types, addresses, experiment_numbers=None):
         if typ in ("kadi", "hdf5", "session", "pure"):
             datas = {key:datas[key] + source[key] for key in datas.keys()}
     return datas
-
+"""
 
 if __name__ == "__main__":
-    d = dataAnalysis()
     url = config[serverkey]['url']
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
                      port=config['servers'][serverkey]['port'])

@@ -23,7 +23,7 @@ if __name__ == "__main__":
         soe += [f"orchestrator/wait_{i}",f"orchestrator/modify_{i}",f"dummy:1/lmao_{i+1}"]
     soe += ["orchestrator/finish"]
     params = {'finish':None}
-    params.update({"lmao_0":{'t':10}})
+    params.update({"lmao_0":{'t':5}})
     params.update({f"lmao_{i}":{'t':'?'} for i in range(1,10)})
     params.update({f"wait_{i}":{'addresses':f"experiment_0:3/fakeml_{i}"} for i in range(9)})
     params.update({f"modify_{i}":{'addresses':f'experiment_0:3/fakeml_{i}/data/data/val2','pointers':f'lmao_{i+1}/t'} for i in range(9)})

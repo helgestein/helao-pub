@@ -250,6 +250,7 @@ async def wait(experiment: dict,addresses):
                                 print(f"{addresses[i]} found")
                                 del addresses[i]
                                 del threads[i]
+                                break#If multiple addresses are found in the same for loop, 'i' will no longer map to the correct index of addresses/threads
             else:#if you are waiting on the results of a session that already finished, check history for path and run
                 for h in tracking[thread]['history']:
                     async with locks[h['path']]:
@@ -261,7 +262,6 @@ async def wait(experiment: dict,addresses):
                                     print(f"{addresses[i]} found in history")
                                     del addresses[i]
                                     del threads[i]
-                                    break
     return experiment
 
 @app.on_event("startup")

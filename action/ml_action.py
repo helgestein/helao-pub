@@ -55,7 +55,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(query: dict, address: str = "schwefel_function/data/key_y",modelid=0):
+def active_learning_random_forest_simulation(query: dict, address: str, modelid=0):
     """
     if sources == "session":
         sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
@@ -75,13 +75,15 @@ def active_learning_random_forest_simulation(query: dict, address: str = "schwef
     global data
     dat = data[modelid]
 
-    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(dat, query)
+    next_exp_dx, next_exp_dy  = d.active_learning_random_forest_simulation(query,dat)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
     print(next_exp_dx, next_exp_dy, next_exp_pos)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
-    return next_exp_dx, next_exp_dy, str(next_exp_pos)
+    retc = return_class(parameters = {'query':query,'address':address,'modelid':modelid}, data = dict(next_x = next_exp_dx, next_y = next_exp_dy))
+    next_exp_dx, next_exp_dy
+    return 
   
 if __name__ == "__main__":
     d = DataUtilSim()

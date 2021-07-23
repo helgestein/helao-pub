@@ -37,7 +37,7 @@ y_query = [schwefel_function(x[0], x[1])for x in x_query]
 query = json.dumps({'x_query': x_query.tolist(), 'y_query': y_query})  
 dz = config['lang']['safe_sample_pos'][2]
 
-n = 5
+n = 10
 test_fnc(dict(soe=['orchestrator/start','lang/moveWaste_0', 'pump/formulation_0', 'lang/RemoveDroplet_0',
                    'lang/moveSample_0','lang/moveAbs_0','lang/moveDown_0', 'autolab/measure_0',
                    'measure/schwefelFunction_0','analysis/dummy_0'], 
@@ -47,7 +47,7 @@ test_fnc(dict(soe=['orchestrator/start','lang/moveWaste_0', 'pump/formulation_0'
                     'RemoveDroplet_0': {'x':0, 'y':0, 'z':0},
                     'moveSample_0': {'x':0, 'y':0, 'z':0},
                     'moveAbs_0': {'dx':dx0, 'dy':dy0, 'dz':dz}, 
-                    'moveDown_0': {'dz'=0.12, 'steps':4, 'maxForce':1.4, 'threshold': 0.13},
+                    'moveDown_0': {'dz':0.12, 'steps':4, 'maxForce':1.4, 'threshold': 0.13},
                     'measure_0': {'procedure': 'ca', 'setpointjson': json.dumps({'applypotential': {'Setpoint value': -0.3},
                                                 'recordsignal': {'Duration': 15}}),
                                                 'plot':'tCV',
@@ -77,7 +77,7 @@ for i in range(n):
                             f'RemoveDroplet_{i+1}': {'x':0, 'y':0, 'z':0},
                             f'moveSample_{i+1}': {'x':0, 'y':0, 'z':0},
                             f'moveAbs_{i+1}': {'dx':'?', 'dy':'?', 'dz':dz}, 
-                            f'moveDown_{i+1}': {'dz'=0.12, 'steps':4, 'maxForce':1.4, 'threshold': 0.13},
+                            f'moveDown_{i+1}': {'dz':0.12, 'steps':4, 'maxForce':1.4, 'threshold': 0.13},
                             f'measure_{i+1}': {'procedure': 'ca', 'setpointjson': json.dumps({'applypotential': {'Setpoint value': -0.3},
                                                 'recordsignal': {'Duration': 15}}),
                                                 'plot':'tCV',

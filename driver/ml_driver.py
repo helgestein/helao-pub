@@ -123,7 +123,7 @@ class DataUtilSim:
         #train_ix = [np.random.choice(quin.shape[0], 1, replace=False)[0]]
         # we have the  first pos now (the initial point that motor goes there)
         train_ix = [np.where(x_query == j)[0][0] for j in key_x]
-        print(f"train_ix: {train_ix}")
+        #print(f"train_ix: {train_ix}")
         # move the motor to the first point
 
         # we no longer need to put it in for loop
@@ -145,15 +145,15 @@ class DataUtilSim:
         aqf = pred+np.var(y_var, axis=0)
 
         ix = np.where(aqf == np.max(aqf))[0]
-        print(f"aqf : {ix}")
+        #print(f"aqf : {ix}")
         i = np.random.choice(ix)
-        print(f"chosen random : {i}")
+        #print(f"chosen random : {i}")
         train_ix.append(test_ix.pop(i))
         # next position that motor needs to go
         print(f"next position is : {x_query[train_ix[-1]].tolist()}")
         next_exp = x_query[train_ix[-1]].tolist()
 
-        print(f"predicitons are {pred}")
+        #print(f"predicitons are {pred}")
         #For the sake of tracibility, we need to save the predicitons at every step 
         #for i in test_ix:
             #print(f"Are you float ?! {i}")

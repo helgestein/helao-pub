@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
-import pickle
+from util import hdf5_group_to_dict
 import os
 import h5py
 from importlib import import_module
@@ -32,7 +32,8 @@ class return_class(BaseModel):
 
 @app.on_event("startup")
 def memory():
-    global data = {}
+    global data
+    data = {}
 
 @app.get("/learning/receiveData")
 def receiveData(path:str,run:int,address:str,modelid:int=0):
@@ -40,8 +41,8 @@ def receiveData(path:str,run:int,address:str,modelid:int=0):
     if modelid not in data.keys():
         data[modelid] = []
     with h5py.File(path,'r') as h5file:
-        address = f'run_{run}/'+address
-        data[modelid].append(h5file[address])
+        address = f'run_{run}/'+address+'/'
+        data[modelid].append(hdf5_group_to_dict(h5file,address))
 
 @app.get("/learning/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):
@@ -54,7 +55,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/learning/activeLearning")
-def active_learning_random_forest_simulation(sources: str, x_query: str, save_data_path: str = 'ml_data/ml_analysis.json', addresses: str = "schwefel_function/data/key_y"):
+def active_learning_random_forest_simulation(query: dict, address: str = "schwefel_function/data/key_y",modelid=0):
     """
     if sources == "session":
         sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
@@ -68,22 +69,20 @@ def active_learning_random_forest_simulation(sources: str, x_query: str, save_da
         except:
             pass
     """  
-    print("i am in learning")
-    with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
-        sources = pickle.load(banana)  
-    print(sources)
-    
+    #with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
+    #    sources = pickle.load(banana)  
+    #print(sources)
+    global data
+    dat = data[modelid]
 
-    print("I am learning.")
-    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(
-        sources, x_query, save_data_path, addresses)
+    next_exp_dx, next_exp_dy, next_exp_pos  = d.active_learning_random_forest_simulation(dat, query)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
     print(next_exp_dx, next_exp_dy, next_exp_pos)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
     return next_exp_dx, next_exp_dy, str(next_exp_pos)
-
+  
 if __name__ == "__main__":
     d = DataUtilSim()
     print("instantiated ml server")

@@ -1,5 +1,4 @@
 import json
-
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
@@ -97,6 +96,7 @@ class DataUtilSim:
         #data = interpret_input(
         #    session, "session", json.loads(addresses))
         #print(data)
+        query = json.loads(query)[0]
         x_query = query['x_query']
         y_query = query['y_query']
         x = [dat['x']['x'] for dat in data]

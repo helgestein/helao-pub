@@ -1,3 +1,6 @@
+from util import highestName, dict_address
+from time import sleep
+from celery_conf import app
 import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -6,9 +9,6 @@ from sklearn.ensemble import RandomForestRegressor
 import sys
 sys.path.append(r"../")
 
-from celery_conf import app
-from time import sleep
-from util import highestName, dict_address
 
 # for the test we just need active_learning_random_forest_simulation function
 kadiurl = None

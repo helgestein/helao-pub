@@ -76,24 +76,40 @@ async def doMeasurement(experiment: str, thread: int):
             if params == None:
                 params = {}
             experiment = await process_native_command(action,experiment,**params)
-            #loop.run_in_executor(None,lambda c,e: process_native_command(c,e,**params),action,experiment)
             continue
         elif servertype == 'analysis':
             add = list(filter(lambda s: s.split('_')[-1] == 'address',params.keys()))
             if add != []: #be sure to use these parameter names "foo_address" in action if (and only if?) you are loading from ongoing sessions. must be string hdf5 paths
                 t = int(params[add[0]].split('/')[0].split(':')[1]) #assuming all addresses come from same file
-                async with locks[tracking[t]['path']]:
-                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                if tracking[t]['path'] != None:
+                    async with locks[tracking[t]['path']]:
+                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                else:
+                    for h in tracking[thread]['history']:
+                        async with locks[h['path']]:
+                            if paths_in_hdf5(h['path'],[params[a] for a in add]):
+                                await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                                break
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
         elif servertype == 'ml':
             if "address" in params.keys():
                 #be sure to use this parameter name "address" in action if (and only if?) you are loading from ongoing session. must be string hdf5 path
                 t = int(params['address'].split('/')[0].split(':')[1])
-                async with locks[tracking[t]['path']]:
-                    if 'modelid' in params.keys():
-                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                    else:
-                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                if tracking[t]['path'] != None:
+                    async with locks[tracking[t]['path']]:
+                        if 'modelid' in params.keys():
+                            await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                        else:
+                            await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                else:
+                    for h in tracking[thread]['history']:
+                        async with locks[h['path']]:
+                            if paths_in_hdf5(h['path'],params['address']):
+                                if 'modelid' in params.keys():
+                                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                                else:
+                                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                                break
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
         async with locks[tracking[thread]['path']]:
             save_dict_to_hdf5({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')

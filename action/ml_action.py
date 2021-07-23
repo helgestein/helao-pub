@@ -81,7 +81,7 @@ def active_learning_random_forest_simulation(query: str, address: str, modelid=0
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
-    print(next_exp_dx, next_exp_dy, next_exp_pos)
+    print(next_exp_dx, next_exp_dy)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
     retc = return_class(parameters = {'query':query,'address':address,'modelid':modelid}, data = dict(next_x = next_exp_dx, next_y = next_exp_dy))
     return retc

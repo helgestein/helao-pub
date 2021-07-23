@@ -158,7 +158,7 @@ class DataUtilSim:
         #for i in test_ix:
             #print(f"Are you float ?! {i}")
             #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
-        return next_exp[0], next_exp[1], next_exp
+        return next_exp[0], next_exp[1]
 
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):

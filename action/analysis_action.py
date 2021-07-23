@@ -49,6 +49,7 @@ def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
     y = data[y_address]
     schwefel = data[schwefel_address]
     retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
+    return retc
 """
 @app.get("/analysis/dummy")
 def bridge(exp_num: str, sources: str): #

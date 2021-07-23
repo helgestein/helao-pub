@@ -78,7 +78,7 @@ class DataUtilSim:
         # this is how the data is created in the analyis action and should be transfer here
         # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
         # an example
-        # data = {'x': {'x': [1, 2, 2], 'y':[2, 3, 1]}, 'y':{'schwefel': [0.1, 0.4, 1]}}}
+        # data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
         """[summary]
 
         Args:
@@ -99,14 +99,14 @@ class DataUtilSim:
         #print(data)
         x_query = query['x_query']
         y_query = query['y_query']
-        x = data['x']['x']
-        y = data['x']['y']
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
         key_x = np.array([[i,j] for i, j in zip(x,y)])
         #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
         #print(f"key_x: {key_x[0]}")
         # accumulated result at every step (n+1)
         #y_query = [d[1] for d in data]
-        key_y = data['y']['schwefel']
+        key_y = [dat['y']['schwefel'] for dat in data]
         #print(f"y_query: {y_query}")
         # we still need to check the format of the data
         # if x_query and y_query are string then:

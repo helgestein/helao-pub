@@ -40,7 +40,7 @@ test_fnc(dict(soe=['orchestrator/start','measure/schwefelFunction_0','analysis/d
 for i in range(n):
     test_fnc(dict(soe=[f'ml/activeLearning_{i}',f'orchestrator/modify_{i}',f'measure/schwefelFunction_{i+1}',f'analysis/dummy_{i+1}'], 
                 params={f'activeLearning_{i}':{'query':query,'address':f'experiment_{i}:0/dummy_{i}/data/data'},
-                f'modify_{i}':{'addresses':[f'experiment_{i+1}/activeLearning_{i}/data/data/next_x',f'experiment_{i+1}/activeLearning_{i}/data/data/next_y'],'pointers':[f'schwefelFunction_{i+1}/x',f'schwefelFunction_{i+1}/y']},f'schwefelFunction_{i+1}':{'x':'?','y':'?'},
+                f'modify_{i}':{'addresses':[f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_x',f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_y'],'pointers':[f'schwefelFunction_{i+1}/x',f'schwefelFunction_{i+1}/y']},f'schwefelFunction_{i+1}':{'x':'?','y':'?'},
                    f'dummy_{i+1}':{'x_address':f'experiment_{i+1}:0/schwefelFunction_{i+1}/data/parameters/x','y_address':f'experiment_{i+1}:0/schwefelFunction_{i+1}/data/parameters/y','schwefel_address':f'experiment_{i+1}:0/schwefelFunction_{i+1}/data/data/key_y'}}, meta=dict()))
 
 test_fnc(dict(soe=['orchestrator/finish'], params={'finish': None}, meta={}))

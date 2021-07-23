@@ -44,6 +44,7 @@ def receiveData(path:str,run:int,address:str,modelid:int=0):
     with h5py.File(path,'r') as h5file:
         address = f'run_{run}/'+address+'/'
         data[modelid].append(hdf5_group_to_dict(h5file,address))
+    print(data)
 
 @app.get("/ml/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):
@@ -56,7 +57,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 
 @app.get("/ml/activeLearning")
-def active_learning_random_forest_simulation(query: dict, address: str, modelid=0):
+def active_learning_random_forest_simulation(query: str, address: str, modelid=0):
     """
     if sources == "session":
         sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 

@@ -1,20 +1,24 @@
 config = dict()
 
-config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
-                         pump=dict(host="127.0.0.1", port=13371),
-                         autolabDriver=dict(host="127.0.0.1", port=13394),
-                         autolab=dict(host="127.0.0.1", port=13375),
-                         kadiDriver=dict(host="127.0.0.1", port=13376),
-                         kadi=dict(host="127.0.0.1", port=13377),
-                         forceDriver=dict(host="127.0.0.1", port=13378),
-                         force=dict(host="127.0.0.1", port=13379),
-                         orchestrator=dict(host="127.0.0.1", port=13380),
-                         langDriver=dict(host="127.0.0.1", port=13381),
-                         lang=dict(host="127.0.0.1", port=13382),
-                         minipumpDriver=dict(host="127.0.0.1", port=13389),
-                         minipump=dict(host="127.0.0.1", port=13344),
-                         analysis=dict(host="127.0.0.1", port=13369),
-                         ml=dict(host="127.0.0.1", port=13363))
+# config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
+#                          pump=dict(host="127.0.0.1", port=13371),
+#                          autolabDriver=dict(host="127.0.0.1", port=13394),
+#                          autolab=dict(host="127.0.0.1", port=13375),
+#                          kadiDriver=dict(host="127.0.0.1", port=13376),
+#                          kadi=dict(host="127.0.0.1", port=13377),
+#                          forceDriver=dict(host="127.0.0.1", port=13378),
+#                          force=dict(host="127.0.0.1", port=13379),
+#                          orchestrator=dict(host="127.0.0.1", port=13380),
+#                          langDriver=dict(host="127.0.0.1", port=13381),
+#                          lang=dict(host="127.0.0.1", port=13382),
+#                          minipumpDriver=dict(host="127.0.0.1", port=13389),
+#                          minipump=dict(host="127.0.0.1", port=13344),
+#                          analysis=dict(host="127.0.0.1", port=13369),
+#                          ml=dict(host="127.0.0.1", port=13363))
+
+config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
+                     'ml': dict(host="192.168.31.123", port=6612)}
+                        }
 config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667),
                          'measure:2':dict(host="192.168.31.114", port=6669)})
 

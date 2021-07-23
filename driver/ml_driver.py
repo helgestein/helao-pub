@@ -1,3 +1,6 @@
+from util import highestName, dict_address
+from time import sleep
+from celery_conf import app
 import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -6,9 +9,6 @@ from sklearn.ensemble import RandomForestRegressor
 import sys
 sys.path.append(r"../")
 
-from celery_conf import app
-from time import sleep
-from util import highestName, dict_address
 
 # for the test we just need active_learning_random_forest_simulation function
 kadiurl = None
@@ -67,98 +67,109 @@ class DataUtilSim:
 
         return result
 
-    #@staticmethod
-    #@app.task(name='driver.ml_driver.gaussian_simulation')
-    def active_learning_random_forest_simulation(self, query, data):#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
-        # this is how the data is created in the analyis action and should be transfer here
-        # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
-        # an example
-        # data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
-        """[summary]
 
-        Args:
-            key_x ([type]): [the accumulated position that machine was there]
-            key_y ([type]): [the last value of schwefel function that we got]
-            x_query ([type]): [list of all postions that we need to evaluate]
-            y_query ([type]): [list of all calculated schwefel values according to x_query]
-            save_data_path (str, optional): [description]. Defaults to 'ml_data/ml_analysis.json'.
+    # @staticmethod
+    # @app.task(name='driver.ml_driver.gaussian_simulation')
+<< << << < HEAD
+# , addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+def active_learning_random_forest_simulation(self, query, data)
 
-        Returns:
-            [x_suggest]: [position of the next experiment]
-        """
-        #session = json.loads(session)
-        #print(session)
-        #print(addresses)
-        #data = interpret_input(
-        #    session, "session", json.loads(addresses))
-        #print(data)
-        query = json.loads(query)[0]
-        x_query = query['x_query']
-        y_query = query['y_query']
-        x = [dat['x']['x'] for dat in data]
-        y = [dat['x']['y'] for dat in data]
-        key_x = np.array([[i,j] for i, j in zip(x,y)])
-        #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
-        #print(f"key_x: {key_x[0]}")
-        # accumulated result at every step (n+1)
-        #y_query = [d[1] for d in data]
-        key_y = [dat['y']['schwefel'] for dat in data]
-        #print(f"y_query: {y_query}")
-        # we still need to check the format of the data
-        # if x_query and y_query are string then:
-        #x_query = json.loads(x_query)  # all the points of exp
 
-        # the key_x should be in following [[4, 5], [4, 6]...]
-        #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
+== == == =
+# , addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+def active_learning_random_forest_simulation(self, query, data):
 
-        # define a random forest regressor containing 50 estimators
-        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
 
-        if type(x_query) != np.ndarray:
-            x_query = np.array(x_query)
-        if type(y_query) != np.ndarray:
-            y_query = np.array(y_query)
+>>>>>> > 4a1bc5273bccfaa1d43c235d136710005014d99b
+# this is how the data is created in the analyis action and should be transfer here
+# data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
+# an example
+# data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
+"""[summary]
 
-        test_ix = [i for i in range(len(x_query))]
-        #train_ix = [np.random.choice(quin.shape[0], 1, replace=False)[0]]
-        # we have the  first pos now (the initial point that motor goes there)
-        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
-        print(f"train_ix: {train_ix}")
-        # move the motor to the first point
+    Args:
+        key_x ([type]): [the accumulated position that machine was there]
+        key_y ([type]): [the last value of schwefel function that we got]
+        x_query ([type]): [list of all postions that we need to evaluate]
+        y_query ([type]): [list of all calculated schwefel values according to x_query]
+        save_data_path (str, optional): [description]. Defaults to 'ml_data/ml_analysis.json'.
 
-        # we no longer need to put it in for loop
-        # for i_ in tqdm(range(len(x_query))):
-        # if i_ == 0:
-        #    print(x_query[train_ix[-1]])
-        # motor should go to the first random position
-        # else:
-        # move to the last added train position and pretend we meaure there
-        # the actual value that was added in the last learning cycle is quin[train[-1]]
-        regr.fit(x_query[train_ix], y_query[train_ix])
-        pred = regr.predict(x_query[test_ix])
+    Returns:
+        [x_suggest]: [position of the next experiment]
+    """
+#session = json.loads(session)
+# print(session)
+# print(addresses)
+# data = interpret_input(
+#    session, "session", json.loads(addresses))
+# print(data)
+query = json.loads(query)[0]
+x_query = query['x_query']
+y_query = query['y_query']
+x = [dat['x']['x'] for dat in data]
+y = [dat['x']['y'] for dat in data]
+key_x = np.array([[i, j] for i, j in zip(x, y)])
+ #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
+ #print(f"key_x: {key_x[0]}")
+ # accumulated result at every step (n+1)
+ #y_query = [d[1] for d in data]
+ key_y = [dat['y']['schwefel'] for dat in data]
+  #print(f"y_query: {y_query}")
+  # we still need to check the format of the data
+  # if x_query and y_query are string then:
+  # x_query = json.loads(x_query)  # all the points of exp
 
-        y_var = np.zeros([50, len(x_query[test_ix])])
+  # the key_x should be in following [[4, 5], [4, 6]...]
+  #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
 
-        for j in range(50):
-            y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+  # define a random forest regressor containing 50 estimators
+  regr = RandomForestRegressor(n_estimators=50, random_state=1337)
 
-        aqf = pred+np.var(y_var, axis=0)
+   if type(x_query) != np.ndarray:
+        x_query = np.array(x_query)
+    if type(y_query) != np.ndarray:
+        y_query = np.array(y_query)
 
-        ix = np.where(aqf == np.max(aqf))[0]
-        print(f"aqf : {ix}")
-        i = np.random.choice(ix)
-        print(f"chosen random : {i}")
-        train_ix.append(test_ix.pop(i))
-        # next position that motor needs to go
-        print(f"next position is : {x_query[train_ix[-1]].tolist()}")
-        next_exp = x_query[train_ix[-1]].tolist()
+    test_ix = [i for i in range(len(x_query))]
+    #train_ix = [np.random.choice(quin.shape[0], 1, replace=False)[0]]
+    # we have the  first pos now (the initial point that motor goes there)
+    train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+    #print(f"train_ix: {train_ix}")
+    # move the motor to the first point
 
-        print(f"predicitons are {pred}")
-        #For the sake of tracibility, we need to save the predicitons at every step 
-        #for i in test_ix:
-            #print(f"Are you float ?! {i}")
-            #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
-        return next_exp[0], next_exp[1], next_exp
+    # we no longer need to put it in for loop
+    # for i_ in tqdm(range(len(x_query))):
+    # if i_ == 0:
+    #    print(x_query[train_ix[-1]])
+    # motor should go to the first random position
+    # else:
+    # move to the last added train position and pretend we meaure there
+    # the actual value that was added in the last learning cycle is quin[train[-1]]
+    regr.fit(x_query[train_ix], y_query[train_ix])
+    pred = regr.predict(x_query[test_ix])
+
+    y_var = np.zeros([50, len(x_query[test_ix])])
+
+    for j in range(50):
+        y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+
+    aqf = pred+np.var(y_var, axis=0)
+
+    ix = np.where(aqf == np.max(aqf))[0]
+    #print(f"aqf : {ix}")
+    i = np.random.choice(ix)
+    #print(f"chosen random : {i}")
+    train_ix.append(test_ix.pop(i))
+    # next position that motor needs to go
+    print(f"next position is : {x_query[train_ix[-1]].tolist()}")
+    next_exp = x_query[train_ix[-1]].tolist()
+
+    #print(f"predicitons are {pred}")
+    # For the sake of tracibility, we need to save the predicitons at every step
+    # for i in test_ix:
+    #print(f"Are you float ?! {i}")
+    #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
+    return next_exp[0], next_exp[1], next_exp
 
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):

@@ -31,10 +31,9 @@ def memory():
     data = {}
 
 @app.get("/analysis/receiveData")
-def receiveData(path:str,run:int,addresses:dict):
+def receiveData(path:str,run:int,addresses:str):
+    addresses = json.loads(addresses)
     global data
-    if modelid not in data.keys():
-        data[modelid] = []
     with h5py.File(path,'r') as h5file:
         for address in addresses.values():
             item = h5file[f'run_{run}/'+address]

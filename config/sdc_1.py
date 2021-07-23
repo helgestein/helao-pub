@@ -18,7 +18,7 @@ config = dict()
 
 config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
                      'ml': dict(host="192.168.31.123", port=6612)}
-                        }
+                        
 config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667),
                          'measure:2':dict(host="192.168.31.114", port=6669)})
 

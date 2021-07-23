@@ -13,11 +13,13 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          lang=dict(host="127.0.0.1", port=13382),
                          minipumpDriver=dict(host="127.0.0.1", port=13389),
                          minipump=dict(host="127.0.0.1", port=13344),
-                         measure=dict(host="127.0.0.1", port=13368),
                          analysis=dict(host="127.0.0.1", port=13369),
                          ml=dict(host="127.0.0.1", port=13363))
+config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667),
+                         'measure:2':dict(host="192.168.31.114", port=6669)})
 
-config['measure'] = dict(url="http://127.0.0.1:13368")
+config['measure:1'] = dict(url="http://127.0.0.1:13368")
+config['measure:2'] = dict(url="http://192.168.31.114:6669")
 config['analysis'] = dict(url="http://127.0.0.1:13369")
 config['ml'] = dict(url="http://127.0.0.1:13363")
 
@@ -215,7 +217,7 @@ config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data', ka
 
 config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'minipumpDriver', 'pumpDriver'],
                         action=['analysis', 'autolab', 'kadi', 'lang',
-                                'measure', 'minipump', 'ml', 'pump', 'force'],
+                                'measure:1', 'measure:2', 'minipump', 'ml', 'pump', 'force'],
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])

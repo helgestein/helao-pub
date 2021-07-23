@@ -85,7 +85,7 @@ async def doMeasurement(experiment: str, thread: int):
                 async with locks[tracking[t]['path']]:
                     await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses={a:params[a] for a in add})),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/recieveData")
             res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
-        elif servertype == 'learning':
+        elif servertype == 'ml':
             if "address" in params.keys() and "modelid" in params.keys():
                 #be sure to use this parameter name "address" in action if (and only if?) you are loading from ongoing session. must be string hdf5 path
                 t = int(params['address'].split('/')[0].split(':')[1])

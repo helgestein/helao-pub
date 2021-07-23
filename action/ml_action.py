@@ -10,15 +10,16 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import json
 import requests
-from util import hdf5_group_to_dict
 import os
 import h5py
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
+sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 from ml_driver import DataUtilSim
+from util import hdf5_group_to_dict
 serverkey = sys.argv[2]
 
 app = FastAPI(title="analysis action server",
@@ -35,7 +36,7 @@ def memory():
     global data
     data = {}
 
-@app.get("/learning/receiveData")
+@app.get("/ml/receiveData")
 def receiveData(path:str,run:int,address:str,modelid:int=0):
     global data
     if modelid not in data.keys():
@@ -44,7 +45,7 @@ def receiveData(path:str,run:int,address:str,modelid:int=0):
         address = f'run_{run}/'+address+'/'
         data[modelid].append(hdf5_group_to_dict(h5file,address))
 
-@app.get("/learning/gaus_model")
+@app.get("/ml/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):
     model = d.gaus_model(length_scale, restart_optimizer, random_state)
     retc = return_class(parameters={'length_scale': length_scale, 'restart_optimizer': restart_optimizer, 'random_state': random_state}, data={
@@ -54,7 +55,7 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 # we still need to discuss about the data type that we are adding here.
 
 
-@app.get("/learning/activeLearning")
+@app.get("/ml/activeLearning")
 def active_learning_random_forest_simulation(query: dict, address: str, modelid=0):
     """
     if sources == "session":
@@ -82,8 +83,7 @@ def active_learning_random_forest_simulation(query: dict, address: str, modelid=
     print(next_exp_dx, next_exp_dy, next_exp_pos)
     #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
     retc = return_class(parameters = {'query':query,'address':address,'modelid':modelid}, data = dict(next_x = next_exp_dx, next_y = next_exp_dy))
-    next_exp_dx, next_exp_dy
-    return 
+    return retc
   
 if __name__ == "__main__":
     d = DataUtilSim()

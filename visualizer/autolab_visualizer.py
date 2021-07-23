@@ -22,7 +22,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
 
-S = config['servers']['autolabServer']
+S = config['servers']['autolabDriver']
 uri = f"ws://{S['host']}:{S['port']}/ws"
 
 doc = curdoc()

@@ -8,6 +8,7 @@ from celery import group
 import hdfdict
 import os
 import requests
+import h5py
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
@@ -37,9 +38,9 @@ def receiveData(path:str,run:int,addresses:str):
     with h5py.File(path,'r') as h5file:
         for address in addresses.values():
             item = h5file[f'run_{run}/'+address]
-            if isinstance(h5file[key],h5py._hl.group.Group):
+            if isinstance(item,h5py._hl.group.Group):
                 data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address+'/')})
-            elif isinstance(h5file[key],h5py._hl.dataset.Dataset):
+            elif isinstance(item,h5py._hl.dataset.Dataset):
                 data.update({address:item[()]})
         
 @app.get("/analysis/dummy")

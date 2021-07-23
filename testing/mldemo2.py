@@ -34,7 +34,7 @@ x_query = np.array([[i, j] for i, j in zip(x, y)])
 y_query = [schwefel_function(x[0], x[1])for x in x_query]
 query = json.dumps({'x_query': x_query.tolist(), 'y_query': y_query})  
 
-n = 1
+n = 40
 test_fnc(dict(soe=['orchestrator/start','measure/schwefelFunction_0','analysis/dummy_0'], params={'start': {'collectionkey' : 'dummytest2'},'schwefelFunction_0':{'x':5,'y':10},
                    'dummy_0':{'x_address':'experiment_0:0/schwefelFunction_0/data/parameters/x','y_address':'experiment_0:0/schwefelFunction_0/data/parameters/y','schwefel_address':'experiment_0:0/schwefelFunction_0/data/data/key_y'}}, meta=dict()))
 for i in range(n):

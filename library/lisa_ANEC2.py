@@ -1963,6 +1963,212 @@ def ADSS_CA_7(decisionObj: Decision,
                           block=False))
 
 
+    # 6 cycle ################################################################
+
+
+    # fill liquid, no wash (assume it was cleaned before)
+    action_list.append(Action(decision=decisionObj,
+                         server_key="PAL",
+                         action="run_method",
+                         action_pars={'liquid_sample_no': f'{liquid_sample_no}',
+                                      'method': 'lcfc_fill.cam',
+                                      'tool':'LS3',
+                                      'source': 'elec_res1',
+                                      'volume_uL': '1000', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # OCV
+    action_list.append(Action(decision=decisionObj,
+                         server_key="potentiostat",
+                         action="run_OCV",
+                         action_pars={"Tval": f'{OCV_duration}',
+                                      "SampleRate": f'{samplerate}',
+                                      "TTLwait": '-1',
+                                      "TTLsend": '-1',
+                                      "IErange": 'auto',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # take liquid sample
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      },
+                          preempt=True,
+                          block=False))
+
+    # apply potential
+    action_list.append(Action(decision=decisionObj,
+                         server_key="potentiostat",
+                         action="run_CA",
+                         action_pars={"Vval": f'{potential6}',
+                                      "Tval": f'{duration}',
+                                      "SampleRate": f'{samplerate}',
+                                      "TTLwait": '-1',
+                                      "TTLsend": '-1',
+                                      "IErange": 'auto',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # take multiple scheduled liquid samples
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-2', # signals to use second last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '3',
+                                      'sampleperiod': '60,600,1140', #1min, 10min, 10min
+                                      'spacingmethod': 'custom',
+                                      'spacingfactor': '1.0',
+                                      'timeoffset': '60.0',
+                                      },
+                          preempt=False,
+                          block=False))
+
+    # take last liquid sample and clean
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0', #1min, 10min, 10min
+                                      'spacingmethod': 'custom',
+                                      'spacingfactor': '1.0',
+                                      'wash1': 1, # dont use True or False but 0 AND 1
+                                      'wash2': 1,
+                                      'wash3': 1,
+                                      'wash4': 1,
+                                      },
+                          preempt=True,
+                          block=False))
+
+    # 7 cycle ################################################################
+
+
+    # fill liquid, no wash (assume it was cleaned before)
+    action_list.append(Action(decision=decisionObj,
+                         server_key="PAL",
+                         action="run_method",
+                         action_pars={'liquid_sample_no': f'{liquid_sample_no}',
+                                      'method': 'lcfc_fill.cam',
+                                      'tool':'LS3',
+                                      'source': 'elec_res1',
+                                      'volume_uL': '1000', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # OCV
+    action_list.append(Action(decision=decisionObj,
+                         server_key="potentiostat",
+                         action="run_OCV",
+                         action_pars={"Tval": f'{OCV_duration}',
+                                      "SampleRate": f'{samplerate}',
+                                      "TTLwait": '-1',
+                                      "TTLsend": '-1',
+                                      "IErange": 'auto',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # take liquid sample
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-1', # signals to use last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0',
+                                      'spacingmethod': 'linear',
+                                      'spacingfactor': '1.0',
+                                      },
+                          preempt=True,
+                          block=False))
+
+    # apply potential
+    action_list.append(Action(decision=decisionObj,
+                         server_key="potentiostat",
+                         action="run_CA",
+                         action_pars={"Vval": f'{potential7}',
+                                      "Tval": f'{duration}',
+                                      "SampleRate": f'{samplerate}',
+                                      "TTLwait": '-1',
+                                      "TTLsend": '-1',
+                                      "IErange": 'auto',
+                                      },
+                         preempt=True,
+                         block=False))
+
+    # take multiple scheduled liquid samples
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-2', # signals to use second last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '3',
+                                      'sampleperiod': '60,600,1140', #1min, 10min, 10min
+                                      'spacingmethod': 'custom',
+                                      'spacingfactor': '1.0',
+                                      'timeoffset': '60.0',
+                                      },
+                          preempt=False,
+                          block=False))
+
+    # take last liquid sample and clean
+    action_list.append(Action(decision=decisionObj,
+                          server_key="PAL",
+                          action="run_method",
+                          action_pars={'liquid_sample_no': '-5', # signals to use third last item in liquid sample DB
+                                      'method': 'lcfc_archive.cam',
+                                      'tool':'LS3',
+                                      'source': 'lcfc_res',
+                                      'volume_uL': '200', # uL
+                                      'totalvials': '1',
+                                      'sampleperiod': '0.0', #1min, 10min, 10min
+                                      'spacingmethod': 'custom',
+                                      'spacingfactor': '1.0',
+                                      'wash1': 1, # dont use True or False but 0 AND 1
+                                      'wash2': 1,
+                                      'wash3': 1,
+                                      'wash4': 1,
+                                      },
+                          preempt=True,
+                          block=False))
+
     # end ####################################################################
 
 

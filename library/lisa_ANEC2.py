@@ -14,7 +14,7 @@ sys.path.append(os.path.join(os.path.dirname(
     os.path.dirname(lib_root)), 'core'))
 
 # list valid actualizer functions 
-ACTUALIZERS = ['ADSS_CA_5','dilute_all', 'ADSS_CA', 'ADSS_CP', 'ADSS_CP10', 'orchtest']
+ACTUALIZERS = ['ADSS_CA_5','ADSS_CA_7','dilute_all', 'ADSS_CA', 'ADSS_CP', 'ADSS_CP10', 'orchtest']
 
 
 # z positions for ADSS cell
@@ -1357,12 +1357,15 @@ def ADSS_CA_7(decisionObj: Decision,
     potential3 = float(potential3)+float(erhe)
     potential4 = float(potential4)+float(erhe)
     potential5 = float(potential5)+float(erhe)
+    potential4 = float(potential6)+float(erhe)
+    potential5 = float(potential7)+float(erhe)
     print(potential1)
     print(potential2)
     print(potential3)
     print(potential4)
     print(potential5)
-
+    print(potential6)
+    print(potential7)
 
     action_list = []
     # move z to home

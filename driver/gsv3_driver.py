@@ -1,11 +1,18 @@
-#not for productive use yet!!!!
-#there are two force channels connected and you need to install
+#Two force channels connected , packages necessary to be installed:
 # https://www.me-systeme.de/setup/driver/usb/ftdi/
 # and
 # https://www.me-systeme.de/setup/gsv/gsvmulti/GSVmulti-1-48_64bit.zip
 # the ladder will actually tell you which com port to use
-# this code comes mostly from
+
+# copy right 
 #https://github.com/qdlmcfresh/gsv3usb/blob/main/gsv3_usb.py
+
+# voltage input => -10 V to 10 V
+# Current input => -20 mA to 20 mV 
+# The baud rate can be differed from 4800  to 1,25 Mboud (bits/s)
+# GSV has transmission rate of 38400 baud 
+# range of change 500 mN 
+
 import serial
 import struct
 import platform
@@ -24,7 +31,6 @@ class ForceMeasurementConverterKG(MeasurementConverter):
 
     def convertValue(self, bytes):
         A = struct.unpack('>H', bytes[1:])[0]
-        # return (A - 0x8000) * (self.F_n / self.S_n) * (self.u_e / 0x8000)
         return self.F_n / self.S_n * ((A - 0x8000) / 0x8000) * self.u_e * 2
 
 
@@ -118,7 +124,7 @@ def main():
     # 19206189 -> COM 5
     # 19206182 -> COM 4
 
-    dev = GSV3USB(5)
+    dev = GSV3USB(9)
     try:
         while True:
             print(dev.read_value())

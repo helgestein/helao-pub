@@ -1,26 +1,28 @@
 config = dict()
 
-# config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
-#                          pump=dict(host="127.0.0.1", port=13371),
-#                          autolabDriver=dict(host="127.0.0.1", port=13394),
-#                          autolab=dict(host="127.0.0.1", port=13375),
-#                          kadiDriver=dict(host="127.0.0.1", port=13376),
-#                          kadi=dict(host="127.0.0.1", port=13377),
-#                          forceDriver=dict(host="127.0.0.1", port=13378),
-#                          force=dict(host="127.0.0.1", port=13379),
-#                          orchestrator=dict(host="127.0.0.1", port=13380),
-#                          langDriver=dict(host="127.0.0.1", port=13381),
-#                          lang=dict(host="127.0.0.1", port=13382),
-#                          minipumpDriver=dict(host="127.0.0.1", port=13389),
-#                          minipump=dict(host="127.0.0.1", port=13344),
-#                          analysis=dict(host="127.0.0.1", port=13369),
-#                          ml=dict(host="127.0.0.1", port=13363))
+config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
+                         pump=dict(host="127.0.0.1", port=13371),
+                         autolabDriver=dict(host="127.0.0.1", port=13394),
+                         autolab=dict(host="127.0.0.1", port=13375),
+                         kadiDriver=dict(host="127.0.0.1", port=13376),
+                         kadi=dict(host="127.0.0.1", port=13377),
+                         forceDriver=dict(host="127.0.0.1", port=13378),
+                         force=dict(host="127.0.0.1", port=13379),
+                         forcesdcDriver=dict(host="127.0.0.1", port=13338),
+                         forcesdc=dict(host="127.0.0.1", port=13339),
+                         orchestrator=dict(host="127.0.0.1", port=13380),
+                         langDriver=dict(host="127.0.0.1", port=13381),
+                         lang=dict(host="127.0.0.1", port=13382),
+                         minipumpDriver=dict(host="127.0.0.1", port=13389),
+                         minipump=dict(host="127.0.0.1", port=13344),
+                         analysis=dict(host="127.0.0.1", port=13369),
+                         ml=dict(host="127.0.0.1", port=13363))
 
-config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
-                     'ml': dict(host="192.168.31.123", port=6612)}
+#config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
+#                     'ml': dict(host="192.168.31.123", port=6612)}
                         
-config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667),
-                         'measure:2':dict(host="192.168.31.114", port=6669)})
+config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
+                         'measure:2':dict(host="192.168.31.114", port=6669)}) # raman pc
 
 config['measure:1'] = dict(url="http://192.168.31.123:6667")
 config['measure:2'] = dict(url="http://192.168.31.114:6669")
@@ -207,10 +209,10 @@ config['lang'] = dict(url="http://127.0.0.1:13381", forceurl="http://127.0.0.1:1
                         safe_sample_pos=[3.0, 4.0, 0.0],
                         remove_drop=[3.0, -15.0, 9.5])
 
-config['forceDriver'] = dict(port=5,
-                             buffer_size=1,
+config['forcesdcDriver'] = dict(port=5,buffer_size=1,
                              dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
 
+#config['forceDriver'] = dict(com_port=8) 
 config['force'] = dict(url="http://127.0.0.1:13378")
 
 config['minipumpDriver'] = dict(port='COM4', baud=1200, timeout=1)

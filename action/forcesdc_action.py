@@ -15,14 +15,15 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
-app = FastAPI(title="ForceDriver server V2", 
-    description="This is a fancy forceDriver sensor action server", 
+app = FastAPI(title="Sdc ForceDriver server V2", 
+    description="This is a fancy sdc forceDriver sensor action server", 
     version="2.0")
 
 
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
+
 
 
 @app.get("/force/read")
@@ -38,8 +39,12 @@ def read():
 
 
 if __name__ == "__main__":
+    #url = "http://{}:{}".format(config['servers']['force']['host'],config['servers']['force']['port'])
+    #uvicorn.run(app,host=config['servers']['forceDriver']['host'],port=config['servers']['forceDriver']['port'])
+    
     url = config[serverkey]['url']
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
-                     port=config['servers'][serverkey]['port'])  
+                     port=config['servers'][serverkey]['port'])
+    
     print("instantiated forceDriver sensor")
     

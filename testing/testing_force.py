@@ -4,9 +4,8 @@ sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
-from config.mischbares_small import config
-import json
-from copy import copy
+#from config.mischbares_small import config
+from config.sdc_1 import config
 
 def force_test(action, params):
     server = 'force'

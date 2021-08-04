@@ -202,18 +202,18 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM3',
                             dllconfig=r"C:\Users\LaborRatte23-3\Documents\git\pyLang\config.LSControl",
                             )
 
-config['lang'] = dict(url="http://127.0.0.1:13381", forceurl="http://127.0.0.1:13379",
+config['lang'] = dict(url="http://127.0.0.1:13381",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                         safe_waste_pos=[3.0, -31.0, 0.0],
                         safe_sample_pos=[3.0, 4.0, 0.0],
-                        remove_drop=[3.0, -15.0, 9.5])
+                        remove_drop=[3.0, -15.0, 10.25]) #, forceurl="http://127.0.0.1:13379"
 
-config['forcesdcDriver'] = dict(port=5,buffer_size=1,
-                             dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
+#config['forcesdcDriver'] = dict(port=5,buffer_size=1,
+#                             dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
 
 #config['forceDriver'] = dict(com_port=8) 
-config['force'] = dict(url="http://127.0.0.1:13378")
+#config['force'] = dict(url="http://127.0.0.1:13378")
 
 config['minipumpDriver'] = dict(port='COM4', baud=1200, timeout=1)
 config['minipump'] = dict(url="http://127.0.0.1:13389")
@@ -221,9 +221,9 @@ config['minipump'] = dict(url="http://127.0.0.1:13389")
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-3\Documents\data', kadiurl="http://127.0.0.1:13377")
 
 
-config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'minipumpDriver', 'pumpDriver'],
+config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'minipumpDriver', 'pumpDriver'], #, 'forceDriver'
                         action=['analysis', 'autolab', 'kadi', 'lang',
-                                'measure:1', 'measure:2', 'minipump', 'ml', 'pump', 'force'],
+                                'measure:1', 'measure:2', 'minipump', 'ml', 'pump'], #, 'force'
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])

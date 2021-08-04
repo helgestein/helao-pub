@@ -5,8 +5,17 @@ sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
 from config.mischbares_small import config
-import json
-from copy import copy
+from config.sdc_1 import config
+#import json
+#from copy import copy
+#import requests
+#import os
+#from importlib import import_module
+#helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+#sys.path.append(os.path.join(helao_root, 'config'))
+
+#config = import_module(sys.argv[1]).config
+#serverkey = sys.argv[2]
 
 def test_fnc(action, params):
     server = 'lang'
@@ -24,8 +33,9 @@ test_fnc('moveRel', dict(dx=0, dy=0, dz=0))
 test_fnc('moveAbs', dict(dx=2, dy=0, dz=0))  #[30.0, 80.0, 9.75] #[30.0, 100.0, 0.0]
 test_fnc('moveWaste', dict(x=0, y=0, z=0))
 test_fnc('moveHome', None)
-test_fnc('moveDown', dict(dz=0.213, steps=120, maxForce=0.44, threshold= 0.320)) #maximum length that you can go down is 5  #dz=0.321, steps=20, maxForce=0.08, threshold= 0.322
+test_fnc('moveDown', dict(dz=0.05, steps=169, maxForce=0.0065, threshold= 0.051)) #maximum length that you can go down is 5  #dz=0.321, steps=20, maxForce=0.08, threshold= 0.322
 #dz=0.180, steps=80, maxForce=0.44, threshold= 0.190
+# 169 steps each step 0.05 mm 
 test_fnc('moveSample', dict(x=0, y=0, z=0))
 test_fnc('RemoveDroplet', dict(x=0, y=0, z=0))
 

@@ -24,6 +24,11 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
+@app.get("/force/setzero")
+def setzero():
+    requests.get("{}/forceDriver/setzero".format(url)).json()
+    retc = return_class(parameters=None, data=None)
+
 
 @app.get("/force/read")
 def read():

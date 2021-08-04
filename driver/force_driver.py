@@ -1,3 +1,4 @@
+  
 #Two force channels connected , packages necessary to be installed:
 # https://www.me-systeme.de/setup/driver/usb/ftdi/
 # and
@@ -12,10 +13,11 @@
 # The baud rate can be differed from 4800  to 1,25 Mboud (bits/s)
 # GSV has transmission rate of 38400 baud 
 # range of change 500 mN 
-
 import serial
 import struct
 import platform
+import time
+
 
 
 class MeasurementConverter:
@@ -49,10 +51,10 @@ class GSV3USB:
         self.sensor.write(struct.pack('bb', 10, profile))
 
     def start_transmission(self):
-        self.sensor.write(b'\x23')
+        self.sensor.write(b'\x24')
 
     def stop_transmission(self):
-        self.sensor.write(b'\x24')
+        self.sensor.write(b'\x23')
 
     def set_zero(self):
         self.sensor.write(b'\x0C')
@@ -121,16 +123,40 @@ class GSV3USB:
 
 
 # def main():
-#     # 19206189 -> COM 5
-#     # 19206182 -> COM 4
+# #     # 19206189 -> COM 5
+# #     # 19206182 -> COM 4
 
 #     dev = GSV3USB(9)
-#     try:
-#         while True:
-#             print(dev.read_value())
-#     except KeyboardInterrupt:
-#         print("Exiting")
-#         return
+#     statement = True
+#     count = 0
+#     threshold = 2
+#     if threshold < 3:
+#         while abs(count) < 3:
+#             dev.start_transmission()
+#             count = dev.read_value()
+#             dev.stop_transmission()
+#             time.sleep(1)
+#             print(count)
+#     elif count > 3:
+#         print("I am breaking")
+#     else:
+#         print("I am breaking any way")
+
+# #     # try: 
+# #     #     count = 0 
+# #     #     while count < 3: 
+# #     #         count = dev.read_value()
+# #     #         print(count)
+# #     # except: 
+# #     #     print("I am breaking")
 
 
-# main()
+# #     # try:   
+# #     #     while True:
+# #     #         print(dev.read_value())
+# #     # except KeyboardInterrupt:
+# #     #     print("Exiting")
+# #     #     return
+
+
+#main()

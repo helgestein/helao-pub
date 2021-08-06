@@ -40,13 +40,8 @@ class pump():
         return self.read() if read else None
 
     def read(self):
-        ans = []
-        for i in range(100):
-            a = self.ser.read(1000)
-            if not a == b"":
-                ans.append(a.decode('utf-8','ignore').encode('utf-8'))
-            else:
-                break
+        a = self.ser.read(1000)
+        ans = a.decode('utf-8','ignore').encode('utf-8')
         return ans        
 
     def shutdown(self):

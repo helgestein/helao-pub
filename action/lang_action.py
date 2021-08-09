@@ -88,7 +88,7 @@ def moveDown(dz: float,steps: float,maxForce: float=1.99, threshold:float=0.26):
             dev.stop_transmission()
             print(f"steps: {step}")
             step += 1
-            time.sleep(0.8)
+            time.sleep(0.7)
         else:
             print("break becasue of threshold")
             break

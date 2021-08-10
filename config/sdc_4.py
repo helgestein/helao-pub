@@ -11,8 +11,8 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          orchestrator=dict(host="127.0.0.1", port=13380),
                          langDriver=dict(host="127.0.0.1", port=13382),
                          lang=dict(host="127.0.0.1", port=13391),
-                         minipumpDriver=dict(host="192.168.31.241", port=6613),
-                         minipump=dict(host="192.168.31.241", port=6614),
+                         minipumpDriver=dict(host="127.0.0.1", port=13386),
+                         minipump=dict(host="127.0.0.1", port=13385),
                          analysis=dict(host="127.0.0.1", port=13369),
                          ml=dict(host="127.0.0.1", port=13363))
 
@@ -212,7 +212,7 @@ config['forceDriver'] = dict(port=5,buffer_size=1,
 config['force'] = dict(url="http://127.0.0.1:13378")
 
 config['minipumpDriver'] = dict(port='COM4', baud=1200, timeout=1)
-config['minipump'] = dict(url="http://192.168.31.241:6613")
+config['minipump'] = dict(url="http://127.0.0.1:13386") #127.0.0.1", port=13386
 #
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-2\Documents\data', kadiurl="http://127.0.0.1:13377")
 

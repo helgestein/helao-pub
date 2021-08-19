@@ -54,9 +54,11 @@ config['autolabDriver'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autola
                                     'on': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\ON.nox',
                                     'off': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\OFF.nox', 
                                     'ocp_rf': r"C:\Users\LaborRatte23-2\Documents\echemprocedures\ocp_rf_v12.nox",
-                                    'ms': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\mott_schotky_no_osc.nox'})
+                                    'ms': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\mott_schotky_no_osc.nox',
+                                    "eis_v2": r"C:\Users\LaborRatte23-2\Documents\My Procedures 1.11\Procedures\FRA impedance potentiostatic working electrode.nox",
+                                    "cccv":r"C:\Users\LaborRatte23-2\Documents\My Procedures 1.11\Procedures\cccv.nox"})
 
-config['autolab'] = dict(url="http://127.0.0.1:13394")
+config['autolab'] = dict(url="http://127.0.0.1:13374")
 config['autolab']['procedures'] = {}
 
 config['autolab']['procedures']['ca'] = {'procedure': 'ca',
@@ -67,7 +69,19 @@ config['autolab']['procedures']['ca'] = {'procedure': 'ca',
                                                'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                'filename': 'ca.nox',
                                                'parseinstructions': ['recordsignal']}
-
+### every thing would be the same except setpoints
+# ['ExtendedSequence',
+#  'FHGetSetValues',
+#  'FHWait',
+#  'FHSetSetpointCurrent',
+#  'FHSwitchCell',
+#  'FHLevelGalvanostatic',
+#  'PlotsEvst',
+#  'FHSetSetpointCurrent',
+#  'FHLevelGalvanostatic',
+#  'PlotsEvst',
+#  'FHSwitchCell']
+config['autolab']['procedures']['cccv'] = {'setpointsjson':{'FHSetSetpointCurrent': {'Setpoint value': 1e-06}}}
 
 config['autolab']['procedures']['ocp'] = {'procedure': 'ocp',
                                                 'setpoints': {'FHLevel': {'Duration': 20}},
@@ -125,7 +139,7 @@ config['autolab']['procedures']['eis'] = {'procedure': 'eis',
                                                 'plot': 'impedance',
                                                 'onoffafter': 'off',
                                                 'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
-                                                'filename': 'eis.nox',
+                                                'filename': r'C:\Users\LaborRatte23-2\Documents\My Procedures 1.11\Procedures\FRA_impedance_potentiostatic_WE_CE_RE.nox',
                                                 'parseinstructions': ['FIAMeasPotentiostatic']}
 
 config['autolab']['procedures']['pitt'] = {'procedure': 'pitt',
@@ -196,7 +210,7 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM3',
                             dllconfig=r"C:\Users\LaborRatte23-2\Documents\git\pyLang\config.LSControl",
                             )
 
-config['lang'] = dict(url="http://127.0.0.1:13391",
+config['lang'] = dict(url="http://127.0.0.1:13382",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                         safe_waste_pos=[46.5, -108, 0], #3.0, -31.0, 0.0
@@ -224,3 +238,4 @@ config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'mi
                         process=[])
 
 config['instrument'] = "sdc"
+

@@ -8,26 +8,24 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          kadi=dict(host="127.0.0.1", port=13377),
                          forceDriver=dict(host="127.0.0.1", port=13378),
                          force=dict(host="127.0.0.1", port=13379),
-                         forcesdcDriver=dict(host="127.0.0.1", port=13338),
-                         forcesdc=dict(host="127.0.0.1", port=13339),
                          orchestrator=dict(host="127.0.0.1", port=13380),
-                         langDriver=dict(host="127.0.0.1", port=13391),
-                         lang=dict(host="127.0.0.1", port=13382),
-                         minipumpDriver=dict(host="127.0.0.1", port=13389),
-                         minipump=dict(host="127.0.0.1", port=13344),
+                         langDriver=dict(host="127.0.0.1", port=13382),
+                         lang=dict(host="127.0.0.1", port=13391),
+                         minipumpDriver=dict(host="127.0.0.1", port=13386),
+                         minipump=dict(host="127.0.0.1", port=13385),
                          analysis=dict(host="127.0.0.1", port=13369),
                          ml=dict(host="127.0.0.1", port=13363))
 
 #config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
 #                     'ml': dict(host="192.168.31.123", port=6612)}
                         
-config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
-                         'measure:2':dict(host="192.168.31.114", port=6669)}) # raman pc
+#config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
+#                         'measure:2':dict(host="192.168.31.114", port=6669)}) # raman pc
 
-config['measure:1'] = dict(url="http://192.168.31.123:6667")
-config['measure:2'] = dict(url="http://192.168.31.114:6669")
-config['analysis'] = dict(url="http://192.168.31.123:6642")
-config['ml'] = dict(url="http://192.168.31.123:6612")
+#config['measure:1'] = dict(url="http://192.168.31.123:6667")
+#config['measure:2'] = dict(url="http://192.168.31.114:6669")
+#config['analysis'] = dict(url="http://192.168.31.123:6642")
+#config['ml'] = dict(url="http://192.168.31.123:6612")
 
 
 config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
@@ -36,33 +34,27 @@ config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
 config['kadi'] = dict(group='2', url="http://127.0.0.1:13376")
 
 
-config['pumpDriver'] = dict(port='COM2', baud=9600, timeout=0.1, pumpAddr={
-                            i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
-config['pumpDriver']['pumpAddr'].update({i: i for i in range(20, 35)})
-config['pumpDriver']['pumpAddr']['all'] = 20
+#config['pumpDriver'] = dict(port='COM4', baud=9600, timeout=0.1, pumpAddr={
+#                            i: i + 21 for i in range(14)})  # numbering is left to right top to bottom
+#config['pumpDriver']['pumpAddr'].update({i: i for i in range(20, 35)})
+#config['pumpDriver']['pumpAddr']['all'] = 20
 
-config['pump'] = dict(url="http://127.0.0.1:13370")
-
+#config['pump'] = dict(url="http://127.0.0.1:13370")
 
 config['autolabDriver'] = dict(basep = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11",
-                    procp = r"C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures",
+                    procp = r"C:\Users\LaborRatte23-2\Documents\echemprocedures",
                     #hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
-                    hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88007.xml",
+                    hwsetupf = r"C:\ProgramData\Metrohm Autolab\12.0\HardwareSetup.AUT88172.xml",
                     micsetupf = r"C:\Program Files\Metrohm Autolab\Autolab SDK 1.11\Hardware Setup Files\Adk.bin",
-                    proceuduresd = {'cp': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\CP_main.nox',      
-                                    'ca': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\CA_main.nox',
-                                    'cv': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\CV_main.nox',
-                                    'eis': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\eis_fast_final.nox',
-                                    'ocp': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\ocp_signal.nox',
-                                    'ocp_rf': r"C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\ocp_rf_v12.nox",
-                                    'ms': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\mott_schotky_no_osc.nox',
-                                    'on': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\ON.nox',
-                                    'eis_ocp': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\OCP_Mott_Schottky_500mV.nox',
-                                    'off': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\OFF.nox',
-                                    'pitt': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\PITT.nox',
-                                    'gitt': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\GITT.nox',
-                                    'gitt_eis': r'C:\Users\SDC_1\Documents\Github\helao-dev\config\echemprocedures\GITT_EIS.nox'})
-                                    
+                    proceuduresd = {'cp': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\CP.nox',      
+                                    'ca': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\CA.nox',
+                                    'cv': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\CV.nox',
+                                    'eis': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\eis_fast_final.nox',
+                                    'ocp': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\ocp_signal.nox',
+                                    'on': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\ON.nox',
+                                    'off': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\OFF.nox', 
+                                    'ocp_rf': r"C:\Users\LaborRatte23-2\Documents\echemprocedures\ocp_rf_v12.nox",
+                                    'ms': r'C:\Users\LaborRatte23-2\Documents\echemprocedures\mott_schotky_no_osc.nox'})
 
 config['autolab'] = dict(url="http://127.0.0.1:13394")
 config['autolab']['procedures'] = {}
@@ -72,7 +64,7 @@ config['autolab']['procedures']['ca'] = {'procedure': 'ca',
                                                              'recordsignal': {'Duration': 1000}},
                                                'plot': 'tCV',
                                                'onoffafter': 'off',
-                                               'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                               'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                'filename': 'ca.nox',
                                                'parseinstructions': ['recordsignal']}
 
@@ -81,7 +73,7 @@ config['autolab']['procedures']['ocp'] = {'procedure': 'ocp',
                                                 'setpoints': {'FHLevel': {'Duration': 20}},
                                                 'plot': 'tCV',
                                                 'onoffafter': 'off',
-                                                'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                                'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                 'filename': 'ocp.nox',
                                                 'parseinstructions': ['FHLevel']}
 
@@ -90,7 +82,7 @@ config['autolab']['procedures']['ms'] = {'procedure': 'ms',
                                                'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
                                                'plot': 'impedance',
                                                'onoffafter': 'off',
-                                               'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                               'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                'filename': 'ms.nox',
                                                'parseinstructions': ["FIAMeasurement", "FHLevel"]}
 
@@ -99,7 +91,7 @@ config['autolab']['procedures']['ocp_rf'] = {'procedure': 'ocp_rf',
                                                    'setpoints': {'FHRefDetermination': {'Timeout': 20}},
                                                    'plot': 'tCV',
                                                    'onoffafter': 'off',
-                                                   'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                                   'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                    'filename': 'ocp_rf.nox',
                                                    'parseinstructions': ['OCP determination']}
 
@@ -109,7 +101,7 @@ config['autolab']['procedures']['cp'] = {'procedure': 'cp',
                                                              'recordsignal': {'Duration': 600}},
                                                'plot': 'tCV',
                                                'onoffafter': 'off',
-                                               'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                               'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                'filename': 'cp.nox',
                                                'parseinstructions': ['recordsignal']}
 
@@ -124,7 +116,7 @@ config['autolab']['procedures']['cv'] = {'procedure': 'cv',
                                                                           'ScanRate': 0.02}},
                                                'plot': 'tCV',
                                                'onoffafter': 'off',
-                                               'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                               'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                'filename': 'cv.nox',
                                                'parseinstructions': ['CVLinearScanAdc164']}
 
@@ -132,7 +124,7 @@ config['autolab']['procedures']['eis'] = {'procedure': 'eis',
                                                 'setpoints': {'FHSetSetpointPotential': {'Setpoint value': 0.01}},
                                                 'plot': 'impedance',
                                                 'onoffafter': 'off',
-                                                'safepath': r"C:\Users\LaborRatte23-3\Documents\GitHub\helao-dev\temp",
+                                                'safepath': r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp",
                                                 'filename': 'eis.nox',
                                                 'parseinstructions': ['FIAMeasPotentiostatic']}
 
@@ -199,34 +191,36 @@ config['autolab']['procedures']['gitt_eis'] = {'procedure': 'gitt_eis',
                                                      'filename': 'eis.nox',
                                                      'parseinstructions': ['FIAMeasPotentiostatic']}
 
-config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM4',
-                            dll = r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
-                            dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl",
+config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM3',
+                            dll=r"C:\Users\LaborRatte23-2\Documents\git\pyLang\LStepAPI\_C#_VB.net\CClassLStep64",
+                            dllconfig=r"C:\Users\LaborRatte23-2\Documents\git\pyLang\config.LSControl",
                             )
 
 config['lang'] = dict(url="http://127.0.0.1:13391",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
-                        safe_waste_pos=[3.0, -31.0, 0.0],
-                        safe_sample_pos=[3.0, 4.0, 0.0],
-                        remove_drop=[3.0, -15.0, 10.25]) #, forceurl="http://127.0.0.1:13379"
+                        safe_waste_pos=[46.5, -108, 0], #3.0, -31.0, 0.0
+                        safe_sample_pos=[-5.5, -89, 0], #3.0, 4.0, 0.0
+                        remove_drop=[46.5, -94.0, 8.0], #3.0, -15.0, 10.25
+                        forceurl="http://127.0.0.1:13379")
 
-#config['forcesdcDriver'] = dict(port=5,buffer_size=1,
-#                             dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
+config['forceDriver'] = dict(port=5,buffer_size=1,
+                             dll_address=r"C:\Users\LaborRatte23-2\Desktop\megsv\megsv_x64\MEGSV.dll")
+
 
 #config['forceDriver'] = dict(com_port=8) 
-#config['force'] = dict(url="http://127.0.0.1:13378")
+config['force'] = dict(url="http://127.0.0.1:13378")
 
 config['minipumpDriver'] = dict(port='COM4', baud=1200, timeout=1)
-config['minipump'] = dict(url="http://127.0.0.1:13389")
+config['minipump'] = dict(url="http://127.0.0.1:13386") #127.0.0.1", port=13386
+#
+config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-2\Documents\data', kadiurl="http://127.0.0.1:13377")
 
-config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data', kadiurl="http://127.0.0.1:13377")
 
-
-config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'minipumpDriver', 'pumpDriver'], #, 'forceDriver'
-                        action=['analysis', 'autolab', 'kadi', 'lang',
-                                'measure:1', 'measure:2', 'minipump', 'ml', 'pump'], #, 'force'
+config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'minipumpDriver', 'forceDriver'], #, 'forceDriver'
+                        action=['autolab', 'kadi', 'lang', 'minipump', 'force'], #, 'force'
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])
-config['instrument'] = "sdc_2"
+
+config['instrument'] = "sdc"

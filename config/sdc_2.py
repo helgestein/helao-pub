@@ -207,9 +207,9 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM4',
 config['lang'] = dict(url="http://127.0.0.1:13391",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
-                        safe_waste_pos=[3.0, -31.0, 0.0],
-                        safe_sample_pos=[3.0, 4.0, 0.0],
-                        remove_drop=[3.0, -15.0, 10.25]) #, forceurl="http://127.0.0.1:13379"
+                        safe_waste_pos=[4.0, -30.0, 0.0],
+                        safe_sample_pos=[1.5, 4.0, 0.0],
+                        remove_drop=[4.0, -15.0, 3.25]) #, forceurl="http://127.0.0.1:13379"
 
 #config['forcesdcDriver'] = dict(port=5,buffer_size=1,
 #                             dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")

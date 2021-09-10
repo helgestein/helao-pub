@@ -21,13 +21,14 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
 #config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
 #                     'ml': dict(host="192.168.31.123", port=6612)}
                         
+# 192.168.31.121
 config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
-                         'measure:2':dict(host="192.168.31.114", port=6669)}) # raman pc
+                         'measure:2':dict(host="192.168.31.121", port=6679)}) # raman pc
 
 config['measure:1'] = dict(url="http://192.168.31.123:6667")
-config['measure:2'] = dict(url="http://192.168.31.114:6669")
-config['analysis'] = dict(url="http://192.168.31.123:6642")
-config['ml'] = dict(url="http://192.168.31.123:6612")
+config['measure:2'] = dict(url="http://192.168.31.121:6679")
+config['analysis'] = dict(url="http://192.168.31.121:6642")
+config['ml'] = dict(url="http://192.168.31.121:6612")
 
 
 config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",

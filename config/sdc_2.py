@@ -12,7 +12,6 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          forcesdc=dict(host="127.0.0.1", port=13339),
                          orchestrator=dict(host="127.0.0.1", port=13380),
                          langDriver=dict(host="127.0.0.1", port=13391),
-                         lang=dict(host="127.0.0.1", port=13382),
                          minipumpDriver=dict(host="127.0.0.1", port=13389),
                          minipump=dict(host="127.0.0.1", port=13344),
                          analysis=dict(host="127.0.0.1", port=13369),
@@ -21,13 +20,19 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
 #config['servers'] = {'analysis': dict(host="192.168.31.123", port=6642),
 #                     'ml': dict(host="192.168.31.123", port=6612)}
                         
+# 192.168.31.121
 config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
-                         'measure:2':dict(host="192.168.31.114", port=6669)}) # raman pc
+                         'measure:2':dict(host="192.168.31.121", port=6679)}) # glovebox 1 pc
 
+config['servers'].update({'lang:1':dict(host="192.168.31.123", port= 9021),  # fume hood pc
+                          'lang:2': dict(host="192.168.31.121", port=9031)}) # glovebox 1 pc 
+
+config['lang:1'] = dict(url="http://192.168.31.123:9021")
+config['lang:2'] = dict(url="http://192.168.31.121:9031")
 config['measure:1'] = dict(url="http://192.168.31.123:6667")
-config['measure:2'] = dict(url="http://192.168.31.114:6669")
-config['analysis'] = dict(url="http://192.168.31.123:6642")
-config['ml'] = dict(url="http://192.168.31.123:6612")
+config['measure:2'] = dict(url="http://192.168.31.121:6679")
+config['analysis'] = dict(url="http://192.168.31.121:6642")
+config['ml'] = dict(url="http://192.168.31.121:6612")
 
 
 config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
@@ -204,12 +209,12 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM4',
                             dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl",
                             )
 
-config['lang'] = dict(url="http://127.0.0.1:13391",
+config['lang:2'] = dict(url="http://127.0.0.1:13391",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
-                        safe_waste_pos=[3.0, -31.0, 0.0],
-                        safe_sample_pos=[3.0, 4.0, 0.0],
-                        remove_drop=[3.0, -15.0, 10.25]) #, forceurl="http://127.0.0.1:13379"
+                        safe_waste_pos=[4.0, -30.0, 0.0],
+                        safe_sample_pos=[1.5, 4.0, 0.0],
+                        remove_drop=[4.0, -15.0, 3.25]) #, forceurl="http://127.0.0.1:13379"
 
 #config['forcesdcDriver'] = dict(port=5,buffer_size=1,
 #                             dll_address=r"C:\Users\LaborRatte23-3\Desktop\megsv\megsv_x64\MEGSV.dll")
@@ -224,7 +229,7 @@ config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data', kadiurl="ht
 
 
 config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'minipumpDriver', 'pumpDriver'], #, 'forceDriver'
-                        action=['analysis', 'autolab', 'kadi', 'lang',
+                        action=['analysis', 'autolab', 'kadi', 'lang:1','lang:2',
                                 'measure:1', 'measure:2', 'minipump', 'ml', 'pump'], #, 'force'
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],

@@ -77,7 +77,7 @@ def active_learning_random_forest_simulation(query: str, address: str, modelid=0
     global data
     dat = data[modelid]
 
-    next_exp_dx, next_exp_dy  = d.active_learning_random_forest_simulation(query,dat)
+    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation(query,dat)
 
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
@@ -86,6 +86,36 @@ def active_learning_random_forest_simulation(query: str, address: str, modelid=0
     retc = return_class(parameters = {'query':query,'address':address,'modelid':modelid}, data = dict(next_x = next_exp_dx, next_y = next_exp_dy))
     return retc
   
+  
+@app.get("/ml/activeLearningParallel")
+def active_learning_random_forest_simulation_parallel(num:int ,query: str, address: str, modelid=0):
+    """
+    if sources == "session":
+        sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+    else:
+        try:
+            sources = json.loads(sources)
+            if "session" in sources:
+                sources[sources.index("session")] = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
+                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
+        except:
+            pass
+    """  
+    #with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
+    #    sources = pickle.load(banana)  
+    #print(sources)
+    global data
+    dat = data[modelid]
+    #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
+    next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_random_forest_simulation_parallel(num, query,dat)
+
+    # next_exp_pos : would be a [dx, dy] of the next move
+    # prediction : list of predicted schwefel function for the remaning positions
+    print(next_exp_dx, next_exp_dy)
+    #return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
+    retc = return_class(parameters = {'query':query,'address':address,'modelid':modelid}, data = dict(next_x = next_exp_dx, next_y = next_exp_dy, next_x_2 = next_exp_dx_2, next_y_2= next_exp_dy_2))
+    return retc
 if __name__ == "__main__":
     d = DataUtilSim()
     print("instantiated ml server")

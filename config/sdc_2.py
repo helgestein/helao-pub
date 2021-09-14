@@ -12,7 +12,6 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          forcesdc=dict(host="127.0.0.1", port=13339),
                          orchestrator=dict(host="127.0.0.1", port=13380),
                          langDriver=dict(host="127.0.0.1", port=13391),
-                         lang=dict(host="127.0.0.1", port=13382),
                          minipumpDriver=dict(host="127.0.0.1", port=13389),
                          minipump=dict(host="127.0.0.1", port=13344),
                          analysis=dict(host="127.0.0.1", port=13369),
@@ -23,8 +22,13 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                         
 # 192.168.31.121
 config['servers'].update({'measure:1':dict(host="192.168.31.123", port=6667), # fume hood pc 
-                         'measure:2':dict(host="192.168.31.121", port=6679)}) # raman pc
+                         'measure:2':dict(host="192.168.31.121", port=6679)}) # glovebox 1 pc
 
+config['servers'].update({'lang:1':dict(host="192.168.31.123", port= 9021),  # fume hood pc
+                          'lang:2': dict(host="192.168.31.121", port=9031)}) # glovebox 1 pc 
+
+config['lang:1'] = dict(url="http://192.168.31.123:9021")
+config['lang:2'] = dict(url="http://192.168.31.121:9031")
 config['measure:1'] = dict(url="http://192.168.31.123:6667")
 config['measure:2'] = dict(url="http://192.168.31.121:6679")
 config['analysis'] = dict(url="http://192.168.31.121:6642")
@@ -205,7 +209,7 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM4',
                             dllconfig = r"C:\Users\SDC_1\Documents\git\pyLang\config.LSControl",
                             )
 
-config['lang'] = dict(url="http://127.0.0.1:13391",
+config['lang:2'] = dict(url="http://127.0.0.1:13391",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         # 60.0, 70.0, -6.1348, #2.0, 85.0, 0.0
                         safe_waste_pos=[4.0, -30.0, 0.0],
@@ -225,7 +229,7 @@ config['orchestrator'] = dict(path=r'C:\Users\SDC_1\Documents\data', kadiurl="ht
 
 
 config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'minipumpDriver', 'pumpDriver'], #, 'forceDriver'
-                        action=['analysis', 'autolab', 'kadi', 'lang',
+                        action=['analysis', 'autolab', 'kadi', 'lang:1','lang:2',
                                 'measure:1', 'measure:2', 'minipump', 'ml', 'pump'], #, 'force'
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],

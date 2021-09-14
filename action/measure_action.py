@@ -7,7 +7,7 @@ import json
 from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
-from celery import group
+#from celery import group
 import os
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

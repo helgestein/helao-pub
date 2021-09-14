@@ -6,9 +6,10 @@ import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.ensemble import RandomForestRegressor
+import matplotlib.pyplot as plt
 import sys
 sys.path.append(r"../")
-
+import pickle
 
 # for the test we just need active_learning_random_forest_simulation function
 kadiurl = None
@@ -20,10 +21,11 @@ class DataUtilSim:
         return
 
     # changed to the staticmethod because inside of the tasks we can't call anything from self as a DataUtilSim instance
-    @staticmethod
+    #@staticmethod
     # name argument is required because of the project structure
-    @app.task(name='driver.ml_driver.gaus_model')
-    def gaus_model(length_scale=1, restart_optimizer=10, random_state=42):
+    #@app.task(name='driver.ml_driver.gaus_model')
+
+    def gaus_model(self, length_scale=1,nu_val=3/2, restart_optimizer=10, random_state=42):
         """
         Define the gaussian process regressor
         :param self: instantiation
@@ -33,7 +35,7 @@ class DataUtilSim:
         :return: Gaus Model
         """
         kernel = 1 + Matern(length_scale=length_scale,
-                            nu=3 / 2) + WhiteKernel(noise_level=1)
+                            nu=nu_val) + WhiteKernel(noise_level=1)
         model = GaussianProcessRegressor(alpha=1e-10, copy_X_train=True,
                                          kernel=kernel, n_restarts_optimizer=restart_optimizer, normalize_y=False,
                                          optimizer='fmin_l_bfgs_b', random_state=random_state)
@@ -66,6 +68,215 @@ class DataUtilSim:
             json.dump(result, f)
 
         return result
+
+    #@staticmethod
+    #@app.task(name='driver.ml_driver.gaussian_simulation')
+    def active_learning_random_forest_simulation_parallel(self,num, query, data):#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+
+        """[summary]
+
+        Args:
+            key_x ([type]): [the accumulated position that machine was there]
+            key_y ([type]): [the last value of schwefel function that we got]
+            x_query ([type]): [list of all postions that we need to evaluate]
+            y_query ([type]): [list of all calculated schwefel values according to x_query]
+            save_data_path (str, optional): [description]. Defaults to 'ml_data/ml_analysis.json'.
+
+        Returns:
+            [x_suggest]: [position of the next experiment]
+        """
+        query = json.loads(query)
+        x_query = query['x_query']
+        print(f"x query is {x_query}")
+        y_query = query['y_query']
+        print(f"y_query is the other dude {y_query}")
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
+        print(f"length of x and y are {len(x)} and  {len(y)}")
+        key_x = np.array([[i,j] for i, j in zip(x,y)])
+
+        key_y = [dat['y']['schwefel'] for dat in data]
+
+        # define a random forest regressor containing 50 estimators
+        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
+
+        if type(x_query) != np.ndarray:
+            x_query = np.array(x_query)
+        if type(y_query) != np.ndarray:
+            y_query = np.array(y_query)
+
+        test_ix = [i for i in range(len(x_query))]
+
+        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+
+        regr.fit(x_query[train_ix], y_query[train_ix])
+        pred = regr.predict(x_query[test_ix])
+
+        y_var = np.zeros([50, len(x_query[test_ix])])
+
+        for j in range(50):
+            y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+
+        aqf = pred+np.var(y_var, axis=0)
+
+        ix = np.where(aqf == np.max(aqf))[0]
+        #print(f"aqf : {ix}")
+        # i = np.random.choice(ix, size=2, replace=False)
+        if len(ix) == 1:
+            i = np.random.choice(ix, size=2, replace=True)
+        else:
+            i = np.random.choice(ix, size=2, replace=False)
+        print(f"indeces for the next experiment are {i}")
+        print(f"indeces for the next experiment are {i[0]} and {i[1]}")
+        print(f"train indeces before popping {train_ix}")
+        
+        self.plot_aqf("sdc_1_{}".format(num) , aqf, i[0], x_query, test_ix)
+        self.plot_aqf("sdc_2_{}".format(num) , aqf, i[1], x_query, test_ix)
+        #self.plot_variance("{}".format(num), y_var, i[0], x_query, test_ix)
+        #print(f"chosen random : {i}")
+        train_ix.append(test_ix.pop(i[0]))
+        train_ix.append(test_ix.pop(i[1]))
+
+        print(f"Train indeces are {train_ix}")
+
+        #x_grid = np.array(query['x_grid'])
+        #y_grid = np.array(query['y_grid'])
+        #z_con = np.array(query['z_con'])
+        x_grid, y_grid = np.meshgrid([2.5 * i for i in range(20)],[2.5 * i for i in range(20)])
+        #x_grid = [k[0] for k in x_query]
+        #y_grid = [z[1] for z in x_query]
+        schwefel_grid = np.array(y_query).reshape(20,20)
+        self.plot_target("sdc_1{}".format(num), x_grid, y_grid, schwefel_grid, x_query, train_ix, ind=-1)
+        self.plot_target("sdc_2_{}".format(num), x_grid, y_grid, schwefel_grid, x_query, train_ix, ind=-2)
+
+ #np.array(y_query).reshape((len(x_grid), len(y_grid)))
+        # next position that motor needs to go
+        data_point =list()
+        print(f"next first position is : {x_query[train_ix[-1]].tolist()}")
+        print(f"next second position is: {x_query[train_ix[-2]].tolist()} ")
+        
+        data_point.append([x_query[train_ix[-1]].tolist(), x_query[train_ix[-2]].tolist()])
+        pickle.dump((data_point), open('C:/Users/SDC_1/Documents/performance/points.pkl', 'ab'))
+
+
+        next_exp = x_query[train_ix[-1]].tolist()
+        next_exp_2 = x_query[train_ix[-2]].tolist()
+
+        return next_exp[0], next_exp[1], next_exp_2[0], next_exp_2[1]
+
+
+    def active_learning_gaussian_simulation_parallel(self, num, query, data,exp_exl_ratio=0.4):#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+
+        query = json.loads(query)
+
+        x_query = query['x_query']
+        y_query = query['y_query']
+
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
+        key_x = np.array([[i,j] for i, j in zip(x,y)])
+
+        key_y = [dat['y']['schwefel'] for dat in data]
+
+        if type(x_query) != np.ndarray:
+            x_query = np.array(x_query)
+        if type(y_query) != np.ndarray:
+            y_query = np.array(y_query)
+
+        test_ix = [i for i in range(len(x_query))]
+
+        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+
+        regr = self.gaus_model()
+        regr.fit(x_query[train_ix], y_query[train_ix])
+
+        y_mean, y_var = regr.predict(x_query[test_ix], return_std=True)
+        aqf = exp_exl_ratio * y_mean + (1 - exp_exl_ratio) * y_var
+
+        ix = np.where(aqf == np.max(aqf))[0]
+        print(f"length od indees are {len(ix)} and they are {ix}")
+        if len(ix) == 1:
+            i = np.random.choice(ix, size=2, replace=True)
+        else:
+            i = np.random.choice(ix, size=2, replace=False)
+        print(f"indeces for the next experiment are {i[0]} and {i[1]}")
+        print(f"train indeces before popping {train_ix}")
+        #print(f"chosen random : {i}")
+
+        self.plot_aqf("{}".format(num) , aqf, i[0], x_query, test_ix)
+        self.plot_variance("{}".format(num), y_var, i[0], x_query, test_ix)
+
+        #self.plot_aqf("sdc_2_{}".format(num) , aqf, i[1], x_query, test_ix)
+        #self.plot_variance("sdc_2_{}".format(num), y_var, i[1], x_query, test_ix)
+
+        train_ix.append(test_ix.pop(i[0]))
+        train_ix.append(test_ix.pop(i[1]))
+
+        print(f"Train indeces are {train_ix}")
+        x_grid = np.array(query['x_grid'])
+        y_grid = np.array(query['y_grid'])
+        z_con = np.array(query['z_con'])
+
+        self.plot_target("{}".format(num), x_grid, y_grid, z_con, x_query, train_ix, ind=-1)
+        #self.plot_target("sdc_2_{}".format(num), x_grid, y_grid, z_con, x_query, train_ix, ind=-2)
+
+        # next position that motor needs to go
+        print(f"next first position is : {x_query[train_ix[-1]].tolist()}")
+        print(f"next second position is: {x_query[train_ix[-2]].tolist()} ")
+        next_exp = x_query[train_ix[-1]].tolist()
+        next_exp_2 = x_query[train_ix[-2]].tolist()
+
+        return next_exp[0], next_exp[1], next_exp_2[0], next_exp_2[1]
+
+
+    def plot_variance(self, num, y_var, rnd_ix, quin, test_ix):
+        pointlist = np.array([[quin[test_ix][i][0], quin[test_ix][i][1], y_var[i]] for i in range(len(y_var))])
+        aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
+        plt.colorbar(aq)
+        plt.title("Next sample will be (%.2f, %.2f) with variance (%.2f)" %
+                (quin[rnd_ix][0], quin[rnd_ix][1], y_var[rnd_ix]))
+        # ax.autoscale(False)
+        plt.axvline(quin[rnd_ix][0], color='k')
+        plt.axhline(quin[rnd_ix][1], color='k')
+        plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/variance/variance_{num}.png")
+        plt.clf()
+
+
+    def plot_aqf(self, num, aqf, rnd_ix, quin, test_ix):
+        pointlist = np.array(
+            [[quin[test_ix][i][0], quin[test_ix][i][1], aqf[i]] for i in range(len(aqf))])
+        aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
+        plt.colorbar(aq)
+        plt.title("Next sample will be (%.2f, %.2f) with acquisition of (%.2f)" % (
+            quin[rnd_ix][0], quin[rnd_ix][1], aqf[rnd_ix]))
+        # ax.autoscale(False)
+        plt.axvline(quin[rnd_ix][0], color='k')
+        plt.axhline(quin[rnd_ix][1], color='k')
+        plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/aqf/aqf_{num}.png")
+        plt.clf()
+
+
+    def plot_target(self, num, x, y, z_con, quin, train_ix, ind=-1):
+        plt.contourf(x, y, z_con)
+        plt.title("Next sample will be (%.2f, %.2f)" %
+                (quin[train_ix[ind]][0], quin[train_ix[ind]][1]))
+        plt.colorbar()
+        plt.axvline(quin[train_ix[ind]][0], color='k')
+        plt.axhline(quin[train_ix[ind]][1], color='k')
+        plt.scatter(quin[train_ix[ind]][0], quin[train_ix[ind]][1], color='r')
+        plt.ylabel("Y")
+        plt.xlabel("X")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/tar/tar_{num}.png")
+        plt.clf()
 
     #@staticmethod
     #@app.task(name='driver.ml_driver.gaussian_simulation')
@@ -152,6 +363,7 @@ class DataUtilSim:
         # next position that motor needs to go
         print(f"next position is : {x_query[train_ix[-1]].tolist()}")
         next_exp = x_query[train_ix[-1]].tolist()
+        #next_exp_2 = x_query[train_ix[-2]].tolist()
 
         #print(f"predicitons are {pred}")
         #For the sake of tracibility, we need to save the predicitons at every step 
@@ -160,6 +372,73 @@ class DataUtilSim:
             #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
         return next_exp[0], next_exp[1]
 
+
+    
+    #@staticmethod
+    #@app.task(name='driver.ml_driver.gaussian_simulation')
+    def active_learning_gaussian_simulation(self, query, data):#, addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
+        # this is how the data is created in the analyis action and should be transfer here
+        # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
+        # an example
+        # data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
+
+        #session = json.loads(session)
+        #print(session)
+        #print(addresses)
+        #data = interpret_input(
+        #    session, "session", json.loads(addresses))
+        #print(data)
+        query = json.loads(query)
+        x_query = query['x_query']
+        y_query = query['y_query']
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
+        key_x = np.array([[i,j] for i, j in zip(x,y)])
+        #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
+        #print(f"key_x: {key_x[0]}")
+        # accumulated result at every step (n+1)
+        #y_query = [d[1] for d in data]
+        key_y = [dat['y']['schwefel'] for dat in data]
+        #print(f"y_query: {y_query}")
+        # we still need to check the format of the data
+        # if x_query and y_query are string then:
+        #x_query = json.loads(x_query)  # all the points of exp
+
+        # the key_x should be in following [[4, 5], [4, 6]...]
+        #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
+
+        # define a random forest regressor containing 50 estimators
+        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
+
+        if type(x_query) != np.ndarray:
+            x_query = np.array(x_query)
+        if type(y_query) != np.ndarray:
+            y_query = np.array(y_query)
+
+        test_ix = [i for i in range(len(x_query))]
+
+        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+
+        regr.fit(x_query[train_ix], y_query[train_ix])
+        pred = regr.predict(x_query[test_ix])
+
+        y_var = np.zeros([50, len(x_query[test_ix])])
+
+        for j in range(50):
+            y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+
+        aqf = pred+np.var(y_var, axis=0)
+
+        ix = np.where(aqf == np.max(aqf))[0]
+        #print(f"aqf : {ix}")
+        i = np.random.choice(ix)
+        #print(f"chosen random : {i}")
+        train_ix.append(test_ix.pop(i))
+        # next position that motor needs to go
+        print(f"next position is : {x_query[train_ix[-1]].tolist()}")
+        next_exp = x_query[train_ix[-1]].tolist()
+
+        return next_exp[0], next_exp[1]
 
 def interpret_input(sources: str, types: str, addresses: str, experiment_numbers=None):
     # sources is a single data source (jsonned object or file address) or a jsonned list of data sources

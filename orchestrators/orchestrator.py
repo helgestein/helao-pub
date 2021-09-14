@@ -47,7 +47,7 @@ async def infl(thread):
 
 async def doMeasurement(experiment: str, thread: int):
     global tracking,loop,locks
-    print('experiment: '+experiment)
+    #print('experiment: '+experiment)
     experiment = json.loads(experiment) # load experiment
     if isinstance(tracking[thread]['experiment'],int): # add header for new experiment if you already have an initialized, nonempty experiment
         async with locks[tracking[thread]['path']]:
@@ -118,6 +118,7 @@ async def doMeasurement(experiment: str, thread: int):
                 if len(l) > 0 and 'meta' not in l: #disregard if you did not do any real actions this experiment, or if meta already added
                     session.close()
                     save_dict_to_hdf5({'meta':experiment['meta']},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')
+        print(f"function {fnc} in thread {thread} completed at {time.time()}")
 
 async def process_native_command(command: str,experiment: dict,**params):
     if command in ['start','finish','modify','wait']:

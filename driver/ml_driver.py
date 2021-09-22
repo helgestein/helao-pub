@@ -87,7 +87,6 @@ class DataUtilSim:
         # ap is list
         # for exp_point in x_query:
         #     if awaitedpoints[0]==exp_point[0] and awitedpoints[1]==exp_points[1]:
-
         # get rid of the points from the query
 
         y_query = query['y_query']

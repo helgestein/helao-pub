@@ -1,6 +1,4 @@
-from util import hdf5_group_to_dict
-from ml_driver import DataUtilSim
-from importlib import import_module
+import sys
 import h5py
 import os
 import requests
@@ -9,16 +7,18 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
 from celery import group
-import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../action')
-sys.path.append(r'../config')
+
 #from mischbares_small import config
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
+
+
+from util import hdf5_group_to_dict
+from ml_driver import DataUtilSim
+from importlib import import_module
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 

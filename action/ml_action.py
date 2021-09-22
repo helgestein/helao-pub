@@ -105,6 +105,7 @@ def active_learning_random_forest_simulation_parallel(name: str, num: int, query
     global data
     dat = data[modelid]
     #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
+    # check whether the point is already in waiting list or not
     global awaitedpoints
     ap = awaitedpoints[modelid]
     next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(

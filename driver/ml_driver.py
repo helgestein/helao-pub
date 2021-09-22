@@ -84,10 +84,12 @@ class DataUtilSim:
         x_query = query['x_query']
         print(f"x query is {x_query}")
 
-        # ap is list
+        # # ap is list
+        x_query = np.array(list(filter(lambda x: x not in awaitedpoints, x_query.tolist())))
         # for exp_point in x_query:
-        #     if awaitedpoints[0]==exp_point[0] and awitedpoints[1]==exp_points[1]:
-        # get rid of the points from the query
+        #     if awaitedpoints[0] == exp_point[0] and awitedpoints[1] == exp_points[1]:
+
+                # # get rid of the points from the query
 
         y_query = query['y_query']
         print(f"y_query is the other dude {y_query}")

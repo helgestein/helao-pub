@@ -67,7 +67,7 @@ def uploadHDF5(filename:str,filepath:str):
     cname = "stein_substrate_"+filename.split('_')[1]
     rname = filename[:-5]
     if not collectionExists(cname):
-        addCollection(cname,cname[7:])
+        addCollection(cname,cname[6:])
     #create proper record
     addRecord(rname,rname)
     addRecordToCollection(cname,rname)

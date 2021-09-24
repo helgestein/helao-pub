@@ -46,6 +46,8 @@ def receiveData(path: str, run: int, address: str, modelid: int = 0):
     global awaitedpoints
     if modelid not in data.keys():
         data[modelid] = []
+    if modelid not in awaitedpoints.keys():
+        awaitedpoints[modelid] = []
     with h5py.File(path, 'r') as h5file:
         address = f'run_{run}/'+address+'/'
         newdata = hdf5_group_to_dict(h5file, address)
@@ -109,7 +111,7 @@ def active_learning_random_forest_simulation_parallel(name: str, num: int, query
     global awaitedpoints
     ap = awaitedpoints[modelid]
     next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
-        num, query, dat, json.dumps(ap))
+        name, num, query, dat, json.dumps(ap))
     awaitedpoints.update({modelid: [next_exp_dx, next_exp_dy]})
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions

@@ -1,6 +1,4 @@
-from util import hdf5_group_to_dict
-from ml_driver import DataUtilSim
-from importlib import import_module
+import sys
 import h5py
 import os
 import requests
@@ -9,16 +7,18 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
 from celery import group
-import sys
-sys.path.append(r'../driver')
-sys.path.append(r'../action')
-sys.path.append(r'../config')
+
 #from mischbares_small import config
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
+
+
+from util import hdf5_group_to_dict
+from ml_driver import DataUtilSim
+from importlib import import_module
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
@@ -46,6 +46,8 @@ def receiveData(path: str, run: int, address: str, modelid: int = 0):
     global awaitedpoints
     if modelid not in data.keys():
         data[modelid] = []
+    if modelid not in awaitedpoints.keys():
+        awaitedpoints[modelid] = []
     with h5py.File(path, 'r') as h5file:
         address = f'run_{run}/'+address+'/'
         newdata = hdf5_group_to_dict(h5file, address)
@@ -109,7 +111,7 @@ def active_learning_random_forest_simulation_parallel(name: str, num: int, query
     global awaitedpoints
     ap = awaitedpoints[modelid]
     next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
-        num, query, dat, json.dumps(ap))
+        name, num, query, dat, json.dumps(ap))
     awaitedpoints.update({modelid: [next_exp_dx, next_exp_dy]})
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions

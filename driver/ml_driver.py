@@ -85,12 +85,13 @@ class DataUtilSim:
         print(f"x query is {x_query}")
 
         # # ap is list
-        x_query = np.array(list(filter(lambda x: x not in awaitedpoints, x_query.tolist())))
+        x_query = np.array(list(filter(lambda x: x not in awaitedpoints, x_query)))
         # for exp_point in x_query:
         #     if awaitedpoints[0] == exp_point[0] and awitedpoints[1] == exp_points[1]:
 
                 # # get rid of the points from the query
 
+        print(f"awaitedpoints are {awaitedpoints} and x_query is {x_query}")
         y_query = query['y_query']
         print(f"y_query is the other dude {y_query}")
         x = [dat['x']['x'] for dat in data]
@@ -134,11 +135,11 @@ class DataUtilSim:
         #print(f"indeces for the next experiment are {i[0]} and {i[1]}")
         print(f"train indeces before popping {train_ix}")
 
-        self.plot_aqf(name, num, aqf, i[0], x_query, test_ix)
+        self.plot_aqf(name, num, aqf, i, x_query, test_ix)
         #self.plot_aqf("sdc_2_{}".format(num), aqf, i[1], x_query, test_ix)
         #self.plot_variance("{}".format(num), y_var, i[0], x_query, test_ix)
         #print(f"chosen random : {i}")
-        train_ix.append(test_ix.pop(i[0]))
+        train_ix.append(test_ix.pop(i))
         # train_ix.append(test_ix.pop(i[1]))
 
         print(f"Train indeces are {train_ix}")

@@ -85,7 +85,7 @@ class DataUtilSim:
         print(f"x query is {x_query}")
 
         # # ap is list
-        x_query = np.array(list(filter(lambda x: x not in awaitedpoints, x_query)))
+        x_query =list(filter(lambda x: x not in awaitedpoints, x_query))
         # for exp_point in x_query:
         #     if awaitedpoints[0] == exp_point[0] and awitedpoints[1] == exp_points[1]:
 

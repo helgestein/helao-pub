@@ -112,7 +112,7 @@ def active_learning_random_forest_simulation_parallel(name: str, num: int, query
     ap = awaitedpoints[modelid]
     next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
         name, num, query, dat, json.dumps(ap))
-    awaitedpoints.update({modelid: [next_exp_dx, next_exp_dy]})
+    awaitedpoints[modelid].append([next_exp_dx, next_exp_dy])
     # next_exp_pos : would be a [dx, dy] of the next move
     # prediction : list of predicted schwefel function for the remaning positions
     print(next_exp_dx, next_exp_dy)

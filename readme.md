@@ -30,6 +30,9 @@ The currently implemented hardware is the following:
 There are dummy drivers indicating how you can 
 
 ## environment setup
+
+HELAO is very lightweight and besides hardware drivers you just need a working python installation with fastAPI and starlette.
+If you wish to setup thing super easy from scratch just follow these steps:
 - install miniconda[https://docs.conda.io/en/latest/miniconda.html], python 3 only
 - clone git repository
 - from repo directory, setup conda environment using `conda env create -f helao.yml`

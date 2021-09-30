@@ -8,6 +8,7 @@ TL;DR: If you want to build an autonomous lab spread around the globe use this f
 ## getting started
 
 We have implemented a series of drivers and analysis techniques which you can easily reuse if you have the same or similar hardware.
+Currently implemented devices in the laboratories at KIT and Caltech are shown in the table below. Instruments build from this include scanning droplet cells, high-throughput spectrometers and a battery assembly robot (all to be published elsewhere). The extreme modularity allows to mix and match any of these devices by simply defining a sequence of events i.e. to build an integrated SDC and spectrometer or a sample echange robot no code changes are necessary.
 The currently implemented hardware is the following:
 | **Device Name** | **Type**                      | **Communication**             | **Measures**     | **Manufacturer**          | **natively blocking** |
 | --------------- | ----------------------------- | ----------------------------- | ---------------- | ------------------------- | --------------------- |
@@ -48,5 +49,5 @@ If you wish to setup thing super easy from scratch just follow these steps:
 - exercise caution when running multiple server groups as there is currently no check for ports that are currently in-use between different config files
 
 ## design
-
+High level layout of HELAO where experiments are executed by sequentially calling actions which are high level wrappers for other actions or low level driver instructions. Communication goes hierarchically down from the orchestrator level to actions, which may communicate with one another, to the lowest level of drivers which may only communicate with the calling action. The orchestrator, actions and drivers are all exposing python class functions through a web interface allowing for a modular and distributed hosting of each item. Experiments are dictionaries containing a sequence of events (SOE) that outlines in which the actions are to be executed. All actions require parameters and are supplied with experiment level metadata. Metadata may be introduced at any level.
 ![helao](figure_1.png)

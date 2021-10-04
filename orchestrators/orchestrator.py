@@ -46,11 +46,11 @@ async def infl(thread):
         await doMeasurement(experiment, thread)
 
 async def doMeasurement(experiment: str, thread: int):
-    global tracking,loop,locks
+    global tracking,loop,filelocks,serverlocks
     #print('experiment: '+experiment)
     experiment = json.loads(experiment) # load experiment
     if isinstance(tracking[thread]['experiment'],int): # add header for new experiment if you already have an initialized, nonempty experiment
-        async with locks[tracking[thread]['path']]:
+        async with filelocks[tracking[thread]['path']]:
             with h5py.File(tracking[thread]['path'], 'r') as session:
                 if len(list(session[f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}"].keys())) > 0:
                     tracking[thread]['experiment'] += 1
@@ -67,10 +67,14 @@ async def doMeasurement(experiment: str, thread: int):
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
         servertype = server.split(':')[0]
+        if server not in serverlocks.keys() and servertype != "orchestrator":
+            serverlocks[server] = asyncio.Lock()
         if servertype in ['movement','lang','pump','minipump','autolab','force','ocean','owis','arcoptix','dummy','measure']:
-            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
+            async with serverlocks[server]:
+                res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
         elif servertype == 'kadi':
-            await loop.run_in_executor(None,lambda x: requests.get(x,params=params),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
+            async with serverlocks[server]:
+                await loop.run_in_executor(None,lambda x: requests.get(x,params=params),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
             continue
         elif servertype == 'orchestrator':
             if params == None:
@@ -82,36 +86,40 @@ async def doMeasurement(experiment: str, thread: int):
             if add != []: #be sure to use these parameter names "foo_address" in action if (and only if?) you are loading from ongoing sessions. must be string hdf5 paths
                 t = int(params[add[0]].split('/')[0].split(':')[1]) #assuming all addresses come from same file
                 if tracking[t]['path'] != None:
-                    async with locks[tracking[t]['path']]:
+                    async with filelocks[tracking[t]['path']]:
                         await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
                 else:
                     for h in tracking[thread]['history']:
-                        async with locks[h['path']]:
+                        async with filelocks[h['path']]:
                             if paths_in_hdf5(h['path'],[params[a] for a in add]):
                                 await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
                                 break
-            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
+            async with serverlocks[server]:
+                res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
         elif servertype == 'ml':
             if "address" in params.keys():
                 #be sure to use this parameter name "address" in action if (and only if?) you are loading from ongoing session. must be string hdf5 path
                 t = int(params['address'].split('/')[0].split(':')[1])
                 if tracking[t]['path'] != None:
-                    async with locks[tracking[t]['path']]:
-                        if 'modelid' in params.keys():
-                            await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                        else:
-                            await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                    async with serverlocks[server]:
+                        async with filelocks[tracking[t]['path']]:
+                            if 'modelid' in params.keys():
+                                await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                            else:
+                                await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
                 else:
                     for h in tracking[thread]['history']:
-                        async with locks[h['path']]:
-                            if paths_in_hdf5(h['path'],params['address']):
-                                if 'modelid' in params.keys():
-                                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                                else:
-                                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                                break
-            res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
-        async with locks[tracking[thread]['path']]:
+                        async with serverlocks[server]:
+                            async with filelocks[h['path']]:
+                                if paths_in_hdf5(h['path'],params['address']):
+                                    if 'modelid' in params.keys():
+                                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'],modelid=params['modelid'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                                    else:
+                                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                                    break
+            async with serverlocks[server]:
+                res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
+        async with filelocks[tracking[thread]['path']]:
             save_dict_to_hdf5({fnc:{'data':res,'measurement_time':datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')
             with h5py.File(tracking[thread]['path'], 'r') as session: #add metadata to experiment
                 l = list(session[f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}"].keys())
@@ -131,7 +139,7 @@ async def process_native_command(command: str,experiment: dict,**params):
 #   collectionkey: string, determines folder and file names for session, may correspond to key of experiment['meta'], in which case name will be indexed by that value.
 #   meta: dict, will be placed as metadata under the header of the run set up by this command
 async def start(experiment: dict,collectionkey:str,meta:dict={}):
-    global tracking,locks
+    global tracking,filelocks,serverlocks
     thread = experiment['meta']['thread']
     if collectionkey in experiment['meta'].keys():#give the directory an index if one is provided
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}_{experiment['meta'][collectionkey]}")
@@ -141,15 +149,15 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
         os.mkdir(h5dir)
     if os.listdir(h5dir) == []: #if dir is empty, create a session
         tracking[thread]['path'] = os.path.join(h5dir,config['instrument']+'_'+os.path.basename(h5dir)+'_session_0.hdf5')
-        if tracking[thread]['path'] not in locks.keys(): #add a lock to a file if it does not already exist
-            locks[tracking[thread]['path']] = asyncio.Lock()
-        async with locks[tracking[thread]['path']]:
+        if tracking[thread]['path'] not in filelocks.keys(): #add a lock to a file if it does not already exist
+            filelocks[tracking[thread]['path']] = asyncio.Lock()
+        async with filelocks[tracking[thread]['path']]:
             save_dict_to_hdf5(dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y"))),tracking[thread]['path'])
     else: #otherwise grab most recent session in dir
         tracking[thread]['path'] = os.path.join(h5dir,highestName(list(filter(lambda s: s[-5:]=='.hdf5',os.listdir(h5dir)))))
-        if tracking[thread]['path'] not in locks.keys():
-            locks[tracking[thread]['path']] = asyncio.Lock()
-    async with locks[tracking[thread]['path']]:
+        if tracking[thread]['path'] not in filelocks.keys():
+            filelocks[tracking[thread]['path']] = asyncio.Lock()
+    async with filelocks[tracking[thread]['path']]:
         with h5py.File(tracking[thread]['path'], 'r') as session:
             if 'date' not in session['meta'].keys(): #assigns date to this session if necessary, or replaces session if too old
                 session.close()
@@ -157,17 +165,20 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
             elif session['meta/date/'][()] != datetime.date.today().strftime("%d/%m/%Y"):
                 print('current session is old, saving current session and creating new session')
                 session.close()
+                if "orch_kadi" not in serverlocks.keys():
+                    serverlocks["orch_kadi"] = asyncio.Lock()
                 try:
-                    print(requests.get(f"{config[serverkey]['kadiurl']}/kadi/uploadhdf5",
-                        params=dict(filename=os.path.basename(tracking[thread]['path']),filepath=os.path.dirname(tracking[thread]['path']))).json())
+                    async with serverlocks["orch_kadi"]:
+                        print(requests.get(f"{config[serverkey]['kadiurl']}/kadi/uploadhdf5",
+                            params=dict(filename=os.path.basename(tracking[thread]['path']),filepath=os.path.dirname(tracking[thread]['path']))).json())
                 except:
                     print('automatic upload of completed session failed')
                 tracking[thread]['path'] = os.path.join(h5dir,incrementName(os.path.basename(tracking[thread]['path'])))
-                if tracking[thread]['path'] not in locks.keys():
-                    locks[tracking[thread]['path']] = asyncio.Lock()
-                async with locks[tracking[thread]['path']]:
+                if tracking[thread]['path'] not in filelocks.keys():
+                    filelocks[tracking[thread]['path']] = asyncio.Lock()
+                async with filelocks[tracking[thread]['path']]:
                     save_dict_to_hdf5(dict(meta=dict(date=datetime.date.today().strftime("%d/%m/%Y"))),tracking[thread]['path'])
-    async with locks[tracking[thread]['path']]:
+    async with filelocks[tracking[thread]['path']]:
         with h5py.File(tracking[thread]['path'], 'r') as session: #adds a new run to session to receive incoming data
             if "run_0" not in session.keys(): 
                 session.close()
@@ -186,20 +197,23 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
 #params:
 #   none
 async def finish(experiment: dict):
-    global tracking,locks
+    global tracking,filelocks,serverlocks
     thread = experiment['meta']['thread']
     print(f'thread {thread} finishing')
     l = sum([1 if tracking[k]['path'] == tracking[thread]['path'] else 0 for k in tracking.keys()]) #how many threads are currently working on this file?
     if l == 1: #if this is the last thread working on the file, upload file
         print('attempting to upload session')
+        if "orch_kadi" not in serverlocks.keys():
+            serverlocks["orch_kadi"] = asyncio.Lock()
         try:
-            print(requests.get(f"{config[serverkey]['kadiurl']}/kadi/uploadhdf5",
-                        params=dict(filename=os.path.basename(tracking[thread]['path']),filepath=os.path.dirname(tracking[thread]['path']))).json())
+            async with serverlocks["orch_kadi"]:
+                print(requests.get(f"{config[serverkey]['kadiurl']}/kadi/uploadhdf5",
+                    params=dict(filename=os.path.basename(tracking[thread]['path']),filepath=os.path.dirname(tracking[thread]['path']))).json())
         except:
             print('automatic upload of completed session failed')
         tracking[thread]['path'] = os.path.join(os.path.dirname(tracking[thread]['path']),incrementName(os.path.basename(tracking[thread]['path'])))
-        locks[tracking[thread]['path']] = asyncio.Lock()
-        async with locks[tracking[thread]['path']]:
+        filelocks[tracking[thread]['path']] = asyncio.Lock()
+        async with filelocks[tracking[thread]['path']]:
             save_dict_to_hdf5(dict(meta=None),tracking[thread]['path'])
         #adds a new hdf5 file which will be used for the next incoming data, thus sealing off the previous one
     else:
@@ -214,25 +228,26 @@ async def finish(experiment: dict):
 #   addresses: within a run, address(es) of the value(s) that should be transmitted to parameter(s)
 #   pointers: within param dict of experiment, addresses to transmit values to. parameter must have previously been initialized as "?"
 async def modify(experiment: dict,addresses,pointers):
-    global tracking,locks
+    global tracking,filelocks
     mainthread = experiment['meta']['thread']
     if not isinstance(addresses, list):
         addresses = [addresses]
     if not isinstance(pointers, list):
         pointers = [pointers]
+    assert len(addresses) == len(pointers)
     threads = [int(address.split('/')[0].split(':')[1]) for address in addresses]
     for address, pointer, thread in zip(addresses, pointers, threads):
         if dict_address(pointer, experiment['params']) != "?":
             raise Exception(f"pointer {pointer} is not intended to be written to")
         if tracking[thread]['path'] != None:
-            async with locks[tracking[thread]['path']]:
+            async with filelocks[tracking[thread]['path']]:
                 with h5py.File(tracking[thread]['path'], 'r') as session:
                     val = session[f'run_{tracking[thread]["run"]}/'+address][()]
                     dict_address_set(pointer, experiment['params'],val)
                     print(f'pointer {pointer} in params for experiment {tracking[mainthread]["experiment"]} in thread {mainthread} set to {val}')
         else:
             for h in tracking[thread]['history']:
-                async with locks[h['path']]:
+                async with filelocks[h['path']]:
                     with h5py.File(h['path'], 'r') as session:
                         try:
                             val = session[f'run_{h["run"]}/'+address][()]
@@ -251,7 +266,7 @@ async def modify(experiment: dict,addresses,pointers):
 #
 #address should generally be 2 keys deep, with the format "experiment/action". might have problems if this is not the case
 async def wait(experiment: dict,addresses):
-    global tracking,locks
+    global tracking,filelocks
     print(f"waiting on {addresses}")
     if not isinstance(addresses, list):
         addresses = [addresses]
@@ -261,7 +276,7 @@ async def wait(experiment: dict,addresses):
         c = list(zip(range(len(addresses)),copy(addresses), copy(threads)))
         for i,address,thread in c:
             if tracking[thread]['path'] != None:
-                async with locks[tracking[thread]['path']]:
+                async with filelocks[tracking[thread]['path']]:
                     with h5py.File(tracking[thread]['path'], 'r') as session:
                         exp = address.split('/')[0]
                         action = address.split('/')[1]
@@ -273,7 +288,7 @@ async def wait(experiment: dict,addresses):
                                 break#If multiple addresses are found in the same for loop, 'i' will no longer map to the correct index of addresses/threads
             else:#if you are waiting on the results of a session that already finished, check history for path and run
                 for h in tracking[thread]['history']:
-                    async with locks[h['path']]:
+                    async with filelocks[h['path']]:
                         with h5py.File(h['path'], 'r') as session:
                             exp = address.split('/')[0]
                             action = address.split('/')[1]
@@ -298,8 +313,10 @@ async def memory():
     global experiment_tasks
     experiment_tasks = {}
 
-    global locks
-    locks = {}
+    global filelocks
+    filelocks = {}
+    global serverlocks
+    serverlocks = {}
 
     global loop
     loop = asyncio.get_event_loop()

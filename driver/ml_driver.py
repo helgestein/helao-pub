@@ -8,6 +8,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from sklearn.ensemble import RandomForestRegressor
 import matplotlib.pyplot as plt
+import random
 import sys
 sys.path.append(r"../")
 
@@ -67,6 +68,21 @@ class DataUtilSim:
         with open(save_data_path, 'w') as f:
             json.dump(result, f)
 
+            return result
+
+
+    def schwefel_function(self, x, y):
+        comp = np.array([x, y])
+        sch_comp = 20 * np.array(comp) - 500
+        result = 0
+        for index, element in enumerate(sch_comp):
+            #print(f"index is {index} and element is {element}")
+            result += - element * np.sin(np.sqrt(np.abs(element)))
+        result = (-result) / 1000
+        #const = 418.9829*2
+        # const = (420.9687 + 500) / 20
+        #result = result + const
+        # result = (-1)*result
         return result
 
     # @staticmethod
@@ -78,40 +94,54 @@ class DataUtilSim:
         Returns:
             [x_suggest]: [position of the next experiment]
         """
-        query = json.loads(query)
+        # print(f"data is {data}")
+        # query = json.loads(query)
+        # #awaitedpoints = json.loads(awaitedpoints)
+        # #print(f"the awaiting points are {awaitedpoints}")
+        # x_query = query['x_query']
+        # print(f"x query is {x_query} and the length of it is {len(x_query)}")
+        # x_query =list(filter(lambda x: x not in awaitedpoints, x_query))
+        # #print(f"x_query without awaited points are {x_query} and the length of it is {len(x_query)}")
+        # #print(f"awaitedpoints are {awaitedpoints} and x_query is {x_query}")
+        # y_query = query['y_query']
+        # print(f"y_query is the other dude {y_query} and the length of it is {len(y_query)}")
+        # x = [dat['x']['x'] for dat in data]
+        # y = [dat['x']['y'] for dat in data]
+        # print(f"length of x and y are {len(x)} and  {len(y)} and their values are {x} and {y}")
+        # key_x = np.array([[i, j] for i, j in zip(x, y)])
+        # print(f"the current points (key_x) are {key_x}")
+        # key_y = [dat['y']['schwefel'] for dat in data]
+
+        random.seed(25)
         awaitedpoints = json.loads(awaitedpoints)
-
-        x_query = query['x_query']
-        print(f"x query is {x_query}")
-
-        # # ap is list
-        x_query = np.array(list(filter(lambda x: x not in awaitedpoints, x_query)))
-        # for exp_point in x_query:
-        #     if awaitedpoints[0] == exp_point[0] and awitedpoints[1] == exp_points[1]:
-
-                # # get rid of the points from the query
-
-        print(f"awaitedpoints are {awaitedpoints} and x_query is {x_query}")
-        y_query = query['y_query']
-        print(f"y_query is the other dude {y_query}")
-        x = [dat['x']['x'] for dat in data]
-        y = [dat['x']['y'] for dat in data]
-        print(f"length of x and y are {len(x)} and  {len(y)}")
-        key_x = np.array([[i, j] for i, j in zip(x, y)])
-
-        key_y = [dat['y']['schwefel'] for dat in data]
+        awaitedpoints = [[i['x'],i['y']] for i in awaitedpoints]
+        print(f"the awaiting points are {awaitedpoints}")
+        query = json.loads(query)
+        x_query = query["x_query"]
+        #x_query = list(filter(lambda x: x not in awaitedpoints, x_query))
+        y_query = [self.schwefel_function(x[0], x[1])for x in x_query]
+        #y_query_all = query["y_query"]
+        key_x = [[dat['x']['x'], dat['x']['y']] for dat in data]
+        print(f"data is {data}, key_x or current points are {key_x} and the x query is {x_query}")
+        train_ix = [x_query.index(j) for j in key_x]
+        #train_ix = [np.where(x_query == j)[0] for j in key_x]
+        test_ix = [x_query.index(i) for i in x_query if i not in key_x and i not in awaitedpoints]
 
         # define a random forest regressor containing 50 estimators
-        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
+        regr = RandomForestRegressor(n_estimators=50, random_state=25)
 
         if type(x_query) != np.ndarray:
             x_query = np.array(x_query)
         if type(y_query) != np.ndarray:
             y_query = np.array(y_query)
 
-        test_ix = [i for i in range(len(x_query))]
+        # test_ix = [i for i in range(len(x_query))]
+        # print(f"test indeces are {test_ix}")
+        # train_ix = [np.where(x_query == j)[0] for j in key_x]
+        # print(f"the train indeces are {train_ix}  and the train data are {x_query[train_ix]}")
 
-        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+
+        print(f"the train indeces are {train_ix} and the train data are {x_query[train_ix]}and test indeces are {test_ix}")
 
         regr.fit(x_query[train_ix], y_query[train_ix])
         pred = regr.predict(x_query[test_ix])
@@ -126,50 +156,21 @@ class DataUtilSim:
         ix = np.where(aqf == np.max(aqf))[0]
         print(f"aqf : {ix}")
         i = np.random.choice(ix)
-        # i = np.random.choice(ix, size=2, replace=False)
-        # if len(ix) == 1:
-        #     i = np.random.choice(ix, size=2, replace=True)
-        # else:
-        #     i = np.random.choice(ix, size=2, replace=False)
         print(f"indeces for the next experiment are {i}")
-        #print(f"indeces for the next experiment are {i[0]} and {i[1]}")
         print(f"train indeces before popping {train_ix}")
 
         self.plot_aqf(name, num, aqf, i, x_query, test_ix)
-        #self.plot_aqf("sdc_2_{}".format(num), aqf, i[1], x_query, test_ix)
-        #self.plot_variance("{}".format(num), y_var, i[0], x_query, test_ix)
-        #print(f"chosen random : {i}")
         train_ix.append(test_ix.pop(i))
-        # train_ix.append(test_ix.pop(i[1]))
 
         print(f"Train indeces are {train_ix}")
-
-        #x_grid = np.array(query['x_grid'])
-        #y_grid = np.array(query['y_grid'])
-        #z_con = np.array(query['z_con'])
-        x_grid, y_grid = np.meshgrid(
-            [2.5 * i for i in range(20)], [2.5 * i for i in range(20)])
-        #x_grid = [k[0] for k in x_query]
-        #y_grid = [z[1] for z in x_query]
-        schwefel_grid = np.array(y_query).reshape(20, 20)
-        self.plot_target(name, num, x_grid, y_grid,
-                         schwefel_grid, x_query, train_ix, ind=-1)
+        # x_grid, y_grid = np.meshgrid(
+        #     [2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
+        # schwefel_grid = np.array(y_query_all).reshape(21, 21)
         # self.plot_target(name, num, x_grid, y_grid,
-        #                  schwefel_grid, x_query, train_ix, ind=-2)
-
- #np.array(y_query).reshape((len(x_grid), len(y_grid)))
-        # next position that motor needs to go
-
-        print(f"next first position is : {x_query[train_ix[-1]].tolist()}")
-        #print(f"next second position is: {x_query[train_ix[-2]].tolist()} ")
-
-        # data_point.append([x_query[train_ix[-1]].tolist(),
-        #                    x_query[train_ix[-2]].tolist()])
-        # pickle.dump((data_point), open(
-        #     'C:/Users/SDC_1/Documents/performance/points.pkl', 'ab'))
-
+        #                  schwefel_grid, x_query, train_ix, ind=-1)
+        
         next_exp = x_query[train_ix[-1]].tolist()
-        #next_exp_2 = x_query[train_ix[-2]].tolist()
+        print(f"next first position is : {next_exp}")
 
         return next_exp[0], next_exp[1]  # , next_exp_2[0], next_exp_2[1]
 

@@ -18,24 +18,27 @@ def test_fnc(sequence, thread=0):
     requests.post("http://{}:{}/{}/{}".format(
         config['servers']['orchestrator']['host'], 13380, server, action), params=params).json()
 
-
 def schwefel_function(x, y):
     comp = np.array([x, y])
-    sch_comp = 1000 * np.array(comp) - 500
+    sch_comp = 20 * np.array(comp) - 500
     result = 0
     for index, element in enumerate(sch_comp):
+        #print(f"index is {index} and element is {element}")
         result += - element * np.sin(np.sqrt(np.abs(element)))
     result = (-result) / 1000
+    #const = 418.9829*2
+    # const = (420.9687 + 500) / 20
+    #result = result + const
+    # result = (-1)*result
     return result
 
-
 # real run
-x_grid, y_grid = np.meshgrid(
-    [2.5 * i for i in range(20)], [2.5 * i for i in range(20)])
+x_grid, y_grid = np.meshgrid([2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
 
 x, y = x_grid.flatten(), y_grid.flatten()
 x_query = np.array([[i, j] for i, j in zip(x, y)])
-arbitary_choices = random.choices(x_query, k=2)
+arbitary_choices = random.sample(x_query.tolist(), 2)
+#arbitary_choices = random.choices(x_query, k=2)
 dx0, dy0, dx1, dy1 = arbitary_choices[0][0], arbitary_choices[0][1], arbitary_choices[1][0], arbitary_choices[1][1]
 
 #dx0, dy0 = first_arbitary_choice[0], first_arbitary_choice[1]
@@ -48,7 +51,7 @@ dz = config['lang:2']['safe_sample_pos'][2]
 inital_height = 5
 num_step = 10
 fume_max_force = 10
-num_sampling = 40
+num_sampling = 70
 
 test_fnc(dict(soe=['orchestrator/start', 'lang:1/moveWaste_0', 'lang:1/RemoveDroplet_0', 'lang:1/moveSample_0', 'lang:1/moveAbs_0', 'lang:1/moveRel_0',
                    'lang:1/moveDown_0', 'measure:1/schwefelFunction_0', 'analysis/dummy_0', 'ml/activeLearningParallel_0'],

@@ -5,7 +5,7 @@ import random
 import sys
 sys.path.append(r'../config')
 sys.path.append('config')
-from sdc_1 import config
+from sdc_2 import config
 
 
 def test_fnc(sequence,thread=0):
@@ -19,27 +19,34 @@ def test_fnc(sequence,thread=0):
 
 
 def schwefel_function(x, y):
-    comp = np.array([x,y])
-    sch_comp = 1000 * np.array(comp) - 500
+    comp = np.array([x, y])
+    sch_comp = 20 * np.array(comp) - 500
     result = 0
     for index, element in enumerate(sch_comp):
+        #print(f"index is {index} and element is {element}")
         result += - element * np.sin(np.sqrt(np.abs(element)))
     result = (-result) / 1000
+    #const = 418.9829*2
+    # const = (420.9687 + 500) / 20
+    #result = result + const
+    # result = (-1)*result
     return result
 # real run
+x_grid, y_grid = np.meshgrid([2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
 
-x, y = np.meshgrid([2.5 * i for i in range(20)],[2.5 * i for i in range(20)])
-x, y = x.flatten(), y.flatten()
+x, y = x_grid.flatten(), y_grid.flatten()
 x_query = np.array([[i, j] for i, j in zip(x, y)])
 first_arbitary_choice = random.choice(x_query)
 dx0, dy0 = first_arbitary_choice[0], first_arbitary_choice[1]
 y_query = [schwefel_function(x[0], x[1])for x in x_query]
-query = json.dumps({'x_query': x_query.tolist(), 'y_query': y_query})  
-dz = config['lang:1']['safe_sample_pos'][2]
+z_con = np.array(y_query).reshape((len(x_grid), len(y_grid)))
+query = json.dumps({'x_query': x_query.tolist(), 'y_query': y_query, 'z_con': z_con.tolist()})  
+dz = config['lang:2']['safe_sample_pos'][2]
 
-n = 80
-test_fnc(dict(soe=['orchestrator/start','lang:1/moveWaste_0', 'lang:1/RemoveDroplet_0',
-                   'lang:1/moveSample_0','lang:1/moveAbs_0','lang:1/moveDown_0','measure:1/schwefelFunction_0','analysis/dummy_0'], 
+
+n = 100
+test_fnc(dict(soe=['orchestrator/start','lang:2/moveWaste_0', 'lang:2/RemoveDroplet_0',
+                   'lang:2/moveSample_0','lang:2/moveAbs_0','lang:2/moveDown_0','measure:2/schwefelFunction_0','analysis/dummy_0'], 
             params={'start': {'collectionkey' : 'al_sequential'},
                     'moveWaste_0':{'x': 0, 'y':0, 'z':0},
                     'RemoveDroplet_0': {'x':0, 'y':0, 'z':0},
@@ -53,14 +60,14 @@ test_fnc(dict(soe=['orchestrator/start','lang:1/moveWaste_0', 'lang:1/RemoveDrop
             meta=dict()))
 
 for i in range(n):
-    test_fnc(dict(soe=[f'ml/activeLearning_{i}',f'orchestrator/modify_{i}',f'lang:1/moveWaste_{i+1}', f'lang:1/RemoveDroplet_{i+1}',
-                       f'lang:1/moveSample_{i+1}',f'lang:1/moveAbs_{i+1}',f'lang:1/moveDown_{i+1}',
-                       f'measure:1/schwefelFunction_{i+1}',f'analysis/dummy_{i+1}'], 
-                  params={f'activeLearning_{i}':{'query':query,'address':f'experiment_{i}:0/dummy_{i}/data/data'},
-                            f'modify_{i}': {'addresses':[f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_x',
-                                                         f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_y',
-                                                         f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_x',
-                                                         f'experiment_{i+1}:0/activeLearning_{i}/data/data/next_y'],
+    test_fnc(dict(soe=[f'ml/activeLearningParallel_{i}',f'orchestrator/modify_{i}',f'lang:2/moveWaste_{i+1}', f'lang:2/RemoveDroplet_{i+1}',
+                       f'lang:2/moveSample_{i+1}',f'lang:2/moveAbs_{i+1}',f'lang:2/moveDown_{i+1}',
+                       f'measure:2/schwefelFunction_{i+1}',f'analysis/dummy_{i+1}'], 
+                  params={f'activeLearningParallel_{i}':{'name': 'sdc_2', 'num': int(i+1), 'query': query, 'address':f'experiment_{i}:0/dummy_{i}/data/data'},
+                            f'modify_{i}': {'addresses':[f'experiment_{i+1}:0/activeLearningParallel_{i}/data/data/next_x',
+                                                         f'experiment_{i+1}:0/activeLearningParallel_{i}/data/data/next_y',
+                                                         f'experiment_{i+1}:0/activeLearningParallel_{i}/data/data/next_x',
+                                                         f'experiment_{i+1}:0/activeLearningParallel_{i}/data/data/next_y'],
                                             'pointers':[f'schwefelFunction_{i+1}/x',f'schwefelFunction_{i+1}/y',
                                                         f'moveAbs_{i+1}/dx', f'moveAbs_{i+1}/dy']},
                             f'moveWaste_{i+1}':{'x': 0, 'y':0, 'z':0},

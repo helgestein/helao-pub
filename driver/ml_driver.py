@@ -128,7 +128,7 @@ class DataUtilSim:
         test_ix = [x_query.index(i) for i in x_query if i not in key_x and i not in awaitedpoints]
 
         # define a random forest regressor containing 50 estimators
-        regr = RandomForestRegressor(n_estimators=50, random_state=25)
+        regr = RandomForestRegressor(n_estimators=50, random_state=36)
 
         if type(x_query) != np.ndarray:
             x_query = np.array(x_query)
@@ -290,49 +290,14 @@ class DataUtilSim:
     # @staticmethod
     # @app.task(name='driver.ml_driver.gaussian_simulation')
     # , addresses="schwefelFunction/data/key_y"): #json.dumps(["moveSample/parameters", "schwefel_function/data/key_y"])
-    def active_learning_random_forest_simulation(self, query, data):
-        # this is how the data is created in the analyis action and should be transfer here
-        # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
-        # an example
-        # data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
-        """[summary]
-
-        Args:
-            key_x ([type]): [the accumulated position that machine was there]
-            key_y ([type]): [the last value of schwefel function that we got]
-            x_query ([type]): [list of all postions that we need to evaluate]
-            y_query ([type]): [list of all calculated schwefel values according to x_query]
-            save_data_path (str, optional): [description]. Defaults to 'ml_data/ml_analysis.json'.
-
-        Returns:
-            [x_suggest]: [position of the next experiment]
-        """
-        #session = json.loads(session)
-        # print(session)
-        # print(addresses)
-        # data = interpret_input(
-        #    session, "session", json.loads(addresses))
-        # print(data)
+    def active_learning_random_forest_simulation(self, name, num, query, data, awaitedpoints):
         query = json.loads(query)
         x_query = query['x_query']
         y_query = query['y_query']
         x = [dat['x']['x'] for dat in data]
         y = [dat['x']['y'] for dat in data]
         key_x = np.array([[i, j] for i, j in zip(x, y)])
-        #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
-        #print(f"key_x: {key_x[0]}")
-        # accumulated result at every step (n+1)
-        #y_query = [d[1] for d in data]
         key_y = [dat['y']['schwefel'] for dat in data]
-        #print(f"y_query: {y_query}")
-        # we still need to check the format of the data
-        # if x_query and y_query are string then:
-        # x_query = json.loads(x_query)  # all the points of exp
-
-        # the key_x should be in following [[4, 5], [4, 6]...]
-        #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
-
-        # define a random forest regressor containing 50 estimators
         regr = RandomForestRegressor(n_estimators=50, random_state=1337)
 
         if type(x_query) != np.ndarray:

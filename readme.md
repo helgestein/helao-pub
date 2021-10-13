@@ -1,4 +1,4 @@
-# HELAO-dev repository
+# HELAO public repository
 Helao deploys Hierachical Experimental Laboratory Automation and Orchestration
 The idea behind this project is that we wanted to deploy active learning to different devices located in our laboratory and to others and even to many instruments running in parallel. To to this we utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs.
 

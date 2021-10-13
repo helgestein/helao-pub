@@ -1,7 +1,7 @@
 # HELAO-dev repository
 Helao deploys Hierachical Experimental Laboratory Automation and Orchestration
 
-You may find the preprint on chemRxiv here:
+You may find the preprint on chemRxiv here: awaiting approval
 
 The hdf5 files created during a simulated active learning run both in parallel and sequential instrument operation can be found [here](https://figshare.com/s/1578223bbf5ddde605af![image](https://user-images.githubusercontent.com/11043349/137080209-52e7f6c4-bf9b-4df1-bb65-6c7f8d17b860.png)):
 
@@ -11,7 +11,7 @@ The hdf5 files created during a simulated active learning run both in parallel a
 
 Materials acceleration platforms (MAPs) operate on the paradigm of integrating combinatorial synthesis, high-throughput characterization, automatic analysis and machine learning. Within these MAPs one or multiple autonomous feedback loops aim to optimize materials for certain functional properties or generate new insights. Fundamentally, this necessitates accelerated, but foremost integrated, research actions. Herein, a web based asynchronous protocol to seamlessly integrate research tasks within a hierarchical experimental laboratory automation and orchestration (HELAO) framework is presented. We demonstrate the capability of orchestrating distributed research instruments that may incorporate data from experiments, simulations, and databases. HELAO offers interfacing laboratory hardware and software distributed across several computers and operating systems for executing an experiment, data analysis, provenance tracking, and autonomous planning. Research acceleration in terms of reduction of total experimental time is demonstrated to be >100% by deploying a centrally orchestrated fleet of instruments for a active learning run for OER catalyst discovery. To the best of our knowledge, HELAO is the only laboratory automation framework with integrated data management capable of running closed loop optimization on multiple instruments and extreme modularity.
 
-TL;DR: If you want to build an autonomous lab spread around the globe use this framework - it will save you a lot of headaces.
+TL;DR: If you want to build an autonomous labs spread around the globe use this framework - it will save you a lot of headaces.
 
 ## getting started
 

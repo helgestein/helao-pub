@@ -7,7 +7,7 @@ You may find the preprint on chemRxiv here: awaiting approval
 The hdf5 files created during a simulated active learning run both in parallel and sequential instrument operation can be found [here](https://figshare.com/s/1578223bbf5ddde605af![image](https://user-images.githubusercontent.com/11043349/137080209-52e7f6c4-bf9b-4df1-bb65-6c7f8d17b860.png)):
 
 
-![logo](https://github.com/helgestein/helao-dev/blob/master/helaologo.png)
+![logo](https://github.com/helgestein/helao-dev/blob/master/helaologo.svg)
 
 ## HELAO-pub repository
 

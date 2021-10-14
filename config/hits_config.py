@@ -11,7 +11,7 @@ config['servers'] = dict(kadiDriver = dict(host="127.0.0.1",port=13376),
                          owis = dict(host="127.0.0.1",port=13388))
 
 config['kadiDriver'] = dict(host = "https://polis-kadi4mat.iam-cms.kit.edu",
-            PAT = "78ac200f0379afb4873c7b0ee71f5489946158fe882466a9")
+            PAT = "99804736e3c4a1059eb5f805dc1520dab6f8714f6c7d2d88")
 config['kadi'] = dict(group='2',url="http://127.0.0.1:13376")
 
 #r'C:\Program Files\ARCoptix\ARCspectro Rocket 2.4.9.13 - x64\ARCsoft.ARCspectroMd'

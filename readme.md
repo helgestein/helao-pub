@@ -44,7 +44,7 @@ The currently implemented hardware is the following:
 | kadi            | data management               | python package                | n.a.             | KIT                       | yes                   |
 | aux             | machine learning and analysis | python package                | n.a.             | n.a.                      | yes                   |
 
-There are dummy drivers indicating how you can 
+There are dummy drivers and dummy analysis "devices" indicating how you can your own.
 
 ## Environment setup
 

@@ -2,7 +2,7 @@
 Helao deploys Hierachical Experimental Laboratory Automation and Orchestration
 The idea behind this project is that we wanted to deploy active learning to different devices located in our laboratory and to others and even to many instruments running in parallel. To to this we utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs.
 
-You may find the preprint on chemRxiv here: awaiting approval
+You may find the preprint on chemRxiv here: https://chemrxiv.org/engage/chemrxiv/article-details/6165f62235b406a76a11cbd5
 
 The hdf5 files created during a simulated active learning run both in parallel and sequential instrument operation can be found [here](https://figshare.com/s/1578223bbf5ddde605af![image](https://user-images.githubusercontent.com/11043349/137080209-52e7f6c4-bf9b-4df1-bb65-6c7f8d17b860.png)):
 
@@ -19,7 +19,7 @@ Materials acceleration platforms (MAPs) operate on the paradigm of integrating c
 
 ## TL;DR
 
-If you want to build an autonomous labs spread around the globe use this framework - it will save you a lot of headaces.
+If you want to build an autonomous labs spread around the globe use this framework - it will save you a lot of stress.
 
 ## Getting started
 

@@ -19,7 +19,7 @@ Materials acceleration platforms (MAPs) operate on the paradigm of integrating c
 
 ## TL;DR
 
-If you want to build an autonomous labs spread around the globe use this framework - it will save you a lot of stress.
+If you want to build autonomous labs that are spread around the globe use this framework - it might save you a lot of stress.
 
 ## Getting started
 

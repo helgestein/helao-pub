@@ -13,7 +13,7 @@ config = import_module(sys.argv[1]).config
 '''
 sys.path.append(r'C:\Users\Helge Stein\Documents')
 
-from hamilton import Hamilton
+from hamilton_driver import Hamilton
 #serverkey = sys.argv[2]
 
 app = FastAPI(title="Hamilton Syringe PumpDriver server V1",

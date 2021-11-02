@@ -30,15 +30,11 @@ class owis:
             time.sleep(.1)
             out = self.sers[i].read(1000)
             if  str(out)[2] not in  ["R","T","V","P"]:
-                self.sers[i].write(bytes(f"AMPSHNT1={conf['currents'][i]['mode']}\r",'utf-8'))
-                time.sleep(.1)
-                self.sers[i].write(bytes(f"DRICUR1={conf['currents'][i]['drive']}\r",'utf-8'))
-                time.sleep(.1)
-                self.sers[i].write(bytes(f"HOLCUR1={conf['currents'][i]['hold']}\r",'utf-8'))
-                time.sleep(.1)
+                self.setCurrents(conf['currents'][i]['drive'],conf['currents'][i]['hold'],conf['currents'][i]['mode'],i)
                 self.activate(i)
-                time.sleep(.1)
                 self.configure(i,6)
+            if conf['safe_positions'][i] != None:
+                self.move(conf['safe_positions'][i],i)
             time.sleep(.1)
 
     #I am trying to be clever and program all these functions so that
@@ -96,6 +92,18 @@ class owis:
             time.sleep(.1)
             ret.append(int(str(out)[2:-3]))
         return None if len(ret)==0 else ret[0] if len(ret)==1 else ret
+
+    #amp must be 0 for low-current mode or 1 for high-current mode
+    #drive current and hold current are given as a number between 1 and 100 -- percent of total available current in a given mode.
+    #will not do anything if motor has already been activated. maybe you just need to activate motor again?
+    def setCurrents(self,dri:int,hol:int,amp:int,motor:int=0):
+        time.sleep(.1)
+        self.sers[motor].write(bytes(f"DRICUR1={dri}\r",'utf-8'))
+        time.sleep(.1)
+        self.sers[motor].write(bytes(f"HOLCUR1={hol}\r",'utf-8'))
+        time.sleep(.1)
+        self.sers[motor].write(bytes(f"AMPSHNT1={amp}\r",'utf-8'))
+
 
 
 

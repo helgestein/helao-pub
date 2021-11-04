@@ -1,4 +1,5 @@
 import serial
+import time
 
 class pump():
     def __init__(self,conf):
@@ -11,6 +12,7 @@ class pump():
         # speed is a variable going from 20µl/min to 4000µL/min
         # direction is 1 for normal and 0 for reverse
         self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
+        time.sleep(3)
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
         return self.read() if read else None

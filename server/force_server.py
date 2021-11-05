@@ -49,7 +49,7 @@ def read_value():
 
 
 if __name__ == "__main__":
-    g = GSV3USB(9) #config[serverkey]
+    g = GSV3USB(config['forceDriver']['com_port']) #config[serverkey] 
     uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
     print("Terminated forcDriver sensor")
     

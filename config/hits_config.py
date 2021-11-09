@@ -34,9 +34,7 @@ config['ocean'] = dict(url="http://127.0.0.1:13383")
 #still need to fix launch and visualizer
 config['launch'] = dict(server = ['owisDriver','oceanDriver','arcoptixDriver','kadiDriver'],
                         action = ['owis','ocean','arcoptix','kadi'],
-                        orchestrator = ['mischbares'],
-                        visualizer = ['hits_visualizer'],
-                        process = [])
+                        orchestrator = ['mischbares'])
 
 config['instrument'] = "hits"
 

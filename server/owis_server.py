@@ -26,8 +26,6 @@ def activate(motor:int=0):
     o.activate(motor)
     retc = return_class(parameters={"motor": motor},data= None)
     return retc
-    
-    
 
 @app.get("/owisDriver/configure")
 def configure(motor:int=0,ref:int=6):
@@ -44,15 +42,15 @@ def move(count:int,motor:int=0,absol:bool=True):
 @app.get("/owisDriver/getPos")
 def getPos():
     ret = o.getPos()
-    retc = return_class(parameters=None,data= {"coordinates": ret,'units':{'coordinates':'microsteps (about .0001mm)'}})
+    retc = return_class(parameters=None,data={"coordinates": ret,'units':{'coordinates':'microsteps (about .0001mm)'}})
     return retc
 
-@app.on_event("startup")
-@app.on_event("shutdown")
-def safe_pos():
-    for i in range(len(config[serverkey]['safe_positions'])):
-        if config[serverkey]['safe_positions'][i] != None:
-            o.move(config[serverkey]['safe_positions'][i],i)
+@app.get("/owisDriver/setCurrent")
+def setCurrent(dri:int,hol:int,amp:int,motor:int=0):
+    o.setCurrent(dri,hol,amp,motor)
+    retc = return_class(parameters={"dri":dri,"hol":hol,"amp":amp,"motor":motor},data=None)
+    return retc
+
 
 if __name__ == "__main__":
     o = owis(config[serverkey])

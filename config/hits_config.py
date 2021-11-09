@@ -1,3 +1,5 @@
+from math import pi
+
 config = dict()
 
 config['servers'] = dict(kadiDriver = dict(host="127.0.0.1",port=13376),
@@ -21,12 +23,17 @@ config['arcoptix'] = dict(url="http://127.0.0.1:13385")
 
 config['orchestrator'] = dict(path=r'C:\Users\Operator\Documents\data',kadiurl="http://127.0.0.1:13377")
 
-config['owisDriver'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM6', baud=9600, timeout=0.1),
-                                dict(port='COM9', baud=9600, timeout=0.1),dict(port='COM10', baud=9600, timeout=0.1)],
-                                currents=[dict(mode=0,drive=40,hold=60),dict(mode=0,drive=50,hold=30),dict(mode=0,drive=50,hold=50),dict(mode=0,drive=50,hold=50)],
-                                safe_positions=[None,None,300000,300000])
-config['owis'] = dict(coordinates=[None,None,(),(336.7,36.8,4.5,[[-1,0],[0,1]],True)],roles=['x','y','ftir','raman'],
-                      url="http://127.0.0.1:13387",ramanurl="http://127.0.0.1:13383")
+config['owisDriver'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM11', baud=9600, timeout=0.1),
+                                dict(port='COM13', baud=9600, timeout=0.1)],
+                                currents=[dict(mode=1,drive=80,hold=40),dict(mode=0,drive=50,hold=30),dict(mode=0,drive=50,hold=50)],
+                                safe_positions=[1500000,None,600000])
+config['owis'] = dict(coordinates=[None,None,
+                        {"sem":{"x":68,"y":91,"theta":pi,"I":True,"z":10.5},"fto":{"x":0,"y":0,"theta":0,"I":True,"z":0},"oneoff":{"x":0,"y":0,"theta":0,"I":True,"z":0}}],
+                        roles=['x','y','raman'],url="http://127.0.0.1:13387",ramanurl="http://127.0.0.1:13383")
+#let v1 be vector of x-y in motor coordinates, v2 vector of x-y in sample coordinates.
+#v2 = R(theta)I(v1-[x,y]), so v1 = IR(-theta)v2 + [x,y]
+#R is 2x2 rotation matrix, and I is identity matrix if I=True, and inversion on x if I=False.
+#z is coordinates of probe motor when probe resting on sample
 
 config['oceanDriver'] = dict(safepath = 'C:/Users/Operator/Documents/data/safe/raman')
 config['ocean'] = dict(url="http://127.0.0.1:13383")

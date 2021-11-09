@@ -1,4 +1,3 @@
-from util import list_to_dict
 import sys
 import uvicorn
 from fastapi import FastAPI
@@ -12,6 +11,7 @@ from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(helao_root)
+from util import list_to_dict
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
@@ -33,7 +33,6 @@ def activate(motor: int = 0):
     retc = return_class(parameters={"motor": motor}, data=res)
     return retc
 
-
 @app.get("/owis/configure")
 def configure(motor: int = 0):
     res = requests.get("{}/owisDriver/configure".format(url),
@@ -43,37 +42,70 @@ def configure(motor: int = 0):
                         data=res)
     return retc
 
-
 # move. units of loc are mm. if configured properly, valid inputs roughly between 0mm and 96mm (reading this on 15/04/21, I should qualify that we now have 1 motor which is longer than 96 mm)
 # aiming to write this so that loc can be either a float (when there is only a single motor) or a list of floats
-@app.get("/owis/move")
-def move(loc, absol: bool = True):
-    loc = json.loads(loc)
+def mov(loc, absol: bool = True):
     if type(loc) == float or type(loc) == int:
         res = requests.get("{}/owisDriver/move".format(url),
                            params={"count": int(loc*10000), "motor": 0, "absol": absol}).json()
     else:
         res = []
         for i, j in zip(range(len(loc)), loc):
-            res.append(requests.get("{}/owisDriver/move".format(url),
-                                    params={"count": int(j*10000), "motor": i, "absol": absol}).json())
+            if j != None:
+                res.append(requests.get("{}/owisDriver/move".format(url),params={"count": int(j*10000), "motor": i, "absol": absol}).json())
         res = list_to_dict(res)
-    retc = return_class(
-        parameters={"loc": loc, "absol": absol, 'units': {'loc': 'mm'}}, data=res)
-    return retc
+    return res
 
+@app.get("/owis/move")
+def move(loc, absol: bool = True):
+    loc = json.loads(loc)
+    res = mov(loc,absol)
+    retc = return_class(parameters={"loc": loc, "absol": absol, 'units': {'loc': 'mm'}}, data=res)
+    return retc
 
 @app.get("/owis/getPos")
 def getPos():
     res = requests.get("{}/owisDriver/getPos".format(url)).json()
     coordinates = res['data']['coordinates']
-    loc = None if coordinates == None else coordinates / \
-        10000 if type(coordinates) == int else [i/10000 for i in coordinates]
+    loc = None if coordinates == None else coordinates / 10000 if type(coordinates) == int else [i/10000 for i in coordinates]
     retc = return_class(parameters=None, data={
                         'res': {'loc': loc, 'units': 'mm'}, 'raw': res})
     return retc
 
+@app.get("/owis/setCurrent")
+def setCurrent(dri:int,hol:int,amp:int,motor:int=0):
+    res = requests.get("{}/owisDriver/setCurrent".format(url),params={"dri":dri,"hol":hol,"amp":amp,"motor":motor}).json()
+    retc = return_class(parameters={"dri":dri,"hol":hol,"amp":amp,"motor":motor},data=res)
+    return retc
 
+#convert sample x-y to motor x-y
+def map_coordinates(c:numpy.array,probe:str,sample:str):
+    coordinates = config[serverkey]['coordinates'][config['owis']['roles'].index(probe)][sample]
+    cs, sn = numpy.cos(coordinates['theta']), numpy.sin(coordinates['theta'])
+    I = numpy.array([[1,0],[0,1]]) if coordinates['I'] else numpy.array([[-1,0],[0,1]])
+    return I.dot(numpy.array([[cs,sn],[-sn,cs]])).dot(c) + numpy.array([coordinates['x'],coordinates['y']])
+
+# move table in x-y of sample stage coordinate system
+@app.get("/owis/movetable")
+def move_table(pos: str, probe: str, sample: str):
+    # map x and y
+    loc = json.loads(pos)
+    loc = map_coordinates(loc, probe, sample)
+    # move
+    res = mov(loc.tolist()+[None for i in range(len(config[serverkey]['roles'])-2)])
+    retc = return_class(parameters={"pos": pos, "probe": probe, "sample": sample, 'units': {'pos': 'mm'}}, data=res)
+    return retc
+
+# move the given probe to a height z above sample stage
+@app.get("/owis/moveprobe")
+def move_probe(z: float, probe: str):
+    d = config[serverkey]['coordinates'][config[serverkey]['roles'].index(probe)]['z']
+    res = requests.get("{}/owisDriver/move".format(url), params={"count": int((d+z)*10000), "motor": config[serverkey]['roles'].index(probe)}).json()
+    retc = return_class(parameters={"z": z, "probe": probe, 'units': {'z': 'mm'}}, data=res)
+    return retc
+
+#putting the z stuff on hold for a bit until we can figure out what is going on.
+'''
 @app.on_event("startup")
 def memory():
     global height_map
@@ -172,41 +204,7 @@ def calibration(x: str, m: str, y: str, d: float, minh: float = 2, maxh: float =
     return return_class(params={'x': x, 'm': m, 'y': y, 'd': d, 'minh': minh, 'maxh': maxh, 'dh': dh, 'f': f, 't': t, 'key': key, 'units': {'x': 'mm', 'm': 'mm', 'y': 'mm', 'd': 'mm', 'minh': 'mm', 'maxh': 'mm', 'dh': 'mm', 'f': 'mm', 't': 's'}},
                         data={'res': {'besthx': bestx, 'besthm': bestm, 'besthy': besty, 'units': {'besthx': 'mm', 'besthm': 'mm', 'besthy': 'mm'}}, 'raw': list_to_dict(res)})
 
-# move table in x-y of sample stage coordinate system
-
-
-@app.get("/owis/movetable")
-def move_table(pos: str, key: str):
-    # map x and y
-    loc = json.loads(pos)
-    loc = map_coordinates([loc[0], loc[1], 0], key)[:2]
-    loc = {config['owis']['roles'].index(
-        'x'): loc[0], config['owis']['roles'].index('y'): loc[1]}
-    # move
-    res = []
-    for i, j in loc.items():
-        res.append(requests.get(
-            f"{url}/owisDriver/move", params={"count": int(j*10000), "motor": i}).json())
-    retc = return_class(parameters={"pos": pos, "key": key, 'units': {
-                        'pos': 'mm'}}, data=list_to_dict(res))
-    return retc
-
-# move the given probe to a height z above sample stage
-
-
-@app.get("/owis/moveprobe")
-def move_probe(z: float, probe: str):
-    d = config[serverkey]['coordinates'][config[serverkey]
-                                         ['roles'].index(probe)][2]
-    res = requests.get("{}/owisDriver/move".format(url), params={"count": int(
-        (d+z+config[serverkey]['coordinates'][config[serverkey]['roles'].index(probe)][2])*10000), "motor": config[serverkey]['roles'].index(probe)}).json()
-    retc = return_class(
-        parameters={"z": z, "probe": probe, 'units': {'z': 'mm'}}, data=res)
-    return retc
-
 # same as above, but accounting for sample height profile
-
-
 @app.get("/owis/sampleheight")
 def sample_height(pos: str, f: float, probe: str):
     loc = json.loads(pos)
@@ -218,6 +216,7 @@ def sample_height(pos: str, f: float, probe: str):
     retc = return_class(parameters={"pos": pos, "f": f, "probe": probe, 'units': {
                         'pos': 'mm', 'f': 'mm'}}, data=res)
     return retc
+'''
 
 
 if __name__ == "__main__":

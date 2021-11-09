@@ -45,6 +45,16 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
     retc = return_class(parameters= {'comprel':json.dumps(comprel),'pumps':json.dumps(pumps),'speed':speed,'totalvol':totalvol,'direction':direction,
                                      'units': {'speed':'µl/min','totalvol':'µL'}},
                         data = {i:retl[i] for i in range(len(retl))})
+    #this following line needs to change and we need to ask is the RON state is either 0 or 1 for every pump
+    #ony when the state is changed we know that it is done solve with while loop
+    while True:
+        #heck if done state is reached
+        #call server driver if done
+        #if done:
+        reached = True
+        if reached:
+            break
+            
     time.sleep(60*totalvol/speed)
     return retc
 

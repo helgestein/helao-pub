@@ -1,16 +1,21 @@
 import serial
+import time
 
 class pump():
     def __init__(self,conf):
             self.pumpAddr = conf['pumpAddr']
             self.ser = serial.Serial(conf['port'], conf['baud'], timeout=conf['timeout'])
-                
+            #wakeup from standby
+            self.ser.write(bytes('20,PON,1234\r','utf-8'))
+            time.sleep(3)
+
     def primePump(self,pump:int,volume:int,speed:int,direction:int=1,read:bool=False):
         # pump is an index 0-13 indicating the pump channel
         # volume is the volume in µL, 0 to 50000µL
         # speed is a variable going from 20µl/min to 4000µL/min
         # direction is 1 for normal and 0 for reverse
         self.ser.write(bytes('{},PON,1234\r'.format(self.pumpAddr[pump]),'utf-8'))
+        time.sleep(3)
         self.ser.write(bytes('{},WFR,{},{}\r'.format(self.pumpAddr[pump],speed,direction),'utf-8'))
         self.ser.write(bytes('{},WVO,{}\r'.format(self.pumpAddr[pump],volume),'utf-8'))
         return self.read() if read else None
@@ -34,6 +39,12 @@ class pump():
         out = self.ser.read(1000).split(b',')
         ret['volume'] = int(str(out[5])[2:-3]) if out[1] == b'RVO' and out[3] == b'HS' and out[4] == b'OK' else None
         return ret
+    
+    def askDone(self,pump:int):
+        self.read()
+        self.ser.write(bytes('{},RON,1\r'.format(self.pumpAddr[pump]),'utf-8'))
+        out = self.ser.read(1000).split(b',')
+        return out
     
     def pumpOff(self,pump:int,read:bool=False):
         self.ser.write(bytes('{},OFF,1234\r'.format(self.pumpAddr[pump]),'utf-8'))

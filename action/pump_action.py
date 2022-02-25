@@ -1,12 +1,8 @@
 import sys
-sys.path.append('../driver')
-sys.path.append('../config')
-sys.path.append('../server')
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
-#from mischbares_small import config
 import time
 import json
 import os
@@ -39,7 +35,6 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
                                 params={'pump':p,'volume':v,'speed':s,
                                         'direction': direction,'read':True}).json()
             retl.append(res)
-    
     for c,p in zip(comprel,pumps):
         v = int(totalvol*c)
         s = int(speed*c)
@@ -50,6 +45,16 @@ def formulation(comprel: str, pumps: str, speed: int, totalvol: int, direction: 
     retc = return_class(parameters= {'comprel':json.dumps(comprel),'pumps':json.dumps(pumps),'speed':speed,'totalvol':totalvol,'direction':direction,
                                      'units': {'speed':'µl/min','totalvol':'µL'}},
                         data = {i:retl[i] for i in range(len(retl))})
+    #this following line needs to change and we need to ask is the RON state is either 0 or 1 for every pump
+    #ony when the state is changed we know that it is done solve with while loop
+    while True:
+        #heck if done state is reached
+        #call server driver if done
+        #if done:
+        reached = True
+        if reached:
+            break
+            
     time.sleep(60*totalvol/speed)
     return retc
 
@@ -63,9 +68,5 @@ def flushSerial():
 
 
 if __name__ == "__main__":
-    #pumpurl = "http://{}:{}".format(config['servers']['pumpServer']['host'], config['servers']['pumpServer']['port'])
-    #uvicorn.run(app, host=config['servers']['pumpingServer']['host'], 
-    #                 port=config['servers']['pumpingServer']['port'])
     pumpurl = config[serverkey]['url']
-    uvicorn.run(app, host=config['servers'][serverkey]['host'], 
-                     port=config['servers'][serverkey]['port'])
+    uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])

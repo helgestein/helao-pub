@@ -2,9 +2,9 @@ from decimal import Decimal
 import numpy as np
 import itertools as it
 from json import JSONEncoder
-import asyncio
-import json
 import h5py
+import math
+import os
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self, obj):
@@ -30,7 +30,6 @@ def getMAFromXY(x_,y_,a=50,b=50,da=0.01,db=0.01):
     it is assumed that you giv the position x_,y_ in mm from the top left corner.
     positive x is from left to right and 
     positive y is from top to bottom'''
-    from decimal import Decimal
     dm_x = Decimal(str(x_))//Decimal(str(da))
     mod_x = Decimal(str(x_))%Decimal(str(da))
     if not mod_x == 0:
@@ -83,7 +82,7 @@ def dict_to_list(my_dict):
 #i think i did a bad job writing this function and the one below it. might see if i can phase them out...
 def incrementName(s:str):
     #i am incrementing names of runs, sessions, substrates, and measurement numbers numbers enough
-    #go from run_1 to run_2 or from substrate_1_session_1.hdf5 to substrate_1_session_2.hdf5, etc...
+    #go from run_1 to run_2 or from substrate_1_session_1.h5 to substrate_1_session_2.h5, etc...
     segments = s.split('_')
     if '.' in segments[-1]:
         #so that we can increment filenames too
@@ -207,25 +206,51 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
             raise ValueError('Cannot save %s type.' % type(item))
 
 #take a group from somewhere within an hdf5 file, convert it to a dict, and return it.
+# if path instead leads to a dataset, return that dataset
 def hdf5_group_to_dict(h5file, path):
     dic = {}
-    for key in h5file[path].keys():
-        if isinstance(h5file[path+key+'/'],h5py._hl.group.Group):
-            dic.update({key:hdf5_group_to_dict(h5file,path+key+'/')})
-        elif isinstance(h5file[path+key+'/'],h5py._hl.dataset.Dataset):
-            dic.update({key:h5file[path+key+'/'][()]})
-        else:
-            raise ValueError(f'somehow {h5file[key]} is neither an hdf5 group nor dataset')
+    if isinstance(h5file[path],h5py._hl.group.Group):
+        for key in h5file[path].keys():
+            dic.update({key:hdf5_group_to_dict(h5file,os.path.join(path,key))})
+    elif isinstance(h5file[path],h5py._hl.dataset.Dataset):
+        return h5file[path][()]
+    else:
+        raise ValueError(f'somehow {h5file[path]} is neither an hdf5 group nor dataset')
     return dic
 
 #check is the input path or list of paths are valid for the input hdf5 file
+# h5path or its elements can either be h5file or string path to h5file
 def paths_in_hdf5(h5path,paths):
+    if isinstance(h5path,str):
+        h5file = h5py.File(h5path, 'r')
+    elif isinstance(h5path,h5py._hl.files.File): 
+        h5file = h5path
+    else:
+        raise ValueError(f'somehow {h5path} is neither a string nor an open h5file')
     if isinstance(paths,str):
         paths = [paths]
-    with h5py.File(h5path, 'r') as h5file:    
-        for p in paths:
-            try:
-                h5file[p]
-            except:
-                return False
+    for p in paths:
+        try:
+            h5file[p]
+        except:
+            return False
+    if isinstance(h5path,str):
+        h5file.close()
     return True
+
+#for making grids on our disc substrates.
+def makeGrid(d,dl,r,a,b=None,theta=None):
+    center = np.array([a/2,math.sqrt(r**2-a**2/4)])
+    n = math.floor(r/dl)
+    grid = np.array([[center[0]+i*dl,center[1]+j*dl] for i in range(-n,n+1) for j in range(-n,n+1)])
+    c_radial = lambda x: r - d >= math.sqrt((x[0]-a/2)**2+(x[1]-math.sqrt(r**2-a**2/4))**2)
+    c_primary = lambda x: x[1] >= d
+    c = lambda x: c_radial(x) and c_primary(x)
+    if b != None and theta != None:
+        b = math.sqrt(b**2-8*d*(r-math.sqrt(r**2-b**2/4)))
+        c_secondary = lambda x: math.sqrt(r**2-b**2/4) >= (x[0]-a/2)*math.sin(theta) - (x[1]-math.sqrt(r**2-a**2/4))*math.cos(theta)
+        c = lambda x: c_radial(x) and c_primary(x) and c_secondary(x)
+    else:
+        c = lambda x: c_primary(x) and c_radial(x)
+    grid = list(filter(c,grid))
+    return grid

@@ -4,7 +4,7 @@ config = dict()
 
 config['servers'] = dict(kadiDriver = dict(host="127.0.0.1",port=13376),
                          kadi = dict(host="127.0.0.1",port=13377),
-                         orchestrator = dict(host="127.0.0.1",port=13380),
+                         orchestrator = dict(host="192.168.31.114",port=13380),
                          oceanDriver = dict(host="127.0.0.1",port=13383),
                          ocean = dict(host="127.0.0.1",port=13384),
                          arcoptixDriver = dict(host="127.0.0.1",port=13385),
@@ -23,20 +23,29 @@ config['arcoptix'] = dict(url="http://127.0.0.1:13385")
 
 config['orchestrator'] = dict(path=r'C:\Users\Operator\Documents\data',kadiurl="http://127.0.0.1:13377")
 
-config['owisDriver'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM11', baud=9600, timeout=0.1),
-                                dict(port='COM13', baud=9600, timeout=0.1)],
-                                currents=[dict(mode=1,drive=80,hold=40),dict(mode=0,drive=50,hold=30),dict(mode=0,drive=50,hold=50)],
-                                safe_positions=[1500000,None,600000])
-config['owis'] = dict(coordinates=[None,None,
-                        {"sem":{"x":68,"y":91,"theta":pi,"I":True,"z":10.5},"fto":{"x":0,"y":0,"theta":0,"I":True,"z":0},"oneoff":{"x":0,"y":0,"theta":0,"I":True,"z":0}}],
-                        roles=['x','y','raman'],url="http://127.0.0.1:13387",ramanurl="http://127.0.0.1:13383")
+config['owisDriver'] = dict(serials=[dict(port='COM4', baud=9600, timeout=0.1),dict(port='COM20', baud=9600, timeout=0.1),
+                                dict(port='COM19', baud=9600, timeout=0.1),dict(port='COM22', baud=9600, timeout=0.1)],
+                                currents=[dict(mode=1,drive=80,hold=40),dict(mode=0,drive=50,hold=30),
+                                          dict(mode=0,drive=50,hold=50),dict(mode=0,drive=50,hold=50)],
+                                safe_positions=[3100000,None,600000,600000])
+config['owis'] = dict(coordinates={
+                        'raman':{"sem":{"x":68,"y":91,"theta":pi,"I":True,"z":10.5},
+                                 "fto":{"x":0,"y":0,"theta":0,"I":True,"z":0},
+                                 "oneoff":{"x":0,"y":0,"theta":0,"I":True,"z":0}},
+                        'ftir':{"sem":{"x":243,"y":87,"theta":pi,"I":True,"z":10.5},
+                                "fto":{"x":0,"y":0,"theta":0,"I":True,"z":0},
+                                "oneoff":{"x":0,"y":0,"theta":0,"I":True,"z":0}}},
+                      references={'raman':{'si':[120,85,9,None],'air':[None,None,80,None]},'ftir':{'au':[0,0,None,0]}},#probe refs listed in motor coordinates
+                      focals={'raman':7.5,'ftir':1},
+                      roles=['x','y','raman','ftir'],url="http://127.0.0.1:13387")
+
 #let v1 be vector of x-y in motor coordinates, v2 vector of x-y in sample coordinates.
 #v2 = R(theta)I(v1-[x,y]), so v1 = IR(-theta)v2 + [x,y]
 #R is 2x2 rotation matrix, and I is identity matrix if I=True, and inversion on x if I=False.
 #z is coordinates of probe motor when probe resting on sample
 
 config['oceanDriver'] = dict(safepath = 'C:/Users/Operator/Documents/data/safe/raman')
-config['ocean'] = dict(url="http://127.0.0.1:13383")
+config['ocean'] = dict(wavelength=785,url="http://127.0.0.1:13383")
 
 #still need to fix launch and visualizer
 config['launch'] = dict(server = ['owisDriver','oceanDriver','arcoptixDriver','kadiDriver'],

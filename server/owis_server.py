@@ -46,8 +46,8 @@ def getPos():
     return retc
 
 @app.get("/owisDriver/setCurrent")
-def setCurrent(dri:int,hol:int,amp:int,motor:int=0):
-    o.setCurrent(dri,hol,amp,motor)
+def setCurrents(dri:int,hol:int,amp:int,motor:int=0):
+    o.setCurrents(dri,hol,amp,motor)
     retc = return_class(parameters={"dri":dri,"hol":hol,"amp":amp,"motor":motor},data=None)
     return retc
 

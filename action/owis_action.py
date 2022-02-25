@@ -63,11 +63,15 @@ def move(loc, absol: bool = True):
     retc = return_class(parameters={"loc": loc, "absol": absol, 'units': {'loc': 'mm'}}, data=res)
     return retc
 
-@app.get("/owis/getPos")
-def getPos():
+def getP():
     res = requests.get("{}/owisDriver/getPos".format(url)).json()
     coordinates = res['data']['coordinates']
     loc = None if coordinates == None else coordinates / 10000 if type(coordinates) == int else [i/10000 for i in coordinates]
+    return loc,res
+
+@app.get("/owis/getPos")
+def getPos():
+    loc,res = getP()
     retc = return_class(parameters=None, data={
                         'res': {'loc': loc, 'units': 'mm'}, 'raw': res})
     return retc
@@ -80,14 +84,15 @@ def setCurrent(dri:int,hol:int,amp:int,motor:int=0):
 
 #convert sample x-y to motor x-y
 def map_coordinates(c:numpy.array,probe:str,sample:str):
-    coordinates = config[serverkey]['coordinates'][config['owis']['roles'].index(probe)][sample]
+    coordinates = config[serverkey]['coordinates'][probe][sample]
     cs, sn = numpy.cos(coordinates['theta']), numpy.sin(coordinates['theta'])
     I = numpy.array([[1,0],[0,1]]) if coordinates['I'] else numpy.array([[-1,0],[0,1]])
     return I.dot(numpy.array([[cs,sn],[-sn,cs]])).dot(c) + numpy.array([coordinates['x'],coordinates['y']])
 
 # move table in x-y of sample stage coordinate system
+#  if surface, go to the appropriate measuring height as defined by surface
 @app.get("/owis/movetable")
-def move_table(pos: str, probe: str, sample: str):
+def move_table(pos: str, probe: str, sample: str, surface = False):
     # map x and y
     loc = json.loads(pos)
     loc = map_coordinates(loc, probe, sample)
@@ -96,13 +101,56 @@ def move_table(pos: str, probe: str, sample: str):
     retc = return_class(parameters={"pos": pos, "probe": probe, "sample": sample, 'units': {'pos': 'mm'}}, data=res)
     return retc
 
-# move the given probe to a height z above sample stage
+# move the given probe to a height z above sample stage, or, optionally, height z above a surface
 @app.get("/owis/moveprobe")
-def move_probe(z: float, probe: str):
-    d = config[serverkey]['coordinates'][config[serverkey]['roles'].index(probe)]['z']
-    res = requests.get("{}/owisDriver/move".format(url), params={"count": int((d+z)*10000), "motor": config[serverkey]['roles'].index(probe)}).json()
-    retc = return_class(parameters={"z": z, "probe": probe, 'units': {'z': 'mm'}}, data=res)
+def move_probe(z: float, probe: str, sample: str, surf: bool = False):
+    global surface
+    d = config[serverkey]['coordinates'][probe][sample]['z']
+    if surf:
+        loc,res2 = getP()
+        s = surface(loc[0],loc[1])
+        count = int((d+z+s)*10000)
+    else:
+        count = int((d+z)*10000)
+    res = requests.get("{}/owisDriver/move".format(url), params={"count": count, "motor": config[serverkey]['roles'].index(probe)}).json()
+    if surf:
+        res = {'0':res2,'1':res}
+    retc = return_class(parameters={"z": z, "probe": probe, 'surface': surface, 'units': {'z': 'mm'}}, data=res)
     return retc
+
+#move the given probe to the given reference point
+@app.get("/owis/goref")
+def goto_ref(probe: str, ref: str):
+    res = mov(config[serverkey]['references'][probe][ref])
+    retc = return_class(parameters={"probe": probe, "ref": ref}, data=res)
+    return retc
+
+#submit a list of 3 positions in the given coordinate system to define a surface
+# surface will be saved in motor coordinate system and translated into other coordinate systems as needed.
+# basically this is just the math to find a plane from 3 points
+@app.get("/owis/surface")
+def define_surface(p1:str,p2:str,p3:str,probe: str, sample: str):
+    global surface
+    v1,v2,v3 = numpy.array(json.loads(p1)),numpy.array(json.loads(p2)),numpy.array(json.loads(p3))
+    p = numpy.cross(v3-v1,v2-v1)
+    a,b,c,d = p,numpy.dot(p,p1)
+    surface = lambda x,y: (d-a*x-b*y)/c - config[serverkey]['focals'][probe] # compensating for focal length of the probe used for surface.
+    retc = return_class(parameters={'p1':p1,'p2':p2,'p3':p3,'probe':probe,'sample':sample,'units':{'p1':'mm','p2':'mm','p3':'mm'}}, 
+                        data={'plane':{'a':a,'b':b,'c':c,'d':d,'units':{'a':'mm','b':'mm','c':'mm','d':'mm'}}})
+    return retc
+
+#reset surface to default
+@app.get("/owis/clearsurface")
+def clear_surface():
+    global surface
+    surface = lambda x,y: 0
+    retc = return_class(parameters=None, data=None)
+    return retc
+
+@app.on_event("startup")
+def memory():
+    global surface
+    surface = lambda x,y: 0
 
 #putting the z stuff on hold for a bit until we can figure out what is going on.
 '''

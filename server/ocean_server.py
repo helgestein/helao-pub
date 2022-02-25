@@ -1,9 +1,8 @@
 import sys
 import uvicorn
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI
 from pydantic import BaseModel
-import json
-import asyncio
+import datetime
 import os
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -24,9 +23,8 @@ class return_class(BaseModel):
 
 @app.on_event("startup")
 def startup_event():
-    global o,q
+    global o
     o = ocean(config[serverkey])
-    q = asyncio.Queue()
 
 @app.get("/oceanDriver/find")
 def findDevice():
@@ -43,7 +41,6 @@ def open():
 @app.get("/oceanDriver/readSpectrum")
 async def readSpectrum(t:int,filename:str):
     data = o.readSpectrum(t,filename)
-    await q.put({'wavelengths':data['wavelengths'],'intensities':data['intensities']})
     retc = return_class(parameters = {"filename" : filename, "t" : t,'units':{'t':'µs'}},data = data)
     return retc
 
@@ -60,14 +57,6 @@ def close(self):
     return retc
 
 
-@app.websocket("/ws")
-async def websocket_messages(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await q.get()
-        await websocket.send_text(json.dumps(data))
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
-    print("instantiated raman spectrometer")

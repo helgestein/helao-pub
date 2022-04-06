@@ -119,8 +119,8 @@ async def doMeasurement(experiment: dict, thread: int):
             print("experiment has been blanked")
 
     for action_str in experiment['soe']:
-        while tracking['thread']['status'] != 'running':
-            asyncio.sleep(.1)
+        while tracking[thread]['status'] != 'running':
+            await asyncio.sleep(.1)
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
         tracking[thread]['current_action'] = fnc
         action = fnc.split('_')[0]
@@ -487,40 +487,46 @@ def kill(thread: Optional[int] = None):
     else:
         print(f"thread {thread} not found")
 
-@app.post("orchestrator/pause")
+
+@app.post("/orchestrator/pause")
 def pause(thread: Optional[int] = None):
     global tracking
     if thread == None:
         for k in tracking.keys():
             if tracking[k]['status'] == 'running':
                 tracking[k]['status'] = 'paused'
+                print(f"thread {k} paused")
             else:
                 print(f'attempted to pause thread {k}, but status was {tracking[k]["status"]}')
     elif thread in tracking.keys():
         if tracking[thread]['status'] == 'running':
                 tracking[thread]['status'] = 'paused'
+                print(f"thread {thread} paused")
         else:
             print(f'attempted to pause thread {thread}, but status was {tracking[thread]["status"]}')
     else:
         print(f"thread {thread} not found")
 
 
-@app.post("orchestrator/resume")
+@app.post("/orchestrator/resume")
 def resume(thread: Optional[int] = None):
     global tracking
     if thread == None:
         for k in tracking.keys():
             if tracking[k]['status'] == 'paused':
                 tracking[k]['status'] = 'running'
+                print(f"thread {k} resumed")
             else:
                 print(f'attempted to resume thread {k}, but status was {tracking[k]["status"]}')
     elif thread in tracking.keys():
         if tracking[thread]['status'] == 'paused':
                 tracking[thread]['status'] = 'running'
+                print(f"thread {thread} resumed")
         else:
             print(f'attempted to resume thread {thread}, but status was {tracking[thread]["status"]}')
     else:
         print(f"thread {thread} not found")
+
 
 
 

@@ -30,7 +30,7 @@ def keytofile(key:str):
         return server + "_action"
 
 
-items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']
+items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']
 layout = [[gui.Text(text=item,k=item),
            gui.Button("open",enable_events=True,k=item+"-open"),
            gui.Button("close",button_color='green',disabled=True,enable_events=True,k=item+"-close"),

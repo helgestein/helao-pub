@@ -24,7 +24,7 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/arcoptix/read")
-def read(filename:Optional[str]=None,time:bool=False,av:float=1,bg=False,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
+def read(filename:Optional[str]=None,time:bool=False,av:float=1,bg:bool=False,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
     global background
     if filename == None:
         filename = 'arcoptixftir_'+datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -48,13 +48,13 @@ def setGain(gain:int):
 @app.get("/arctoptix/saturation")
 def getSaturation():
     data = requests.get(f"{url}/arcoptixDriver/saturation",params=None).json()
-    retc = return_class(parameters=None,data={"saturation":data})
+    retc = return_class(parameters=None,data=data)
     return retc
 
 @app.get("/arcoptix/getGain")
 def getGain():
     data = requests.get(f"{url}/arcoptixDriver/getGain",params=None).json()
-    retc = return_class(parameters=None,data={"gain":data})
+    retc = return_class(parameters=None,data=data})
     return retc
 
 @app.get("/arcoptix/loadFile")

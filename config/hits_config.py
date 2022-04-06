@@ -35,7 +35,7 @@ config['owis'] = dict(coordinates={
                         'ftir':{"sem":{"x":243,"y":87,"theta":pi,"I":True,"z":10.5},
                                 "fto":{"x":0,"y":0,"theta":0,"I":True,"z":0},
                                 "oneoff":{"x":0,"y":0,"theta":0,"I":True,"z":0}}},
-                      references={'raman':{'si':[120,85,9,None],'air':[None,None,80,None]},'ftir':{'au':[0,0,None,0]}},#probe refs listed in motor coordinates
+                      references={'raman':{'si':[120,85,9,None],'air':[None,None,80,None]},'ftir':{'au':[95,65,None,1]}},#probe refs listed in motor coordinates
                       focals={'raman':7.5,'ftir':1},
                       roles=['x','y','raman','ftir'],url="http://127.0.0.1:13387")
 
@@ -50,7 +50,7 @@ config['ocean'] = dict(wavelength=785,url="http://127.0.0.1:13383")
 #still need to fix launch and visualizer
 config['launch'] = dict(server = ['owisDriver','oceanDriver','arcoptixDriver','kadiDriver'],
                         action = ['owis','ocean','arcoptix','kadi'],
-                        orchestrator = ['mischbares'])
+                        orchestrator = ['orchestrator'])
 
 config['instrument'] = "hits"
 

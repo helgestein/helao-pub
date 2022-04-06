@@ -22,6 +22,14 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
+##list of changes that i would like to do...
+##data management
+##then machine learning interface, which hangs on the former
+##and mid-run data harvesting, which also hangs on it
+##improved input sanitization and proper response codes and request bodies
+##improved actions/drivers -- capacity to interface with multiple requests, and mid-action cancelation where possible
+##improved interface -- detailed real-time visualization and manipulation of current orchestrator state without command line
+
 #validation for experiment dicts
 class Experiment(BaseModel):
     soe: list
@@ -78,7 +86,7 @@ async def scheduler():
         if thread not in experiment_queues.keys(): 
             experiment_queues.update({thread:asyncio.PriorityQueue()})
             experiment_tasks.update({thread:loop.create_task(infl(thread))})
-            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[]}
+            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'running','history':[]}
         await experiment_queues[thread].put((priority,index,experiment))
 
 #executes a single thread of experiments
@@ -111,6 +119,8 @@ async def doMeasurement(experiment: dict, thread: int):
             print("experiment has been blanked")
 
     for action_str in experiment['soe']:
+        while tracking['thread']['status'] != 'running':
+            asyncio.sleep(.1)
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
         tracking[thread]['current_action'] = fnc
         action = fnc.split('_')[0]
@@ -260,6 +270,7 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
                 tracking[thread]['run'] = int(run[4:])
         tracking[thread]['experiment'] = 0
         save_dict_to_hdf5({'meta':None},tracking[thread]['path'],path=f'/run_{tracking[thread]["run"]}/experiment_0:{thread}/',mode='a')
+    tracking[thread]['status'] = 'running'
     return experiment
 
 #ensure tracking variables are appropriately reset at the end of a run, and upload finished session
@@ -295,7 +306,7 @@ async def finish(experiment: dict):
     else:
         print(f'{l-1} threads still operating on {tracking[thread]["path"]}')
         #free up the thread
-        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[{'path':tracking[thread]['path'],'run':tracking[thread]['run']}]+tracking[thread]['history']}
+        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[{'path':tracking[thread]['path'],'run':tracking[thread]['run']}]+tracking[thread]['history']}
     return experiment
 
 
@@ -445,32 +456,71 @@ def disconnect():
 @app.post("/orchestrator/clear")
 def clear(thread: Optional[int] = None):
     global experiment_queues
-    if thread != None:
+    if thread == None:
+        for k in experiment_queues.keys():
+            while not experiment_queues[k].empty():
+                experiment_queues[k].get_nowait()
+    elif thread in experiment_queues.keys():
         while not experiment_queues[thread].empty():
             experiment_queues[thread].get_nowait()
     else:
-        for k in experiment_queues.keys():
-            while not experiment_queues[thread].empty():
-                experiment_queues[thread].get_nowait()
+        print(f"thread {thread} not found")
 
 #empty queue and cancel current experiment for thread, or for all threads if no thread specified.
 @app.post("/orchestrator/kill")
 def kill(thread: Optional[int] = None):
-    global experiment_tasks
+    global experiment_tasks,tracking
     clear(thread)
-    if thread != None:
+    if thread == None:
+        for k in experiment_tasks.keys():
+            experiment_tasks[k].cancel()
+            del experiment_tasks[k]
+            experiment_tasks.update({k:loop.create_task(infl(k))})
+            h = {'path':tracking[k]['path'],'run':tracking[k]['run']}
+            tracking[k] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[k]['history']}
+    elif thread in experiment_tasks.keys():
         experiment_tasks[thread].cancel()
         del experiment_tasks[thread]
         experiment_tasks.update({thread:loop.create_task(infl(thread))})
         h = {'path':tracking[thread]['path'],'run':tracking[thread]['run']}
-        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[h]+tracking[thread]['history']}
+        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[thread]['history']}
     else:
-        for thread in tracking.keys():
-            experiment_tasks[thread].cancel()
-            del experiment_tasks[thread]
-            experiment_tasks.update({thread:loop.create_task(infl(thread))})
-            h = {'path':tracking[thread]['path'],'run':tracking[thread]['run']}
-            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'history':[h]+tracking[thread]['history']}
+        print(f"thread {thread} not found")
+
+@app.post("orchestrator/pause")
+def pause(thread: Optional[int] = None):
+    global tracking
+    if thread == None:
+        for k in tracking.keys():
+            if tracking[k]['status'] == 'running':
+                tracking[k]['status'] = 'paused'
+            else:
+                print(f'attempted to pause thread {k}, but status was {tracking[k]["status"]}')
+    elif thread in tracking.keys():
+        if tracking[thread]['status'] == 'running':
+                tracking[thread]['status'] = 'paused'
+        else:
+            print(f'attempted to pause thread {thread}, but status was {tracking[thread]["status"]}')
+    else:
+        print(f"thread {thread} not found")
+
+
+@app.post("orchestrator/resume")
+def resume(thread: Optional[int] = None):
+    global tracking
+    if thread == None:
+        for k in tracking.keys():
+            if tracking[k]['status'] == 'paused':
+                tracking[k]['status'] = 'running'
+            else:
+                print(f'attempted to resume thread {k}, but status was {tracking[k]["status"]}')
+    elif thread in tracking.keys():
+        if tracking[thread]['status'] == 'paused':
+                tracking[thread]['status'] = 'running'
+        else:
+            print(f'attempted to resume thread {thread}, but status was {tracking[thread]["status"]}')
+    else:
+        print(f"thread {thread} not found")
 
 
 

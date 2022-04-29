@@ -1,7 +1,6 @@
 import os
 import sys
 import subprocess
-import signal
 import psutil
 from importlib import import_module
 import PySimpleGUI as gui

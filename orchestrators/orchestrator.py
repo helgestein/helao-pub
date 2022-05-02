@@ -86,14 +86,18 @@ async def scheduler():
         if thread not in experiment_queues.keys(): 
             experiment_queues.update({thread:asyncio.PriorityQueue()})
             experiment_tasks.update({thread:loop.create_task(infl(thread))})
-            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'running','history':[]}
+            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[]}
         await experiment_queues[thread].put((priority,index,experiment))
 
 #executes a single thread of experiments
 async def infl(thread: int):
     while True:
         *_,experiment = await experiment_queues[thread].get()
+        if tracking[thread]['status'] == 'clear':
+            tracking[thread]['status'] = 'running'
         await doMeasurement(experiment, thread)
+        if experiment_queues[thread].empty() and tracking[thread]['status'] == 'running':
+            tracking[thread]['status'] = 'clear'
 
 async def doMeasurement(experiment: dict, thread: int):
     global tracking,loop,filelocks,serverlocks,task
@@ -119,9 +123,9 @@ async def doMeasurement(experiment: dict, thread: int):
             print("experiment has been blanked")
 
     for action_str in experiment['soe']:
-        while tracking[thread]['status'] != 'running':
-            await asyncio.sleep(.1)
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
+        while tracking[thread]['status'] != 'running' and server != 'orchestrator':
+            await asyncio.sleep(.1)
         tracking[thread]['current_action'] = fnc
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
@@ -528,6 +532,9 @@ def resume(thread: Optional[int] = None):
         print(f"thread {thread} not found")
 
 
+@app.post("/orchestrator/getStatus")
+def get_status():
+    return tracking
 
 
 # error handing within the infinite loop

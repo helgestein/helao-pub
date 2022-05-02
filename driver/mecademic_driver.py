@@ -1,4 +1,4 @@
-import MecademicRobot
+import mecademicpy.robot
 import numpy as np
 from copy import copy
 import time
@@ -9,7 +9,7 @@ class Mecademic:
         if address == None:
             address = '192.168.0.100'
         self.address = address
-        self.api_robot = MecademicRobot.RobotController(self.address)
+        self.api_robot = mecademicpy.robot.Robot()
         self.connect()
         self.zeroj = [0, 0, 0, 0, 0, 0]
         self.api_robot.Home()
@@ -18,13 +18,12 @@ class Mecademic:
     def connect(self):
         # Connects to the robot at initialized address and attempts to activate. Basic error handling implemented
         # Robot Controller is initialized
-        self.api_robot.Connect()
-        msg = self.api_robot.Activate()
-        self.api_robot.Home()
+        self.api_robot.Connect(address='192.168.0.100', enable_synchronous_mode=True)
+        self.api_robot.ActivateAndHome()
         # If the robot is not properly activated attempt a self repair
-        if not msg == 'Motors activated.':
-            print('Improperly activated trying self repair')
-            self.auto_repair()
+        #if not msg == 'Motors activated.':
+        #    print('Improperly activated trying self repair')
+        #    self.auto_repair()
 
     def auto_repair(self):
         # If there is an error we try to autorepair it. Added an extra resume motion over the

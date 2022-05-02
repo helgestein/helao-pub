@@ -54,7 +54,7 @@ def getSaturation():
 @app.get("/arcoptix/getGain")
 def getGain():
     data = requests.get(f"{url}/arcoptixDriver/getGain",params=None).json()
-    retc = return_class(parameters=None,data=data})
+    retc = return_class(parameters=None,data=data)
     return retc
 
 @app.get("/arcoptix/loadFile")

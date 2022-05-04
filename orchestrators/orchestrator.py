@@ -303,7 +303,7 @@ async def finish(experiment: dict):
             save_dict_to_hdf5(dict(meta=None),newpath)
 
         #clear history relating to this file from all threads
-        for t in tracking:
+        for t in tracking.items():
             for h in t['history']:
                 if h['path'] == tracking['thread']['path']:
                     del h

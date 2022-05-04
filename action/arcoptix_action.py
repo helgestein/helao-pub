@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 import datetime
 import json
+import math
 import requests
 import os
 from importlib import import_module
@@ -34,7 +35,8 @@ def read(filename:Optional[str]=None,time:bool=False,av:float=1,bg:bool=False,wl
                 'intensities':data['data']['intensities'],
                 'units':{'wavelengths':'nm','wavenumbers':'1/cm','intensities':'counts'}}
     if bg:
-        spectrum['intensities'] = [i-j for i,j in zip(spectrum['intensities'],background['intensities'])]
+        spectrum['intensities'] = [-math.log(i/j,10) for i,j in zip(spectrum['intensities'],background['intensities'])]
+        spectrum['units']['intensities'] = 'absorbance units'
     retc = return_class(parameters={'filename':filename,'time':time,'av':av,'bg':bg,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange,'units':{"av":"s or #spectra"}}, 
                         data={'raw':data,'res':spectrum})
     return retc

@@ -67,3 +67,8 @@ If you wish to setup thing super easy from scratch just follow these steps:
 ## Design
 High level layout of HELAO where experiments are executed by sequentially calling actions which are high level wrappers for other actions or low level driver instructions. Communication goes hierarchically down from the orchestrator level to actions, which may communicate with one another, to the lowest level of drivers which may only communicate with the calling action. The orchestrator, actions and drivers are all exposing python class functions through a web interface allowing for a modular and distributed hosting of each item. Experiments are dictionaries containing a sequence of events (SOE) that outlines in which the actions are to be executed. All actions require parameters and are supplied with experiment level metadata. Metadata may be introduced at any level.
 ![helao](figure_1.png)
+
+
+## Acknowledgements
+
+This project has received funding from the European Union’s [Horizon 2020 research and innovation programme](https://ec.europa.eu/programmes/horizon2020/en) under grant agreement [No 957189](https://cordis.europa.eu/project/id/957189).

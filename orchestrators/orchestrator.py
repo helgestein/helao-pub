@@ -9,7 +9,7 @@ import uvicorn
 from fastapi import FastAPI,WebSocket
 from pydantic import BaseModel,validator
 from typing import Union,Optional
-import numpy
+import numpy as np
 import h5py
 import datetime
 from copy import copy
@@ -152,9 +152,10 @@ async def doMeasurement(experiment: dict, thread: int):
                     await update_tracking(thread,'paused','status')
                     while inp not in 'rc':
                         inp = input("Press 'r' to repeat the action again, or 'c' to clear the thread.")
-                    update_tracking(thread,'running','status')
+                    await update_tracking(thread,'running','status')
                 if inp == 'c':
                     clear(thread)
+                    res = res.json()
                     break
         elif servertype == '': #server needs data from ongoing series of experiments
             pass
@@ -227,6 +228,10 @@ async def doMeasurement(experiment: dict, thread: int):
                             subdata.append(hdf5_group_to_dict(session,address) if paths_in_hdf5(session,address) else None)
                             if isinstance(subdata[-1],np.ndarray):
                                 subdata[-1] = subdata[-1].tolist()
+                            elif isinstance(subdata[-1],(np.int32, np.int64)):
+                                subdata[-1] = int(subdata[-1])
+                            elif isinstance(subdata[-1],(np.float32, np.float64)):
+                                subdata[-1] = float(subdata[-1])
                         if len(subdata) == 1:
                             subdata = subdata[0]
                         print(f"putting data {subdata} into subscription {k}")
@@ -747,7 +752,7 @@ async def getArray(addresses:str,thread:Optional[int]=None,path:Optional[str]=No
                     dpath = f'run_{run}/'+experiment+'/'+address
                     if paths_in_hdf5(session,dpath):
                         datum = hdf5_group_to_dict(session,dpath)
-                        if isinstance(datum,numpy.ndarray):
+                        if isinstance(datum,np.ndarray):
                             datum = datum.tolist()
                         subdata.append(datum)
                 if subdata != []:

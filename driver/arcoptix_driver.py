@@ -1,6 +1,7 @@
 import clr
 import json
 import os
+from enum import Enum
 
 #DLLTest.dll (64 bit version) and CyUSB.dll must be in the same directory as ARCsoft.ARCspectroMd.dll
 
@@ -51,14 +52,22 @@ class arcoptix:
 
     #must be an int 0-3. 0 = Low, 1 = Medium, 2 = High, 3 = Extreme
     def setGain(self,gain:int):
+        import ARCsoft.ARCspectroMd as arc
         assert gain in range(4)
-        self.interface.Gain = gain
+        if gain == 0:
+            self.interface.Gain = arc.Gain.Low
+        elif gain == 1:
+            self.interface.Gain = arc.Gain.Medium
+        elif gain == 2:
+            self.interface.Gain = arc.Gain.High
+        elif gain == 3:
+            self.interface.Gain = arc.Gain.Extreme
 
     def getSaturation(self):
         return self.interface.SaturationRatio
     
     def getGain(self):
-        return self.interface.Gain
+        return int(self.interface.Gain)
 
     def loadFile(self,filename:str):
         with open(filename,'r') as infile:

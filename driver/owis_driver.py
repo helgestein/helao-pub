@@ -21,6 +21,7 @@ class owis:
 
 #the com port a given motor is assigned to seems to depend on the order in which they are turned on.
 #I have a stack of ps10's -- always turn them on slowly from the bottom up
+#EDIT: use the ComPortMan software to control com port assignments
         self.sers = []
         for ser in conf['serials']:
             self.sers.append(serial.Serial(ser['port'],ser['baud'],timeout=ser['timeout']))

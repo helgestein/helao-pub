@@ -25,7 +25,7 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/arcoptix/read")
-def read(filename:Optional[str]=None,time:bool=False,av:float=1,bg:bool=False,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
+def read(probe:str,filename:Optional[str]=None,time:bool=False,av:int=1,bg:bool=False,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
     global background
     if filename == None:
         filename = 'arcoptixftir_'+datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -35,9 +35,9 @@ def read(filename:Optional[str]=None,time:bool=False,av:float=1,bg:bool=False,wl
                 'intensities':data['data']['intensities'],
                 'units':{'wavelengths':'nm','wavenumbers':'1/cm','intensities':'counts'}}
     if bg:
-        spectrum['intensities'] = [-math.log(i/j,10) for i,j in zip(spectrum['intensities'],background['intensities'])]
+        spectrum['intensities'] = [-math.log(i/j,10) for i,j in zip(spectrum['intensities'],background[probe]['intensities'])]
         spectrum['units']['intensities'] = 'absorbance units'
-    retc = return_class(parameters={'filename':filename,'time':time,'av':av,'bg':bg,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange,'units':{"av":"s or #spectra"}}, 
+    retc = return_class(parameters={'filename':filename,'probe':probe,'time':time,'av':av,'bg':bg,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange,'units':{"av":"s or #spectra"}}, 
                         data={'raw':data,'res':spectrum})
     return retc
 
@@ -47,7 +47,7 @@ def setGain(gain:int):
     retc = return_class(parameters={"gain":gain},data=data)
     return retc
 
-@app.get("/arctoptix/saturation")
+@app.get("/arcoptix/saturation")
 def getSaturation():
     data = requests.get(f"{url}/arcoptixDriver/saturation",params=None).json()
     retc = return_class(parameters=None,data=data)
@@ -66,12 +66,12 @@ def loadFile(filename:str):
     return retc
 
 @app.get("/arcoptix/readBackground")
-def readBackground(filename:Optional[str]=None,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
+def readBackground(probe:str,filename:Optional[str]=None,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
     global background
     if filename == None:
         filename = 'arcoptixftir_'+datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
     data = requests.get(f"{url}/arcoptixDriver/spectrum",params={'filename':filename,'time':time,'av':av,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange}).json()
-    background = data['data']
+    background[probe] = data['data']
     retc = return_class(parameters={'filename':filename,'time':time,'av':av,'wlrange':wlrange,'wnrange':wnrange,'inrange':inrange,'units':{"av":"s or #spectra"}}, 
                         data=data)
     return retc

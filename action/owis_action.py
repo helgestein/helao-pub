@@ -83,45 +83,66 @@ def setCurrent(dri:int,hol:int,amp:int,motor:int=0):
     return retc
 
 #convert sample x-y to motor x-y
+#so you take a sample x-y, convert that to the reference coordinate system on the sample
+#that coordinate system is already lined up with the motor coordinate system,
+# but has it's origin at the point where the probe is in contact with the reference point, and needs to be translated accordingly
 def map_coordinates(c:numpy.array,probe:str,sample:str):
-    coordinates = config[serverkey]['coordinates'][probe][sample]
+    coordinates = config[serverkey]['coordinates'][sample]
     cs, sn = numpy.cos(coordinates['theta']), numpy.sin(coordinates['theta'])
     I = numpy.array([[1,0],[0,1]]) if coordinates['I'] else numpy.array([[-1,0],[0,1]])
-    return I.dot(numpy.array([[cs,sn],[-sn,cs]])).dot(c) + numpy.array([coordinates['x'],coordinates['y']])
+    #v1 = IR(-theta)v2 + [x,y]
+    return I.dot(numpy.array([[cs,sn],[-sn,cs]])).dot(c) + numpy.array([coordinates['x'],coordinates['y']]) + config[serverkey]['probes'][probe]['coordinates'][:2]
+
+#convert motor x-y to sample x-y
+def reverse_coordinates(c:numpy.array,probe:str,sample:str):
+    coordinates = config[serverkey]['coordinates'][sample]
+    cs, sn = numpy.cos(coordinates['theta']), numpy.sin(coordinates['theta'])
+    I = numpy.array([[1,0],[0,1]]) if coordinates['I'] else numpy.array([[-1,0],[0,1]])
+    #v2 = R(theta)I(v1-[x,y])
+    return numpy.array([[cs,-sn],[sn,cs]]).dot(I).dot(c-numpy.array([coordinates['x'],coordinates['y']])-config[serverkey]['probes'][probe]['coordinates'][:2])
 
 # move table in x-y of sample stage coordinate system
 #  if surface, go to the appropriate measuring height as defined by surface
 @app.get("/owis/movetable")
-def move_table(pos: str, probe: str, sample: str, surface = False):
+def move_table(pos: str, probe: str, sample: str, surf:bool = False):
+    global surface
     # map x and y
+    start,locres = getP()
+    startc = reverse_coordinates(numpy.array([start[config[serverkey]['x']],start[config[serverkey]['y']]]),probe,sample)
     loc = json.loads(pos)
+    loc = [loc[i] if loc[i] != None else startc[i] for i in range(len(loc))]
     loc = map_coordinates(loc, probe, sample)
     # move
-    res = mov(loc.tolist()+[None for i in range(len(config[serverkey]['roles'])-2)])
-    retc = return_class(parameters={"pos": pos, "probe": probe, "sample": sample, 'units': {'pos': 'mm'}}, data=res)
+    res = mov([loc[0] if i == config[serverkey]["x"] else loc[1] if i == config[serverkey]["y"] else None for i in range(config[serverkey]["n"])])
+    retc = return_class(parameters={"pos": pos, "probe": probe, "sample": sample, 'units': {'pos': 'mm'}}, data={0:res,1:locres})
     return retc
 
 # move the given probe to a height z above sample stage, or, optionally, height z above a surface
 @app.get("/owis/moveprobe")
 def move_probe(z: float, probe: str, sample: str, surf: bool = False):
     global surface
-    d = config[serverkey]['coordinates'][probe][sample]['z']
+    d = config[serverkey]["probes"][probe]["coordinates"][2]+config[serverkey]["coordinates"][sample]["z"]
     if surf:
         loc,res2 = getP()
         s = surface(loc[0],loc[1])
         count = int((d+z+s)*10000)
     else:
         count = int((d+z)*10000)
-    res = requests.get("{}/owisDriver/move".format(url), params={"count": count, "motor": config[serverkey]['roles'].index(probe)}).json()
+    res = requests.get("{}/owisDriver/move".format(url), params={"count": count, "motor": config[serverkey]["probes"][probe]["motor"]}).json()
     if surf:
         res = {'0':res2,'1':res}
     retc = return_class(parameters={"z": z, "probe": probe, 'surface': surface, 'units': {'z': 'mm'}}, data=res)
     return retc
 
+#maybe i should put in a "measure", function, that calls move table and then puts you at the focal distances, optional thickness mod.
+
 #move the given probe to the given reference point
 @app.get("/owis/goref")
 def goto_ref(probe: str, ref: str):
-    res = mov(config[serverkey]['references'][probe][ref])
+    coord = numpy.array(config[serverkey]['references'][ref])+numpy.array(config[serverkey]['probes'][probe]['coordinates'])+numpy.array([0,0,config[serverkey]['probes'][probe]['focal']])
+    loc = [coord[0] if i == config[serverkey]["x"] else coord[1] if i == config[serverkey]["y"] else coord[2] if i == config[serverkey]["probes"][probe]["motor"] else None for i in range(config[serverkey]["n"])]
+    print(loc)
+    res = mov(loc)
     retc = return_class(parameters={"probe": probe, "ref": ref}, data=res)
     return retc
 

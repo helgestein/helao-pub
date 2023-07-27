@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 import json
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI,WebSocket
 from pydantic import BaseModel,validator
 from typing import Union,Optional
 import numpy
@@ -41,6 +41,9 @@ class Experiment(BaseModel):
         for i in v:
             if i.count('_') > 1:
                 raise ValueError("too many underscores in function name")
+        for i in v:
+            if i.count('/') != 1 or i[0] == '/' or i[-1] == '/':
+                raise ValueError("action must consist of a server name and a function name separated by '/'")
         parsed_v = [i.split('_')[0] for i in v]
         if parsed_v.count("orchestrator/start") > 1:
             raise ValueError("cannot have multiple calls to orchestrator/start in single soe")
@@ -86,7 +89,7 @@ async def scheduler():
         if thread not in experiment_queues.keys(): 
             experiment_queues.update({thread:asyncio.PriorityQueue()})
             experiment_tasks.update({thread:loop.create_task(infl(thread))})
-            tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[]}
+            await update_tracking(thread,{'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[]})
         await experiment_queues[thread].put((priority,index,experiment))
 
 #executes a single thread of experiments
@@ -94,19 +97,19 @@ async def infl(thread: int):
     while True:
         *_,experiment = await experiment_queues[thread].get()
         if tracking[thread]['status'] == 'clear':
-            tracking[thread]['status'] = 'running'
+            await update_tracking(thread,'running','status')
         await doMeasurement(experiment, thread)
         if experiment_queues[thread].empty() and tracking[thread]['status'] == 'running':
-            tracking[thread]['status'] = 'clear'
+            await update_tracking(thread,'clear','status')
 
 async def doMeasurement(experiment: dict, thread: int):
-    global tracking,loop,filelocks,serverlocks,task
+    global tracking,loop,filelocks,serverlocks,task,status_queues,data_queues,data_subs
     print(f'experiment: {experiment} on thread {thread}')
     if isinstance(tracking[thread]['experiment'],int): # add header for new experiment if you already have an initialized, nonempty experiment
         async with filelocks[tracking[thread]['path']]:
             with h5py.File(tracking[thread]['path'], 'r') as session:
                 if len(list(session[f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}"].keys())) > 0:
-                    tracking[thread]['experiment'] += 1
+                    await update_tracking(thread,tracking[thread]['experiment']+1,'experiment')
     #if 'r' in experiment['meta'].keys() and 'ma' in experiment['meta'].keys(): #calculate measurement areas for meta dict if relevant
     #    experiment['meta'].update(dict(measurement_areas=getCircularMA(experiment['meta']['ma'][0],experiment['meta']['ma'][1],experiment['meta']['r'])))
     experiment['meta']['thread'] = thread #put thread in experiment so that native commands receive it.  
@@ -118,6 +121,8 @@ async def doMeasurement(experiment: dict, thread: int):
             tracking[thread]['run'] = tracking[thread-1]['run']
             tracking[thread]['experiment'] = 0
             print(f"thread {thread} bound to thread {thread-1}")
+            for q in status_queues:
+                await q.put(json.dumps(tracking))
         else:
             experiment = {'soe':[],'params':{},'meta':{}}
             print("experiment has been blanked")
@@ -126,7 +131,7 @@ async def doMeasurement(experiment: dict, thread: int):
         server, fnc = action_str.split('/') #Beispiel: action: 'movement' und fnc : 'moveToHome_0
         while tracking[thread]['status'] != 'running' and server != 'orchestrator':
             await asyncio.sleep(.1)
-        tracking[thread]['current_action'] = fnc
+        await update_tracking(thread,fnc,'current_action')
         action = fnc.split('_')[0]
         params = experiment['params'][fnc]
         servertype = server.split(':')[0]
@@ -136,6 +141,7 @@ async def doMeasurement(experiment: dict, thread: int):
         #"if servertype != 'orchestrator':" is a placeholder for the appropriate conditional. need to decide how or whether we will label different types of servers
         if servertype != 'orchestrator': #server is normal
             while True:
+                inp = ' '
                 async with serverlocks[server]:
                     res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
                 if 200 <= res.status_code < 300: #ensure that action completed successfully
@@ -143,7 +149,13 @@ async def doMeasurement(experiment: dict, thread: int):
                     break
                 else: #alert the user if action did not complete successfully, and pause until they say problem is fixed.
                     print(f"Orchestrator has received an invalid response attempting action {action_str} with parameters {params}.")
-                    input('Fix the problem, and press Enter to try the action again.')
+                    await update_tracking(thread,'paused','status')
+                    while inp not in 'rc':
+                        inp = input("Press 'r' to repeat the action again, or 'c' to clear the thread.")
+                    update_tracking(thread,'running','status')
+                if inp == 'c':
+                    clear(thread)
+                    break
         elif servertype == '': #server needs data from ongoing series of experiments
             pass
         elif servertype == 'orchestrator':
@@ -205,9 +217,24 @@ async def doMeasurement(experiment: dict, thread: int):
                     save_dict_to_hdf5({'meta':experiment['meta']},tracking[thread]['path'],path=f"/run_{tracking[thread]['run']}/experiment_{tracking[thread]['experiment']}:{thread}/",mode='a')
         print(f"function {fnc} in thread {thread} completed at {time.time()}")
         print(f"function operating in run {tracking[thread]['run']} in file {tracking[thread]['path']}")
+        async with filelocks[tracking[thread]['path']]:       
+            with h5py.File(tracking[thread]['path'], 'r') as session:
+                for k in data_subs.keys(): #give data to the appropriate subscriptions at the end of the experiment
+                    if thread == data_subs[k]['thread']: #None is inserted where data does not show up in order to keep indexing consistent
+                        subdata = []
+                        for address in data_subs[k]['addresses']:
+                            address = f'run_{tracking[thread]["run"]}/experiment_{tracking[thread]["experiment"]}:{thread}/{address}'
+                            subdata.append(hdf5_group_to_dict(session,address) if paths_in_hdf5(session,address) else None)
+                            if isinstance(subdata[-1],np.ndarray):
+                                subdata[-1] = subdata[-1].tolist()
+                        if len(subdata) == 1:
+                            subdata = subdata[0]
+                        print(f"putting data {subdata} into subscription {k}")
+                        await data_queues[k].put(subdata)
+            
 
 async def process_native_command(command: str,experiment: dict,**params):
-    if command in ['start','finish','modify','wait','repeat']:
+    if command in ['start','finish','modify','wait','repeat','stop']:
         return await getattr(sys.modules[__name__],command)(experiment,**params)
     else:
         raise Exception("native command not recognized")
@@ -217,7 +244,7 @@ async def process_native_command(command: str,experiment: dict,**params):
 #   collectionkey: string, determines folder and file names for session, may correspond to key of experiment['meta'], in which case name will be indexed by that value.
 #   meta: dict, will be placed as metadata under the header of the run set up by this command
 async def start(experiment: dict,collectionkey:str,meta:dict={}):
-    global tracking,filelocks,serverlocks
+    global tracking,filelocks,serverlocks,status_queues
     thread = experiment['meta']['thread']
     if collectionkey in experiment['meta'].keys():#give the directory an index if one is provided
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}_{experiment['meta'][collectionkey]}")
@@ -275,13 +302,15 @@ async def start(experiment: dict,collectionkey:str,meta:dict={}):
         tracking[thread]['experiment'] = 0
         save_dict_to_hdf5({'meta':None},tracking[thread]['path'],path=f'/run_{tracking[thread]["run"]}/experiment_0:{thread}/',mode='a')
     tracking[thread]['status'] = 'running'
+    for q in status_queues:
+        await q.put(json.dumps(tracking))
     return experiment
 
 #ensure tracking variables are appropriately reset at the end of a run, and upload finished session
 #params:
 #   none
 async def finish(experiment: dict):
-    global tracking,filelocks,serverlocks
+    global tracking,filelocks,serverlocks,status_queues
     thread = experiment['meta']['thread']
     print(f'thread {thread} finishing')
     l = sum([1 if tracking[k]['path'] == tracking[thread]['path'] else 0 for k in tracking.keys()]) #how many threads are currently working on this file?
@@ -305,12 +334,14 @@ async def finish(experiment: dict):
         #clear history relating to this file from all threads
         for t in tracking.values():
             for h in t['history']:
-                if h['path'] == tracking['thread']['path']:
+                if h['path'] == tracking[thread]['path']:
                     del h
     else:
         print(f'{l-1} threads still operating on {tracking[thread]["path"]}')
-        #free up the thread
-        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[{'path':tracking[thread]['path'],'run':tracking[thread]['run']}]+tracking[thread]['history']}
+    #free up the thread
+    tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[{'path':tracking[thread]['path'],'run':tracking[thread]['run']}]+tracking[thread]['history']}
+    for q in status_queues:
+        await q.put(json.dumps(tracking))
     return experiment
 
 
@@ -416,6 +447,14 @@ async def repeat(experiment: dict, n: int = 0, priority: int = 5):
     index += 1
     return experiment
 
+#stop the current experiment until it is manually resumed
+async def stop(experiment:dict):
+    global status_queues
+    tracking[experiment['meta']['thread']]['status'] = 'paused'
+    for q in status_queues:
+        await q.put(json.dumps(tracking))
+    return experiment
+
 @app.on_event("startup")
 async def memory():
     global tracking
@@ -438,10 +477,17 @@ async def memory():
     global loop
     loop = asyncio.get_event_loop()
     global error
-    error = loop.create_task(raise_exceptions())
+    error = loop.create_task(raise_exceptions()) #starts the error handling task (normally asycio will hide all this under the sub-stask)
     
     global index #assign a number to each experiment to retain order within priority queues
     index = 0
+
+    global status_queues #queues to publish information on orchestrator status to subscribers
+    status_queues = {}
+    global data_queues #queues to publish real time data to subscribers
+    data_queues = {}
+    global data_subs #contains information on what data has been requested by each subscription
+    data_subs = {}
 
 
 @app.on_event("shutdown")
@@ -481,13 +527,13 @@ def kill(thread: Optional[int] = None):
             del experiment_tasks[k]
             experiment_tasks.update({k:loop.create_task(infl(k))})
             h = {'path':tracking[k]['path'],'run':tracking[k]['run']}
-            tracking[k] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[k]['history']}
+            update_tracking(k,{'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[k]['history']})
     elif thread in experiment_tasks.keys():
         experiment_tasks[thread].cancel()
         del experiment_tasks[thread]
         experiment_tasks.update({thread:loop.create_task(infl(thread))})
         h = {'path':tracking[thread]['path'],'run':tracking[thread]['run']}
-        tracking[thread] = {'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[thread]['history']}
+        update_tracking(thread,{'path':None,'run':None,'experiment':None,'current_action':None,'status':'uninitialized','history':[h]+tracking[thread]['history']})
     else:
         print(f"thread {thread} not found")
 
@@ -498,13 +544,13 @@ def pause(thread: Optional[int] = None):
     if thread == None:
         for k in tracking.keys():
             if tracking[k]['status'] == 'running':
-                tracking[k]['status'] = 'paused'
+                update_tracking(k,'paused','status')
                 print(f"thread {k} paused")
             else:
                 print(f'attempted to pause thread {k}, but status was {tracking[k]["status"]}')
     elif thread in tracking.keys():
         if tracking[thread]['status'] == 'running':
-                tracking[thread]['status'] = 'paused'
+                update_tracking(thread,'paused','status')
                 print(f"thread {thread} paused")
         else:
             print(f'attempted to pause thread {thread}, but status was {tracking[thread]["status"]}')
@@ -518,13 +564,13 @@ def resume(thread: Optional[int] = None):
     if thread == None:
         for k in tracking.keys():
             if tracking[k]['status'] == 'paused':
-                tracking[k]['status'] = 'running'
+                update_tracking(k,'running','status')
                 print(f"thread {k} resumed")
             else:
                 print(f'attempted to resume thread {k}, but status was {tracking[k]["status"]}')
     elif thread in tracking.keys():
         if tracking[thread]['status'] == 'paused':
-                tracking[thread]['status'] = 'running'
+                update_tracking(thread,'running','status')
                 print(f"thread {thread} resumed")
         else:
             print(f'attempted to resume thread {thread}, but status was {tracking[thread]["status"]}')
@@ -532,10 +578,37 @@ def resume(thread: Optional[int] = None):
         print(f"thread {thread} not found")
 
 
-@app.post("/orchestrator/getStatus")
+@app.get("/orchestrator/getStatus")
 def get_status():
-    return tracking
+    return json.dumps(tracking)
 
+@app.get("/orchestrator/subscribe")
+def subscribe(thread:int,addresses:str):
+    global data_queues,data_subs
+    try:
+        addresses = json.loads(addresses)
+    except:
+        addresses = [addresses]
+    ident = round(time.time()*1000) #set id for this subscription
+    data_queues[ident] = asyncio.Queue() #start queue for this subscription
+    data_subs[ident] = {'thread':thread,'addresses':addresses}
+    return json.dumps({'subscription_id':ident})
+
+@app.get("/orchestrator/subscribe_status")
+def subscribe_status():
+    global status_queues
+    ident = round(time.time()*1000) #set id for this subscription
+    status_queues[ident] = asyncio.Queue() #start queue for this subscription
+    return json.dumps({'subscription_id':ident})
+
+@app.get("/orchestrator/unsubscribe")
+def close_subscription(ident:int):
+    del data_queues[ident]
+    del data_subs[ident]
+
+@app.get("/orchestrator/unsubscribe_status")
+def close_status_subscription(ident:int):
+    del status_queues[ident]
 
 # error handing within the infinite loop
 # check for exceptions. if found, print stack trace and cancel infinite loop
@@ -579,7 +652,111 @@ async def raise_exceptions():
     except:
         pass
 
+async def update_tracking(thread:int,val,key:Optional[str]=None):
+    global tracking,status_queues
+    if key == None:
+        tracking[thread] = val
+    else:
+        tracking[thread][key] = val
+    for q in status_queues:
+        await q.put(json.dumps(tracking))
+
+#i probably need something to keep track of these subscriptions beyond what i currently have...
+@app.websocket("/ws_status/{sub_id}")
+async def websocket_messages(sub_id:int,websocket: WebSocket):
+    global status_queues
+    await websocket.accept()
+    while sub_id in status_queues.keys():
+        status = await status_queues[sub_id].get()
+        await websocket.send_text(json.dumps(status))
+
+#i probably need something to keep track of these subscriptions beyond what i currently have...
+@app.websocket("/ws_data/{sub_id}")
+async def websocket_messages(sub_id:int,websocket: WebSocket):
+    global data_queues
+    await websocket.accept()
+    while sub_id in data_queues.keys():
+        data = await data_queues[sub_id].get()
+        await websocket.send_text(json.dumps(data))
+
+
+#capabilities i want 
+# -read keys under any header
+# -grab a pattern under any run
+# -pull dict under any group
+# -fine to keep it tied to threads for now, but i dunno if that will always be sufficient
+@app.get("/orchestrator/readHeaders")
+async def readHeader(address:str,thread:Optional[int]=None,path:Optional[str]=None,run:Optional[int]=None):
+    if path == None and thread == None or (path != None and thread != None):
+        raise ValueError("must specify either a thread or a path to point to a valid hdf5 file, not neither or both")
+    if thread != None:
+        path = tracking[thread]['path'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['path']
+        if run == None:
+            run = tracking[thread]['run'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['run']
+    address = f'run_{run}/{address}' if run != None else address
+    async with filelocks[path]:
+        with h5py.File(path, 'r') as session:
+            return json.dumps(list(dict_address(address,session).keys()))
+@app.get("/orchestrator/getGroup")
+async def getGroup(address:str,thread:Optional[int]=None,path:Optional[str]=None,run:Optional[int]=None):
+    if path == None and thread == None or (path != None and thread != None):
+        raise ValueError("must specify either a thread or a path to point to a valid hdf5 file, not neither or both")
+    if thread != None:
+        path = tracking[thread]['path'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['path']
+        if run == None:
+            run = tracking[thread]['run'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['run']
+    address = f'run_{run}/{address}' if run != None else address
+    if path != None: #need mildly intelligent path parsing for custom paths
+        if os.path.normpath(config[serverkey]['path']) not in os.path.normpath(path):
+            path = os.path.join(config[serverkey]['path'],path)
+        if not os.path.exists(path):
+            raise ValueError(f"path {path} does not exist. must enter a path to a valid h5 file under {config[serverkey]['path']}")
+        if path not in filelocks.keys():
+            filelocks[path] = asyncio.Lock()
+    async with filelocks[path]:
+        with h5py.File(path, 'r') as session:
+            return json.dumps(hdf5_group_to_dict(session,address))
+@app.get("/orchestrator/getArray")
+async def getArray(addresses:str,thread:Optional[int]=None,path:Optional[str]=None,run:Optional[int]=None):
+    if path == None and thread == None or (path != None and thread != None):
+        raise ValueError("must specify either a thread or a path to point to a valid hdf5 file, not neither or both")
+    if thread != None:
+        path = tracking[thread]['path'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['path']
+        if run == None:
+            run = tracking[thread]['run'] if tracking[thread]['path'] != None else tracking[thread]['history'][0]['run']
+    if path != None and run == None:
+        raise ValueError("run must be specified for this file")
+    data = []
+    try:
+        addresses = json.loads(addresses)
+    except:
+        addresses = [addresses]
+    if path != None: #need mildly intelligent path parsing for custom paths
+        if os.path.normpath(config[serverkey]['path']) not in os.path.normpath(path):
+            path = os.path.join(config[serverkey]['path'],path)
+        if not os.path.exists(path):
+            raise ValueError(f"path {path} does not exist. must enter a path to a valid h5 file under {config[serverkey]['path']}")
+        if path not in filelocks.keys():
+            filelocks[path] = asyncio.Lock()
+    async with filelocks[path]:
+        with h5py.File(path, 'r') as session:
+            experiments = list(session[f'run_{run}'].keys())
+            for experiment in experiments:
+                subdata = []
+                for address in addresses:
+                    dpath = f'run_{run}/'+experiment+'/'+address
+                    if paths_in_hdf5(session,dpath):
+                        datum = hdf5_group_to_dict(session,dpath)
+                        if isinstance(datum,numpy.ndarray):
+                            datum = datum.tolist()
+                        subdata.append(datum)
+                if subdata != []:
+                    data.append(subdata if len(subdata) != 1 else subdata[0])
+    return json.dumps(data)
+
 ###this function is not very good, and the whole feature will be done more rigorously when we revisit data management.
+###updating more than a year later -- we will never revise data management lol rip
+###and i am declaring this function no longer the best way to do things. see above for better functions
 #send data from a currently running series of experiments to the requesting entity
 @app.get("/orchestrator/getData")
 #addresses are assumed to hit under each experiment

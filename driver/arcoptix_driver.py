@@ -11,11 +11,11 @@ class arcoptix:
         self.interface = arc.ARCspectroMd.CreateApiInterface()
         self.safepath = config['safepath']
 
-    def getSpectrum(self,filename:str,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
+    def getSpectrum(self,filename:str,time:bool=False,av:int=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
         if time:
             self.interface.ReadSpectrumTime(av,0)
         else:
-            self.interface.ReadSpectrum(int(av),0)
+            self.interface.ReadSpectrum(av,0)
         j,k = 0,65536
         wavelengths = [float(i) for i in self.interface.Wavelength]
         wavenumbers = [float(i) for i in self.interface.Wavenumber]

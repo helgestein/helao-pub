@@ -32,7 +32,7 @@ def startup_event():
 
 #416:2501
 @app.get("/arcoptixDriver/spectrum")
-async def getSpectrum(filename:str,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
+async def getSpectrum(filename:str,time:bool=False,av:int=1,wlrange:str=None,wnrange:str=None,inrange:str=None):
     data = a.getSpectrum(filename,time=time,av=av,wlrange=wlrange,wnrange=wnrange,inrange=inrange)
     retc = return_class(parameters = {"filename":filename,"time":time,"av":av,"wlrange":wlrange,"wnrange":wnrange,"inrange":inrange,"units":{"av":"s or #spectra"}},
                         data = data)
@@ -40,7 +40,7 @@ async def getSpectrum(filename:str,time:bool=False,av:float=1,wlrange:str=None,w
 
 @app.get("/arcoptixDriver/setGain")
 def setGain(gain:int):
-    data = a.setGain(gain)
+    a.setGain(gain)
     retc = return_class(parameters={"gain":gain},data=None)
     return retc
 

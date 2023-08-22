@@ -47,4 +47,3 @@ if __name__ == "__main__":
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
                      port=config['servers'][serverkey]['port'])  
     print("instantiated forceDriver sensor")
-    

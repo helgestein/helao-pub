@@ -1,4 +1,4 @@
-  
+
 #Two force channels connected , packages necessary to be installed:
 # https://www.me-systeme.de/setup/driver/usb/ftdi/
 # and
@@ -42,7 +42,7 @@ class GSV3USB:
         ) == 'Linux' else f'COM{com_port}'
         print(f'Using COM: {com_path}')
         self.sensor = serial.Serial(com_path, baudrate)
-        self.converter = ForceMeasurementConverterKG(500, 2, 1.05)
+        self.converter = ForceMeasurementConverterKG(2000, 2, 1.05)
 
     def get_all(self, profile=0):
         self.sensor.write(struct.pack('bb', 9, profile))
@@ -110,10 +110,20 @@ class GSV3USB:
 
     def set_special_mode(self):
         pass
-
+    #Helge commented this out because this is unsafe operation of the force sensor!!
+    '''
     def read_value(self):
         read_val = self.sensor.read(3)
         return self.converter.convertValue(read_val)
+    '''
+
+    def read_value(self):
+        self.stop_transmission()
+        self.start_transmission()
+        read_val = self.sensor.read(3)
+        self.stop_transmission()
+        return self.converter.convertValue(read_val)
+
 
     def clear_maximum(self):
         self.sensor.write(b'\x3C')

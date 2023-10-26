@@ -1,7 +1,6 @@
 import clr
 import json
 import os
-from enum import Enum
 
 #DLLTest.dll (64 bit version) and CyUSB.dll must be in the same directory as ARCsoft.ARCspectroMd.dll
 
@@ -51,6 +50,9 @@ class arcoptix:
         return data
 
     #must be an int 0-3. 0 = Low, 1 = Medium, 2 = High, 3 = Extreme
+    #appears to be bugged. any attempt to set gain just sets it to Low
+    #as an alternative, can set proper gain with arcspectro interface
+    #another surprise: intensity due to gain seems to be unaffected in arcspectro interface, but varies by a factor of 10 in mine
     def setGain(self,gain:int):
         import ARCsoft.ARCspectroMd as arc
         assert gain in range(4)
@@ -63,9 +65,11 @@ class arcoptix:
         elif gain == 3:
             self.interface.Gain = arc.Gain.Extreme
 
+    #actually works
     def getSaturation(self):
         return self.interface.SaturationRatio
     
+    #will wrongly assume gain is Low if not previously set by driver
     def getGain(self):
         return int(self.interface.Gain)
 

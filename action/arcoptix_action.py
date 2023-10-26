@@ -66,7 +66,7 @@ def loadFile(filename:str):
     return retc
 
 @app.get("/arcoptix/readBackground")
-def readBackground(probe:str,filename:Optional[str]=None,time:bool=False,av:float=1,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
+def readBackground(probe:str,filename:Optional[str]=None,time:bool=False,av:int=1,wlrange:str=None,wnrange:str=None,inrange:str=json.dumps([416,2501])):
     global background
     if filename == None:
         filename = 'arcoptixftir_'+datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")

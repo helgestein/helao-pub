@@ -155,8 +155,10 @@ async def doMeasurement(experiment: dict, thread: int):
                     await update_tracking(thread,'running','status')
                 if inp == 'c':
                     clear(thread)
-                    res = res.json()
                     break
+            if inp == 'c':
+                experiment['soe'] = []
+                break
         elif servertype == '': #server needs data from ongoing series of experiments
             pass
         elif servertype == 'orchestrator':
@@ -665,6 +667,8 @@ async def update_tracking(thread:int,val,key:Optional[str]=None):
         tracking[thread][key] = val
     for q in status_queues:
         await q.put(json.dumps(tracking))
+
+#websockets crash immediately if network connection to client drops. would be nice to make this a little more stable.
 
 #i probably need something to keep track of these subscriptions beyond what i currently have...
 @app.websocket("/ws_status/{sub_id}")

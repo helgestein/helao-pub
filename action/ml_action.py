@@ -43,20 +43,26 @@ def memory():
 @app.get("/ml/receiveData")
 def receiveData(path: str, run: int, address: str, modelid: int = 0):
     global data
-    global awaitedpoints
+    #global awaitedpoints
     if modelid not in data.keys():
         data[modelid] = []
-    if modelid not in awaitedpoints.keys():
-        awaitedpoints[modelid] = []
-    with h5py.File(path, 'r') as h5file:
-        address = f'run_{run}/'+address+'/'
-        newdata = hdf5_group_to_dict(h5file, address)
-        data[modelid].append(newdata)
+    #if modelid not in awaitedpoints.keys():
+    #    awaitedpoints[modelid] = []
+    try:
+        address = json.dumps(address)
+    except:
+        address = [address]
+    newdata = []
+    for add in address:
+        with h5py.File(path, 'r') as h5file:
+            add = f'run_{run}/'+add+'/'
+            newdata.append(hdf5_group_to_dict(h5file, add))
+    data[modelid].append(newdata[0] if len(newdata) == 0 else newdata)
     print(f"newdata is {newdata}")
-    if newdata['x'] in awaitedpoints[modelid]:
-        awaitedpoints[modelid].remove(newdata['x'])
+    #if newdata['x'] in awaitedpoints[modelid]:
+    #    awaitedpoints[modelid].remove(newdata['x'])
     print(data)
-    print(awaitedpoints)
+    #print(awaitedpoints)
 
 
 @app.get("/ml/gaus_model")
@@ -126,6 +132,17 @@ def addData(address: str, modelid=0):
     retc = return_class(
         parameters={'address': address, 'modelid': modelid}, data=None)
     return retc
+
+
+#placeholder for alexey
+@app.get("/ml/activeLearningParallel")
+def active_learning_sdc_4(address: str, modelid=0):
+    global data
+    dat = data[modelid]
+    x = data[modelid]
+    y = data[modelid]
+
+
 
 
 if __name__ == "__main__":

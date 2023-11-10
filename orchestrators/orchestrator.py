@@ -139,7 +139,7 @@ async def doMeasurement(experiment: dict, thread: int):
             serverlocks[server] = asyncio.Lock()
 
         #"if servertype != 'orchestrator':" is a placeholder for the appropriate conditional. need to decide how or whether we will label different types of servers
-        if servertype != 'orchestrator': #server is normal
+        if servertype not in ['orchestrator','ml']: #server is normal
             while True:
                 inp = ' '
                 async with serverlocks[server]:
@@ -186,6 +186,7 @@ async def doMeasurement(experiment: dict, thread: int):
                                 break
             async with serverlocks[server]:
                 res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
+        
         elif servertype == 'ml':
             if "address" in params.keys():
                 #be sure to use this parameter name "address" in action if (and only if?) you are loading from ongoing session. must be string hdf5 path

@@ -57,7 +57,7 @@ def receiveData(path: str, run: int, address: str, modelid: int = 0):
         with h5py.File(path, 'r') as h5file:
             add = f'run_{run}/'+add+'/'
             newdata.append(hdf5_group_to_dict(h5file, add))
-    data[modelid].append(newdata[0] if len(newdata) == 0 else newdata)
+    data[modelid].append(newdata[0] if len(newdata) == 1 else newdata)
     print(f"newdata is {newdata}")
     #if newdata['x'] in awaitedpoints[modelid]:
     #    awaitedpoints[modelid].remove(newdata['x'])

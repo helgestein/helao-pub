@@ -12,6 +12,7 @@ from typing import Union,Optional
 import numpy as np
 import h5py
 import datetime
+import fnmatch
 from copy import copy
 import asyncio
 from importlib import import_module
@@ -461,6 +462,66 @@ async def stop(experiment:dict):
     tracking[experiment['meta']['thread']]['status'] = 'paused'
     for q in status_queues:
         await q.put(json.dumps(tracking))
+    return experiment
+
+#simple and vulgar implementation of an if statement
+#compares data under address in hdf5 to criterion string
+#if it fails criterion, delete all elements of the experiment after conditional
+#criterion formatting should be largely identical to that of google sheets criterions. see the documentation on google sheets COUNTIF
+async def conditional(experiment:dict,address:str,criterion:str):
+    thread = int(address.split('/')[0].split(':')[1])
+    test = None
+    if tracking[thread]['path'] != None:
+        async with filelocks[tracking[thread]['path']]:
+            with h5py.File(tracking[thread]['path'], 'r') as session:
+                test = session[f'run_{tracking[thread]["run"]}/'+address][()]
+    else:
+        for h in tracking[thread]['history']:
+            if h['path'] == tracking[thread]['path']:
+                async with filelocks[h['path']]:
+                    with h5py.File(h['path'], 'r') as session:
+                        try:
+                            test = session[f'run_{h["run"]}/'+address][()]
+                        except:
+                            continue
+                        break
+    res = False
+    if criterion[0:2] == '>=':
+        try:
+            res = test >= float(criterion[2:])
+        except:
+            print(f"criterion failed: criterion of type {float} cannot be compared to value of type {type(test)}")
+    elif criterion[0:2] == '<=':
+        try:
+            res = test <= float(criterion[2:])
+        except:
+            print(f"criterion failed: criterion of type {float} cannot be compared to value of type {type(test)}")
+    elif criterion[0] == '>':
+        try:
+            res = test > float(criterion[2:])
+        except:
+            print(f"criterion failed: criterion of type {float} cannot be compared to value of type {type(test)}")
+    elif criterion[0] == '<':
+        try:
+            res = test < float(criterion[2:])
+        except:
+            print(f"criterion failed: criterion of type {float} cannot be compared to value of type {type(test)}")
+    elif criterion[0] == '=':
+        try:
+            res = test == float(criterion[2:])
+        except:
+            print(f"criterion failed: criterion of type {float} cannot be compared to value of type {type(test)}")
+    else:
+        try:
+            res = fnmatch.fnmatch(test,criterion)
+        except:
+            print(f"criterion failed: criterion of type {str} cannot be compared to value of type {type(test)}")
+    if res:
+        experiment = experiment
+        print("conditional succeeded; continuing experiment.")
+    else:
+        experiment = {'soe':[],'params':{},'meta':{}}
+        print("conditional failed; experiment blanked.")
     return experiment
 
 @app.on_event("startup")

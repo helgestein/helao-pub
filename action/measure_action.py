@@ -1,13 +1,13 @@
 import sys
 sys.path.append(r"../driver")
 sys.path.append(r"../config")
-if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
-    sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
+#if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
+#    sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
 import json
 from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
-from celery import group
+#from celery import group
 import os
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -54,6 +54,21 @@ def schwefel_function_single(x: float , y:float):
     #result = f.get()
     retc = return_class(parameters={'x':x,'y':y}, data={
                         'key_y': f})
+    return retc
+
+@app.get("/measure/algebra")
+def algebra_single(x: float , y:float):
+    ### input : x, y are a random point from our substrate
+    print(x)
+    print(y)
+    f = d.algebra(x,y)
+    #result = f.get()
+    retc = return_class(parameters={'x':x, 'y':y}, data={'key_y': f})
+    return retc
+
+@app.get("/measure/coord")
+def algebra_single(x: float , y:float):
+    retc = return_class(parameters={'x':x, 'y':y})
     return retc
 
 ###############put away the celery for the new version, to make the other part of infrastucture works first

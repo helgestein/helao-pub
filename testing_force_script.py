@@ -4,7 +4,6 @@ sys.path.append(r'../config')
 sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
-#from config.mischbares_small import config
 from config.sdc_4 import config
 
 def force_test(action, params):
@@ -17,6 +16,5 @@ def force_test(action, params):
         params= params).json()
     return res
 
-force_test('read', None)
-force_test('setzero', None)
-
+#force_test('read', None)
+#force_test('setzero', None)

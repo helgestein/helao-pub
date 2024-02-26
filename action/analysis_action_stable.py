@@ -181,41 +181,25 @@ def eis_short(run: int, address: str):
     if ids_min[1] == None:
         circuit_0='R_0-p(R_1,CPE_1)-CPE_2'
         initial_guess_0=[R0_guess, R1_guess, 1e-10, 0.99, 1e-7, 0.8]
-        bounds_0 = (R0_min, R1_min, 1e-13, 0.001, 1e-13, 0),(R0_max, R1_max, 1e-5, 0.999, 1e-3, 1)
-        R2_guess = 1.5*R1_guess
-        R2_min = 0.5*R2_guess
-        R2_max = 3*R2_guess
-        circuit_1='R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-CPE_3'
-        initial_guess_1=[R0_guess, R1_guess, 1e-11,0.98, R2_guess, 4e-7,0.85, 1e-6,0.9]
-        bounds_1 = (R0_min, R1_min, 1e-13,0.001, 0, 1e-13,0.001, 1e-13,0.001),(R0_max, R1_max, 1e-8,1, 100000, 1e-4,1, 1,1)
+        bounds_0 = (R0_min, R1_min, 1e-13, 0.001, 1e-13, 0),(R0_max, R1_max, 1e-8, 0.999, 1e-3, 1)
         if len(ReZ)<4:
             R0, R1, CPE1_Y, CPE1_n, CPE2_Y, CPE2_n = ReZ[0], None, None, None, None, None
             R0_err, R1_err, CPE1_Y_err, CPE1_n_err, CPE2_Y_err, CPE2_n_err = None, None, None, None, None, None
             chi2, chi2_KK = None, None
-            retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0}})
         else:
-            res_fit_0, uns_fit_0 = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_0, initial_guess=initial_guess_0, constants={}, bounds=bounds_0, weight_by_modulus=True, global_opt=False)
-            res_fit_1, uns_fit_1 = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_1, initial_guess=initial_guess_1, constants={}, bounds=bounds_1, weight_by_modulus=True, global_opt=False)
-            circuit_test_0 = circuits.CustomCircuit(circuit=circuit_0, initial_guess=res_fit_0)
-            circuit_test_1 = circuits.CustomCircuit(circuit=circuit_1, initial_guess=res_fit_1)
+            res_fit, uns_fit = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_0, initial_guess=initial_guess_0, constants={}, bounds=bounds_0, weight_by_modulus=True, global_opt=False)
+            R0, R1, CPE1_Y, CPE1_n, CPE2_Y, CPE2_n = res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5]
+            if isinstance(uns_fit, type(None)): 
+                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, CPE2_Y_err, CPE2_n_err = None, None, None, None, None, None
+            else:
+                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, CPE2_Y_err, CPE2_n_err = uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5]
             ### chi2
-            Z_fit_0 = circuit_test_0.predict(freq)
-            Z_fit_1 = circuit_test_1.predict(freq)
-            chi2_0 = np.sum((Z_fit_0.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit_0.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            chi2_1 = np.sum((Z_fit_1.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit_1.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
+            circuit_test = circuits.CustomCircuit(circuit=circuit_0, initial_guess=res_fit)
+            Z_fit = circuit_test.predict(freq)
+            chi2 = np.sum((Z_fit.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
             M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
             chi2_KK = np.sum((res_real)**2) + np.sum((res_imag)**2)
-            ### decision
-            res_fit = res_fit_0 if chi2_0 < 0.75*chi2_1 else res_fit_1
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, CPE3_Y, CPE3_n = (res_fit[0], res_fit[1], res_fit[2], None, res_fit[3], res_fit[4], res_fit[5], None, None) if chi2_0 < 0.75*chi2_1 else (res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5], res_fit[6], res_fit[7], res_fit[8])
-            uns_fit = uns_fit_0 if chi2_0 < 0.75*chi2_1 else uns_fit_1
-            Z_fit = Z_fit_0 if chi2_0 < 0.75*chi2_1 else Z_fit_1
-            chi2 = chi2_0 if chi2_0 < 0.75*chi2_1 else chi2_1
-            if isinstance(uns_fit, type(None)):
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None
-            else:
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = (uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], None, uns_fit[4], uns_fit[5], None, None) if chi2_0 < 0.75*chi2_1 else (uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5], uns_fit[6], uns_fit[7], uns_fit[8])
-            # plot
+            ### plot
             plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
             plt.rcParams["axes.labelweight"] = "bold" # general thing
             fig, ax = plt.subplots(figsize=(9,6),dpi=100)
@@ -235,18 +219,13 @@ def eis_short(run: int, address: str):
             handles = [scatter, line, plt.Line2D([], [], color='none')]
             labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
             ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
+            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_105/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=True)
             plt.clf()
             plt.close('all')
             #return
-            if chi2_0 < 0.75*chi2_1:
-                retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n},
+        retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n},
                                                                 'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err},
                                                                 'chi2':{'fit': chi2, 'KK':chi2_KK}})
-            else:
-                retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'R2': R2, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n, 'CPE3_Y': CPE3_Y, 'CPE3_n': CPE3_n},
-                                                                    'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'R2': R2_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err, 'CPE3_Y': CPE3_Y_err, 'CPE3_n': CPE3_n_err},
-                                                                    'chi2':{'fit': chi2, 'KK':chi2_KK}})
     else:
         R2_guess = abs(ReZ[ids_min[1]] - R1_guess - R0_guess)
         R2_min = abs(0.75*R2_guess)
@@ -291,7 +270,7 @@ def eis_short(run: int, address: str):
             handles = [scatter, line, plt.Line2D([], [], color='none')]
             labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
             ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
+            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_105/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=True)
             plt.clf()
             plt.close('all')
             #return
@@ -396,7 +375,7 @@ def eis1(run: int, address: str):
             handles = [scatter, line, plt.Line2D([], [], color='none')]
             labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
             ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
+            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_105/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=True)
             plt.clf()
             plt.close('all')
             #return
@@ -447,7 +426,7 @@ def eis1(run: int, address: str):
             handles = [scatter, line, plt.Line2D([], [], color='none')]
             labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
             ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
+            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_105/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=True)
             plt.clf()
             plt.close('all')
             #return

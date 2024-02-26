@@ -19,6 +19,7 @@ sys.path.append(helao_root)
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 
+
 from util import hdf5_group_to_dict
 from ml_driver import DataUtilSim
 from importlib import import_module
@@ -107,12 +108,11 @@ def active_learning_random_forest_simulation(name: str, num: int, query: str, ad
     #print("dat", dat)
     global awaitedpoints
     ap = awaitedpoints[modelid]
-    beta = math.exp(-0.05*num)
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_random_forest_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta)
+    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(name, num, query, dat, json.dumps(ap))
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
     print(next_exp_dx, next_exp_dy)
     retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
-        next_x=next_exp_dx, next_y=next_exp_dy, next_i=json.dumps({'recordsignal': {'Duration': next_exp_i, 'Interval time in µs': 0.02}})))
+        next_x=next_exp_dx, next_y=next_exp_dy))
     return retc
 
 @app.get("/ml/activeLearningGaussian")
@@ -140,22 +140,15 @@ def active_learning_gaussian_simulation(name: str, num: int, query: str, address
     global awaitedpoints
     ap = awaitedpoints[modelid]
     #beta = 0.4
-    beta = 0.6*math.exp(-0.06*num)+0.2
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta)
+    beta = math.exp(-0.05*num)
+    next_exp_dx, next_exp_dy = d.active_learning_gaussian_simulation_parallel(name, num, query, dat, json.dumps(ap), beta)
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
     print(next_exp_dx, next_exp_dy)
-    next_ci=json.dumps({'switchgalvanostatic': {'WE(1).Current range': round(math.log10(next_exp_i))},
-                        'applycurrent': {'Setpoint value': -next_exp_i},
-                        'recordsignal': {'Duration': 9000,
-                                        'Interval time in µs': 1}})
-    next_di=json.dumps({'switchgalvanostatic': {'WE(1).Current range': round(math.log10(next_exp_i))},
-                        'applycurrent': {'Setpoint value': next_exp_i},
-                        'recordsignal': {'Duration': 9000,
-                                        'Interval time in µs': 1}})                                                                                                                        
-    #retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
-    #    next_x=next_exp_dx, next_y=next_exp_dy, next_i=json.dumps({'recordsignal': {'Duration': next_exp_i, 'Interval time in µs': 0.02}})))
-    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(next_x=next_exp_dx, next_y=next_exp_dy, next_ci=next_ci, next_di=next_di))
+    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
+        next_x=next_exp_dx, next_y=next_exp_dy))
     return retc
+
+
 
 '''@app.get("/ml/activeLearningParallel")
 def active_learning_random_forest_simulation_parallel(name: str, num: int, query: str, address: str, modelid=0):

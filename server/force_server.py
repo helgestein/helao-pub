@@ -1,4 +1,3 @@
-
 import sys
 import uvicorn
 from fastapi import FastAPI
@@ -43,13 +42,12 @@ def set_zero():
 
 @app.get("/forceDriver/read")
 def read_value():
+    #this is wrong!
     data = g.read_value()
-    retc = return_class(parameters=None,data= {"value": data, 'units':'internal units [500mN]'})
+    retc = return_class(parameters=None,data= {"value": 4*data, 'units':'internal units [2000 mN]'})
     return retc
 
-
 if __name__ == "__main__":
-    g = GSV3USB(9) #config[serverkey]
+    g = GSV3USB(config['forceDriver']['com_port']) #config[serverkey] 
     uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])
     print("Terminated forcDriver sensor")
-    

@@ -14,6 +14,7 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          minipumpDriver=dict(host="127.0.0.1", port=13386),
                          minipump=dict(host="127.0.0.1", port=13385),
                          analysis=dict(host="127.0.0.1", port=13369),
+                         measure=dict(host="127.0.0.1", port=13399),
                          ml=dict(host="127.0.0.1", port=13363),
                          hamiltonDriver=dict(host="127.0.0.1", port=13350),
                          hamilton=dict(host="127.0.0.1", port=13351))
@@ -26,9 +27,9 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
 
 #config['measure:1'] = dict(url="http://192.168.31.123:6667")
 #config['measure:2'] = dict(url="http://192.168.31.114:6669")
-#config['analysis'] = dict(url="http://192.168.31.123:6642")
-#config['ml'] = dict(url="http://192.168.31.123:6612")
-
+config['analysis'] = dict(url="http://127.0.0.1:13368")
+config['ml'] = dict(url="http://127.0.0.1:13362")
+config['measure'] = dict(url="http://127.0.0.1:13398")
 
 config['kadiDriver'] = dict(host=r"https://polis-kadi4mat.iam-cms.kit.edu",
                             PAT=r"7cdb16bbb05f59da17af7511199cebb5213bc282b4749000")
@@ -361,7 +362,8 @@ config['langDriver'] = dict(vx=5, vy=5, vz=5, port='COM3',
 config['lang'] = dict(url="http://127.0.0.1:13382",
                       safe_home_pos=[0.0, 0.0, 0.0],
                         safe_waste_pos=[22.5, -108.0, 0.0],
-                        safe_sample_pos=[62.0, -83.0, 0.0], 
+                        safe_sample_pos=[60.0, -84.5, 0.0],
+                        # 59.5, -84.5, 0.0 for old wafer Si
                         # 72.0, -10.0, 0.0 # for FTO
                         # 94.0, -19.0, 0.0 # for SEM_yx
                         # 62.0, -83.0, 0.0 # for SEM_xy
@@ -390,7 +392,7 @@ config['hamilton'] = dict(url="http://127.0.0.1:13350",left=dict(valve=dict(pref
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-2\Documents\data', kadiurl="http://127.0.0.1:13377")
 
 config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'hamiltonDriver'],
-                        action=['autolab', 'kadi', 'lang', 'force','hamilton'],
+                        action=['autolab', 'kadi', 'lang', 'force', 'hamilton', 'analysis', 'measure', 'ml'],
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])

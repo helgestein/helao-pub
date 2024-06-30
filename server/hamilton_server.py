@@ -11,6 +11,7 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 from hamilton_driver import Hamilton
+from contextlib import asynccontextmanager
 
 app = FastAPI(title="Hamilton Syringe PumpDriver server V1",
     description="This is a very fancy syringe pump server",
@@ -39,11 +40,16 @@ def read():
     retc = return_class(parameters=None,data=data)
     return retc
 
-@app.on_event("shutdown")
-def shutdown():
+#@app.on_event("shutdown")
+#def shutdown():
+#    p.shutdown()
+#    retc = return_class(parameters=None,data=None)
+#    return retc
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    yield
     p.shutdown()
-    retc = return_class(parameters=None,data=None)
-    return retc
 
 if __name__ == "__main__":
     p = Hamilton(config['hamiltonDriver'])

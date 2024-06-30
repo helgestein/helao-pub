@@ -180,7 +180,7 @@ def recursively_save_dict_contents_to_group( h5file, path, dic):
         if not isinstance(key, str):
             raise ValueError("dict keys must be strings to save to hdf5")
         # save strings, numpy.int64, and numpy.float64 types
-        if isinstance(item, (np.int64, np.float64, str, np.float, float, np.float32,int)):
+        if isinstance(item, (np.int64, np.float64, str, float, np.float32, int)):
             h5file[path + key] = item
             #if not h5file[path + key][()] == item:
             #    raise ValueError('The data representation in the HDF5 file does not match the original dict.')

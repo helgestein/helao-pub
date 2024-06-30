@@ -26,11 +26,13 @@ def keytofile(key:str):
         return server
     if "Driver" in server:
         return server[:-6] + "_server"
+    elif "process" in server:
+        return server
     else:
         return server + "_action"
 
 
-items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']
+items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']+config['launch']['process']
 layout = [[gui.Text(text=item,k=item),
            gui.Button("open",enable_events=True,k=item+"-open"),
            gui.Button("close",button_color='green',disabled=True,enable_events=True,k=item+"-close"),
@@ -58,9 +60,17 @@ while True:
             s[1][1].terminate()
         print("All servers closed")
         break
-    elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator']:
+    elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator'] or event.split('-')[0] in config['launch']['process']:
         s = event.split('-')[0]
-        api =  "server" if event.split('-')[0] in config['launch']['server'] else "action" if event.split('-')[0] in config['launch']['action'] else "orchestrators"
+        api = "orchestrators"
+        if event.split('-')[0] in config['launch']['server']:
+            api = "server" 
+        elif event.split('-')[0] in config['launch']['action']:
+            api = "action"
+        elif event.split('-')[0] in config['launch']['process']:
+            api= "."
+
+        #api =  "server" if event.split('-')[0] in config['launch']['server'] else "action" if event.split('-')[0] in config['launch']['action'] else "orchestrators"
         if event.split('-')[1] == 'open':
             l = list(psutil.process_iter())
             cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]

@@ -1,0 +1,10 @@
+2024-04-26 23:28:08,153 - INFO -run_logger.palmsens_driver 
+ 	 Successfully connected to PalmSens4 [1]. 
+
+2024-04-26 23:28:12,511 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.10558605194091797], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-26 23:28:12,534 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Chronopotentiometry', 'timestamp': '26/04/2024 23:28:10', 'current_arrays': [[10.000028610229492]], 'potential_arrays': [[0.10558605194091797]], 'time_arrays': [[0.0]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+

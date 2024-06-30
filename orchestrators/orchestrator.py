@@ -261,10 +261,10 @@ async def process_native_command(command: str,experiment: dict,**params):
 #params:
 #   collectionkey: string, determines folder and file names for session, may correspond to key of experiment['meta'], in which case name will be indexed by that value.
 #   meta: dict, will be placed as metadata under the header of the run set up by this command
-async def start(experiment: dict,collectionkey:str,meta:dict={}):
-    global tracking,filelocks,serverlocks,status_queues
+async def start(experiment: dict, collectionkey:str, meta: dict={}):
+    global tracking, filelocks, serverlocks, status_queues
     thread = experiment['meta']['thread']
-    if collectionkey in experiment['meta'].keys():#give the directory an index if one is provided
+    if collectionkey in experiment['meta'].keys(): #give the directory an index if one is provided
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}_{experiment['meta'][collectionkey]}")
     else:#or a name without an index if not.
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}")

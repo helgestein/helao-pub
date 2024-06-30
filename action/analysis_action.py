@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from fastapi import FastAPI
 import uvicorn
 #from celery import group
-import hdfdict
+#import hdfdict
 import os
 import requests
 import h5py
@@ -19,6 +19,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 from util import highestName, dict_address, hdf5_group_to_dict
 serverkey = sys.argv[2]
+from contextlib import asynccontextmanager
 
 import scipy.stats as st
 import impedance.models.circuits as circuits
@@ -35,11 +36,11 @@ class return_class(BaseModel):
     parameters :dict = None
     data: dict = None
 
-@app.on_event("startup")
-def memory():
-    global data 
-    #data = {}
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    global data
     data = []
+    yield
 
 '''
 @app.get("/analysis/receiveData")

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 import math
+from contextlib import asynccontextmanager
 #from celery import group
 
 #from mischbares_small import config
@@ -34,14 +35,19 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
+#@app.on_event("startup")
+#def memory():
+#    global data
+#    data = {}
+#    global awaitedpoints
+#    awaitedpoints = {}
 
-@app.on_event("startup")
-def memory():
-    global data
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    global data, awaitedpoints
     data = {}
-    global awaitedpoints
     awaitedpoints = {}
-
+    yield
 
 @app.get("/ml/receiveData")
 def receiveData(path: str, run: int, address: str, modelid: int = 0):

@@ -1,0 +1,65 @@
+2024-04-15 17:17:53,703 - INFO -run_logger.driver.palmsens_driver 
+ 	 Successfully connected to PalmSens4 [1]. 
+
+2024-04-15 17:17:57,420 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 1, 'frequency': [100000.0], 'zre': [558.6487528115993], 'zim': [45.63583218651166]} 
+
+2024-04-15 17:17:58,636 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 2, 'frequency': [74989.421875], 'zre': [560.1374579105285], 'zim': [64.21028133780086]} 
+
+2024-04-15 17:17:59,885 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 3, 'frequency': [56234.1328125], 'zre': [559.8330248134644], 'zim': [85.56552213718537]} 
+
+2024-04-15 17:18:01,099 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 4, 'frequency': [42169.6484375], 'zre': [560.3831067876852], 'zim': [113.87753171878498]} 
+
+2024-04-15 17:18:02,311 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 5, 'frequency': [31622.77734375], 'zre': [561.2784308131893], 'zim': [151.33770054571346]} 
+
+2024-04-15 17:18:03,513 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 6, 'frequency': [23713.736328125], 'zre': [563.2179089231341], 'zim': [202.28836059275355]} 
+
+2024-04-15 17:18:04,749 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 7, 'frequency': [17782.794921875], 'zre': [566.8583222045187], 'zim': [268.9538124851572]} 
+
+2024-04-15 17:18:05,999 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 8, 'frequency': [13335.2138671875], 'zre': [572.4750962793139], 'zim': [358.6835047333399]} 
+
+2024-04-15 17:18:07,226 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 9, 'frequency': [10000.0], 'zre': [582.5808100258078], 'zim': [477.4299063654524]} 
+
+2024-04-15 17:18:07,286 - INFO -run_logger.driver.palmsens_driver 
+ 	 result:
+{'Title': 'Impedance Spectroscopy', 'timestamp': '15/04/2024 17:17:54', 'current_arrays': [[2384.185791015625, 23.84185791015625, -245.57113647460938, -245.57113647460938, -226.49765014648438, -240.80276489257812, -231.26602172851562, -231.26602172851562, -231.26602172851562]], 'potential_arrays': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], 'time_arrays': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], 'freq_arrays': [[100000.0, 74989.421875, 56234.1328125, 42169.6484375, 31622.77734375, 23713.736328125, 17782.794921875, 13335.2138671875, 10000.0]], 'zre_arrays': [[558.6487528115993, 560.1374579105285, 559.8330248134644, 560.3831067876852, 561.2784308131893, 563.2179089231341, 566.8583222045187, 572.4750962793139, 582.5808100258078]], 'zim_arrays': [[45.63583218651166, 64.21028133780086, 85.56552213718537, 113.87753171878498, 151.33770054571346, 202.28836059275355, 268.9538124851572, 358.6835047333399, 477.4299063654524]], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-04-15 17:18:24,594 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 1, 'frequency': [100000.0], 'zre': [558.5795045551274], 'zim': [45.371534640618464]} 
+
+2024-04-15 17:18:25,802 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 2, 'frequency': [74989.421875], 'zre': [560.3711100482479], 'zim': [63.900624482998076]} 
+
+2024-04-15 17:18:27,036 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 3, 'frequency': [56234.1328125], 'zre': [559.7941498940584], 'zim': [85.33391117570062]} 
+
+2024-04-15 17:18:28,253 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 4, 'frequency': [42169.6484375], 'zre': [560.079777012083], 'zim': [113.87286752859411]} 
+
+2024-04-15 17:18:29,467 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 5, 'frequency': [31622.77734375], 'zre': [561.2275773245315], 'zim': [151.53438896847462]} 
+
+2024-04-15 17:18:30,669 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 6, 'frequency': [23713.736328125], 'zre': [563.2185574717605], 'zim': [202.09220421282077]} 
+
+2024-04-15 17:18:31,902 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 7, 'frequency': [17782.794921875], 'zre': [566.434216899531], 'zim': [269.61298834570374]} 
+
+2024-04-15 17:18:33,143 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 8, 'frequency': [13335.2138671875], 'zre': [572.3327735292734], 'zim': [358.2651500393316]} 
+
+2024-04-15 17:18:34,343 - INFO -run_logger.driver.palmsens_driver 
+ 	 Data received: {'index': 9, 'frequency': [10000.0], 'zre': [583.036017045651], 'zim': [477.89932495841555]} 
+
+2024-04-15 17:18:34,386 - INFO -run_logger.driver.palmsens_driver 
+ 	 result:
+{'Title': 'Impedance Spectroscopy', 'timestamp': '15/04/2024 17:18:21', 'current_arrays': [[2384.185791015625, 23.84185791015625, -245.57113647460938, -245.57113647460938, -226.49765014648438, -245.57113647460938, -231.26602172851562, -231.26602172851562, -226.49765014648438]], 'potential_arrays': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], 'time_arrays': [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]], 'freq_arrays': [[100000.0, 74989.421875, 56234.1328125, 42169.6484375, 31622.77734375, 23713.736328125, 17782.794921875, 13335.2138671875, 10000.0]], 'zre_arrays': [[558.5795045551274, 560.3711100482479, 559.7941498940584, 560.079777012083, 561.2275773245315, 563.2185574717605, 566.434216899531, 572.3327735292734, 583.036017045651]], 'zim_arrays': [[45.371534640618464, 63.900624482998076, 85.33391117570062, 113.87286752859411, 151.53438896847462, 202.09220421282077, 269.61298834570374, 358.2651500393316, 477.89932495841555]], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+

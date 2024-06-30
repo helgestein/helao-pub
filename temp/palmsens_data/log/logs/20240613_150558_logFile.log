@@ -1,0 +1,1207 @@
+2024-06-13 15:06:00,008 - INFO -run_logger.palmsens_driver 
+ 	 Successfully connected to PalmSens4 [1]. 
+
+2024-06-13 15:06:04,737 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [-0.49996280670166016], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.02384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,754 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [-0.5099630355834961], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.02384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,800 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [-0.519963264465332], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.02384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,846 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [-0.5299625396728516], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.02384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,892 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [-0.5399627685546875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.02384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,939 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [-0.5499629974365234], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.002384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:04,986 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [-0.5599632263183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.002384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,079 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [-0.5699634552001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.002384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,126 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [-0.5799627304077148], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.002384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,173 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [-0.5899629592895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.002384185791015625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,220 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [-0.5999631881713867], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007152557373046875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,267 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 12, 'x': [-0.6099634170532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,313 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 13, 'x': [-0.6199636459350586], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007152557373046875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,359 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 14, 'x': [-0.6298847198486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,406 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 15, 'x': [-0.6398849487304688], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007152557373046875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,452 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 16, 'x': [-0.6498851776123047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,499 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 17, 'x': [-0.6598854064941406], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,545 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 18, 'x': [-0.6698856353759766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,592 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 19, 'x': [-0.6798849105834961], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,639 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 20, 'x': [-0.689885139465332], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,686 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 21, 'x': [-0.699885368347168], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,779 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 22, 'x': [-0.7098855972290039], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,826 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 23, 'x': [-0.7198858261108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,873 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 24, 'x': [-0.7298851013183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,919 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 25, 'x': [-0.7398853302001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:05,966 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 26, 'x': [-0.7498855590820312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,012 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 27, 'x': [-0.7598857879638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,059 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 28, 'x': [-0.7698078155517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,105 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 29, 'x': [-0.7798080444335938], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,152 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 30, 'x': [-0.7898073196411133], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0038385391235351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,199 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 31, 'x': [-0.7998075485229492], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,245 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 32, 'x': [-0.8098077774047852], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036954879760742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,293 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 33, 'x': [-0.8198080062866211], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,339 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 34, 'x': [-0.829808235168457], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036954879760742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,386 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 35, 'x': [-0.8398075103759766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,478 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 36, 'x': [-0.8498077392578125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,525 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 37, 'x': [-0.8598079681396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,572 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 38, 'x': [-0.8698081970214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0038385391235351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,620 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 39, 'x': [-0.8798084259033203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,666 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 40, 'x': [-0.8898077011108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036954879760742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,714 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 41, 'x': [-0.8998079299926758], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,760 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 42, 'x': [-0.9098081588745117], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,807 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 43, 'x': [-0.9197301864624023], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,853 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 44, 'x': [-0.9297304153442383], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,901 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 45, 'x': [-0.9397296905517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,947 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 46, 'x': [-0.9497299194335938], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:06,993 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 47, 'x': [-0.9597301483154297], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009775161743164062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,039 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 48, 'x': [-0.9697303771972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,101 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 49, 'x': [-0.9797306060791016], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,147 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 50, 'x': [-0.9897298812866211], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,194 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 51, 'x': [-0.999730110168457], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,241 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 52, 'x': [-0.9897298812866211], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0038385391235351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,287 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 53, 'x': [-0.9797306060791016], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009775161743164062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,334 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 54, 'x': [-0.9697303771972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,426 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 55, 'x': [-0.9597301483154297], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,473 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 56, 'x': [-0.9497299194335938], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,521 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 57, 'x': [-0.9397296905517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009775161743164062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,567 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 58, 'x': [-0.9297304153442383], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,614 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 59, 'x': [-0.9197301864624023], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,660 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 60, 'x': [-0.9098081588745117], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,707 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 61, 'x': [-0.8998079299926758], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009775161743164062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,754 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 62, 'x': [-0.8898077011108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036954879760742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,799 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 63, 'x': [-0.8798084259033203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,847 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 64, 'x': [-0.8698081970214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,894 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 65, 'x': [-0.8598079681396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,942 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 66, 'x': [-0.8498077392578125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0038862228393554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:07,989 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 67, 'x': [-0.8398075103759766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,037 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 68, 'x': [-0.829808235168457], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036954879760742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,083 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 69, 'x': [-0.8198080062866211], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,178 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 70, 'x': [-0.8098077774047852], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,225 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 71, 'x': [-0.7998075485229492], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008821487426757812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,271 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 72, 'x': [-0.7898073196411133], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,319 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 73, 'x': [-0.7798080444335938], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,366 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 74, 'x': [-0.7698078155517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036478042602539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,411 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 75, 'x': [-0.7598857879638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,458 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 76, 'x': [-0.7498855590820312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,505 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 77, 'x': [-0.7398853302001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,554 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 78, 'x': [-0.7298851013183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,598 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 79, 'x': [-0.7198858261108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,644 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 80, 'x': [-0.7098855972290039], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,692 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 81, 'x': [-0.699885368347168], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,739 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 82, 'x': [-0.689885139465332], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,787 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 83, 'x': [-0.6798849105834961], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,834 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 84, 'x': [-0.6698856353759766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,928 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 85, 'x': [-0.6598854064941406], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0008344650268554688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:08,974 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 86, 'x': [-0.6498851776123047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037908554077148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,020 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 87, 'x': [-0.6398849487304688], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,067 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 88, 'x': [-0.6298847198486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035047531127929688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,114 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 89, 'x': [-0.6199636459350586], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,161 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 90, 'x': [-0.6099634170532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,209 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 91, 'x': [-0.5999631881713867], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,256 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 92, 'x': [-0.5899629592895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,302 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 93, 'x': [-0.5799627304077148], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007390975952148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,347 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 94, 'x': [-0.5699634552001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,394 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 95, 'x': [-0.5599632263183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,440 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 96, 'x': [-0.5499629974365234], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0037431716918945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,487 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 97, 'x': [-0.5399627685546875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007390975952148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,533 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 98, 'x': [-0.5299625396728516], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,625 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 99, 'x': [-0.519963264465332], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007390975952148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,673 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 100, 'x': [-0.5099630355834961], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,719 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 101, 'x': [-0.49996280670166016], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,765 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 102, 'x': [-0.4899625778198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,812 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 103, 'x': [-0.4800405502319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0007390975952148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,859 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 104, 'x': [-0.47004127502441406], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,907 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 105, 'x': [-0.4600410461425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:09,953 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 106, 'x': [-0.4500408172607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,000 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 107, 'x': [-0.44004058837890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,046 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 108, 'x': [-0.4300403594970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,093 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 109, 'x': [-0.4200410842895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,139 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 110, 'x': [-0.41004085540771484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,186 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 111, 'x': [-0.4000406265258789], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,232 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 112, 'x': [-0.39004039764404297], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,325 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 113, 'x': [-0.38004016876220703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,372 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 114, 'x': [-0.3700408935546875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,419 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 115, 'x': [-0.36004066467285156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,466 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 116, 'x': [-0.3500404357910156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,514 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 117, 'x': [-0.340118408203125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,561 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 118, 'x': [-0.33011817932128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,608 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 119, 'x': [-0.3201179504394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,656 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 120, 'x': [-0.3101186752319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,702 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 121, 'x': [-0.30011844635009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,749 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 122, 'x': [-0.2901182174682617], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,795 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 123, 'x': [-0.2801179885864258], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,841 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 124, 'x': [-0.27011775970458984], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,888 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 125, 'x': [-0.2601184844970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,935 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 126, 'x': [-0.2501182556152344], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:10,982 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 127, 'x': [-0.24011802673339844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,074 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 128, 'x': [-0.2301177978515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,121 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 129, 'x': [-0.22011756896972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,168 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 130, 'x': [-0.21011829376220703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,213 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 131, 'x': [-0.2001962661743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,261 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 132, 'x': [-0.19019603729248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,308 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 133, 'x': [-0.18019580841064453], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,355 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 134, 'x': [-0.1701955795288086], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,404 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 135, 'x': [-0.16019630432128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,449 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 136, 'x': [-0.15019607543945312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,496 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 137, 'x': [-0.1401958465576172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,543 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 138, 'x': [-0.13019561767578125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,591 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 139, 'x': [-0.12019538879394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,638 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 140, 'x': [-0.11019611358642578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0030279159545898438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,685 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 141, 'x': [-0.10019588470458984], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,732 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 142, 'x': [-0.0901956558227539], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0028848648071289062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,809 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 143, 'x': [-0.08019542694091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,833 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 144, 'x': [-0.07019519805908203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0027418136596679688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,920 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 145, 'x': [-0.0601959228515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:11,980 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 146, 'x': [-0.050273895263671875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0025510787963867188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,013 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 147, 'x': [-0.04027366638183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,060 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 148, 'x': [-0.0302734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0022649765014648438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,107 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 149, 'x': [-0.020273208618164062], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0007390975952148438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,155 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 150, 'x': [-0.010272979736328125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0018358230590820312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,201 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 151, 'x': [-0.00027370452880859375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0013113021850585938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,247 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 152, 'x': [0.009726524353027344], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0012636184692382812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,294 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 153, 'x': [0.01972675323486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0016927719116210938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,341 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 154, 'x': [0.02972698211669922], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,387 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 155, 'x': [0.039727210998535156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0020742416381835938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,434 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 156, 'x': [0.04972648620605469], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,481 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 157, 'x': [0.059726715087890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0023126602172851562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,573 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 158, 'x': [0.06972694396972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,621 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 159, 'x': [0.0797271728515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0025033950805664062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,668 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 160, 'x': [0.08964920043945312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00011920928955078125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,716 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 161, 'x': [0.09964847564697266], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0026941299438476562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,763 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 162, 'x': [0.1096487045288086], 'x_unit': 'V', 'x_type': 'Potential', 'y': [2.384185791015625e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,810 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 163, 'x': [0.11964893341064453], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0027894973754882812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,856 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 164, 'x': [0.12964916229248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,901 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 165, 'x': [0.1396493911743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0028848648071289062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,947 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 166, 'x': [0.14964866638183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00016689300537109375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:12,993 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 167, 'x': [0.15964889526367188], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029325485229492188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,039 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 168, 'x': [0.1696491241455078], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00016689300537109375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,086 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 169, 'x': [0.17964935302734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0028848648071289062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,133 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 170, 'x': [0.1896495819091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,181 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 171, 'x': [0.19964885711669922], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029325485229492188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,275 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 172, 'x': [0.20964908599853516], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,321 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 173, 'x': [0.2196493148803711], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,368 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 174, 'x': [0.22957134246826172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00016689300537109375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,415 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 175, 'x': [0.23957157135009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,462 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 176, 'x': [0.2495708465576172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,509 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 177, 'x': [0.2595710754394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030279159545898438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,555 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 178, 'x': [0.26957130432128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,602 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 179, 'x': [0.279571533203125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,648 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 180, 'x': [0.28957176208496094], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,695 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 181, 'x': [0.29957103729248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,756 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 182, 'x': [0.3095712661743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,802 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 183, 'x': [0.31957149505615234], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,849 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 184, 'x': [0.3295717239379883], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,898 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 185, 'x': [0.3395719528198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030279159545898438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,946 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 186, 'x': [0.34957122802734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:13,992 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 187, 'x': [0.3595714569091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,053 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 188, 'x': [0.3694934844970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,100 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 189, 'x': [0.37949371337890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,146 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 190, 'x': [0.3894939422607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,193 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 191, 'x': [0.3994941711425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,240 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 192, 'x': [0.40949344635009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,286 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 193, 'x': [0.4194936752319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,333 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 194, 'x': [0.42949390411376953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,380 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 195, 'x': [0.43949413299560547], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,473 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 196, 'x': [0.4494943618774414], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,521 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 197, 'x': [0.45949363708496094], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,568 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 198, 'x': [0.4694938659667969], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,614 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 199, 'x': [0.4794940948486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,662 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 200, 'x': [0.48949432373046875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,707 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 201, 'x': [0.4994945526123047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,754 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 202, 'x': [0.5094938278198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,800 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 203, 'x': [0.5194158554077148], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,847 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 204, 'x': [0.5294160842895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,894 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 205, 'x': [0.5394163131713867], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,940 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 206, 'x': [0.5494165420532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:14,987 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 207, 'x': [0.5594158172607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,033 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 208, 'x': [0.5694160461425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,080 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 209, 'x': [0.5794162750244141], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,172 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 210, 'x': [0.58941650390625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,219 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 211, 'x': [0.5994167327880859], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,266 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 212, 'x': [0.6094160079956055], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,311 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 213, 'x': [0.6194162368774414], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,358 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 214, 'x': [0.6294164657592773], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,406 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 215, 'x': [0.6394166946411133], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,453 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 216, 'x': [0.6494169235229492], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,500 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 217, 'x': [0.6593389511108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,546 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 218, 'x': [0.6693382263183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,594 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 219, 'x': [0.6793384552001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,640 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 220, 'x': [0.6893386840820312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,686 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 221, 'x': [0.6993389129638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,733 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 222, 'x': [0.7093391418457031], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,781 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 223, 'x': [0.7193384170532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,872 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 224, 'x': [0.7293386459350586], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,919 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 225, 'x': [0.7393388748168945], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:15,966 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 226, 'x': [0.7493391036987305], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,012 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 227, 'x': [0.7593393325805664], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,059 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 228, 'x': [0.7693386077880859], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,105 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 229, 'x': [0.7793388366699219], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,152 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 230, 'x': [0.7893390655517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,198 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 231, 'x': [0.7992610931396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,246 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 232, 'x': [0.8092613220214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,293 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 233, 'x': [0.8192605972290039], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,351 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 234, 'x': [0.8292608261108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,401 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 235, 'x': [0.8392610549926758], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,433 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 236, 'x': [0.8492612838745117], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,485 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 237, 'x': [0.8592615127563477], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,534 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 238, 'x': [0.8692607879638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,580 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 239, 'x': [0.8792610168457031], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,631 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 240, 'x': [0.8892612457275391], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,723 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 241, 'x': [0.899261474609375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,765 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 242, 'x': [0.9092617034912109], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,815 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 243, 'x': [0.9192609786987305], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,865 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 244, 'x': [0.9292612075805664], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,898 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 245, 'x': [0.939183235168457], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,932 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 246, 'x': [0.949183464050293], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:16,982 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 247, 'x': [0.9591836929321289], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,082 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 248, 'x': [0.9691829681396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,083 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 249, 'x': [0.9791831970214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,148 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 250, 'x': [0.9891834259033203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,196 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 251, 'x': [0.9991836547851562], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,244 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 252, 'x': [0.9891834259033203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,294 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 253, 'x': [0.9791831970214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,340 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 254, 'x': [0.9691829681396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,421 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 255, 'x': [0.9591836929321289], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,463 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 256, 'x': [0.949183464050293], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,508 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 257, 'x': [0.939183235168457], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,560 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 258, 'x': [0.9292612075805664], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,607 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 259, 'x': [0.9192609786987305], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,654 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 260, 'x': [0.9092617034912109], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,700 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 261, 'x': [0.899261474609375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,747 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 262, 'x': [0.8892612457275391], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,797 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 263, 'x': [0.8792610168457031], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,849 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 264, 'x': [0.8692607879638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,897 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 265, 'x': [0.8592615127563477], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,932 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 266, 'x': [0.8492612838745117], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:17,979 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 267, 'x': [0.8392610549926758], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,032 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 268, 'x': [0.8292608261108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,082 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 269, 'x': [0.8192605972290039], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,176 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 270, 'x': [0.8092613220214844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,222 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 271, 'x': [0.7992610931396484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,268 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 272, 'x': [0.7893390655517578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,316 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 273, 'x': [0.7793388366699219], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,361 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 274, 'x': [0.7693386077880859], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,401 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 275, 'x': [0.7593393325805664], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,451 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 276, 'x': [0.7493391036987305], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,496 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 277, 'x': [0.7393388748168945], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,543 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 278, 'x': [0.7293386459350586], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,591 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 279, 'x': [0.7193384170532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,636 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 280, 'x': [0.7093391418457031], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,683 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 281, 'x': [0.6993389129638672], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,730 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 282, 'x': [0.6893386840820312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,780 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 283, 'x': [0.6793384552001953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,830 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 284, 'x': [0.6693382263183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,877 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 285, 'x': [0.6593389511108398], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:18,973 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 286, 'x': [0.6494169235229492], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,013 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 287, 'x': [0.6394166946411133], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,065 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 288, 'x': [0.6294164657592773], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,112 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 289, 'x': [0.6194162368774414], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,149 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 290, 'x': [0.6094160079956055], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,203 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 291, 'x': [0.5994167327880859], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,248 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 292, 'x': [0.58941650390625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,299 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 293, 'x': [0.5794162750244141], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,348 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 294, 'x': [0.5694160461425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,390 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 295, 'x': [0.5594158172607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,432 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 296, 'x': [0.5494165420532227], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,482 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 297, 'x': [0.5394163131713867], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,531 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 298, 'x': [0.5294160842895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,612 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 299, 'x': [0.5194158554077148], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,649 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 300, 'x': [0.5094938278198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,710 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 301, 'x': [0.4994945526123047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,764 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 302, 'x': [0.48949432373046875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,816 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 303, 'x': [0.4794940948486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,866 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 304, 'x': [0.4694938659667969], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,915 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 305, 'x': [0.45949363708496094], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:19,966 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 306, 'x': [0.4494943618774414], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,018 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 307, 'x': [0.43949413299560547], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,061 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 308, 'x': [0.42949390411376953], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,117 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 309, 'x': [0.4194936752319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0032186508178710938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,157 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 310, 'x': [0.40949344635009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,198 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 311, 'x': [0.3994941711425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,244 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 312, 'x': [0.3894939422607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00035762786865234375], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,285 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 313, 'x': [0.37949371337890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,331 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 314, 'x': [0.3694934844970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,413 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 315, 'x': [0.3595714569091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,445 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 316, 'x': [0.34957122802734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,500 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 317, 'x': [0.3395719528198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,546 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 318, 'x': [0.3295717239379883], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,586 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 319, 'x': [0.31957149505615234], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,646 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 320, 'x': [0.3095712661743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,682 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 321, 'x': [0.29957103729248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030755996704101562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,728 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 322, 'x': [0.28957176208496094], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,778 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 323, 'x': [0.279571533203125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030279159545898438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,833 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 324, 'x': [0.26957130432128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00026226043701171875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,901 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 325, 'x': [0.2595710754394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0030279159545898438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,947 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 326, 'x': [0.2495708465576172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:20,981 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 327, 'x': [0.23957157135009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,038 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 328, 'x': [0.22957134246826172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,086 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 329, 'x': [0.2196493148803711], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,131 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 330, 'x': [0.20964908599853516], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,212 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 331, 'x': [0.19964885711669922], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,264 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 332, 'x': [0.1896495819091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00011920928955078125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,313 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 333, 'x': [0.17964935302734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0029325485229492188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,353 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 334, 'x': [0.1696491241455078], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00011920928955078125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,403 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 335, 'x': [0.15964889526367188], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0028848648071289062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,441 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 336, 'x': [0.14964866638183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,483 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 337, 'x': [0.1396493911743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0028371810913085938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,529 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 338, 'x': [0.12964916229248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,619 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 339, 'x': [0.11964893341064453], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0028371810913085938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,665 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 340, 'x': [0.1096487045288086], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,712 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 341, 'x': [0.09964847564697266], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0027418136596679688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,765 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 342, 'x': [0.08964920043945312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00011920928955078125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,810 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 343, 'x': [0.0797271728515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0025987625122070312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,863 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 344, 'x': [0.06972694396972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,910 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 345, 'x': [0.059726715087890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0023603439331054688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,948 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 346, 'x': [0.04972648620605469], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:21,987 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 347, 'x': [0.039727210998535156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0020742416381835938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,036 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 348, 'x': [0.02972698211669922], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0009298324584960938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,083 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 349, 'x': [0.01972675323486328], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0016450881958007812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,128 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 350, 'x': [0.009726524353027344], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0013589859008789062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,214 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 351, 'x': [-0.00027370452880859375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0011682510375976562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,258 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 352, 'x': [-0.010272979736328125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0017881393432617188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,308 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 353, 'x': [-0.020273208618164062], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.0007867813110351562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,364 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 354, 'x': [-0.0302734375], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0022172927856445312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,416 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 355, 'x': [-0.04027366638183594], 'x_unit': 'V', 'x_type': 'Potential', 'y': [0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,466 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 356, 'x': [-0.050273895263671875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0025510787963867188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,517 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 357, 'x': [-0.0601959228515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [7.152557373046875e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,570 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 358, 'x': [-0.07019519805908203], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0028371810913085938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,615 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 359, 'x': [-0.08019542694091797], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-2.384185791015625e-05], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,660 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 360, 'x': [-0.0901956558227539], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0029802322387695312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,696 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 361, 'x': [-0.10019588470458984], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00021457672119140625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,747 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 362, 'x': [-0.11019611358642578], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0031232833862304688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,797 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 363, 'x': [-0.12019538879394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,844 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 364, 'x': [-0.13019561767578125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,889 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 365, 'x': [-0.1401958465576172], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00030994415283203125], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,930 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 366, 'x': [-0.15019607543945312], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0031709671020507812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:22,978 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 367, 'x': [-0.16019630432128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,033 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 368, 'x': [-0.1701955795288086], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0032663345336914062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,080 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 369, 'x': [-0.18019580841064453], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00045299530029296875], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,129 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 370, 'x': [-0.19019603729248047], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,178 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 371, 'x': [-0.2001962661743164], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,279 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 372, 'x': [-0.21011829376220703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,283 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 373, 'x': [-0.22011756896972656], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.00040531158447265625], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,371 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 374, 'x': [-0.2301177978515625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,414 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 375, 'x': [-0.24011802673339844], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005483627319335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,465 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 376, 'x': [-0.2501182556152344], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033140182495117188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,507 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 377, 'x': [-0.2601184844970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,555 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 378, 'x': [-0.27011775970458984], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,602 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 379, 'x': [-0.2801179885864258], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,662 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 380, 'x': [-0.2901182174682617], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,710 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 381, 'x': [-0.30011844635009766], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005006790161132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,745 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 382, 'x': [-0.3101186752319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,792 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 383, 'x': [-0.3201179504394531], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,848 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 384, 'x': [-0.33011817932128906], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0033617019653320312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,895 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 385, 'x': [-0.340118408203125], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,932 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 386, 'x': [-0.3500404357910156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:23,978 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 387, 'x': [-0.36004066467285156], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,026 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 388, 'x': [-0.3700408935546875], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,082 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 389, 'x': [-0.38004016876220703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,131 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 390, 'x': [-0.39004039764404297], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034093856811523438], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,178 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 391, 'x': [-0.4000406265258789], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,269 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 392, 'x': [-0.41004085540771484], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035047531127929688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,314 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 393, 'x': [-0.4200410842895508], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,356 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 394, 'x': [-0.4300403594970703], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0034570693969726562], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,408 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 395, 'x': [-0.44004058837890625], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006914138793945312], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,447 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 396, 'x': [-0.4500408172607422], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0036001205444335938], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,496 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 397, 'x': [-0.4600410461425781], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0006437301635742188], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,540 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 398, 'x': [-0.47004127502441406], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035524368286132812], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,597 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 399, 'x': [-0.4800405502319336], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0005960464477539062], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,642 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 400, 'x': [-0.4899625778198242], 'x_unit': 'V', 'x_type': 'Potential', 'y': [-0.0035047531127929688], 'y_unit': 'µA', 'y_type': 'Current'} 
+
+2024-06-13 15:06:24,748 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Cyclic Voltammetry', 'timestamp': '13/06/2024 15:06:03', 'current_arrays': [[0.02384185791015625, 0.02384185791015625, 0.02384185791015625, 0.02384185791015625, 0.02384185791015625, -0.002384185791015625, -0.002384185791015625, -0.002384185791015625, -0.002384185791015625, -0.002384185791015625, -0.0007152557373046875, -0.0035762786865234375, -0.0007152557373046875, -0.0035762786865234375, -0.0007152557373046875, -0.0034570693969726562, -0.0008344650268554688, -0.0035524368286132812, -0.0008821487426757812, -0.0036478042602539062, -0.0006914138793945312, -0.0036001205444335938, -0.0008344650268554688, -0.0036001205444335938, -0.0009298324584960938, -0.0037908554077148438, -0.0008821487426757812, -0.0037431716918945312, -0.0008821487426757812, -0.0038385391235351562, -0.0008821487426757812, -0.0036954879760742188, -0.0008821487426757812, -0.0036954879760742188, -0.0008821487426757812, -0.0036478042602539062, -0.0008821487426757812, -0.0038385391235351562, -0.0009298324584960938, -0.0036954879760742188, -0.0007867813110351562, -0.0037908554077148438, -0.0009298324584960938, -0.0036478042602539062, -0.0009298324584960938, -0.0037431716918945312, -0.0009775161743164062, -0.0037908554077148438, -0.0009298324584960938, -0.0037908554077148438, -0.0009298324584960938, -0.0038385391235351562, -0.0009775161743164062, -0.0036478042602539062, -0.0009298324584960938, -0.0037908554077148438, -0.0009775161743164062, -0.0037431716918945312, -0.0009298324584960938, -0.0037431716918945312, -0.0009775161743164062, -0.0036954879760742188, -0.0008821487426757812, -0.0036478042602539062, -0.0008344650268554688, -0.0038862228393554688, -0.0009298324584960938, -0.0036954879760742188, -0.0008821487426757812, -0.0037431716918945312, -0.0008821487426757812, -0.0036001205444335938, -0.0009298324584960938, -0.0036478042602539062, -0.0008344650268554688, -0.0036001205444335938, -0.0008344650268554688, -0.0036001205444335938, -0.0008344650268554688, -0.0037908554077148438, -0.0008344650268554688, -0.0036001205444335938, -0.0008344650268554688, -0.0036001205444335938, -0.0008344650268554688, -0.0037908554077148438, -0.0007867813110351562, -0.0035047531127929688, -0.0007867813110351562, -0.0035524368286132812, -0.0007867813110351562, -0.0036001205444335938, -0.0007390975952148438, -0.0035524368286132812, -0.0007867813110351562, -0.0037431716918945312, -0.0007390975952148438, -0.0035524368286132812, -0.0007390975952148438, -0.0034570693969726562, -0.0006437301635742188, -0.0034093856811523438, -0.0007390975952148438, -0.0034093856811523438, -0.0006914138793945312, -0.0034570693969726562, -0.0006437301635742188, -0.0035524368286132812, -0.0006437301635742188, -0.0034570693969726562, -0.0006914138793945312, -0.0034093856811523438, -0.0006437301635742188, -0.0034570693969726562, -0.0006437301635742188, -0.0033617019653320312, -0.0005960464477539062, -0.0034570693969726562, -0.0005960464477539062, -0.0033140182495117188, -0.0005960464477539062, -0.0033617019653320312, -0.0005483627319335938, -0.0032663345336914062, -0.0005006790161132812, -0.0033617019653320312, -0.0005483627319335938, -0.0032663345336914062, -0.00045299530029296875, -0.0032186508178710938, -0.00035762786865234375, -0.0031709671020507812, -0.00045299530029296875, -0.0032186508178710938, -0.00040531158447265625, -0.0031232833862304688, -0.00040531158447265625, -0.0030755996704101562, -0.00035762786865234375, -0.0030279159545898438, -0.00021457672119140625, -0.0028848648071289062, -7.152557373046875e-05, -0.0027418136596679688, 7.152557373046875e-05, -0.0025510787963867188, 0.00035762786865234375, -0.0022649765014648438, 0.0007390975952148438, -0.0018358230590820312, 0.0013113021850585938, -0.0012636184692382812, 0.0016927719116210938, -0.0009298324584960938, 0.0020742416381835938, -0.0005483627319335938, 0.0023126602172851562, -0.00026226043701171875, 0.0025033950805664062, -0.00011920928955078125, 0.0026941299438476562, 2.384185791015625e-05, 0.0027894973754882812, 7.152557373046875e-05, 0.0028848648071289062, 0.00016689300537109375, 0.0029325485229492188, 0.00016689300537109375, 0.0028848648071289062, 0.00021457672119140625, 0.0029325485229492188, 0.00030994415283203125, 0.0029802322387695312, 0.00016689300537109375, 0.0029802322387695312, 0.00030994415283203125, 0.0030279159545898438, 0.00021457672119140625, 0.0029802322387695312, 0.00026226043701171875, 0.0030755996704101562, 0.00030994415283203125, 0.0030755996704101562, 0.00026226043701171875, 0.0030279159545898438, 0.00030994415283203125, 0.0031232833862304688, 0.00030994415283203125, 0.0030755996704101562, 0.00040531158447265625, 0.0031709671020507812, 0.00035762786865234375, 0.0031709671020507812, 0.00035762786865234375, 0.0031709671020507812, 0.00045299530029296875, 0.0031709671020507812, 0.00045299530029296875, 0.0031232833862304688, 0.0005006790161132812, 0.0031709671020507812, 0.0005006790161132812, 0.0031709671020507812, 0.0005006790161132812, 0.0032186508178710938, 0.0005006790161132812, 0.0032186508178710938, 0.0005006790161132812, 0.0032186508178710938, 0.0005483627319335938, 0.0032663345336914062, 0.0005006790161132812, 0.0032663345336914062, 0.0005006790161132812, 0.0032186508178710938, 0.0005006790161132812, 0.0032186508178710938, 0.0005483627319335938, 0.0032663345336914062, 0.0005483627319335938, 0.0032663345336914062, 0.0005960464477539062, 0.0033140182495117188, 0.0006437301635742188, 0.0033140182495117188, 0.0005960464477539062, 0.0033140182495117188, 0.0005483627319335938, 0.0033617019653320312, 0.0006437301635742188, 0.0034093856811523438, 0.0006437301635742188, 0.0033617019653320312, 0.0005960464477539062, 0.0033617019653320312, 0.0006437301635742188, 0.0034093856811523438, 0.0006437301635742188, 0.0033617019653320312, 0.0006914138793945312, 0.0034093856811523438, 0.0006914138793945312, 0.0033617019653320312, 0.0006437301635742188, 0.0034093856811523438, 0.0006914138793945312, 0.0034093856811523438, 0.0006914138793945312, 0.0034570693969726562, 0.0006914138793945312, 0.0034093856811523438, 0.0006914138793945312, 0.0034093856811523438, 0.0006914138793945312, 0.0034570693969726562, 0.0006437301635742188, 0.0034093856811523438, 0.0005483627319335938, 0.0034093856811523438, 0.0006914138793945312, 0.0034093856811523438, 0.0006437301635742188, 0.0033617019653320312, 0.0006914138793945312, 0.0033617019653320312, 0.0006437301635742188, 0.0033617019653320312, 0.0005483627319335938, 0.0033140182495117188, 0.0005960464477539062, 0.0033140182495117188, 0.0005960464477539062, 0.0033617019653320312, 0.0005960464477539062, 0.0033140182495117188, 0.0005483627319335938, 0.0033140182495117188, 0.0005006790161132812, 0.0033140182495117188, 0.0005960464477539062, 0.0033617019653320312, 0.0005483627319335938, 0.0032663345336914062, 0.0005006790161132812, 0.0033140182495117188, 0.0005483627319335938, 0.0032186508178710938, 0.0005006790161132812, 0.0032663345336914062, 0.0005006790161132812, 0.0032663345336914062, 0.00045299530029296875, 0.0032186508178710938, 0.0005006790161132812, 0.0031709671020507812, 0.00040531158447265625, 0.0031709671020507812, 0.00045299530029296875, 0.0032186508178710938, 0.00040531158447265625, 0.0031709671020507812, 0.00040531158447265625, 0.0031709671020507812, 0.00040531158447265625, 0.0031709671020507812, 0.00035762786865234375, 0.0031232833862304688, 0.00030994415283203125, 0.0032186508178710938, 0.00040531158447265625, 0.0031709671020507812, 0.00035762786865234375, 0.0031232833862304688, 0.00030994415283203125, 0.0030755996704101562, 0.00030994415283203125, 0.0031232833862304688, 0.00026226043701171875, 0.0030755996704101562, 0.00026226043701171875, 0.0030755996704101562, 0.00026226043701171875, 0.0030279159545898438, 0.00026226043701171875, 0.0030279159545898438, 0.00021457672119140625, 0.0029802322387695312, 0.00021457672119140625, 0.0029802322387695312, 0.00021457672119140625, 0.0029802322387695312, 0.00011920928955078125, 0.0029325485229492188, 0.00011920928955078125, 0.0028848648071289062, 7.152557373046875e-05, 0.0028371810913085938, 7.152557373046875e-05, 0.0028371810913085938, -7.152557373046875e-05, 0.0027418136596679688, -0.00011920928955078125, 0.0025987625122070312, -0.00030994415283203125, 0.0023603439331054688, -0.0005960464477539062, 0.0020742416381835938, -0.0009298324584960938, 0.0016450881958007812, -0.0013589859008789062, 0.0011682510375976562, -0.0017881393432617188, 0.0007867813110351562, -0.0022172927856445312, 0.00040531158447265625, -0.0025510787963867188, 7.152557373046875e-05, -0.0028371810913085938, -2.384185791015625e-05, -0.0029802322387695312, -0.00021457672119140625, -0.0031232833862304688, -0.00030994415283203125, -0.0031709671020507812, -0.00030994415283203125, -0.0031709671020507812, -0.00040531158447265625, -0.0032663345336914062, -0.00045299530029296875, -0.0033140182495117188, -0.0005006790161132812, -0.0033617019653320312, -0.00040531158447265625, -0.0033140182495117188, -0.0005483627319335938, -0.0033140182495117188, -0.0005006790161132812, -0.0033617019653320312, -0.0005960464477539062, -0.0034093856811523438, -0.0005006790161132812, -0.0033617019653320312, -0.0005960464477539062, -0.0033617019653320312, -0.0006437301635742188, -0.0034570693969726562, -0.0006914138793945312, -0.0034570693969726562, -0.0005960464477539062, -0.0034093856811523438, -0.0006437301635742188, -0.0035047531127929688, -0.0006914138793945312, -0.0034570693969726562, -0.0006914138793945312, -0.0036001205444335938, -0.0006437301635742188, -0.0035524368286132812, -0.0005960464477539062, -0.0035047531127929688]], 'potential_arrays': [[-0.49996280670166016, -0.5099630355834961, -0.519963264465332, -0.5299625396728516, -0.5399627685546875, -0.5499629974365234, -0.5599632263183594, -0.5699634552001953, -0.5799627304077148, -0.5899629592895508, -0.5999631881713867, -0.6099634170532227, -0.6199636459350586, -0.6298847198486328, -0.6398849487304688, -0.6498851776123047, -0.6598854064941406, -0.6698856353759766, -0.6798849105834961, -0.689885139465332, -0.699885368347168, -0.7098855972290039, -0.7198858261108398, -0.7298851013183594, -0.7398853302001953, -0.7498855590820312, -0.7598857879638672, -0.7698078155517578, -0.7798080444335938, -0.7898073196411133, -0.7998075485229492, -0.8098077774047852, -0.8198080062866211, -0.829808235168457, -0.8398075103759766, -0.8498077392578125, -0.8598079681396484, -0.8698081970214844, -0.8798084259033203, -0.8898077011108398, -0.8998079299926758, -0.9098081588745117, -0.9197301864624023, -0.9297304153442383, -0.9397296905517578, -0.9497299194335938, -0.9597301483154297, -0.9697303771972656, -0.9797306060791016, -0.9897298812866211, -0.999730110168457, -0.9897298812866211, -0.9797306060791016, -0.9697303771972656, -0.9597301483154297, -0.9497299194335938, -0.9397296905517578, -0.9297304153442383, -0.9197301864624023, -0.9098081588745117, -0.8998079299926758, -0.8898077011108398, -0.8798084259033203, -0.8698081970214844, -0.8598079681396484, -0.8498077392578125, -0.8398075103759766, -0.829808235168457, -0.8198080062866211, -0.8098077774047852, -0.7998075485229492, -0.7898073196411133, -0.7798080444335938, -0.7698078155517578, -0.7598857879638672, -0.7498855590820312, -0.7398853302001953, -0.7298851013183594, -0.7198858261108398, -0.7098855972290039, -0.699885368347168, -0.689885139465332, -0.6798849105834961, -0.6698856353759766, -0.6598854064941406, -0.6498851776123047, -0.6398849487304688, -0.6298847198486328, -0.6199636459350586, -0.6099634170532227, -0.5999631881713867, -0.5899629592895508, -0.5799627304077148, -0.5699634552001953, -0.5599632263183594, -0.5499629974365234, -0.5399627685546875, -0.5299625396728516, -0.519963264465332, -0.5099630355834961, -0.49996280670166016, -0.4899625778198242, -0.4800405502319336, -0.47004127502441406, -0.4600410461425781, -0.4500408172607422, -0.44004058837890625, -0.4300403594970703, -0.4200410842895508, -0.41004085540771484, -0.4000406265258789, -0.39004039764404297, -0.38004016876220703, -0.3700408935546875, -0.36004066467285156, -0.3500404357910156, -0.340118408203125, -0.33011817932128906, -0.3201179504394531, -0.3101186752319336, -0.30011844635009766, -0.2901182174682617, -0.2801179885864258, -0.27011775970458984, -0.2601184844970703, -0.2501182556152344, -0.24011802673339844, -0.2301177978515625, -0.22011756896972656, -0.21011829376220703, -0.2001962661743164, -0.19019603729248047, -0.18019580841064453, -0.1701955795288086, -0.16019630432128906, -0.15019607543945312, -0.1401958465576172, -0.13019561767578125, -0.12019538879394531, -0.11019611358642578, -0.10019588470458984, -0.0901956558227539, -0.08019542694091797, -0.07019519805908203, -0.0601959228515625, -0.050273895263671875, -0.04027366638183594, -0.0302734375, -0.020273208618164062, -0.010272979736328125, -0.00027370452880859375, 0.009726524353027344, 0.01972675323486328, 0.02972698211669922, 0.039727210998535156, 0.04972648620605469, 0.059726715087890625, 0.06972694396972656, 0.0797271728515625, 0.08964920043945312, 0.09964847564697266, 0.1096487045288086, 0.11964893341064453, 0.12964916229248047, 0.1396493911743164, 0.14964866638183594, 0.15964889526367188, 0.1696491241455078, 0.17964935302734375, 0.1896495819091797, 0.19964885711669922, 0.20964908599853516, 0.2196493148803711, 0.22957134246826172, 0.23957157135009766, 0.2495708465576172, 0.2595710754394531, 0.26957130432128906, 0.279571533203125, 0.28957176208496094, 0.29957103729248047, 0.3095712661743164, 0.31957149505615234, 0.3295717239379883, 0.3395719528198242, 0.34957122802734375, 0.3595714569091797, 0.3694934844970703, 0.37949371337890625, 0.3894939422607422, 0.3994941711425781, 0.40949344635009766, 0.4194936752319336, 0.42949390411376953, 0.43949413299560547, 0.4494943618774414, 0.45949363708496094, 0.4694938659667969, 0.4794940948486328, 0.48949432373046875, 0.4994945526123047, 0.5094938278198242, 0.5194158554077148, 0.5294160842895508, 0.5394163131713867, 0.5494165420532227, 0.5594158172607422, 0.5694160461425781, 0.5794162750244141, 0.58941650390625, 0.5994167327880859, 0.6094160079956055, 0.6194162368774414, 0.6294164657592773, 0.6394166946411133, 0.6494169235229492, 0.6593389511108398, 0.6693382263183594, 0.6793384552001953, 0.6893386840820312, 0.6993389129638672, 0.7093391418457031, 0.7193384170532227, 0.7293386459350586, 0.7393388748168945, 0.7493391036987305, 0.7593393325805664, 0.7693386077880859, 0.7793388366699219, 0.7893390655517578, 0.7992610931396484, 0.8092613220214844, 0.8192605972290039, 0.8292608261108398, 0.8392610549926758, 0.8492612838745117, 0.8592615127563477, 0.8692607879638672, 0.8792610168457031, 0.8892612457275391, 0.899261474609375, 0.9092617034912109, 0.9192609786987305, 0.9292612075805664, 0.939183235168457, 0.949183464050293, 0.9591836929321289, 0.9691829681396484, 0.9791831970214844, 0.9891834259033203, 0.9991836547851562, 0.9891834259033203, 0.9791831970214844, 0.9691829681396484, 0.9591836929321289, 0.949183464050293, 0.939183235168457, 0.9292612075805664, 0.9192609786987305, 0.9092617034912109, 0.899261474609375, 0.8892612457275391, 0.8792610168457031, 0.8692607879638672, 0.8592615127563477, 0.8492612838745117, 0.8392610549926758, 0.8292608261108398, 0.8192605972290039, 0.8092613220214844, 0.7992610931396484, 0.7893390655517578, 0.7793388366699219, 0.7693386077880859, 0.7593393325805664, 0.7493391036987305, 0.7393388748168945, 0.7293386459350586, 0.7193384170532227, 0.7093391418457031, 0.6993389129638672, 0.6893386840820312, 0.6793384552001953, 0.6693382263183594, 0.6593389511108398, 0.6494169235229492, 0.6394166946411133, 0.6294164657592773, 0.6194162368774414, 0.6094160079956055, 0.5994167327880859, 0.58941650390625, 0.5794162750244141, 0.5694160461425781, 0.5594158172607422, 0.5494165420532227, 0.5394163131713867, 0.5294160842895508, 0.5194158554077148, 0.5094938278198242, 0.4994945526123047, 0.48949432373046875, 0.4794940948486328, 0.4694938659667969, 0.45949363708496094, 0.4494943618774414, 0.43949413299560547, 0.42949390411376953, 0.4194936752319336, 0.40949344635009766, 0.3994941711425781, 0.3894939422607422, 0.37949371337890625, 0.3694934844970703, 0.3595714569091797, 0.34957122802734375, 0.3395719528198242, 0.3295717239379883, 0.31957149505615234, 0.3095712661743164, 0.29957103729248047, 0.28957176208496094, 0.279571533203125, 0.26957130432128906, 0.2595710754394531, 0.2495708465576172, 0.23957157135009766, 0.22957134246826172, 0.2196493148803711, 0.20964908599853516, 0.19964885711669922, 0.1896495819091797, 0.17964935302734375, 0.1696491241455078, 0.15964889526367188, 0.14964866638183594, 0.1396493911743164, 0.12964916229248047, 0.11964893341064453, 0.1096487045288086, 0.09964847564697266, 0.08964920043945312, 0.0797271728515625, 0.06972694396972656, 0.059726715087890625, 0.04972648620605469, 0.039727210998535156, 0.02972698211669922, 0.01972675323486328, 0.009726524353027344, -0.00027370452880859375, -0.010272979736328125, -0.020273208618164062, -0.0302734375, -0.04027366638183594, -0.050273895263671875, -0.0601959228515625, -0.07019519805908203, -0.08019542694091797, -0.0901956558227539, -0.10019588470458984, -0.11019611358642578, -0.12019538879394531, -0.13019561767578125, -0.1401958465576172, -0.15019607543945312, -0.16019630432128906, -0.1701955795288086, -0.18019580841064453, -0.19019603729248047, -0.2001962661743164, -0.21011829376220703, -0.22011756896972656, -0.2301177978515625, -0.24011802673339844, -0.2501182556152344, -0.2601184844970703, -0.27011775970458984, -0.2801179885864258, -0.2901182174682617, -0.30011844635009766, -0.3101186752319336, -0.3201179504394531, -0.33011817932128906, -0.340118408203125, -0.3500404357910156, -0.36004066467285156, -0.3700408935546875, -0.38004016876220703, -0.39004039764404297, -0.4000406265258789, -0.41004085540771484, -0.4200410842895508, -0.4300403594970703, -0.44004058837890625, -0.4500408172607422, -0.4600410461425781, -0.47004127502441406, -0.4800405502319336, -0.4899625778198242]], 'time_arrays': [[0.0, 0.04999999701976776, 0.09999999403953552, 0.14999999105930328, 0.19999998807907104, 0.2499999850988388, 0.29999998211860657, 0.34999996423721313, 0.3999999761581421, 0.44999998807907104, 0.4999999701976776, 0.5499999523162842, 0.5999999642372131, 0.6499999761581421, 0.6999999284744263, 0.7499999403953552, 0.7999999523162842, 0.8499999642372131, 0.8999999761581421, 0.9499999284744263, 0.9999999403953552, 1.0499999523162842, 1.0999999046325684, 1.149999976158142, 1.1999999284744263, 1.2499998807907104, 1.2999999523162842, 1.3499999046325684, 1.3999998569488525, 1.4499999284744263, 1.4999998807907104, 1.5499999523162842, 1.5999999046325684, 1.6499998569488525, 1.6999999284744263, 1.7499998807907104, 1.7999999523162842, 1.8499999046325684, 1.8999998569488525, 1.9499999284744263, 1.9999998807907104, 2.049999952316284, 2.0999999046325684, 2.1499998569488525, 2.1999998092651367, 2.249999761581421, 2.299999952316284, 2.3499999046325684, 2.3999998569488525, 2.4499998092651367, 2.499999761581421, 2.549999952316284, 2.5999999046325684, 2.6499998569488525, 2.6999998092651367, 2.749999761581421, 2.799999713897705, 2.8499999046325684, 2.8999998569488525, 2.9499998092651367, 2.999999761581421, 3.049999713897705, 3.0999999046325684, 3.1499998569488525, 3.1999998092651367, 3.249999761581421, 3.299999713897705, 3.3499999046325684, 3.3999998569488525, 3.4499998092651367, 3.499999761581421, 3.549999713897705, 3.5999999046325684, 3.6499998569488525, 3.6999998092651367, 3.749999761581421, 3.799999713897705, 3.8499996662139893, 3.8999998569488525, 3.9499998092651367, 3.999999761581421, 4.049999713897705, 4.099999904632568, 4.149999618530273, 4.199999809265137, 4.249999523162842, 4.299999713897705, 4.349999904632568, 4.399999618530273, 4.449999809265137, 4.499999523162842, 4.549999713897705, 4.599999904632568, 4.649999618530273, 4.699999809265137, 4.749999523162842, 4.799999713897705, 4.849999904632568, 4.899999618530273, 4.949999809265137, 4.999999523162842, 5.049999713897705, 5.099999904632568, 5.149999618530273, 5.199999809265137, 5.249999523162842, 5.299999713897705, 5.349999904632568, 5.399999618530273, 5.449999809265137, 5.499999523162842, 5.549999713897705, 5.59999942779541, 5.649999618530273, 5.699999809265137, 5.749999523162842, 5.799999713897705, 5.84999942779541, 5.899999618530273, 5.949999809265137, 5.999999523162842, 6.049999713897705, 6.09999942779541, 6.149999618530273, 6.199999809265137, 6.249999523162842, 6.299999713897705, 6.34999942779541, 6.399999618530273, 6.449999809265137, 6.499999523162842, 6.549999713897705, 6.59999942779541, 6.649999618530273, 6.699999809265137, 6.749999523162842, 6.799999713897705, 6.84999942779541, 6.899999618530273, 6.949999809265137, 6.999999523162842, 7.049999713897705, 7.09999942779541, 7.149999618530273, 7.199999809265137, 7.249999523162842, 7.299999713897705, 7.34999942779541, 7.399999618530273, 7.4499993324279785, 7.499999523162842, 7.549999713897705, 7.59999942779541, 7.649999618530273, 7.6999993324279785, 7.749999523162842, 7.799999713897705, 7.84999942779541, 7.899999618530273, 7.9499993324279785, 7.999999523162842, 8.049999237060547, 8.09999942779541, 8.149999618530273, 8.199999809265137, 8.249999046325684, 8.299999237060547, 8.34999942779541, 8.399999618530273, 8.449999809265137, 8.499999046325684, 8.549999237060547, 8.59999942779541, 8.649999618530273, 8.699999809265137, 8.749999046325684, 8.799999237060547, 8.84999942779541, 8.899999618530273, 8.949999809265137, 8.999999046325684, 9.049999237060547, 9.09999942779541, 9.149999618530273, 9.199999809265137, 9.249999046325684, 9.299999237060547, 9.34999942779541, 9.399999618530273, 9.449999809265137, 9.499999046325684, 9.549999237060547, 9.59999942779541, 9.649999618530273, 9.699999809265137, 9.749999046325684, 9.799999237060547, 9.84999942779541, 9.899999618530273, 9.949999809265137, 9.999999046325684, 10.049999237060547, 10.09999942779541, 10.149999618530273, 10.199999809265137, 10.249999046325684, 10.299999237060547, 10.34999942779541, 10.399999618530273, 10.449999809265137, 10.499999046325684, 10.549999237060547, 10.59999942779541, 10.649999618530273, 10.699999809265137, 10.749999046325684, 10.799999237060547, 10.84999942779541, 10.899999618530273, 10.949999809265137, 10.999999046325684, 11.049999237060547, 11.09999942779541, 11.149999618530273, 11.19999885559082, 11.249999046325684, 11.299999237060547, 11.34999942779541, 11.399999618530273, 11.44999885559082, 11.499999046325684, 11.549999237060547, 11.59999942779541, 11.649999618530273, 11.69999885559082, 11.749999046325684, 11.799999237060547, 11.84999942779541, 11.899999618530273, 11.94999885559082, 11.999999046325684, 12.049999237060547, 12.09999942779541, 12.149999618530273, 12.19999885559082, 12.249999046325684, 12.299999237060547, 12.34999942779541, 12.399999618530273, 12.44999885559082, 12.499999046325684, 12.549999237060547, 12.59999942779541, 12.649999618530273, 12.69999885559082, 12.749999046325684, 12.799999237060547, 12.84999942779541, 12.899999618530273, 12.94999885559082, 12.999999046325684, 13.049999237060547, 13.09999942779541, 13.149999618530273, 13.19999885559082, 13.249999046325684, 13.299999237060547, 13.34999942779541, 13.399999618530273, 13.44999885559082, 13.499999046325684, 13.549999237060547, 13.59999942779541, 13.649999618530273, 13.69999885559082, 13.749999046325684, 13.799999237060547, 13.84999942779541, 13.899999618530273, 13.94999885559082, 13.999999046325684, 14.049999237060547, 14.09999942779541, 14.149999618530273, 14.19999885559082, 14.249999046325684, 14.299999237060547, 14.34999942779541, 14.399999618530273, 14.44999885559082, 14.499999046325684, 14.549999237060547, 14.59999942779541, 14.649998664855957, 14.69999885559082, 14.749999046325684, 14.799999237060547, 14.84999942779541, 14.899998664855957, 14.94999885559082, 14.999999046325684, 15.049999237060547, 15.09999942779541, 15.149998664855957, 15.19999885559082, 15.249999046325684, 15.299999237060547, 15.34999942779541, 15.399998664855957, 15.44999885559082, 15.499999046325684, 15.549999237060547, 15.59999942779541, 15.649998664855957, 15.69999885559082, 15.749999046325684, 15.799999237060547, 15.84999942779541, 15.899998664855957, 15.94999885559082, 15.999999046325684, 16.049999237060547, 16.099998474121094, 16.149999618530273, 16.19999885559082, 16.249998092651367, 16.299999237060547, 16.349998474121094, 16.399999618530273, 16.44999885559082, 16.499998092651367, 16.549999237060547, 16.599998474121094, 16.649999618530273, 16.69999885559082, 16.749998092651367, 16.799999237060547, 16.849998474121094, 16.899999618530273, 16.94999885559082, 16.999998092651367, 17.049999237060547, 17.099998474121094, 17.149999618530273, 17.19999885559082, 17.249998092651367, 17.299999237060547, 17.349998474121094, 17.399999618530273, 17.44999885559082, 17.499998092651367, 17.549999237060547, 17.599998474121094, 17.649999618530273, 17.69999885559082, 17.749998092651367, 17.799999237060547, 17.849998474121094, 17.899999618530273, 17.94999885559082, 17.999998092651367, 18.049999237060547, 18.099998474121094, 18.149999618530273, 18.19999885559082, 18.249998092651367, 18.299999237060547, 18.349998474121094, 18.399999618530273, 18.44999885559082, 18.499998092651367, 18.549999237060547, 18.599998474121094, 18.649999618530273, 18.69999885559082, 18.749998092651367, 18.799999237060547, 18.849998474121094, 18.899999618530273, 18.94999885559082, 18.999998092651367, 19.049999237060547, 19.099998474121094, 19.149999618530273, 19.19999885559082, 19.249998092651367, 19.299999237060547, 19.349998474121094, 19.399999618530273, 19.44999885559082, 19.499998092651367, 19.549999237060547, 19.599998474121094, 19.649999618530273, 19.69999885559082, 19.749998092651367, 19.799999237060547, 19.849998474121094, 19.899999618530273, 19.94999885559082]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+

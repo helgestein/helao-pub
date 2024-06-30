@@ -1,0 +1,77 @@
+2024-04-29 15:30:31,754 - INFO -run_logger.palmsens_driver 
+ 	 Successfully connected to PalmSens4 [1]. 
+
+2024-04-29 15:30:40,720 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012773513793945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:41,174 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012773513793945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:41,687 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012773513793945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:42,199 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012773513793945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:42,692 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012773513793945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:43,209 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012964916415512562], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:43,670 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [3.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012964916415512562], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:44,196 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [3.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012964916415512562], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:44,682 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [4.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012964916415512562], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:45,190 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [4.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012964916415512562], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:45,700 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [5.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012974662706255913], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:46,181 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 12, 'x': [5.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012973880395293236], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:46,688 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 13, 'x': [6.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012973098084330559], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:47,205 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 14, 'x': [6.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012974662706255913], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:47,729 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 15, 'x': [7.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012973880395293236], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:48,191 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 16, 'x': [7.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012972316704690456], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:48,705 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 17, 'x': [8.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012975444085896015], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:49,171 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 18, 'x': [8.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012973098084330559], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:49,685 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 19, 'x': [9.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012974662706255913], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:50,199 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 20, 'x': [9.5], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012973098084330559], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:50,678 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 21, 'x': [10.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.012974662706255913], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:30:50,694 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Chronopotentiometry', 'timestamp': '29/04/2024 15:30:38', 'current_arrays': [[1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562, 1.1999893188476562]], 'potential_arrays': [[0.012773513793945312, 0.012773513793945312, 0.012773513793945312, 0.012773513793945312, 0.012773513793945312, 0.012964916415512562, 0.012964916415512562, 0.012964916415512562, 0.012964916415512562, 0.012964916415512562, 0.012974662706255913, 0.012973880395293236, 0.012973098084330559, 0.012974662706255913, 0.012973880395293236, 0.012972316704690456, 0.012975444085896015, 0.012973098084330559, 0.012974662706255913, 0.012973098084330559, 0.012974662706255913]], 'time_arrays': [[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-04-29 15:31:31,263 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [0.1266803741455078], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-04-29 15:31:31,265 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Chronopotentiometry', 'timestamp': '29/04/2024 15:31:29', 'current_arrays': [[11.999893188476562]], 'potential_arrays': [[0.1266803741455078]], 'time_arrays': [[0.0]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+

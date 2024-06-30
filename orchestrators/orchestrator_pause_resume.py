@@ -2,7 +2,7 @@ import requests
 import sys
 sys.path.append(r'../config')
 sys.path.append('config')
-from sdc_4 import config
+from sdc_cyan import config
 
 def orchestrator_test(action,thread=0):
     server = 'orchestrator'

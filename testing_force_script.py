@@ -1,10 +1,5 @@
 import requests
-import sys
-sys.path.append(r'../config')
-sys.path.append(r'../action')
-sys.path.append(r'../server')
-import time
-from config.sdc_4 import config
+from config.sdc_cyan import config
 
 def force_test(action, params):
     server = 'force'
@@ -16,5 +11,7 @@ def force_test(action, params):
         params= params).json()
     return res
 
-#force_test('read', None)
-#force_test('setzero', None)
+print("Force testing")
+print("Functions examples:")
+print("force_test('read', None)")
+print("force_test('setzero', None)")

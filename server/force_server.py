@@ -1,7 +1,7 @@
 import sys
 import uvicorn
 from fastapi import FastAPI
-from pydantic import BaseModel
+from dataclasses import dataclass
 import json
 import os
 import sys
@@ -22,8 +22,9 @@ serverkey = sys.argv[2]
 app = FastAPI(title="Force driver new one", 
             description= " this is a fancy force driver server",
             version= "2.0")
-            
-class return_class(BaseModel):
+
+@dataclass        
+class return_class:
     parameters: dict = None
     data: dict = None
 
@@ -31,20 +32,20 @@ class return_class(BaseModel):
 @app.get("/forceDriver/setoffset")
 def set_offset():
     g.set_offset()
-    retc = return_class(parameters=None,data= None)
+    retc = return_class(parameters={},data={})
     return retc
 
 @app.get("/forceDriver/setzero")
 def set_zero():
     g.set_zero()
-    retc = return_class(parameters=None, data=None)
+    retc = return_class(parameters={}, data={})
     return retc
 
 @app.get("/forceDriver/read")
 def read_value():
     #this is wrong!
     data = g.read_value()
-    retc = return_class(parameters=None,data= {"value": 4*data, 'units':'internal units [2000 mN]'})
+    retc = return_class(parameters={},data= {"value": data, 'units':'mN'})
     return retc
 
 if __name__ == "__main__":

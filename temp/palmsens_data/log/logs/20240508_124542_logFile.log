@@ -1,0 +1,188 @@
+2024-05-08 12:45:44,174 - INFO -run_logger.palmsens_driver 
+ 	 Successfully connected to PalmSens4 [1]. 
+
+2024-05-08 12:58:41,587 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908905029296875], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:42,091 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908592224121094], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:42,560 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908670425415039], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:43,076 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908670425415039], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:43,592 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908592224121094], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:44,060 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908514022827148], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:44,578 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [3.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908514022827148], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:45,094 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [3.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908670425415039], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:45,563 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [4.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908748626708984], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:46,081 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [4.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.908905029296875], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:46,599 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [5.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-9.90898323059082], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 12:58:46,630 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Open Circuit Potentiometry', 'timestamp': '08/05/2024 12:58:39', 'current_arrays': [[0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625]], 'potential_arrays': [[-9.908905029296875, -9.908592224121094, -9.908670425415039, -9.908670425415039, -9.908592224121094, -9.908514022827148, -9.908514022827148, -9.908670425415039, -9.908748626708984, -9.908905029296875, -9.90898323059082]], 'time_arrays': [[0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-05-08 14:02:29,728 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.050859451293945], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:29,963 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.05156135559082], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:30,247 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.051483154296875], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:30,480 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [0.75], 'x_unit': 's', 'x_type': 'Time', 'y': [10.052967071533203], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:30,727 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.052421569824219], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:30,960 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [1.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.052888870239258], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:31,240 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053045272827148], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:31,474 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [1.75], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053436279296875], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:31,708 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053905487060547], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:31,990 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [2.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053983688354492], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:32,224 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053749084472656], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:02:32,230 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Open Circuit Potentiometry', 'timestamp': '08/05/2024 14:02:28', 'current_arrays': [[0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625]], 'potential_arrays': [[10.050859451293945, 10.05156135559082, 10.051483154296875, 10.052967071533203, 10.052421569824219, 10.052888870239258, 10.053045272827148, 10.053436279296875, 10.053905487060547, 10.053983688354492, 10.053749084472656]], 'time_arrays': [[0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-05-08 14:15:08,119 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.051170349121094], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:08,369 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.05156135559082], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:08,607 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.051639556884766], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:08,840 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [0.75], 'x_unit': 's', 'x_type': 'Time', 'y': [10.052812576293945], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:09,122 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.052812576293945], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:09,359 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [1.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053436279296875], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:09,589 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053827285766602], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:09,873 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [1.75], 'x_unit': 's', 'x_type': 'Time', 'y': [10.053827285766602], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:10,110 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.054061889648438], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:10,347 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [2.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.054140090942383], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:10,583 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.05648422241211], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:15:10,587 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Open Circuit Potentiometry', 'timestamp': '08/05/2024 14:15:06', 'current_arrays': [[0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625]], 'potential_arrays': [[10.051170349121094, 10.05156135559082, 10.051639556884766, 10.052812576293945, 10.052812576293945, 10.053436279296875, 10.053827285766602, 10.053827285766602, 10.054061889648438, 10.054140090942383, 10.05648422241211]], 'time_arrays': [[0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-05-08 14:16:06,500 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.064607620239258], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:06,736 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.25], 'x_unit': 's', 'x_type': 'Time', 'y': [10.064062118530273], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:06,971 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [10.060077667236328], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:07,206 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [0.75], 'x_unit': 's', 'x_type': 'Time', 'y': [10.047342300415039], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:07,487 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [10.023670196533203], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:07,719 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [1.25], 'x_unit': 's', 'x_type': 'Time', 'y': [9.993202209472656], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:07,999 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [9.963045120239258], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:08,232 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [1.75], 'x_unit': 's', 'x_type': 'Time', 'y': [9.930858612060547], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:08,465 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [9.898591995239258], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:08,747 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [2.25], 'x_unit': 's', 'x_type': 'Time', 'y': [9.866872787475586], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:08,981 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [9.836170196533203], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:16:08,991 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Open Circuit Potentiometry', 'timestamp': '08/05/2024 14:16:05', 'current_arrays': [[0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625]], 'potential_arrays': [[10.064607620239258, 10.064062118530273, 10.060077667236328, 10.047342300415039, 10.023670196533203, 9.993202209472656, 9.963045120239258, 9.930858612060547, 9.898591995239258, 9.866872787475586, 9.836170196533203]], 'time_arrays': [[0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+
+2024-05-08 14:19:28,344 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 1, 'x': [0.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9884061813354492], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:28,624 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 2, 'x': [0.25], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9908275604248047], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:28,858 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 3, 'x': [0.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9923124313354492], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:29,091 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 4, 'x': [0.75], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9931716918945312], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:29,371 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 5, 'x': [1.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.993718147277832], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:29,603 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 6, 'x': [1.25], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9941091537475586], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:29,838 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 7, 'x': [1.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.994187355041504], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:30,121 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 8, 'x': [1.75], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9944219589233398], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:30,354 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 9, 'x': [2.0], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9945001602172852], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:30,601 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 10, 'x': [2.25], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.994577407836914], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:30,881 - INFO -run_logger.palmsens_driver 
+ 	 Data received: {'index': 11, 'x': [2.5], 'x_unit': 's', 'x_type': 'Time', 'y': [-1.9947338104248047], 'y_unit': 'V', 'y_type': 'Potential'} 
+
+2024-05-08 14:19:30,886 - INFO -run_logger.palmsens_driver 
+ 	 result:
+{'Title': 'Open Circuit Potentiometry', 'timestamp': '08/05/2024 14:19:27', 'current_arrays': [[0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625, 0.2384185791015625]], 'potential_arrays': [[-1.9884061813354492, -1.9908275604248047, -1.9923124313354492, -1.9931716918945312, -1.993718147277832, -1.9941091537475586, -1.994187355041504, -1.9944219589233398, -1.9945001602172852, -1.994577407836914, -1.9947338104248047]], 'time_arrays': [[0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5]], 'freq_arrays': [], 'zre_arrays': [], 'zim_arrays': [], 'aux_input_arrays': [], 'peaks': [], 'eis_fit': []} 
+

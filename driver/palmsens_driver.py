@@ -435,6 +435,14 @@ class PalmsensDevice():
         record_aux_input = kwargs.get('record_aux_input', False)
         record_cell_potential = kwargs.get('record_cell_potential', False)
         record_we_potential = kwargs.get('record_we_potential', False)
+        meas_vs_ocp_true = kwargs.get('meas_vs_ocp_true', 0) # OCPMode 1 = On, 0 = Off
+        t_max_ocp = kwargs.get('t_max_ocp', 10.0) # OCPMaxOCPTime
+        stability_criterion = kwargs.get('stability_criterion', 0.001) # OCPStabilityCriterion in mV/s
+        i_max = kwargs.get('i_max', 0.0) # LimitMaxValue in uA
+        i_max_bool = kwargs.get('i_max_bool', False) # UseMaxValue
+        i_min = kwargs.get('i_min', 0.0) # LimitMinValue in uA
+        i_min_bool = kwargs.get('i_min_bool', False) # UseMinValue
+        use_ir_drop_compensation = kwargs.get('use_ir_drop_compensation', False) # UseIRDropComp
         if record_aux_input:
             record_additional_data += 16
         if record_cell_potential:
@@ -442,6 +450,10 @@ class PalmsensDevice():
         if record_we_potential:
             record_additional_data += 2
         ca = AmperometricDetection()
+        if use_ir_drop_compensation:
+            ir_comp_resistance = kwargs.get('ir_comp_resistance', 0.0) # IRDropCompRes
+            ca.UseIRDropComp = use_ir_drop_compensation
+            ca.IRDropCompRes = ir_comp_resistance
         ca.DepositionPotential = e_deposition
         ca.DepositionTime = t_deposition
         ca.ConditioningPotential = e_conditioning
@@ -450,6 +462,13 @@ class PalmsensDevice():
         ca.IntervalTime = interval_time
         ca.Potential = e_applied
         ca.RunTime = run_time
+        ca.UseLimitMaxValue = i_max_bool
+        ca.UseLimitMinValue = i_min_bool
+        ca.LimitMaxValue = i_max
+        ca.LimitMinValue = i_min
+        ca.OCPMode = meas_vs_ocp_true
+        ca.OCPMaxOCPTime = t_max_ocp
+        ca.OCPStabilityCriterion = stability_criterion
         #ca.ExtraValueMsk = Enum(int(record_additional_data))
         return ca
     

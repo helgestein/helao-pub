@@ -439,9 +439,9 @@ class PalmsensDevice():
         t_max_ocp = kwargs.get('t_max_ocp', 10.0) # OCPMaxOCPTime
         stability_criterion = kwargs.get('stability_criterion', 0.001) # OCPStabilityCriterion in mV/s
         i_max = kwargs.get('i_max', 0.0) # LimitMaxValue in uA
-        i_max_bool = kwargs.get('i_max_bool', False) # UseMaxValue
+        i_max_bool = kwargs.get('i_max_bool', False) # UseMaxValue (Current limit)
         i_min = kwargs.get('i_min', 0.0) # LimitMinValue in uA
-        i_min_bool = kwargs.get('i_min_bool', False) # UseMinValue
+        i_min_bool = kwargs.get('i_min_bool', False) # UseMinValue (Current limit)
         use_ir_drop_compensation = kwargs.get('use_ir_drop_compensation', False) # UseIRDropComp
         if record_aux_input:
             record_additional_data += 16

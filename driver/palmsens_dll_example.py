@@ -17,8 +17,11 @@ clr.AddReference(str(Path(conf['palmsensDriver']["PalmsensSDK_python"]).joinpath
 from System import Enum 
 import PalmSens.Techniques.Impedance as eis
 from PalmSens.Techniques.Impedance import enumScanType, enumFrequencyType, EnumFrequencyMode
-from PalmSens.Techniques import ImpedimetricMethod, Potentiometry, OpenCircuitPotentiometry
-import PalmSens.Techniques
+from PalmSens.Techniques import AmperometricDetection.EnumPalmSensBipotMode as enumPalmSensBipotMode
+from PalmSens.Techniques import ImpedimetricMethod, Potentiometry, OpenCircuitPotentiometry, AmperometricDetection
+import PalmSens.Techniques as pt
+import PalmSens
+import PalmSens.Techniques.AmperometricDetection
 
 ### Read all the available parameters of the technique:
 

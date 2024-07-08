@@ -243,3 +243,17 @@ echem_test('measure', params=dict(method="cyclic_voltammetry",
                                                         "record_we_potential": False        # Record working electrode potential
                                                         }),
                                  filename="dummy_cell_test_cv_0"))
+
+echem_test('measure', params=dict(method="chronoamperometry", 
+                                  parameters=json.dumps({"e_applied": -0.5,             # Applied potential in volts
+                                                        "interval_time": 0.1,          # Interval time in seconds
+                                                        "run_time": 5.0,               # Total run time in seconds
+                                                        "i_max_bool": True,           # Whether to use max current limit
+                                                        "i_max": 0.1,                  # Max current limit in µA
+                                                        "i_min_bool": True,           # Whether to use min current limit
+                                                        "i_min": -50,                 # Min current limit in µA
+                                                        "meas_vs_ocp_true": 1,         # Measure vs OCP
+                                                        "t_max_ocp": 10.0,             # Maximum time OCP stabilization
+                                                        "stability_criterion": 0.001 # Stability criterion in mV/s
+                                                         }), 
+                                  filename="dummy_cell_test_ca_0"))

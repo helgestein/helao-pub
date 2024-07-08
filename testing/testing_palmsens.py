@@ -254,6 +254,8 @@ echem_test('measure', params=dict(method="chronoamperometry",
                                                         "i_min": -50,                 # Min current limit in µA
                                                         "meas_vs_ocp_true": 1,         # Measure vs OCP
                                                         "t_max_ocp": 10.0,             # Maximum time OCP stabilization
-                                                        "stability_criterion": 0.001 # Stability criterion in mV/s
+                                                        "stability_criterion": 0.001, # Stability criterion in mV/s
+                                                        "use_ir_drop_compensation": True,  # Use IR drop compensation
+                                                        "ir_comp_resistance": 30.0,       # IR compensation resistance in Ohms
                                                          }), 
                                   filename="dummy_cell_test_ca_0"))

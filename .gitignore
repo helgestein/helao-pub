@@ -16,3 +16,5 @@ temp/palmsens_data/log/logs/20240628_102526_logFile.log
 log.txt
 *.log
 temp/palmsens_data/log/logs/*.log
+log.txt
+temp/palmsens_data/log/logs/20240628_102526_logFile.log

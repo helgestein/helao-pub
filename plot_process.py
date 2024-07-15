@@ -159,6 +159,6 @@ thread = threading.Thread(target=start_data_generator)
 thread.start()
 
 # Start the animation
-ani = animation.FuncAnimation(fig, update, init_func=init, blit=False, interval=10)
+ani = animation.FuncAnimation(fig, update, init_func=init, blit=False, interval=10, save_count=10000)
 # Show the plot
 plt.show()

@@ -8,6 +8,14 @@ import queue
 import threading
 import numpy as np
 
+# Style sheet and font properties
+plt.style.use('ggplot')
+plt.rcParams.update({
+    'axes.labelweight': 'bold',
+    'axes.labelsize': 'large',
+    'axes.titleweight': 'bold',
+    'axes.titlesize': 'large'
+})
 
 orchestrator_url = "http://127.0.0.1:13390"
 socket_url = "ws://127.0.0.1:13374/ws"
@@ -94,7 +102,6 @@ def start_data_generator():
 
 # Matplotlib plot setup
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6), height_ratios=[4, 1])
-
 line = ax1.scatter(xdata, ydata, color='r')
 timestamps_line, = ax2.plot(timestamps, 'b-')
 

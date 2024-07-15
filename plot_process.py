@@ -7,6 +7,22 @@ import matplotlib.animation as animation
 import queue
 import threading
 import numpy as np
+import sys
+import os
+from importlib import import_module
+
+sys.path.append('../driver')
+sys.path.append('../config')
+sys.path.append('../server')
+
+helao_root = os.path.dirname(os.path.realpath(__file__))
+config_path = sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
+serverkey = sys.argv[2]
+print(f"serverkey: {serverkey}")
+
+orchestrator_url = config[serverkey]["orchestrator_url"]
+socket_url = config["plot_process"]["socket_url"]
 
 # Style sheet and font properties
 plt.style.use('ggplot')
@@ -16,9 +32,6 @@ plt.rcParams.update({
     'axes.titleweight': 'bold',
     'axes.titlesize': 'large'
 })
-
-orchestrator_url = "http://127.0.0.1:13390"
-socket_url = "ws://127.0.0.1:13374/ws"
 
 experiment_keys = [
     ("x", "y"),

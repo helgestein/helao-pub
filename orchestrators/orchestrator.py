@@ -7,7 +7,7 @@ import time
 import json
 import uvicorn
 from fastapi import FastAPI,WebSocket
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, FieldValidationInfo, field_validator
 from typing import Union, Optional
 import numpy as np
 import h5py
@@ -60,11 +60,11 @@ class Experiment(BaseModel):
         return v
 
     @field_validator('params')
-    def parameter_correspondence(cls,v,values):
-        d = set([i.split('/')[-1] for i in values['soe']])
+    def parameter_correspondence(cls, v, info: FieldValidationInfo):
+        d = set([i.split('/')[-1] for i in info.data['soe']])
         if d != set(v.keys()):
             raise ValueError("soe and params are not perfectly corresponding -- must be params entry for every action in soe, and vice-versa")
-        if len(d) != len(values['soe']):
+        if len(d) != len(info.data['soe']):
             raise ValueError("duplicate entries in soe")
         return v
 

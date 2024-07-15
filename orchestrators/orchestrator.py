@@ -7,8 +7,8 @@ import time
 import json
 import uvicorn
 from fastapi import FastAPI,WebSocket
-from pydantic import BaseModel,validator
-from typing import Union,Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Union, Optional
 import numpy as np
 import h5py
 import datetime
@@ -30,13 +30,12 @@ serverkey = sys.argv[2]
 ##improved actions/drivers -- capacity to interface with multiple requests, and mid-action cancelation where possible
 ##improved interface -- detailed real-time visualization and manipulation of current orchestrator state without command line
 
-#validation for experiment dicts
 class Experiment(BaseModel):
-    soe: list
-    params: dict
-    meta: Optional[dict]
+    soe: list = Field(...)
+    params: dict = Field(...)
+    meta: Optional[dict] = Field(default=None)
 
-    @validator('soe')
+    @field_validator('soe')
     def native_command_ordering(cls,v):
         for i in v:
             if i.count('_') > 1:
@@ -59,7 +58,7 @@ class Experiment(BaseModel):
             raise ValueError("orchestrator/repeat can only be followed by orchestrator/finish in soe")
         return v
 
-    @validator('params')
+    @field_validator('params')
     def parameter_correspondence(cls,v,values):
         d = set([i.split('/')[-1] for i in values['soe']])
         if d != set(v.keys()):

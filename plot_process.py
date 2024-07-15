@@ -150,7 +150,10 @@ def update(frame):
     ax1.set_ylim(y_min - 0.05 * abs(y_min), y_max + 0.05 * abs(y_max))
     line = ax1.scatter(xdata, ydata, color='r')  # Redraw scatter plot with updated data
     timestamps_line.set_data(range(len(timestamps)), timestamps)
-    ax2.set_xlim(0, len(timestamps))
+    if len(timestamps) > 1:
+        ax2.set_xlim(0, len(timestamps) - 1)
+    else:
+        ax2.set_xlim(0, 1)
     ax2.set_ylim(min(timestamps, default=0), max(timestamps, default=10))
     return line, timestamps_line
 

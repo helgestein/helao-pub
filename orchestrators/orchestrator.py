@@ -15,6 +15,7 @@ import datetime
 from copy import copy
 import asyncio
 from importlib import import_module
+from contextlib import asynccontextmanager
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 from util import *
@@ -67,10 +68,46 @@ class Experiment(BaseModel):
             raise ValueError("duplicate entries in soe")
         return v
 
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    global tracking
+    tracking = {} # a dict of useful variables to keep track of
+    global scheduler_queue
+    scheduler_queue = asyncio.PriorityQueue()
+    global task
+    task = asyncio.create_task(scheduler())
+    global experiment_queues
+    experiment_queues = {}
+    global experiment_tasks
+    experiment_tasks = {}
+    global filelocks
+    filelocks = {}
+    global serverlocks
+    serverlocks = {}
+    global loop
+    loop = asyncio.get_event_loop()
+    global error
+    error = loop.create_task(raise_exceptions()) # starts the error handling task (normally asyncio will hide all this under the sub-task)
+    global index # assign a number to each experiment to retain order within priority queues
+    index = 0
+    global status_queues # queues to publish information on orchestrator status to subscribers
+    status_queues = {}
+    global data_queues # queues to publish real-time data to subscribers
+    data_queues = {}
+    global data_subs # contains information on what data has been requested by each subscription
+    data_subs = {}
+    yield
+    # Shutdown (disconnect)
+    if not error.cancelled():
+        error.cancel()
+    if not task.cancelled():
+        task.cancel()
+    for t in experiment_tasks.values():
+        if not t.cancelled():
+            t.cancel()
 
 app = FastAPI(title="orchestrator",
-              description="A fancy complex server", version=1.0)
-
+              description="A fancy complex server", lifespan=app_lifespan, version=1.0)
 
 @app.post("/orchestrator/addExperiment")
 async def sendMeasurement(experiment: str, thread: int = 0, priority: int = 10):
@@ -471,53 +508,6 @@ async def stop(experiment:dict):
     for q in status_queues:
         await q.put(json.dumps(tracking))
     return experiment
-
-@app.on_event("startup")
-async def memory():
-    global tracking
-    tracking = {} #a dict of useful variables to keep track of
-    global scheduler_queue
-    scheduler_queue = asyncio.PriorityQueue()
-    global task
-    task = asyncio.create_task(scheduler())
-    
-    global experiment_queues
-    experiment_queues = {}
-    global experiment_tasks
-    experiment_tasks = {}
-
-    global filelocks
-    filelocks = {}
-    global serverlocks
-    serverlocks = {}
-
-    global loop
-    loop = asyncio.get_event_loop()
-    global error
-    error = loop.create_task(raise_exceptions()) #starts the error handling task (normally asycio will hide all this under the sub-stask)
-    
-    global index #assign a number to each experiment to retain order within priority queues
-    index = 0
-
-    global status_queues #queues to publish information on orchestrator status to subscribers
-    status_queues = {}
-    global data_queues #queues to publish real time data to subscribers
-    data_queues = {}
-    global data_subs #contains information on what data has been requested by each subscription
-    data_subs = {}
-
-
-@app.on_event("shutdown")
-def disconnect():
-    global task, error
-    if not error.cancelled():
-        error.cancel()
-    if not task.cancelled():
-        task.cancel()
-    for t in experiment_tasks.values():
-        if not t.cancelled():
-            t.cancel()
-
 
 #empty queue for thread, or for all threads if no thread specified.
 @app.post("/orchestrator/clear")

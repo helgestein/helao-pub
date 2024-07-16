@@ -19,7 +19,6 @@ helao_root = os.path.dirname(os.path.realpath(__file__))
 config_path = sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
-print(f"serverkey: {serverkey}")
 
 orchestrator_url = config[serverkey]["orchestrator_url"]
 socket_url = config["plot_process"]["socket_url"]

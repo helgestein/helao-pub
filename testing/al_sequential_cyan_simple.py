@@ -48,7 +48,7 @@ test_fnc(dict(soe=['orchestrator/start', f'dobot/moveHome_{0}', f'force/read_{0}
                     f'moveHome_{0}':{},
                     f'read_{0}': {},
                     f'measure_{0}':{'method': 'open_circuit_potentiometry',
-                                    'parameters': json.dumps({'t_run': 25, 't_interval': 0.25}),
+                                    'parameters': json.dumps({'t_run': 5, 't_interval': 0.5}),
                                     'filename': 'substrate_{}_dummy_ocp_{}_{}'.format(substrate, id0, 0),
                                     'substrate': substrate,
                                     'id': id0,

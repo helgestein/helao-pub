@@ -34,6 +34,15 @@ def measure(method:str, parameters:str, filename:str, substrate=None, id=None, e
 
     params = json.loads(parameters)
 
+    if method == "potentiostatic_impedance_spectroscopy":
+        if params['e_dc'] == "None":
+            path = config[serverkey]['path_json']
+            fn = 'substrate_{}_ocp_{}_{}.json'.format(substrate, id, experiment)
+            with open(os.path.join(path,fn),'r') as data:
+                datafile = json.load(data)
+                ocp_pot = sum(datafile["potential_arrays"][0][-10:])/10
+                params['e_dc'] = ocp_pot
+
     if method == "chronopotentiometry":
         if 'e_max' in params:
             params['e_max'] /= 10

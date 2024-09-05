@@ -23,7 +23,8 @@ config['palmsensDriver'] = dict(PalmsensSDK_python = r"C:\Users\juliu\Documents\
                                 savepath_raw = r"C:\Users\juliu\helao-dev\temp\palmsens_data",
                                 log_folder = r"C:\Users\juliu\helao-dev\temp\palmsens_data\log")
 
-config['palmsens'] = dict(url="http://127.0.0.1:13374")
+config['palmsens'] = dict(url="http://127.0.0.1:13374",
+                          path_json=r"C:\Users\juliu\helao-dev\temp\palmsens_data")
 
 config['dobotDriver'] = {
     "api_path": r"C:\Users\juliu\Documents\RobotRecording\include",

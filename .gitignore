@@ -18,3 +18,11 @@ log.txt
 temp/palmsens_data/log/logs/*.log
 log.txt
 temp/palmsens_data/log/logs/20240628_102526_logFile.log
+testing/cyan_substrate_199_supercap.py
+testing/cyan_substrate_200_cv_hcf.py
+testing/cyan_substrate_200_droplet_multithread.py
+testing/cyan_substrate_200_ocp.py
+testing/cyan_substrate_200_ed.py
+action/palmsens_action.py
+
+config/sdc_cyan.py

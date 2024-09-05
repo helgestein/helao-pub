@@ -78,7 +78,7 @@ def pumpSimple(volume: int=0, valve: int=1, speed: int=10, times: int=1):
 
 
 @app.get("/psd/pumpMix")
-def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, speed: int=10, mix: int=1, times: int=1, cell: bool=False):
+def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, mix_speed: int=20, mix: int=1, vial_speed: int=10, times: int=1, cell: bool=False):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert to steps from 0 to 3000 for psd4
     #the sum of all volumes should be less than the syringe volume
@@ -94,8 +94,8 @@ def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, sp
         s6 = int(round(V6/config[serverkey]['volume']*3000))
         retl = []
 
-    if speed != config[serverkey]['speed']:
-        speed_param = {'speed': speed}
+    if mix_speed != config[serverkey]['speed']:
+        speed_param = {'speed': mix_speed}
         res = requests.get("{}/psdDriver/speed".format(psdurl),
                             params=speed_param).json()
 
@@ -116,6 +116,10 @@ def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, sp
                 retl.append(res)
                 time.sleep(0.2)
         if mix != 0:
+            if vial_speed != config[serverkey]['speed']:
+                speed_param = {'speed': vial_speed}
+                res = requests.get("{}/psdDriver/speed".format(psdurl),
+                                    params=speed_param).json()
             for i in range(abs(mix)):        
                 #then eject through the preferred out port to the vial
                 valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
@@ -139,6 +143,10 @@ def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, sp
                 retl.append(res)
                 time.sleep(0.2)
         # decide whether to eject to the cell or to the vial
+        if mix_speed != config[serverkey]['speed']:
+            speed_param = {'speed': mix_speed}
+            res = requests.get("{}/psdDriver/speed".format(psdurl),
+                                params=speed_param).json()
         if cell == False:
             #eject the whole volume back to the vial
             valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
@@ -162,8 +170,13 @@ def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, sp
             retl.append(res)
             time.sleep(0.2)
 
-    retc = return_class(parameters= {'V1': V1, 'V2': V2, 'V3': V3, 'V4': V4, 'V5': V5, 'V6': V6, 'speed': speed, 'mix': mix, 'times': times, 'cell': cell},
-                        data = {i:retl[i] for i in range(len(retl))})
+    retc = return_class(
+    parameters={
+        'V1': V1, 'V2': V2, 'V3': V3, 'V4': V4, 'V5': V5, 'V6': V6,
+        'mix_speed': mix_speed, 'mix': mix, 'vial_speed': vial_speed,
+        'times': times, 'cell': cell
+    },
+    data={f'response_{i}': retl[i] for i in range(len(retl))})
     return retc
 
 @app.get("/psd/pumpVial")

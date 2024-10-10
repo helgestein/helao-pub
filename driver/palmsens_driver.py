@@ -499,6 +499,14 @@ class PalmsensDevice():
         mpa.t3 = t3
         mpa.RunTime = run_time
         return mpa
+    
+    def pulsed_amperometry(self, **kwargs):
+        e_deposition = kwargs.get('e_deposition', 0.0) # DepositionPotential
+        t_deposition = kwargs.get('t_deposition', 0.0) # DepositionTime
+        e_conditioning = kwargs.get('e_conditioning', 0.0) # ConditioningPotential
+        t_conditioning = kwargs.get('t_conditioning', 0.0) # ConditioningTime
+        equilibration_time = kwargs.get('equilibration_time', 0) # EquilibrationTime
+        e_applied = kwargs.get('e_applied', 0.0) # AppliedPotential
         
     def differential_pulse_voltammetry(self, **kwargs):
         e_deposition = kwargs.get('e_deposition', 0.0) # DepositionPotential

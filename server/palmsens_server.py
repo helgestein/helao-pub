@@ -63,13 +63,13 @@ async def websocket_messages(websocket: WebSocket):
             data = p.queue.get(block=False)
             data["timestamp"] = time.time()
             await websocket.send_text(json.dumps(data))
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.02)
         except queue.Empty:
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.02)
             continue
         except websockets.exceptions.ConnectionClosedError:
             await websocket.send_text(json.dumps(data))
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.02)
 
 
 if __name__ == "__main__":

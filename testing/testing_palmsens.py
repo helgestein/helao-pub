@@ -26,15 +26,15 @@ echem_test('measure', params=dict(method="open_circuit_potentiometry",
                                   filename= "dummy_cell_test_ocp_0"))
 
 echem_test('measure', params=dict(method="chronopotentiometry", 
-                                  parameters=json.dumps({"i": -5e-6,               # Current in Amps
+                                  parameters=json.dumps({"i": 0.55e-9,               # Current in Amps
                                                         "t_interval": 0.2,           # Interval time in seconds
                                                         "t_run": 5.0,                # Run time in seconds
-                                                        "e_max": 0.5,                # Max potential limit
-                                                        "e_min": -0.5,               # Min potential limit
-                                                        "e_max_bool": False,          # Whether to use max limit
+                                                        "e_max": 50,                # Max potential limit
+                                                        "e_min": -50,               # Min potential limit
+                                                        "e_max_bool": True,          # Whether to use max limit
                                                         "e_min_bool": False          # Whether to use min limit 
                                                         }),
-                                  filename="dummy_cell_test_substrate_1037_charge_cp_0"))
+                                  filename="dummy_cell_test_cp_0"))
 
 echem_test('measure', params=dict(method="linear_sweep_potentiometry",
                                  parameters=json.dumps({"i_input_range": -5,         # Start current range (in log10(A))

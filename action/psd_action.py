@@ -26,20 +26,20 @@ class return_class(BaseModel):
     data: dict = None
 
 @app.get("/psd/pumpSimple")
-def pumpSimple(volume: int=0, valve: int=1, speed: int=10, times: int=1):
+def pumpSimple(volume: float=0, valve: int=1, speed: int=10, times: int=1):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert to steps from 0 to 3000 for psd4
     steps = int(round(volume/config[serverkey]['volume']*3000))
     
     # converted to angles from 0 to 315 degrees 
-    valve = int((valve-1) * 45)
+    valve_angle = int((valve-1) * 45)
 
     if volume > 0:
-        In = valve
+        In = valve_angle
         Out = int((config[serverkey]['valve']['Out']-1) * 45)
     else:
         In = int((config[serverkey]['valve']['Out']-1) * 45)
-        Out = valve
+        Out = valve_angle
         
     retl = []
 
@@ -72,13 +72,13 @@ def pumpSimple(volume: int=0, valve: int=1, speed: int=10, times: int=1):
         retl.append(res)
         time.sleep(0.2)
 
-    retc = return_class(parameters= {'volume (uL)': volume, 'speed': speed, 'times': times},
+    retc = return_class(parameters= {'valve': valve,'volume (uL)': volume, 'speed': speed, 'times': times},
                         data = {i:retl[i] for i in range(len(retl))})
     return retc
 
 
 @app.get("/psd/pumpMix")
-def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, mix_speed: int=20, mix: int=1, vial_speed: int=10, times: int=1, cell: bool=False):
+def pumpMix(V1: float=0, V2: float=0, V3: float=0, V4: float=0, V5: float=0, V6: float=0, mix_speed: int=20, mix: int=1, vial_speed: int=10, times: int=1, cell: bool=False):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert to steps from 0 to 3000 for psd4
     #the sum of all volumes should be less than the syringe volume
@@ -180,7 +180,7 @@ def pumpMix(V1: int=0, V2: int=0, V3: int=0, V4: int=0, V5: int=0, V6: int=0, mi
     return retc
 
 @app.get("/psd/pumpVial")
-def pumpVial(volume: int=0, speed: int=10, times: int=1):
+def pumpVial(volume: float=0, speed: int=10, times: int=1):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert to steps from 0 to 3000 for psd4
     #here we are pumping only between the vial and the cell

@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 import json
+import numpy as np
 from typing import List
 import os
 from importlib import import_module
@@ -31,14 +32,71 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-
 @app.get("/autolab/measure/")
-def measure(procedure:str,setpointjson: str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str):
+def measure(procedure:str,setpointjson:str,plot:str,onoffafter:str,safepath:str,filename:str, parseinstructions:str, substrate=None, id=None, experiment=None):
     """
     Measure a recipe and manipulate the parameters:
 
     - **measure_conf**: is explained in the echemprocedures folder
     """
+    if procedure == "eis":
+        data = json.loads(setpointjson)
+        if data['FHSetSetpointPotential']['Setpoint value'] == None:
+                path = r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev_2\temp"
+                fn = 'substrate_{}_ocp_{}_{}_data.json'.format(substrate, id, experiment)
+                with open(os.path.join(path,fn),'r') as banana:
+                    datafile = json.load(banana)
+                    ocp_pot = sum(datafile['recordsignal']['WE(1).Potential'][-10:])/10
+                    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    setpointjson = json.dumps(data)
+
+    if procedure == "eis_fast":
+        data = json.loads(setpointjson)
+        if data['FHSetSetpointPotential']['Setpoint value'] == None:
+                path = r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev_2\temp"
+                fn = 'substrate_{}_ocp_{}_{}_data.json'.format(substrate, id, experiment)
+                with open(os.path.join(path,fn),'r') as banana:
+                    datafile = json.load(banana)
+                    ocp_pot = sum(datafile['recordsignal']['WE(1).Potential'][-10:])/10
+                    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    setpointjson = json.dumps(data)
+
+    if procedure == "cv_pot":
+        data = json.loads(setpointjson)
+        if data['FHSetSetpointPotential']['Setpoint value'] == None:
+                path = r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev_2\temp"
+                fn = 'substrate_{}_ocp_{}_{}_data.json'.format(substrate, id, experiment)
+                with open(os.path.join(path,fn),'r') as banana:
+                    datafile = json.load(banana)
+                    ocp_pot = sum(datafile['recordsignal']['WE(1).Potential'][-10:])/10
+                    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    data['FHCyclicVoltammetry2']['Start value'] = ocp_pot
+                    setpointjson = json.dumps(data)
+
+                    #if ocp_pot > data['FHCyclicVoltammetry2']['Upper vertex']:
+                    #    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    #    data['FHCyclicVoltammetry2']['Start value'] = ocp_pot
+                    #    data['FHCyclicVoltammetry2']['Upper vertex'] = ocp_pot
+                    #elif ocp_pot < data['FHCyclicVoltammetry2']['Lower vertex']:
+                    #    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    #    data['FHCyclicVoltammetry2']['Start value'] = ocp_pot
+                    #    data['FHCyclicVoltammetry2']['Lower vertex'] = ocp_pot
+                    #else:
+                    #    data['FHSetSetpointPotential']['Setpoint value'] = data['FHCyclicVoltammetry2']['Lower vertex']
+                    #    data['FHCyclicVoltammetry2']['Start value'] = data['FHCyclicVoltammetry2']['Lower vertex']
+
+    if procedure == "lsv":
+        data = json.loads(setpointjson)
+        if data['FHSetSetpointPotential']['Setpoint value'] == None:
+                path = r"C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev_2\temp"
+                fn = 'substrate_{}_ocp_{}_{}_data.json'.format(substrate, id, experiment)
+                with open(os.path.join(path,fn),'r') as banana:
+                    datafile = json.load(banana)
+                    ocp_pot = sum(datafile['recordsignal']['WE(1).Potential'][-10:])/10
+                    data['FHSetSetpointPotential']['Setpoint value'] = ocp_pot
+                    data['FHLinearSweep']['Start value'] = ocp_pot
+                    setpointjson = json.dumps(data)
+    
     measure_conf = dict(procedure=procedure,
                         setpointjson=setpointjson,
                         plot=plot,

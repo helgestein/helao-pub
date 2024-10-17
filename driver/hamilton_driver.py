@@ -15,34 +15,31 @@ import sys
 import clr
 import numpy as np
 
-path = r'C:\Program Files (x86)\Hamilton Company\ML600 Programming Helper Tool'
 
-sys.path.append(path)
 
-dlls = ['Hamilton.Components.TransportLayer.ComLink',
- 		'Hamilton.Components.TransportLayer.Discovery',
- 		'Hamilton.Components.TransportLayer.HamCli',
- 		'Hamilton.Components.TransportLayer.Protocols',
- 		'Hamilton.MicroLab.MicroLabDaisyChain',
- 		'Hamilton.Module.ML600']
-for dll in dlls:
-    print(f'Adding {dll}')
-    clr.AddReference(dll)
 
-from Hamilton.Components.TransportLayer import Protocols
-from Hamilton import MicroLab
-from Hamilton.MicroLab import Components
 
+#units of the hamilton are in nL
 class Hamilton:
     def __init__(self,hamilton_conf):
+        self.dlls = ['Hamilton.Components.TransportLayer.ComLink',
+ 		            'Hamilton.Components.TransportLayer.Discovery',
+ 		            'Hamilton.Components.TransportLayer.HamCli',
+ 		            'Hamilton.Components.TransportLayer.Protocols',
+ 		            'Hamilton.MicroLab.MicroLabDaisyChain',
+ 		            'Hamilton.Module.ML600']
         self.conf = hamilton_conf
-        self.connect()
-
-    def connect(self):
+        sys.path.append(self.conf['dllpath'])
+        for dll in self.dlls:
+            print(f'Adding {dll}')
+            clr.AddReference(dll)
+        from Hamilton.Components.TransportLayer import Protocols
+        from Hamilton import MicroLab
+        from Hamilton.MicroLab import Components
         self.ml600Chain = MicroLab.DaisyChain()
         self.discovered = self.ml600Chain.Discover(5)
         self.ml600Chain.Connect(self.discovered[0].Address,self.discovered[0].Port)
-
+        #self.ml600Chain.Connect("192.168.100.100")
         if self.ml600Chain.get_IsConnected():
             print("Made a connection to Microlab 600")
 
@@ -94,21 +91,3 @@ class Hamilton:
         self.pump(leftVol=-status['vl'],rightVol=-status['vr'],leftPort=2,rightPort=2)
         self.ml600Chain.Disconnect()
 
-if __name__ == '__main__':
-    #units of the hamilton are in nL
-    hamilton_conf = dict(left=dict(syringe=dict(volume=5000000,
-                                                flowRate=1250000,
-                                                initFlowRate=625000),
-                                    valve=dict(prefIn=1,prefOut=2)),
-                        right=dict(syringe=dict(volume=5000000,
-                                                flowRate=1250000,
-                                                initFlowRate=625000),
-                                    valve=dict(prefIn=1,prefOut=2)))
-
-    myHamilton = Hamilton(hamilton_conf)
-    myHamilton.getStatus()
-    myHamilton.pump(leftVol=100000,leftPort=1)
-    myHamilton.pump(leftVol=-100000,leftPort=1)
-    myHamilton.moveAbs(leftSteps=25000,leftPort=1)
-    myHamilton.moveAbs(leftSteps=0,leftPort=1)
-    myHamilton.disconnect()

@@ -1,17 +1,17 @@
 import sys
 import clr
 import time
-sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net")
-sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
-sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
+#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net")
+#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
+#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
+sys.path.append(r"C:\Users\juliu\helao-dev")
 sys.path.append(r"../config")
 sys.path.append(r"../driver")
-from mischbares_small import config
+from config.sdc_4 import config
+#from mischbares_small import config
 # r"C:\Users\SDC_1\Documents\git\pyLang\API\LStepAPI"
 #ls2 = clr.AddReference('CClassLStep')
 #ls = clr.AddReference('CClassLStep64') #CClassStep
-
-
 
 
 class langNet():

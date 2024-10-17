@@ -10,10 +10,10 @@ sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
-from hamilton_driver import Hamilton
+from microlab_driver import Hamilton
 from contextlib import asynccontextmanager
 
-app = FastAPI(title="Hamilton Syringe PumpDriver server V1",
+app = FastAPI(title="Hamilton Microlab600 Syringe PumpDriver server V1",
     description="This is a very fancy syringe pump server",
     version="1.0",)
 
@@ -21,7 +21,7 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/hamiltonDriver/pump")
+@app.get("/microlabDriver/pump")
 def pump(leftVol:int=0,rightVol:int=0,leftPort:int=0,rightPort:int=0,delayLeft:int=0,delayRight:int=0):
     ret = p.pump(leftVol=leftVol,rightVol=rightVol,leftPort=leftPort,rightPort=rightPort,delayLeft=delayLeft,delayRight=delayRight)
     retc = return_class(parameters=dict(leftVol=leftVol,rightVol=rightVol,
@@ -30,7 +30,7 @@ def pump(leftVol:int=0,rightVol:int=0,leftPort:int=0,rightPort:int=0,delayLeft:i
                                         data=None)
     return retc
 
-@app.get("/hamiltonDriver/getStatus")
+@app.get("/microlabDriver/getStatus")
 def read():
     ret = p.getStatus()
     data = dict(volume_nL_left=ret['vl'],
@@ -52,5 +52,5 @@ async def app_lifespan(app: FastAPI):
     p.shutdown()
 
 if __name__ == "__main__":
-    p = Hamilton(config['hamiltonDriver'])
+    p = Hamilton(config['microlabDriver'])
     uvicorn.run(app, host=config['servers'][serverkey]['host'], port=config['servers'][serverkey]['port'])

@@ -15,10 +15,6 @@ import sys
 import clr
 import numpy as np
 
-
-
-
-
 #units of the hamilton are in nL
 class Hamilton:
     def __init__(self,hamilton_conf):

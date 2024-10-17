@@ -29,6 +29,7 @@ The currently implemented hardware is the following:
 | **Device Name** | **Type**                      | **Communication**             | **Measures**     | **Manufacturer**          | **natively blocking** |
 | --------------- | ----------------------------- | ----------------------------- | ---------------- | ------------------------- | --------------------- |
 | lang            | Motion                        | .net API                      | position         | Lang GmbH                 | no                    |
+| dobot           | Motion                        |                               | position         | Dobot Europe GmbH         |                       |
 | galil           | Motion, IO                    | TCP/IP                        | position         | Galil Motion Control Inc. | no                    |
 | owis            | Motion                        | serial commands               | position         | Owis GmbH                 | no                    |
 | mecademic       | Motion                        | python TCP/IP API             | position, state  | Mecademic Ltd.            | no                    |
@@ -36,7 +37,10 @@ The currently implemented hardware is the following:
 | autolab         | Potentiostat                  | .net API                      | electrochemistry | Methrohm Autolab B.V.     | yes                   |
 | gamry           | Potentiostat                  | .dll for serial communication | electrochemistry | Gamry Instruments Inc.    | yes                   |
 | arbin           | Potentiostat                  | autohotkey                    | electrochemistry | Arbin Inc.                | no                    |
+| palmsens        | Potentiostat                  |                               | electrochemistry | Palmsens B.V.             |                       |
 | pump            | pumping                       | serial commands               | n.a.             | CAT  engineering GmbH     | no                    |
+| microlab        | pumping                       |                               | n.a.             | Hamilton Company          |                       |
+| psd             | pumping                       |                               | n.a.             | Hamilton Company          |                       |
 | arcoptix        | spectroscopy                  | .dll api                      | IR spectra       | arcoptix S.A.             | yes                   |
 | ocean           | spectroscopy Raman            | python package                | Raman spectra    | ocean insights GmbH       | yes                   |
 | force           | force sensing                 | serial commands               | force            | ME Meßsysteme GmbH        | n/a                   |

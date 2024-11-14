@@ -15,7 +15,6 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'helper'))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
-#from palmsems_helpers import saveToFile, loadVariable
 
 ## Helpers functions
 

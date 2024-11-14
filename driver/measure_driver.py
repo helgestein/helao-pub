@@ -2,11 +2,7 @@ import numpy as np
 import json
 import itertools as it
 import sys
-#if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
-#    sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
-
 sys.path.append(r"../driver")
-
 
 class dataAnalysis:
     def __init__(self):

@@ -3,8 +3,6 @@ sys.path.append('../driver')
 sys.path.append('../config')
 sys.path.append('../server')
 sys.path.append('../')
-#from sdc_4 import config
-#from util import list_to_dict
 import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel

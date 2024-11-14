@@ -1,18 +1,14 @@
+import os
 import sys
 import clr
 import time
-#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI\_C#_VB.net")
-#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
-#sys.path.append(r"C:\Users\SDC_1\Documents\git\pyLang\LStepAPI")
-sys.path.append(r"C:\Users\juliu\helao-dev")
-sys.path.append(r"../config")
-sys.path.append(r"../driver")
-from config.sdc_4 import config
-#from mischbares_small import config
-# r"C:\Users\SDC_1\Documents\git\pyLang\API\LStepAPI"
+from importlib import import_module
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'driver'))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
 #ls2 = clr.AddReference('CClassLStep')
 #ls = clr.AddReference('CClassLStep64') #CClassStep
-
 
 class langNet():
     def __init__(self,config):
@@ -39,7 +35,6 @@ class langNet():
             print("Disconnected")
         self.connected = False
 
-
     def getPos(self):
         ans = self.LS.GetPos(0,0,0,0)
         return ans [1:-1]
@@ -54,7 +49,6 @@ class langNet():
 
     def moveRelZ(self,dz,wait=True):
         self.LS.MoveRel(0,0,dz,0,wait)
-            
 
     def moveRelXY(self,dx,dy,wait=True):
         self.LS.MoveRel(dx,dy,0,0,wait)
@@ -71,7 +65,6 @@ class langNet():
         xp,yp,zp = self.getPos()
         self.LS.MoveAbs(xp,yp,z,0,wait)
 
-
     def moveAbsFar(self, dx, dy, dz): 
         if dz > 0: #moving down -> z last
             self.moveAbsXY(dx,dy)
@@ -82,7 +75,6 @@ class langNet():
 
     def setMaxVel(self,xvel,yvel,zvel):
         self.LS.SetVel(xvel,yvel,zvel,0)
-
 
     def moveAbsZ2(self,z,wait=True):
         self.moveRelZ(z-self.getPos()[2],wait)

@@ -37,6 +37,7 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
                 cmd = ["bokeh", "serve", "--show", f"{api}/{v}.py",
                     "--args", confPrefix, server]
                 subprocess.Popen(cmd, cwd=helao_root)
+                print(f"Starting {api}/{v}.py")
         elif api == "process":
             for p in process:
                 cmd = [

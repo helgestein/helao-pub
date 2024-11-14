@@ -301,7 +301,6 @@ async def start(experiment: dict, collectionkey:str, meta: dict= None):
     global tracking, filelocks, serverlocks, status_queues
     if meta is None:
         meta = experiment.get('meta', {})
-    print('meta is:', meta)
     thread = experiment['meta']['thread']
     if collectionkey in experiment['meta'].keys(): #give the directory an index if one is provided
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}_{experiment['meta'][collectionkey]}")

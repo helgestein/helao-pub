@@ -14,7 +14,6 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
-#from sdc_1 import config
 from force_driver import GSV3USB
 serverkey = sys.argv[2]
 #serverkey = 'forceDriver'

@@ -3,9 +3,10 @@ import sys
 import numpy as np
 import asyncio
 import pyHamiltonPSD as PSD
+from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
-from sdc_cyan import config
+config = import_module(sys.argv[1]).config
 import time
 
 class HamiltonPSD:

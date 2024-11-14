@@ -27,6 +27,8 @@ def keytofile(key:str):
         return server[:-6] + "_server"
     elif "process" in server:
         return server
+    elif "visualizer" in server:
+        return server
     else:
         return server + "_action"
 
@@ -59,20 +61,25 @@ while True:
             s[1][1].terminate()
         print("All servers closed")
         break
-    elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator'] or event.split('-')[0] in config['launch']['process']:
+    elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator'] or event.split('-')[0] in config['launch']['visualizer'] or event.split('-')[0] in config['launch']['process']:
         s = event.split('-')[0]
         api = "orchestrators"
         if event.split('-')[0] in config['launch']['server']:
             api = "server" 
         elif event.split('-')[0] in config['launch']['action']:
             api = "action"
+        elif event.split('-')[0] in config['launch']['visualizer']:
+            api = "visualizer"
         elif event.split('-')[0] in config['launch']['process']:
             api= "."
 
         #api =  "server" if event.split('-')[0] in config['launch']['server'] else "action" if event.split('-')[0] in config['launch']['action'] else "orchestrators"
         if event.split('-')[1] == 'open':
             l = list(psutil.process_iter())
-            cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+            if api == "visualizer" and "palmsens" not in s:
+                cmd = ["bokeh", "serve", "--show", f"{api}/{keytofile(s)}.py", "--args", sys.argv[1]]
+            else:
+                cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
             print(f"Starting {api}/{keytofile(s)} with server key {s}")
             p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True, stderr=subprocess.STDOUT)
             time.sleep(.1)
@@ -133,7 +140,10 @@ while True:
                 window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
 
-                cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+                if api == "visualizer":
+                    cmd = ["bokeh", "serve", "--show", f"{api}/{keytofile(s)}.py", "--args", sys.argv[1]]
+                else:
+                    cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
                 print(f"Starting {api}/{keytofile(s)} with server key {s}")
                 p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True)
                 time.sleep(.1)

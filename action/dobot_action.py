@@ -131,8 +131,9 @@ def move_waste(x: float = 0, y: float = 0, z: float = 0, r: float = 0):
                   "y": y + config[server_key]["safe_waste_pose"][1],
                   "z": z + config[server_key]["safe_waste_pose"][2],
                   "r": r + config[server_key]["safe_waste_pose"][3]}
-    response = requests.get(f"{url}/dobotDriver/move_joint_absolute", params=parameters).json()
-    return return_class(parameters=parameters, data=response)
+    response = requests.get(f"{url}/dobotDriver/move_joint_absolute", 
+                            params=parameters).json()
+    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data=response)
 
 
 @app.get("/dobot/moveSample")
@@ -141,8 +142,9 @@ def move_sample(x: float = 0, y: float = 0, z: float = 0, r: float = 0):
                   "y": y + config[server_key]["safe_sample_pose"][1],
                   "z": z + config[server_key]["safe_sample_pose"][2],
                   "r": r + config[server_key]["safe_sample_pose"][3]}
-    response = requests.get(f"{url}/dobotDriver/move_joint_absolute", params=parameters).json()
-    return return_class(parameters=parameters, data=response)
+    response = requests.get(f"{url}/dobotDriver/move_joint_absolute", 
+                            params=parameters).json()
+    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data=response)
 
 @app.get("/dobot/removeDrop")
 def remove_drop(x: float = 0, y: float = 0, z: float = 0, r: float = 0):

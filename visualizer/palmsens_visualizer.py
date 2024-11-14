@@ -15,14 +15,13 @@ sys.path.append('../driver')
 sys.path.append('../config')
 sys.path.append('../server')
 
-#helao_root = os.path.dirname(os.path.realpath(__file__))
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 config_path = sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
 orchestrator_url = config[serverkey]["orchestrator_url"]
-socket_url = config["plot_process"]["socket_url"]
+socket_url = config["palmsens_visualizer"]["socket_url"]
 
 # Style sheet and font properties
 plt.style.use('ggplot')
@@ -48,8 +47,6 @@ start_time = -1
 index = -1
 clear_flag = False
 experiment_index = 0
-#label_x = "x"
-#label_y = "y"
 x_label = "x"
 y_label = "y"
 
@@ -59,8 +56,6 @@ async def data_generator(queue):
     global index
     global experiment_index
     global clear_flag
-    #global label_x
-    #global label_y
     global x_label
     global y_label
     async with websockets.connect(socket_url, ping_interval=None) as ws:
@@ -97,8 +92,6 @@ async def data_generator(queue):
                             start_time =  new_data["timestamp"] * 1000
                         
                         timestamp = new_data["timestamp"] * 1000 - start_time
-                        #label_x = keys_x
-                        #label_y = keys_y
                         queue.put_nowait((x, y, timestamp))
                         
                         break
@@ -122,9 +115,6 @@ ax1.set_xlim(0, 10)
 ax1.set_ylim(0, 10)
 ax2.set_xlim(0, 10)
 ax2.set_ylim(0, 10)
-
-#ax1.set_xlabel(label_x)
-#ax1.set_ylabel(label_y)
 ax1.set_xlabel(x_label)
 ax1.set_ylabel(y_label)
 ax1.set_title('Real-time data plot')
@@ -157,8 +147,6 @@ def update(frame):
         timestamps.append(timestamp)
 
     ax1.clear()  # Clear previous scatter plot
-    #ax1.set_xlabel(label_x)
-    #ax1.set_ylabel(label_y)
     ax1.set_xlabel(x_label)
     ax1.set_ylabel(y_label)
     ax1.set_title('Real-time data plot')

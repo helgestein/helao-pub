@@ -12,9 +12,9 @@ import queue
 import time
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(os.path.join(helao_root, 'helper'))
-from sdc_cyan import config as conf
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
 #from palmsems_helpers import saveToFile, loadVariable
 
 ## Helpers functions
@@ -69,26 +69,23 @@ def loadVariable(loadPath:str, variable:str) -> Any:
     return loadedVariable
 
 ## Imports from PalmsensSDK
-import sys
-sys.path.append(conf['palmsensDriver']["PalmsensSDK_python"])
-
+sys.path.append(config['palmsensDriver']["PalmsensSDK_python"])
 from pspython.pspyinstruments import InstrumentManager, Instrument
 #from pspython import pspymethods
-
 # Add the dll file of the Palmsens SDK to import the required enums to make it work with Python >3.8
-clr.AddReference(str(Path(conf['palmsensDriver']["PalmsensSDK_python"]).joinpath("pspython", "PalmSens.Core.dll")))
-clr.AddReference(str(Path(conf['palmsensDriver']["PalmsensSDK_python"]).joinpath("pspython", "PalmSens.Core.Windows.dll")))
+clr.AddReference(str(Path(config['palmsensDriver']["PalmsensSDK_python"]).joinpath("pspython", "PalmSens.Core.dll")))
+clr.AddReference(str(Path(config['palmsensDriver']["PalmsensSDK_python"]).joinpath("pspython", "PalmSens.Core.Windows.dll")))
 from System import Enum
 from PalmSens.Techniques.Impedance import enumScanType, enumFrequencyType, EnumFrequencyMode
 from PalmSens import CurrentRange, CurrentRanges
 from PalmSens.Techniques import AmperometricDetection, ImpedimetricMethod, Potentiometry, OpenCircuitPotentiometry, LinearSweep, CyclicVoltammetry, MultiplePulseAmperometry, LinearSweepPotentiometry, DifferentialPulse, SquareWave, NormalPulse, Chronocoulometry, ImpedimetricGstatMethod
 
-Path(f"{conf['palmsensDriver']['log_folder']}").joinpath("logs").mkdir(parents=True, exist_ok=True)
+Path(f"{config['palmsensDriver']['log_folder']}").joinpath("logs").mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s -%(name)s \n \t %(message)s \n",
-    filename=str(Path(f"{conf['palmsensDriver']['log_folder']}").joinpath("logs", f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_logFile.log")),
+    filename=str(Path(f"{config['palmsensDriver']['log_folder']}").joinpath("logs", f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_logFile.log")),
     encoding="utf-8",
     force=True  # https://stackoverflow.com/questions/12158048/changing-loggings-basicconfig-which-is-already-set
     )
@@ -195,7 +192,7 @@ class PalmsensDevice():
                 method:str,
                 parameters:dict,
                 filename:str,
-                save_folder:str=conf['palmsensDriver']["savepath_raw"]
+                save_folder:str=config['palmsensDriver']["savepath_raw"]
                ) -> None:
         ''' This function performs a measurement in the defined method on the 
         Palmsens device. It saves the results to the path specified.
@@ -258,7 +255,7 @@ class PalmsensDevice():
     def retrieveData(
                     self,
                     filename:str,
-                    save_folder:str=conf['palmsensDriver']["savepath_raw"]
+                    save_folder:str=config['palmsensDriver']["savepath_raw"]
                     ) -> dict:
         ''' This function loads the data of a measurement and returns it as a dict. 
         Inputs:

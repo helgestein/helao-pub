@@ -5,7 +5,7 @@ sys.path.append(r'../action')
 sys.path.append(r'../server')
 import time
 #from config.mischbares_small import config
-from config.sdc_cyan import config
+from config.sdc_tum import config
 import requests
 
 def force_test(action, params):

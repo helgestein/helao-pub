@@ -42,48 +42,6 @@ async def app_lifespan(app: FastAPI):
     data = []
     yield
 
-'''
-@app.get("/analysis/receiveData")
-def receiveData(path:str,run:int,addresses:str):
-    addresses = json.loads(addresses)
-    global data
-    with h5py.File(path,'r') as h5file:
-        for address in addresses.values():
-            item = h5file[f'run_{run}/'+address]
-            if isinstance(item,h5py._hl.group.Group):
-                data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address+'/')})
-            elif isinstance(item,h5py._hl.dataset.Dataset):
-                data.update({address:item[()]})
-        
-@app.get("/analysis/dummy")
-def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
-    x = data[x_address]
-    y = data[y_address]
-    schwefel = data[schwefel_address]
-    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
-    return retc
-'''
-
-'''
-@app.get("/analysis/receiveData")
-def receiveData(path:str,run:int,addresses:str):
-    try:
-        addresses = json.loads(addresses)
-    except:
-        addresses = [addresses]
-    print("addresses", addresses)
-    global data
-    with h5py.File(path,'r') as h5file:
-        for address in addresses.values():
-            item = h5file[f'run_{run}/'+address]
-            if isinstance(item,h5py._hl.group.Group):
-                data.update({address:hdf5_group_to_dict(h5file,f'run_{run}/'+address+'/')})
-            elif isinstance(item,h5py._hl.dataset.Dataset):
-                data.update({address:item[()]})
-            print("data", data)
-'''
-
-
 @app.get("/analysis/receiveData")
 def receiveData(path: str, run: int, address: str):
     global data
@@ -536,30 +494,6 @@ def cp(query: str, address:str):
     return retc
 
 
-'''
-def convert(query: str, address:str):
-    global data
-    print(data)
-    query = json.loads(query)
-    q_query = query['q_query']
-    x_query = query['x_query']
-    c_query = query['c_query']
-    x = data[0][0]
-    y = data[0][1]
-    t = data[0][2][-4]
-    print(t)
-    key_x = [data[0][0], data[0][1]]
-    id = x_query.index(key_x)
-    c = c_query[id]
-    c1, c2, c3 = c[0], c[1], c[2]
-    Q = t*q_query[id]/3600
-    #Q = t*1000*uniform(0.8,0.9)
-    print(Q)
-    #print("data", data)
-    #print("addresses", addresses)
-    retc = return_class(parameters={'addresses':address}, data={'id':{'id': id}, 'C':{'c1': c1, 'c2': c2, 'c3': c3}, 'X':{'x': x, 'y': y}, 'Y':{'Q': Q}})
-    return retc
-'''
 
 """
 @app.get("/analysis/dummy")

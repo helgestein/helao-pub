@@ -139,8 +139,7 @@ while True:
                 window[s+"-open"].update(disabled = False)
                 window[s+"-close"].update(disabled = True)
                 window[s+"-refresh"].update(disabled = True)
-
-                if api == "visualizer":
+                if api == "visualizer" and "palmsens" not in s:
                     cmd = ["bokeh", "serve", "--show", f"{api}/{keytofile(s)}.py", "--args", sys.argv[1]]
                 else:
                     cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]

@@ -1,9 +1,10 @@
-import sys
-from copy import copy
-import os
-
 import requests
-from config.sdc_cyan import config
+import sys
+sys.path.append(r'../config')
+sys.path.append(r'../action')
+sys.path.append(r'../server')
+from config.sdc_tum import config
+import requests
 
 def dobot_fnc(action, params):
     server = 'dobot'

@@ -21,7 +21,7 @@ def test_fnc(sequence,thread=0):
 ### Real wafer coordinates
 df = pd.read_csv(r'C:\Users\LaborRatte23-2\Documents\SDC functions\Python scripts\df_109.csv').to_numpy()
 random.seed(843)
-XY, C, I, Q, m = df[:,0:2], df[:,2:5], 2*df[:,-3], df[:,-2], df[:,-1]
+XY, C, I, Q, m = df[:,0:2], df[:,2:5], df[:,-3], df[:,-2], df[:,-1]
 X, Y = XY[:,0], XY[:,1]
 x_query = np.array([[i, j] for i, j in zip(X, Y)])
 query = json.dumps({'x_query': x_query.tolist(), 'c_query': C.tolist(), 'i_query': I.tolist(), 'q_query': Q.tolist(), 'm_query': m.tolist()})

@@ -238,7 +238,7 @@ class DataUtilSim:
 
         return next_exp[0], next_exp[1]
 
-    def active_learning_gaussian_simulation_parallel_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
+    def active_learning_gaussian_simulation_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
         
         random.seed(1)
         awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]

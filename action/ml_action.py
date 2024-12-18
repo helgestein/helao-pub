@@ -147,7 +147,7 @@ def active_learning_gaussian_simulation(name: str, num: int, query: str, address
     ap = awaitedpoints[modelid]
     #beta = 0.4
     beta = 0.6*math.exp(-0.06*num)+0.2
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta)
+    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_wafer(name, num, query, dat, json.dumps(ap), beta)
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
     print(next_exp_dx, next_exp_dy)
     next_ci=json.dumps({'switchgalvanostatic': {'WE(1).Current range': round(math.log10(next_exp_i))},

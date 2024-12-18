@@ -39,5 +39,5 @@ call "%conda_path%" activate helao
 cd /d "%helao_repo%\testing"
 title HELAO
 :: Run the ipython script
-ipython helao_interface.py sdc_cyan
+ipython helao_interface.py world
 PAUSE

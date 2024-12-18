@@ -24,7 +24,7 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/microlab/pumpL/")
+@app.get("/hamilton/pumpL/")
 def pumpSingleL(volume: int=0, times:int=1):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert it to nL
@@ -44,14 +44,14 @@ def pumpSingleL(volume: int=0, times:int=1):
         aspparam = dict(leftVol=abs(volnl),rightVol=0,
                         leftPort=config[serverkey]['left']['valve'][In],rightPort=0,
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/microlabDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
         #then eject through the preferred out port
         aspparam = dict(leftVol=-abs(volnl),rightVol=0,
                         leftPort=config[serverkey]['left']['valve'][Out],rightPort=0,
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/microlabDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
 
@@ -59,7 +59,7 @@ def pumpSingleL(volume: int=0, times:int=1):
                         data = {i:retl[i] for i in range(len(retl))})
     return retc
 
-@app.get("/microlab/pumpR/")
+@app.get("/hamilton/pumpR/")
 def pumpSingleR(volume: int=0, times:int=1):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert it to nL
@@ -79,14 +79,14 @@ def pumpSingleR(volume: int=0, times:int=1):
         aspparam = dict(leftVol=0,rightVol=abs(volnl),
                         leftPort=0,rightPort=config[serverkey]['right']['valve'][In],
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/microlabDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
         #then eject through the preferred out port
         aspparam = dict(leftVol=0,rightVol=-abs(volnl),
                         leftPort=0,rightPort=config[serverkey]['right']['valve'][Out],
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/microlabDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
 

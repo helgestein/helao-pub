@@ -232,14 +232,14 @@ config['lang'] = dict(url="http://127.0.0.1:13382",
 config['forceDriver'] = dict(com_port=9) # 8 or 9 - both are possible
 config['force'] = dict(url="http://127.0.0.1:13352")
 
-config['microlabDriver'] = dict(left=dict(syringe=dict(volume=500000,
+config['hamiltonDriver'] = dict(left=dict(syringe=dict(volume=500000,
                                                 flowRate=5000,
                                                 initFlowRate=5000)),
                                 right=dict(syringe=dict(volume=500000,
                                                 flowRate=10000,
                                                 initFlowRate=10000)),
                                 dllpath=r"C:\Program Files (x86)\Hamilton Company\ML600 Programming Helper Tool")
-config['microlab'] = dict(url="http://127.0.0.1:13350",left=dict(valve=dict(prefIn=1,prefOut=3)),right=dict(valve=dict(prefIn=2,prefOut=1)))
+config['hamilton'] = dict(url="http://127.0.0.1:13350",left=dict(valve=dict(prefIn=1,prefOut=3)),right=dict(valve=dict(prefIn=2,prefOut=1)))
 
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-2\Documents\data', kadiurl="http://127.0.0.1:13377")
 

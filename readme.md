@@ -4,7 +4,7 @@ The idea behind this project is that we wanted to deploy active learning to diff
 
 ![logo](https://github.com/helgestein/helao-dev/blob/master/helaologo.svg)
 
-## HELAO-pub repository
+## HELAO-pub repository (SiGeSn branch)
 
 This branch is related to the code which was used for running closed-loop experimentation using the scanning droplet cell (SDC) at Karlsruhe Institute of Technology and Helmholtz Institute Ulm for studying fast-charging Si-Ge-Sn ternary anodes for Li-ion batteries. More detailes are in the upcoming publication.
 

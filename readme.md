@@ -75,6 +75,12 @@ Alternatively:
 High level layout of HELAO where experiments are executed by sequentially calling actions which are high level wrappers for other actions or low level driver instructions. Communication goes hierarchically down from the orchestrator level to actions, which may communicate with one another, to the lowest level of drivers which may only communicate with the calling action. The orchestrator, actions and drivers are all exposing python class functions through a web interface allowing for a modular and distributed hosting of each item. Experiments are dictionaries containing a sequence of events (SOE) that outlines in which the actions are to be executed. All actions require parameters and are supplied with experiment level metadata. Metadata may be introduced at any level.
 ![helao](figure_1.png)
 
+## List of updates
+
+- Stable with Python 3.12
+- New instruments are added: PalmSens4 potentiostat, Dobot M1 Pro robotic arm, PSD/4 Hamilton Pump
+- New visualizer for PalmSens (based on Matplotlib)
+- Fixed minor bugs in Orchestrator, ML and analysis servers, etc.
 
 ## Acknowledgements
 

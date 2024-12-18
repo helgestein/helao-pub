@@ -16,8 +16,8 @@ config['servers'] = dict(pumpDriver=dict(host="127.0.0.1", port=13370),
                          analysis=dict(host="127.0.0.1", port=13369),
                          measure=dict(host="127.0.0.1", port=13399),
                          ml=dict(host="127.0.0.1", port=13363),
-                         hamiltonDriver=dict(host="127.0.0.1", port=13350),
-                         hamilton=dict(host="127.0.0.1", port=13351))
+                         microlabDriver=dict(host="127.0.0.1", port=13350),
+                         microlab=dict(host="127.0.0.1", port=13351))
 
 config['analysis'] = dict(url="http://127.0.0.1:13368")
 config['ml'] = dict(url="http://127.0.0.1:13362")
@@ -243,8 +243,8 @@ config['microlab'] = dict(url="http://127.0.0.1:13350",left=dict(valve=dict(pref
 
 config['orchestrator'] = dict(path=r'C:\Users\LaborRatte23-2\Documents\data', kadiurl="http://127.0.0.1:13377")
 
-config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'hamiltonDriver'],
-                        action=['autolab', 'kadi', 'lang', 'force', 'hamilton', 'analysis', 'measure', 'ml'],
+config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'forceDriver', 'microlabDriver'],
+                        action=['autolab', 'kadi', 'lang', 'force', 'microlab', 'analysis', 'measure', 'ml'],
                         orchestrator=['orchestrator'],
                         visualizer=['autolab_visualizer'],
                         process=[])

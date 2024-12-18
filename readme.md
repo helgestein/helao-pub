@@ -1,11 +1,10 @@
 # HELAO public repository :robot: :rocket: :handshake: :woman_scientist: :man_scientist:
 Helao deploys Hierachical Experimental Laboratory Automation and Orchestration
-The idea behind this project is that we wanted to deploy active learning to different devices located in our laboratory and to others and even to many instruments running in parallel. To to this we utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs.
+The idea behind this project is that we wanted to deploy active learning to different devices located in our laboratory and to others and even to many instruments running in parallel. To to this we utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs. This project originated at Caltech and KIT and was later further advanced at TUM.
 
-You may find the preprint on chemRxiv here: [here](https://chemrxiv.org/engage/chemrxiv/article-details/6165f62235b406a76a11cbd5)
+You may find the publicaton here: [here](https://doi.org/10.1002/admi.202101987)
 
 The hdf5 files created during a simulated active learning run both in parallel and sequential instrument operation can be found [here](https://figshare.com/s/1578223bbf5ddde605af![image](https://user-images.githubusercontent.com/11043349/137080209-52e7f6c4-bf9b-4df1-bb65-6c7f8d17b860.png))
-
 
 ![logo](https://github.com/helgestein/helao-dev/blob/master/helaologo.svg)
 
@@ -29,7 +28,7 @@ The currently implemented hardware is the following:
 | **Device Name** | **Type**                      | **Communication**             | **Measures**     | **Manufacturer**          | **natively blocking** |
 | --------------- | ----------------------------- | ----------------------------- | ---------------- | ------------------------- | --------------------- |
 | lang            | Motion                        | .net API                      | position         | Lang GmbH                 | no                    |
-| dobot           | Motion                        |                               | position         | Dobot Europe GmbH         |                       |
+| dobot           | Motion                        | TCP/IP                        | position         | Dobot Europe GmbH         | yes                   |
 | galil           | Motion, IO                    | TCP/IP                        | position         | Galil Motion Control Inc. | no                    |
 | owis            | Motion                        | serial commands               | position         | Owis GmbH                 | no                    |
 | mecademic       | Motion                        | python TCP/IP API             | position, state  | Mecademic Ltd.            | no                    |
@@ -37,10 +36,10 @@ The currently implemented hardware is the following:
 | autolab         | Potentiostat                  | .net API                      | electrochemistry | Methrohm Autolab B.V.     | yes                   |
 | gamry           | Potentiostat                  | .dll for serial communication | electrochemistry | Gamry Instruments Inc.    | yes                   |
 | arbin           | Potentiostat                  | autohotkey                    | electrochemistry | Arbin Inc.                | no                    |
-| palmsens        | Potentiostat                  |                               | electrochemistry | Palmsens B.V.             |                       |
-| pump            | pumping                       | serial commands               | n.a.             | CAT  engineering GmbH     | no                    |
-| microlab        | pumping                       |                               | n.a.             | Hamilton Company          |                       |
-| psd             | pumping                       |                               | n.a.             | Hamilton Company          |                       |
+| palmsens        | Potentiostat                  | .net API                      | electrochemistry | Palmsens B.V.             | yes                   |
+| pump            | pumping                       | serial commands               | liquid volume    | CAT  engineering GmbH     | no                    |
+| microlab        | pumping                       | TCP/IP                        | liquid volume    | Hamilton Company          | yes                   |
+| psd             | pumping                       | serial commands               | liquid volume    | Hamilton Company          | no                    |
 | arcoptix        | spectroscopy                  | .dll api                      | IR spectra       | arcoptix S.A.             | yes                   |
 | ocean           | spectroscopy Raman            | python package                | Raman spectra    | ocean insights GmbH       | yes                   |
 | force           | force sensing                 | serial commands               | force            | ME Meßsysteme GmbH        | n/a                   |
@@ -67,6 +66,10 @@ If you wish to setup thing super easy from scratch just follow these steps:
 - server groups may be defined as .py files in the `config/` folder (see `config/world.py` as an example)
 - launch syntax: `python helao.py world` will validate and launch servers with parameters defined in `config/world.py`, while also writing all monitored process IDs to `pids_world.pck` in the root directory
 - exercise caution when running multiple server groups as there is currently no check for ports that are currently in-use between different config files
+
+Alternatively:
+- `python testing\helao_interface.py world` syntax from root directory will launch a GUI with servers defined in `config/world.py`
+- open all servers and driver servers required for the experimentation
 
 ## Design
 High level layout of HELAO where experiments are executed by sequentially calling actions which are high level wrappers for other actions or low level driver instructions. Communication goes hierarchically down from the orchestrator level to actions, which may communicate with one another, to the lowest level of drivers which may only communicate with the calling action. The orchestrator, actions and drivers are all exposing python class functions through a web interface allowing for a modular and distributed hosting of each item. Experiments are dictionaries containing a sequence of events (SOE) that outlines in which the actions are to be executed. All actions require parameters and are supplied with experiment level metadata. Metadata may be introduced at any level.

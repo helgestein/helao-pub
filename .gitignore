@@ -4,6 +4,7 @@ __pycache__/*
 *.pyc
 *.DS_Store
 settings.json
-config/mischbares_small.py
 *.nox
 *.json
+*.log
+log.txt

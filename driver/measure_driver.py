@@ -2,11 +2,7 @@ import numpy as np
 import json
 import itertools as it
 import sys
-if r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue" not in sys.path:
-    sys.path.append(r"C:\Users\Fuzhi\Documents\GitHub\celery_task_queue")
-
 sys.path.append(r"../driver")
-
 
 class dataAnalysis:
     def __init__(self):
@@ -90,3 +86,17 @@ class dataAnalysis:
         #    json.dump(result, f)
 
         return result
+
+    #def algebra(self, x, y):
+    #    a1, b1 = -15, 15
+    #    a2, b2 = 5, -10
+    #    a3, b3 = 22.5, 17.5
+    #    sigma = 10
+    #    return np.exp(-((x - a1)**2 + (y - b1)**2) / (2 * sigma**2)) + 5/4*np.exp(-((x - a2)**2 + (y - b2)**2) / (3 * sigma**2)) + 4/5*np.exp(-((x - a3)**2 + (y - b3)**2) / (4 * sigma**2))
+
+    def algebra(self, x, y):
+        a1, b1 = -7.5, 72.5
+        a2, b2 = 22.5, 30
+        a3, b3 = 42.5, 75
+        sigma = 15
+        return np.exp(-((x - a1)**2 + (y - b1)**2) / (2 * sigma**2)) + 5/4*np.exp(-((x - a2)**2 + (y - b2)**2) / (3 * sigma**2)) + 4/5*np.exp(-((x - a3)**2 + (y - b3)**2) / (4 * sigma**2))

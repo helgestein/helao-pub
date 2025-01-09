@@ -79,6 +79,7 @@ class Autolab:
         else:
             self.inst.Ei.Bandwith = 1
 
+
     def appliedPotential(self):
         return float(self.inst.Ei.PotentialApplied)
 
@@ -124,9 +125,10 @@ class Autolab:
                     pass
                 await asyncio.sleep(0.6)
             elif type_ == 'tCV':
+                
                 j = self.current()
                 v = self.potential()
-                print('_time:{}_potential:{}_current:{}'.format(t,v,j))
+                print('_time:{}_potential:{}_current: {}'.format(t,j,v))
                 await self.q.put([t, 0.0, v, 0.0, 0.0, 0.0, 0.0, 0.0, j])
                 await asyncio.sleep(0.4)
 

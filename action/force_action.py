@@ -5,8 +5,7 @@ sys.path.append(r'../config')
 sys.path.append(r'../server')
 import uvicorn
 from fastapi import FastAPI
-from dataclasses import dataclass
-#from pydantic import BaseModel
+from pydantic import BaseModel
 import json
 import requests
 import os
@@ -20,12 +19,8 @@ app = FastAPI(title="ForceDriver server V2",
     description="This is a fancy forceDriver sensor action server", 
     version="2.0")
 
-#class return_class(BaseModel):
-#    parameters: dict = None
-#    data: dict = None
 
-@dataclass
-class return_class:
+class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
@@ -33,6 +28,7 @@ class return_class:
 def setzero():
     requests.get("{}/forceDriver/setzero".format(url)).json()
     retc = return_class(parameters=None, data=None)
+
 
 @app.get("/force/read")
 def read():
@@ -51,3 +47,4 @@ if __name__ == "__main__":
     uvicorn.run(app, host=config['servers'][serverkey]['host'], 
                      port=config['servers'][serverkey]['port'])  
     print("instantiated forceDriver sensor")
+    

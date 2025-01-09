@@ -37,7 +37,6 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
                 cmd = ["bokeh", "serve", "--show", f"{api}/{v}.py",
                     "--args", confPrefix, server]
                 subprocess.Popen(cmd, cwd=helao_root)
-                print(f"Starting {api}/{v}.py")
         elif api == "process":
             for p in process:
                 cmd = [
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     
     LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer", "process"]
     server = ["autolab_server", "megsv_server", "minipump_server", "pump_server", "lang_server"]
-    action = ["echem", "lang_action", "minipump_action", "pump_server", "pumping", "sensing_megsv"]
+    action = ["echem", "lang_action", "minipumping", "pump_server", "pumping", "sensing_megsv"]
     orchestrator = ["mischbares"]
     visualizer = ["autolab_visualizer"]
     process = ["process"]

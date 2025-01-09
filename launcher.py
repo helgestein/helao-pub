@@ -30,21 +30,13 @@ def launcher(apis, server, action, orchestrator, visualizer, process):
                 subprocess.Popen(cmd, cwd=helao_root)
         elif api == "visualizer":
             for v in visualizer:
-                print(f"Starting {api}/{v}.py")
-                if "autolab" in v or "hits" in v:
-                    print("Bokeh server is starting")
-                    cmd = ["bokeh", "serve", "--show", f"{api}/{v}.py", "--args", sys.argv[1]]
-                else:
-                    print("Python server is starting")
-                    cmd = ["python", f"{v}.py"]    
-                print(f"Starting {api}/{v}.py")
+                cmd = ["bokeh", "serve", "--show", f"{api}/{v}.py", "--args", sys.argv[1]]
                 subprocess.Popen(cmd, cwd=helao_root)
         elif api == "process":
             for p in process:
-                cmd = ["python", f"{p}.py", sys.argv[1]]
-                print(f"Starting process {p}.py")
+                cmd = ["python", f"{p}.py"]
                 subprocess.Popen(cmd, cwd=helao_root)
-                           
+                print(f"Starting {p}.py")           
                 
 
 

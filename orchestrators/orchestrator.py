@@ -6,9 +6,9 @@ from pathlib import Path
 import time
 import json
 import uvicorn
-from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel, Field, FieldValidationInfo, field_validator
-from typing import Union, Optional
+from fastapi import FastAPI,WebSocket
+from pydantic import BaseModel,validator
+from typing import Union,Optional
 import numpy as np
 import h5py
 import datetime
@@ -16,13 +16,13 @@ import fnmatch
 from copy import copy
 import asyncio
 from importlib import import_module
-from contextlib import asynccontextmanager
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(helao_root)
 from util import *
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
+
 ##list of changes that i would like to do...
 ##data management
 ##then machine learning interface, which hangs on the former
@@ -31,12 +31,13 @@ serverkey = sys.argv[2]
 ##improved actions/drivers -- capacity to interface with multiple requests, and mid-action cancelation where possible
 ##improved interface -- detailed real-time visualization and manipulation of current orchestrator state without command line
 
+#validation for experiment dicts
 class Experiment(BaseModel):
-    soe: list = Field(...)
-    params: dict = Field(...)
-    meta: Optional[dict] = Field(default=None)
+    soe: list
+    params: dict
+    meta: Optional[dict]
 
-    @field_validator('soe')
+    @validator('soe')
     def native_command_ordering(cls,v):
         for i in v:
             if i.count('_') > 1:
@@ -59,55 +60,19 @@ class Experiment(BaseModel):
             raise ValueError("orchestrator/repeat can only be followed by orchestrator/finish in soe")
         return v
 
-    @field_validator('params')
-    def parameter_correspondence(cls, v, info: FieldValidationInfo):
-        d = set([i.split('/')[-1] for i in info.data['soe']])
+    @validator('params')
+    def parameter_correspondence(cls,v,values):
+        d = set([i.split('/')[-1] for i in values['soe']])
         if d != set(v.keys()):
             raise ValueError("soe and params are not perfectly corresponding -- must be params entry for every action in soe, and vice-versa")
-        if len(d) != len(info.data['soe']):
+        if len(d) != len(values['soe']):
             raise ValueError("duplicate entries in soe")
         return v
 
-@asynccontextmanager
-async def app_lifespan(app: FastAPI):
-    global tracking
-    tracking = {} # a dict of useful variables to keep track of
-    global scheduler_queue
-    scheduler_queue = asyncio.PriorityQueue()
-    global task
-    task = asyncio.create_task(scheduler())
-    global experiment_queues
-    experiment_queues = {}
-    global experiment_tasks
-    experiment_tasks = {}
-    global filelocks
-    filelocks = {}
-    global serverlocks
-    serverlocks = {}
-    global loop
-    loop = asyncio.get_event_loop()
-    global error
-    error = loop.create_task(raise_exceptions()) # starts the error handling task (normally asyncio will hide all this under the sub-task)
-    global index # assign a number to each experiment to retain order within priority queues
-    index = 0
-    global status_queues # queues to publish information on orchestrator status to subscribers
-    status_queues = {}
-    global data_queues # queues to publish real-time data to subscribers
-    data_queues = {}
-    global data_subs # contains information on what data has been requested by each subscription
-    data_subs = {}
-    yield
-    # Shutdown (disconnect)
-    if not error.cancelled():
-        error.cancel()
-    if not task.cancelled():
-        task.cancel()
-    for t in experiment_tasks.values():
-        if not t.cancelled():
-            t.cancel()
 
 app = FastAPI(title="orchestrator",
-              description="A fancy complex server", lifespan=app_lifespan, version=1.0)
+              description="A fancy complex server", version=1.0)
+
 
 @app.post("/orchestrator/addExperiment")
 async def sendMeasurement(experiment: str, thread: int = 0, priority: int = 10):
@@ -175,7 +140,7 @@ async def doMeasurement(experiment: dict, thread: int):
             serverlocks[server] = asyncio.Lock()
 
         #"if servertype != 'orchestrator':" is a placeholder for the appropriate conditional. need to decide how or whether we will label different types of servers
-        if servertype not in ['orchestrator','ml','analysis']: #server is normal
+        if servertype not in ['orchestrator','ml']: #server is normal
             while True:
                 inp = ' '
                 async with serverlocks[server]:
@@ -207,28 +172,18 @@ async def doMeasurement(experiment: dict, thread: int):
 
         #look at this with Fuzhan. objectives are firstly to make this code simpler, more readable, and more generalized (easy) 
         # and secondly to make the scripting needed to properly use it easier (hard)
-
-        ### This version of the code works to load data into the analysis action/server!
         elif servertype == 'analysis':
-            if "address" in params.keys():
-            #add = list(filter(lambda s: s.split('_')[-1] == 'address',params.keys()))
-            #if add != []: #be sure to use these parameter names "foo_address" in action if (and only if?) you are loading from ongoing sessions. must be string hdf5 paths
-                #t = int(params[add[0]].split('/')[0].split(':')[1]) #assuming all addresses come from same file
-                t = int(params['address'].split('/')[0].split(':')[1])
+            add = list(filter(lambda s: s.split('_')[-1] == 'address',params.keys()))
+            if add != []: #be sure to use these parameter names "foo_address" in action if (and only if?) you are loading from ongoing sessions. must be string hdf5 paths
+                t = int(params[add[0]].split('/')[0].split(':')[1]) #assuming all addresses come from same file
                 if tracking[t]['path'] != None:
-                    #async with filelocks[tracking[t]['path']]:
-                    async with serverlocks[server]:
-                        async with filelocks[tracking[t]['path']]:
-                            await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                            #await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                    async with filelocks[tracking[t]['path']]:
+                        await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=tracking[t]['path'],run=tracking[t]['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
                 else:
                     for h in tracking[thread]['history']:
                         async with filelocks[h['path']]:
-                            async with serverlocks[server]:
-                                #if paths_in_hdf5(h['path'],[params[a] for a in add]):
-                                if paths_in_hdf5(h['path'],params['address']):
-                                    await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],address=params['address'])),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
-                                    #await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
+                            if paths_in_hdf5(h['path'],[params[a] for a in add]):
+                                await loop.run_in_executor(None,lambda x: requests.get(x,params=dict(path=h['path'],run=h['run'],addresses=json.dumps({a:params[a] for a in add}))),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/receiveData")
                                 break
             async with serverlocks[server]:
                 res = await loop.run_in_executor(None,lambda x: requests.get(x,params=params).json(),f"http://{config['servers'][server]['host']}:{config['servers'][server]['port']}/{servertype}/{action}")
@@ -297,12 +252,10 @@ async def process_native_command(command: str,experiment: dict,**params):
 #params:
 #   collectionkey: string, determines folder and file names for session, may correspond to key of experiment['meta'], in which case name will be indexed by that value.
 #   meta: dict, will be placed as metadata under the header of the run set up by this command
-async def start(experiment: dict, collectionkey:str, meta: dict= None):
-    global tracking, filelocks, serverlocks, status_queues
-    if meta is None:
-        meta = experiment.get('meta', {})
+async def start(experiment: dict,collectionkey:str,meta:dict={}):
+    global tracking,filelocks,serverlocks,status_queues
     thread = experiment['meta']['thread']
-    if collectionkey in experiment['meta'].keys(): #give the directory an index if one is provided
+    if collectionkey in experiment['meta'].keys():#give the directory an index if one is provided
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}_{experiment['meta'][collectionkey]}")
     else:#or a name without an index if not.
         h5dir = os.path.join(config[serverkey]['path'],f"{collectionkey}")
@@ -400,6 +353,7 @@ async def finish(experiment: dict):
         await q.put(json.dumps(tracking))
     return experiment
 
+
 #set undefined values under experiment parameter dict
 #values must come from currently running threads
 #params:
@@ -479,6 +433,14 @@ async def wait(experiment: dict, addresses: Union[str,list]):
                                         del addresses[i]
                                         del threads[i]
     return experiment
+
+#submit an experiment identical to the current one to the orchestrator thread.
+#will have higher-than default priority, and so will go before any intervening experiments that may have been submitted.
+#an experiment should only have one call of repeat, and it should only be at the end of the experiment (unless followed by a finish command)
+#params:
+#        n: number of times to repeat after 1st experiment, or 0 to repeat until forced to stop
+#if i could get a version of repeat that changes the parameters slightly each time, i would rule the world
+# aka make scripting in the orchestrator much simpler
 async def repeat(experiment: dict, n: int = 0, priority: int = 5):
     global index
     #copy current experiment
@@ -562,57 +524,51 @@ async def conditional(experiment:dict,address:str,criterion:str):
         print("conditional failed; experiment blanked.")
     return experiment
 
-@app.post("/orchestrator/resume")
-def resume(thread: Optional[int] = None):
+@app.on_event("startup")
+async def memory():
     global tracking
-    if thread == None:
-        for k in tracking.keys():
-            if tracking[k]['status'] == 'paused':
-                update_tracking(k,'running','status')
-                print(f"thread {k} resumed")
-            else:
-                print(f'attempted to resume thread {k}, but status was {tracking[k]["status"]}')
-    elif thread in tracking.keys():
-        if tracking[thread]['status'] == 'paused':
-                update_tracking(thread,'running','status')
-                print(f"thread {thread} resumed")
-        else:
-            print(f'attempted to resume thread {thread}, but status was {tracking[thread]["status"]}')
-    else:
-        print(f"thread {thread} not found")
+    tracking = {} #a dict of useful variables to keep track of
+    global scheduler_queue
+    scheduler_queue = asyncio.PriorityQueue()
+    global task
+    task = asyncio.create_task(scheduler())
+    
+    global experiment_queues
+    experiment_queues = {}
+    global experiment_tasks
+    experiment_tasks = {}
+
+    global filelocks
+    filelocks = {}
+    global serverlocks
+    serverlocks = {}
+
+    global loop
+    loop = asyncio.get_event_loop()
+    global error
+    error = loop.create_task(raise_exceptions()) #starts the error handling task (normally asycio will hide all this under the sub-stask)
+    
+    global index #assign a number to each experiment to retain order within priority queues
+    index = 0
+
+    global status_queues #queues to publish information on orchestrator status to subscribers
+    status_queues = {}
+    global data_queues #queues to publish real time data to subscribers
+    data_queues = {}
+    global data_subs #contains information on what data has been requested by each subscription
+    data_subs = {}
 
 
-@app.get("/orchestrator/getStatus")
-def get_status():
-    return json.dumps(tracking)
-
-@app.get("/orchestrator/subscribe")
-def subscribe(thread:int,addresses:str):
-    global data_queues,data_subs
-    try:
-        addresses = json.loads(addresses)
-    except:
-        addresses = [addresses]
-    ident = round(time.time()*1000) #set id for this subscription
-    data_queues[ident] = asyncio.Queue() #start queue for this subscription
-    data_subs[ident] = {'thread':thread,'addresses':addresses}
-    return json.dumps({'subscription_id':ident})
-
-@app.get("/orchestrator/subscribe_status")
-def subscribe_status():
-    global status_queues
-    ident = round(time.time()*1000) #set id for this subscription
-    status_queues[ident] = asyncio.Queue() #start queue for this subscription
-    return json.dumps({'subscription_id':ident})
-
-@app.get("/orchestrator/unsubscribe")
-def close_subscription(ident:int):
-    del data_queues[ident]
-    del data_subs[ident]
-
-@app.get("/orchestrator/unsubscribe_status")
-def close_status_subscription(ident:int):
-    del status_queues[ident]
+@app.on_event("shutdown")
+def disconnect():
+    global task, error
+    if not error.cancelled():
+        error.cancel()
+    if not task.cancelled():
+        task.cancel()
+    for t in experiment_tasks.values():
+        if not t.cancelled():
+            t.cancel()
 
 
 #empty queue for thread, or for all threads if no thread specified.

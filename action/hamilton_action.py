@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
+#from mischbares_small import config
 import time
 import json
 import os
@@ -16,7 +17,7 @@ sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
-app = FastAPI(title="Hamilton Microlab 600 syringe pump action server V1",
+app = FastAPI(title="Hamilton syringe pump action server V1",
     description="This is a very fancy pump action server",
     version="2.0")
 
@@ -24,34 +25,28 @@ class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 
-@app.get("/hamilton/pumpL/")
+@app.get("/syringe/pumpL/")
 def pumpSingleL(volume: int=0, times:int=1):
     #we usually had all volumes for the other pumps in microliters
-    #so here we expect he input to be in microliters and convert it to nL
+    #so here we expect he input to be in microliters and need to convert to nL
+
+    #this is not tested!!!!
 
     volnl = volume*1000
     retl = []
-
-    if volnl>0:
-        In = 'prefIn'
-        Out = 'prefOut'
-    else:
-        In = 'prefOut'
-        Out = 'prefIn'
-    
     for i in range(times):
         #first aspirate a negative volume through the preferred in port
-        aspparam = dict(leftVol=abs(volnl),rightVol=0,
-                        leftPort=config[serverkey]['left']['valve'][In],rightPort=0,
+        aspparam = dict(leftVol=volnl,rightVol=0,
+                        leftPort=config['hamilton_conf']['left']['valve']['prefIn'],rightPort=0,
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/syringeDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
         #then eject through the preferred out port
-        aspparam = dict(leftVol=-abs(volnl),rightVol=0,
-                        leftPort=config[serverkey]['left']['valve'][Out],rightPort=0,
+        aspparam = dict(leftVol=volnlL,rightVol=0,
+                        leftPort=config['hamilton_conf']['left']['valve']['prefIn'],rightPort=0,
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/syringeDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
 
@@ -59,38 +54,32 @@ def pumpSingleL(volume: int=0, times:int=1):
                         data = {i:retl[i] for i in range(len(retl))})
     return retc
 
-@app.get("/hamilton/pumpR/")
+@app.get("/syringe/pumpR/")
 def pumpSingleR(volume: int=0, times:int=1):
     #we usually had all volumes for the other pumps in microliters
-    #so here we expect he input to be in microliters and convert it to nL
+    #so here we expect he input to be in microliters and need to convert to nL
+
+    #this is not tested!!!!
 
     volnl = volume*1000
     retl = []
-
-    if volnl>0:
-        In = 'prefIn'
-        Out = 'prefOut'
-    else:
-        In = 'prefOut'
-        Out = 'prefIn'
-
     for i in range(times):
         #first aspirate a negative volume through the preferred in port
-        aspparam = dict(leftVol=0,rightVol=abs(volnl),
-                        leftPort=0,rightPort=config[serverkey]['right']['valve'][In],
+        aspparam = dict(leftVol=0,rightVol=volnl,
+                        leftPort=0,rightPort=config['hamilton_conf']['left']['valve']['prefIn'],
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/syringeDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
         #then eject through the preferred out port
-        aspparam = dict(leftVol=0,rightVol=-abs(volnl),
-                        leftPort=0,rightPort=config[serverkey]['right']['valve'][Out],
+        aspparam = dict(leftVol=0,rightVol=volnl,
+                        leftPort=0,rightPort=config['hamilton_conf']['left']['valve']['prefIn'],
                         delayLeft=0,delayRigh=0)
-        res = requests.get("{}/hamiltonDriver/pump".format(hamiltonurl),
+        res = requests.get("{}/syringeDriver/pump".format(hamiltonurl),
                             params=aspparam).json()
         retl.append(res)
 
-    retc = return_class(parameters= {'volumeR':volume,'times':times},
+    retc = return_class(parameters= {'volumeL':volume,'times':times},
                         data = {i:retl[i] for i in range(len(retl))})
     return retc
 
@@ -103,6 +92,6 @@ if __name__ == "__main__":
     #pumpurl = "http://{}:{}".format(config['servers']['pumpServer']['host'], config['servers']['pumpServer']['port'])
     #uvicorn.run(app, host=config['servers']['pumpingServer']['host'],
     #                 port=config['servers']['pumpingServer']['port'])
-    hamiltonurl = config[serverkey]['url']
+    pumpurl = config[serverkey]['url']
     uvicorn.run(app, host=config['servers'][serverkey]['host'],
                      port=config['servers'][serverkey]['port'])

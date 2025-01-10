@@ -12,6 +12,18 @@ The hdf5 files created during a simulated active learning run both in parallel a
 
 This repository is our developement branch as of the day of publication. If you seek to make changes please do so but this will need permission from some of the contributors.
 
+## Overview of branches and current versions
+
+Since there are multiple versions of the HELAO, here is the brief overview all branches and versions:
+
+| **Branch**                                                    | **Repository**                                                                 | **Description**                                                               | 
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [master](https://github.com/helgestein/helao-pub/tree/master) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The most actual version of the HELAO used at KIT and further developed at TUM |
+| [backup](https://github.com/helgestein/helao-pub/tree/backup) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The version as of the publication date with a minor corrections               |
+| [SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The version used for exploration of Si-Ge-Sn anodes                           |
+| -                                                             | [helao-async](https://github.com/High-Throughput-Experimentation/helao-async)  | The async version further developed and used at Caltech                       |
+| -                                                             | [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                    | The further development of HELAO with built-in web interface and SQL database |
+
 ## Abstract
 
 Materials acceleration platforms (MAPs) operate on the paradigm of integrating combinatorial synthesis, high-throughput characterization, automatic analysis and machine learning. Within these MAPs one or multiple autonomous feedback loops aim to optimize materials for certain functional properties or generate new insights. Fundamentally, this necessitates accelerated, but foremost integrated, research actions. Herein, a web based asynchronous protocol to seamlessly integrate research tasks within a hierarchical experimental laboratory automation and orchestration (HELAO) framework is presented. We demonstrate the capability of orchestrating distributed research instruments that may incorporate data from experiments, simulations, and databases. HELAO offers interfacing laboratory hardware and software distributed across several computers and operating systems for executing an experiment, data analysis, provenance tracking, and autonomous planning. Research acceleration in terms of reduction of total experimental time is demonstrated to be close to 2x (in addition to the speedup of active learning of 5-10x depending on active learning metric) by deploying a centrally orchestrated fleet of instruments for a active learning. To the best of our knowledge, HELAO is the only laboratory automation framework with integrated data management capable of running closed loop optimization on multiple instruments and extreme modularity.

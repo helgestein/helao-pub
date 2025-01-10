@@ -16,13 +16,13 @@ This repository is our developement branch as of the day of publication. If you 
 
 Since there are multiple versions of the HELAO, here is the brief overview all branches and versions:
 
-| **Branch**                                                    | **Repository**                                                                 | **Description**                                                               | 
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [master](https://github.com/helgestein/helao-pub/tree/master) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The most actual version of the HELAO used at KIT and further developed at TUM |
-| [backup](https://github.com/helgestein/helao-pub/tree/backup) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The version as of the publication date with a minor corrections               |
-| [SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn) | [helao-pub](https://github.com/helgestein/helao-pub)                           | The version used for exploration of Si-Ge-Sn anodes                           |
-| -                                                             | [helao-async](https://github.com/High-Throughput-Experimentation/helao-async)  | The async version further developed and used at Caltech                       |
-| -                                                             | [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                    | The further development of HELAO with built-in web interface and SQL database |
+| **Branch and repository**                                                      | **Description**                                                               | 
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| [helao-pub/master](https://github.com/helgestein/helao-pub/tree/master)        | The most actual version of the HELAO used at KIT and further developed at TUM |
+| [helao-pub/backup](https://github.com/helgestein/helao-pub/tree/backup)        | The version as of the publication date with a minor corrections               |
+| [helao-pub/SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn)        | The version used for exploration of Si-Ge-Sn anodes                           |
+| [helao-async](https://github.com/High-Throughput-Experimentation/helao-async)  | The async version further developed and used at Caltech                       |
+| [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                    | The further development of HELAO with built-in web interface and SQL database |
 
 ## Abstract
 

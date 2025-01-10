@@ -1,18 +1,20 @@
 @ECHO on
 
-:: Check for Anaconda installation paths
+:: Check for Anaconda and Miniconda installation paths
 if exist "C:\ProgramData\anaconda3\condabin\conda.bat" (
     set "conda_path=C:\ProgramData\anaconda3\condabin\conda.bat"
 ) else if exist "C:\Users\%USERNAME%\Anaconda3\condabin\conda.bat" (
     set "conda_path=C:\Users\%USERNAME%\Anaconda3\condabin\conda.bat"
-) else if exist "C:\Users\%USERNAME%\Miniconda3\condabin\conda.bat" (
-    set "conda_path=C:\Users\%USERNAME%\Miniconda3\condabin\conda.bat"
 ) else if exist "C:\Anaconda3\condabin\conda.bat" (
     set "conda_path=C:\Anaconda3\condabin\conda.bat"
+) else if exist "C:\Users\%USERNAME%\Miniconda3\condabin\conda.bat" (
+    set "conda_path=C:\Users\%USERNAME%\Miniconda3\condabin\conda.bat"
 ) else if exist "C:\Miniconda3\condabin\conda.bat" (
     set "conda_path=C:\Miniconda3\condabin\conda.bat"
+) else if exist "C:\ProgramData\Miniconda3\condabin\conda.bat" (
+    set "conda_path=C:\ProgramData\Miniconda3\condabin\conda.bat"
 ) else (
-    echo Anaconda installation not found.
+    echo No Anaconda or Miniconda installation found.
     PAUSE
     exit /b
 )

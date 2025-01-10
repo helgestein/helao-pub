@@ -8,10 +8,6 @@ The hdf5 files created during a simulated active learning run both in parallel a
 
 ![logo](https://github.com/helgestein/helao-dev/blob/master/helaologo.svg)
 
-## HELAO-pub repository
-
-This repository is our developement branch as of the day of publication. If you seek to make changes please do so but this will need permission from some of the contributors.
-
 ## Overview of branches and current versions
 
 Since there are multiple versions of the HELAO, here is the brief overview all branches and versions:
@@ -23,6 +19,8 @@ Since there are multiple versions of the HELAO, here is the brief overview all b
 | [helao-pub/SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn)        | The version used for exploration of Si-Ge-Sn anodes                           |
 | [helao-async](https://github.com/High-Throughput-Experimentation/helao-async)  | The async version further developed and used at Caltech                       |
 | [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                    | The further development of HELAO with built-in web interface and SQL database |
+
+If you seek to make changes please do so but this will need permission from some of the contributors.
 
 ## Abstract
 

@@ -252,3 +252,31 @@ config['launch'] = dict(server=['autolabDriver', 'kadiDriver', 'langDriver', 'fo
 config['instrument'] = "sdc"
 
 config['led'] = dict(port='COM5')
+
+config['analysis'] = {'cp': {'counter_voltage': 4.7},
+                      'ocp': {'analysis_points': 10},
+                      'eis': {'circuit_list': [
+                                            "R_0-p(R_1,CPE_1)-CPE_2",
+                                            "R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-CPE_3",
+                                            "R_0-p(R_1-W_1,CPE_1)",
+                                            "R_0-p(R_1,CPE_1)-p(R_2-W_1,CPE_2)",
+                                            "R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-p(R_3-W_1,CPE_3)"
+                                            ],
+                              'guess_list': [
+                                            ["R0", "R1", 1e-10, 0.99, 1e-7, 0.8],
+                                            ["R0", "R1", 1e-11,0.98, "R2", 4e-7,0.85, 1e-6,0.9],
+                                            ["R0", "R1", 1e+5, 1e-6,0.9],
+                                            ["R0", "R1", 1e-10,0.98, "R2", 1e+5, 1e-6,0.9],
+                                            ["R0", "R1", 1e-10,0.98, "R2", 1e-10,0.98, "R3", 1e+5, 1e-6,0.9]
+                                            ],
+                              'bounds_list': [
+                                            (("R0", "R1", 1e-13, 0.001, 1e-13, 0),("R0", "R1", 1e-5, 0.999, 1e-3, 1)),
+                                            (("R0", "R1", 1e-13,0.001, "R2", 1e-13,0.001, 1e-13,0.001),("R0", "R1", 1e-8,1, "R2", 1e-4,1, 1,1)),
+                                            (("R0", "R1", 1e-1, 1e-13,0.001),("R0", "R1", 1e+10, 1,1)),
+                                            (("R0", "R1", 1e-13,0.001, "R2",1e-1, 1e-13,0.001),("R0", "R1", 1e-6,1, "R2",1e+10, 1,1)),
+                                            (("R0", "R1", 1e-13,0.001, "R2", 1e-13,0.001, "R3",1e-1, 1e-13,0.001),("R0", "R1", 1e-6,1, "R2", 1e-6,1, "R3",1e+10, 1,1))
+                                            ],
+                              'semicircles_max': 3,
+                              'metric': 'chi2',
+                              'save_path': r'C:\Users\LaborRatte23-2\Documents\GitHub\helao-dev\temp\EIS'}
+                    }

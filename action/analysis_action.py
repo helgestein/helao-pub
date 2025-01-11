@@ -21,7 +21,6 @@ from util import highestName, dict_address, hdf5_group_to_dict
 serverkey = sys.argv[2]
 from contextlib import asynccontextmanager
 
-import scipy.stats as st
 import impedance.models.circuits as circuits
 from impedance.validation import linKK
 import matplotlib.pyplot as plt
@@ -45,13 +44,13 @@ async def app_lifespan(app: FastAPI):
 @app.get("/analysis/receiveData")
 def receiveData(path: str, run: int, address: str):
     global data
-    data = [] # i don't need to load the data from pervious exp
+    data = [] #don't need to load the data from pervious exp
     try:
         address = json.loads(address)
     except:
         address = [address]
     newdata = []
-    print(address)
+    #print(address)
     for add in address:
         with h5py.File(path, 'r') as h5file:
             add = f'run_{run}/'+add+'/'
@@ -60,440 +59,203 @@ def receiveData(path: str, run: int, address: str):
                 newdata.append(hdf5_group_to_dict(h5file, add))
             else:
                 newdata.append(h5file[add][()])
-    print(f"data is {newdata}")
+    #print(f"data is {newdata}")
     data.append(newdata[0] if len(newdata) == 1 else newdata)
-    print(f'Data is {data}')
+    #print(f'Data is {data}')
 
 @app.get("/analysis/dummy")
-def bridge(address:str):
-    global data
-    x = data[0][0]
-    y = data[0][1]
-    z = data[0][2]
-    #print("data", data)
-    #print("addresses", addresses)
-    retc = return_class(parameters={'addresses':address}, data={'x':{'x':x,'y':y},'y':{'z':z}})
+def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
+    x = data[x_address]
+    y = data[y_address]
+    schwefel = data[schwefel_address]
+    retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},
+                        data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
     return retc
 
 @app.get("/analysis/ocp")
+### input: OCP data
+### output: mean OCP value and error
 def ocp(address:str):
     global data
-    ocp0 = data[0][0][:-4][-10:]
-    ocp1 = data[0][1][:-4][-10:]
-    ocp2 = data[0][2][:-4][-10:]
-    ocp3 = data[0][3][:-4][-10:]
-    ocp0_res, ocp0_err = np.mean(ocp0), 2*np.std(ocp0)
-    ocp1_res, ocp1_err = np.mean(ocp1), 2*np.std(ocp1)
-    ocp2_res, ocp2_err = np.mean(ocp2), 2*np.std(ocp2)
-    ocp3_res, ocp3_err = np.mean(ocp3), 2*np.std(ocp3)
-    retc = return_class(parameters={'addresses':address}, data={'res':{'OCP0': ocp0_res, 'OCP1': ocp1_res, 'OCP2': ocp2_res, 'OCP3': ocp3_res},
-                                                                'err':{'OCP0': ocp0_err, 'OCP1': ocp1_err, 'OCP2': ocp2_err, 'OCP3': ocp3_err}})
+    time = config[serverkey]['ocp']['analysis_points']
+    ocp = data[0][0][:-4][-time:]
+    ocp_res, ocp_err = np.mean(ocp), 2*np.std(ocp)
+    retc = return_class(parameters={'addresses':address}, data={'ocp_val': ocp_res, 'ocp_err': ocp_err})
     return retc
 
-@app.get("/analysis/eis0")
-def eis_short(run: int, address: str):
+@app.get("/analysis/cp")
+### input: chronopotentiometry data (charge and discharge time, current and voltage)
+### output: measured capacity, coulombic, voltage and energy efficiencies 
+def cp(query: str, address:str):
     global data
-    print(data)
-    ReZ_ = data[0][0]
-    ImZ_ = data[0][1]
-    freq_ = data[0][2]
-    ReZ_ids = np.where(ReZ_ > 0)[0]
-    ImZ_ids = np.where(ImZ_ > 0)[0]
+    counter_voltage = config[serverkey]['cp']['counter_voltage']
+    tc1, Ic1, Vc1 = data[0][0][:-4], data[0][1][:-4], data[0][2][:-4]
+    td1, Id1, Vd1 = data[0][3][:-4], data[0][4][:-4], data[0][5][:-4]
+    Qc, Qd = tc1[-1]/3600*abs(np.mean(Ic1)), td1[-1]/3600*abs(np.mean(Id1)) # Ah
+    CE = 100*Qd/Qc #in %
+    VE = 100*(counter_voltage - simpson(Vd1, td1)/td1[-1])/(counter_voltage - simpson(Vc1, tc1)/tc1[-1]) #in %
+    EE = CE*VE/100 #in %
+    retc = return_class(parameters={'addresses':address},
+                        data={'Qc': Qc, 'Qd': Qd, 'CE': CE, 'VE': VE, 'EE': EE})
+    return retc
+
+@app.get("/analysis/eis")
+### input: EIS data (list of ReZ, ImZ, freq)
+### output: best circuit, resistance values, uncertainties, metric value, chi2_KK + plotting
+def eis(run: int, address: str):
+    global data
+    
+    ### load config params for fitting
+    circuit_list = config[serverkey]['eis']['circuit_list']
+    guess_list = config[serverkey]['eis']['guess_list']
+    bounds_list = config[serverkey]['eis']['bounds_list']
+    semicircles_max = config[serverkey]['eis']['semicircles_max']
+    metric = config[serverkey]['eis']['metric']
+    save_path = config[serverkey]['eis']['path']
+
+    ### load data: need to provide as an address paths to ReZ, ImZ and freq data
+    ReZ_, ImZ_, freq_ = data[0][0], data[0][1], data[0][2]
+    ReZ_ids, ImZ_ids = np.where(ReZ_ > 0)[0], np.where(ImZ_ > 0)[0]
     ids = [i for i in ImZ_ids if i in ReZ_ids]
-    ReZ = ReZ_[ids]
-    ImZ = ImZ_[ids]
-    freq = freq_[ids]
+    ReZ, ImZ, freq = ReZ_[ids], ImZ_[ids], freq_[ids]
     Z = np.array(ReZ)-np.array(ImZ)*1j
     angle = np.arctan(ImZ/ReZ)*90
-    
-    def local_minimum(data, threshold, window_size):
-        filtered_data = [x if x < threshold else np.nan for x in data] # Filter out values above the threshold
-        smoothed_data = np.convolve(data, np.ones(window_size), 'valid') / window_size # Smooth the data
-        minimum_indices = [] # Find the local minimum indices
-        for i in range(1, len(smoothed_data) - 1):
-            if not np.isnan(smoothed_data[i]) and smoothed_data[i-1] > smoothed_data[i] < smoothed_data[i+1]:
-                minimum_indices.append(i + window_size // 2)  # Adjust index for window size
-                if len(minimum_indices) == 2:
-                    break
-        while len(minimum_indices) < 2: # Ensure the list has two elements, using None as a placeholder if necessary
-            minimum_indices.append(None)
-        return minimum_indices
 
+    ### generate initial guesses, bounds for R values
     threshold = 90
     window_size = 5
-
-    ids_min = local_minimum(angle, threshold, window_size)
-    id0 = next((index for index, value in enumerate(angle) if value > 0), 0)
-    R0_guess = 0.95*ReZ[id0]
-    R0_min = 0.5*R0_guess
-    R0_max = 1.05*R0_guess
-
-    if ids_min[0] == None:
-        R1_guess = 1000
-        R1_min = 0
-        R1_max = 100000
-    else:
-        R1_guess = abs(ReZ[ids_min[0]] - R0_guess)
-        R1_min = abs(0.5*R1_guess)
-        R1_max = abs(1.5*R1_guess)
-
-    if ids_min[1] == None:
-        circuit_0='R_0-p(R_1,CPE_1)-CPE_2'
-        initial_guess_0=[R0_guess, R1_guess, 1e-10, 0.99, 1e-7, 0.8]
-        bounds_0 = (R0_min, R1_min, 1e-13, 0.001, 1e-13, 0),(R0_max, R1_max, 1e-5, 0.999, 1e-3, 1)
-        R2_guess = 1.5*R1_guess
-        R2_min = 0.5*R2_guess
-        R2_max = 3*R2_guess
-        circuit_1='R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-CPE_3'
-        initial_guess_1=[R0_guess, R1_guess, 1e-11,0.98, R2_guess, 4e-7,0.85, 1e-6,0.9]
-        bounds_1 = (R0_min, R1_min, 1e-13,0.001, 0, 1e-13,0.001, 1e-13,0.001),(R0_max, R1_max, 1e-8,1, 100000, 1e-4,1, 1,1)
-        if len(ReZ)<4:
-            R0, R1, CPE1_Y, CPE1_n, CPE2_Y, CPE2_n = ReZ[0], None, None, None, None, None
-            R0_err, R1_err, CPE1_Y_err, CPE1_n_err, CPE2_Y_err, CPE2_n_err = None, None, None, None, None, None
-            chi2, chi2_KK = None, None
-            retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0}})
+    ids_min = EISAnalyzer.local_minimum(angle, threshold, window_size, semicircles_max)
+    R_guesses, R_mins, R_maxs = [], [], []
+    R_guesses.append(0.95*ReZ[0]), R_mins.append(0.5*ReZ[0]), R_maxs.append(1.05*ReZ[0])
+    for i in range(3):
+        if ids_min[i] == None:
+            R_guesses.append(np.random.uniform(ReZ.min(), ReZ.max()))
+            R_mins.append(0), R_maxs.append(10*ReZ.max())
         else:
-            res_fit_0, uns_fit_0 = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_0, initial_guess=initial_guess_0, constants={}, bounds=bounds_0, weight_by_modulus=True, global_opt=False)
-            res_fit_1, uns_fit_1 = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_1, initial_guess=initial_guess_1, constants={}, bounds=bounds_1, weight_by_modulus=True, global_opt=False)
-            circuit_test_0 = circuits.CustomCircuit(circuit=circuit_0, initial_guess=res_fit_0)
-            circuit_test_1 = circuits.CustomCircuit(circuit=circuit_1, initial_guess=res_fit_1)
-            ### chi2
-            Z_fit_0 = circuit_test_0.predict(freq)
-            Z_fit_1 = circuit_test_1.predict(freq)
-            chi2_0 = np.sum((Z_fit_0.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit_0.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            chi2_1 = np.sum((Z_fit_1.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit_1.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
-            chi2_KK = np.sum((res_real)**2) + np.sum((res_imag)**2)
-            ### decision
-            res_fit = res_fit_0 if chi2_0 < 0.75*chi2_1 else res_fit_1
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, CPE3_Y, CPE3_n = (res_fit[0], res_fit[1], res_fit[2], None, res_fit[3], res_fit[4], res_fit[5], None, None) if chi2_0 < 0.75*chi2_1 else (res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5], res_fit[6], res_fit[7], res_fit[8])
-            uns_fit = uns_fit_0 if chi2_0 < 0.75*chi2_1 else uns_fit_1
-            Z_fit = Z_fit_0 if chi2_0 < 0.75*chi2_1 else Z_fit_1
-            chi2 = chi2_0 if chi2_0 < 0.75*chi2_1 else chi2_1
-            if isinstance(uns_fit, type(None)):
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None
-            else:
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = (uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], None, uns_fit[4], uns_fit[5], None, None) if chi2_0 < 0.75*chi2_1 else (uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5], uns_fit[6], uns_fit[7], uns_fit[8])
-            # plot
-            plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-            plt.rcParams["axes.labelweight"] = "bold" # general thing
-            fig, ax = plt.subplots(figsize=(9,6),dpi=100)
-            scatter = ax.scatter(Z.real/1e3, -Z.imag/1e3, facecolors='none', edgecolors='b', linewidth = 1, s = 15, label = 'Data')
-            line, = ax.plot(Z_fit.real/1e3, -Z_fit.imag/1e3, color='r', alpha = 1.00, linewidth = 1.5, label = 'Fit')
-            max_ = 1.05*max(max(Z.real/1e3), max(-Z.imag/1e3))
-            ax.set_xlim(xmin=0, xmax=max_)
-            ax.set_ylim(ymin=0, ymax=max_)
-            ax.set_aspect('equal', adjustable='box')
-            tick_interval = np.round(max_ / 5, -int(np.floor(np.log10(max_ / 5))))
-            tick_values = np.arange(0, max_ + tick_interval, tick_interval)
-            ax.set_xticks(tick_values)
-            ax.set_yticks(tick_values) 
-            ax.tick_params(which='both', labelsize=16, width=1.5)
-            ax.set_xlabel("Z', kΩ", fontsize=20)
-            ax.set_ylabel("-Z'', kΩ", fontsize=20)
-            handles = [scatter, line, plt.Line2D([], [], color='none')]
-            labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
-            ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
-            plt.clf()
-            plt.close('all')
-            #return
-            if chi2_0 < 0.75*chi2_1:
-                retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n},
-                                                                'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err},
-                                                                'chi2':{'fit': chi2, 'KK':chi2_KK}})
-            else:
-                retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'R2': R2, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n, 'CPE3_Y': CPE3_Y, 'CPE3_n': CPE3_n},
-                                                                    'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'R2': R2_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err, 'CPE3_Y': CPE3_Y_err, 'CPE3_n': CPE3_n_err},
-                                                                    'chi2':{'fit': chi2, 'KK':chi2_KK}})
+            R_guesses.append(abs(ReZ[ids_min[i]] - sum(R_guesses)))
+            R_mins.append(abs(0.5*R_guesses[i])), R_maxs.append(abs(2.5*R_guesses[i]))
+    
+    ### substitute placeholders with actual values
+    substituted_guesses = EISAnalyzer.substitute_with_list(guess_list, R_guesses)
+    substituted_bounds = EISAnalyzer.substitute_bounds_with_list(bounds_list, R_mins, R_maxs)
+
+    ### data fitting
+    if len(ReZ)<4:
+        best_circuit = 'R_0'
+        best_fit = [ReZ[0]]
+        best_uns = None
+        best_metric_value, chi2_KK = None, None
     else:
-        R2_guess = abs(ReZ[ids_min[1]] - R1_guess - R0_guess)
-        R2_min = abs(0.75*R2_guess)
-        R2_max = abs(1.75*R2_guess)
-        circuit_0='R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-CPE_3'
-        initial_guess_0=[R0_guess, R1_guess, 1e-10,0.98, R2_guess, 1e-6,0.9, 1e-6,0.9]
-        bounds_0 = (R0_min, R1_min, 1e-13,0.001, R2_min, 1e-13,0.001, 1e-13,0.001),(R0_max, R1_max, 1e-8,1, R2_max, 1,1, 1,1)
-        if len(ReZ)<4:
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, CPE3_Y, CPE3_n = ReZ[0], None, None, None, None, None, None, None, None
-            R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None
-            chi2, chi2_KK = None, None
-        else:
-            res_fit, uns_fit = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_0, initial_guess=initial_guess_0, constants={}, bounds=bounds_0, weight_by_modulus=True, global_opt=False)
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, CPE3_Y, CPE3_n = res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5], res_fit[6], res_fit[7], res_fit[8]
-            if isinstance(uns_fit, type(None)): 
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None
-            else:
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, CPE3_Y_err, CPE3_n_err = uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5], uns_fit[6], uns_fit[7], uns_fit[8]
-            ### chi2
-            circuit_test = circuits.CustomCircuit(circuit=circuit_0, initial_guess=res_fit)
-            Z_fit = circuit_test.predict(freq)
-            chi2 = np.sum((Z_fit.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
-            chi2_KK = np.sum((res_real)**2) + np.sum((res_imag)**2)
-            ### plot
-            plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-            plt.rcParams["axes.labelweight"] = "bold" # general thing
-            fig, ax = plt.subplots(figsize=(9,6),dpi=100)
-            scatter = ax.scatter(Z.real/1e3, -Z.imag/1e3, facecolors='none', edgecolors='b', linewidth = 1, s = 15, label = 'Data')
-            line, = ax.plot(Z_fit.real/1e3, -Z_fit.imag/1e3, color='r', alpha = 1.00, linewidth = 1.5, label = 'Fit')
-            max_ = 1.05*max(max(Z.real/1e3), max(-Z.imag/1e3))
-            ax.set_xlim(xmin=0, xmax=max_)
-            ax.set_ylim(ymin=0, ymax=max_)
-            ax.set_aspect('equal', adjustable='box')
-            tick_interval = np.round(max_ / 5, -int(np.floor(np.log10(max_ / 5))))
-            tick_values = np.arange(0, max_ + tick_interval, tick_interval)
-            ax.set_xticks(tick_values)
-            ax.set_yticks(tick_values)
-            ax.tick_params(which='both', labelsize=16, width=1.5)
-            ax.set_xlabel("Z', kΩ", fontsize=20)
-            ax.set_ylabel("-Z'', kΩ", fontsize=20)
-            handles = [scatter, line, plt.Line2D([], [], color='none')]
-            labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
-            ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig( f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
-            plt.clf()
-            plt.close('all')
-            #return
-        retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'R2': R2, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n, 'CPE3_Y': CPE3_Y, 'CPE3_n': CPE3_n},
-                                                                'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'R2': R2_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err, 'CPE3_Y': CPE3_Y_err, 'CPE3_n': CPE3_n_err},
-                                                                'chi2':{'fit': chi2, 'KK':chi2_KK}})
+        best_circuit, best_fit, best_uns, best_metric_value, chi2_KK, Z_fit = EISAnalyzer.fit_and_select_best_circuit(freq, Z, circuit_list, substituted_guesses, substituted_bounds, metric)
+        EISAnalyzer.plotting(Z, Z_fit, best_metric_value, metric, save_path, run)
+        
+    retc = return_class(parameters={'addresses':address}, 
+                    data={'circuit': best_circuit, 'res': best_fit, 'uns': best_uns, 
+                          'metric': best_metric_value, 'chi2_KK': chi2_KK})
     return retc
-    
-@app.get("/analysis/eis1")
-def eis1(run: int, address: str):
-    global data
-    ReZ_ = data[0][0]
-    ImZ_ = data[0][1]
-    freq_ = data[0][2]
-    ReZ_ids = np.where(ReZ_ > 0)[0]
-    ImZ_ids = np.where(ImZ_ > 0)[0]
-    ids = [i for i in ImZ_ids if i in ReZ_ids]
-    ReZ = ReZ_[ids]
-    ImZ = ImZ_[ids]
-    freq = freq_[ids]
-    Z = np.array(ReZ)-np.array(ImZ)*1j
-    angle = np.arctan(ImZ/ReZ)*90
-    
-    def local_minimum(data, threshold, window_size):
+
+class EISAnalyzer:
+    @staticmethod
+    def local_minimum(data, threshold, window_size, semicircles_max):
+        ### find local minimums of angle (phase) corresponding to the approximate R values, return their indices
         filtered_data = [x if x < threshold else np.nan for x in data] # Filter out values above the threshold
         smoothed_data = np.convolve(filtered_data, np.ones(window_size), 'valid') / window_size # Smooth the data
         minimum_indices = [] # Find the local minimum indices
         for i in range(1, len(smoothed_data) - 1):
             if not np.isnan(smoothed_data[i]) and smoothed_data[i-1] > smoothed_data[i] < smoothed_data[i+1]:
                 minimum_indices.append(i + window_size // 2)  # Adjust index for window size
-                if len(minimum_indices) == 3:
+                if len(minimum_indices) == semicircles_max:
                     break
-        while len(minimum_indices) < 3: # Ensure the list has two elements, using None as a placeholder if necessary
+        while len(minimum_indices) < semicircles_max: # Ensure the list has two elements, using None as a placeholder if necessary
             minimum_indices.append(None)
         return minimum_indices
+    
+    @staticmethod
+    def substitute_with_list(guess_list, R_guesses):
+        ### substitute placeholders with actual values
+        substituted_guesses = []
+        for guesses in guess_list:
+            # Replace placeholders in guesses
+            substituted = [R_guesses[int(item[1:])] if isinstance(item, str) and item.startswith("R") else item for item in guesses]
+            substituted_guesses.append(substituted)
+        return substituted_guesses
+    
+    @staticmethod
+    def substitute_bounds_with_list(bounds_list, R_mins, R_maxs):
+        substituted_bounds = []
+        for bounds in bounds_list:
+            lower_bound, upper_bound = bounds
+            # Replace placeholders in lower bound using R_mins
+            substituted_lower_bound = [R_mins[int(item[1:])] if isinstance(item, str) and item.startswith("R") else item for item in lower_bound]
+            # Replace placeholders in upper bound using R_maxs
+            substituted_upper_bound = [R_maxs[int(item[1:])] if isinstance(item, str) and item.startswith("R") else item for item in upper_bound]
+            # Append the substituted bounds as a tuple
+            substituted_bounds.append((substituted_lower_bound, substituted_upper_bound))
+        return substituted_bounds
+    
+    @staticmethod
+    def fit_and_select_best_circuit(freq, Z, circuit_list, substituted_guesses, substituted_bounds, metric):
+        ### metrics can be selected from 'chi2' or 'rmse'
+        ### data fitting and selecting the best circuit based on the metric
+        best_circuit, best_fit, best_uns = None, None, None
+        best_metric_value = float('inf')
+        for i, circuit in enumerate(circuit_list):
+            initial_guess = substituted_guesses[i]
+            bounds = substituted_bounds[i]
+            try:
+                # Fit the circuit using the initial guess and bounds
+                res_fit, uns_fit = circuits.fitting.circuit_fit(freq, Z, circuit=circuit, initial_guess=initial_guess, constants={}, 
+                                                                bounds=bounds, weight_by_modulus=True, global_opt=False)
+                circuit_test = circuits.CustomCircuit(circuit=circuit, initial_guess=res_fit)
+                Z_fit = circuit_test.predict(freq)
+                rmse = np.sqrt(np.mean(np.abs(Z_fit - Z) ** 2))
+                chi2 = np.sum((Z_fit.real - Z.real) ** 2 / (Z.real ** 2 + Z.imag ** 2)) + \
+                    np.sum((Z_fit.imag - Z.imag) ** 2 / (Z.real ** 2 + Z.imag ** 2))
+                M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
+                chi2_KK = np.sum((res_real) ** 2) + np.sum((res_imag) ** 2)
+                if metric == 'chi2':
+                    current_metric_value = chi2
+                elif metric == 'rmse':
+                    current_metric_value = rmse
+                else:
+                    raise ValueError("Invalid metric. Choose from 'chi2' or 'rmse'.")
+                #print(f"Circuit {i + 1}: {circuit}")
+                #print(f"RMSE: {rmse:.2f}, chi2: {chi2:.2e}. Selected Metric: {metric}")
+                if current_metric_value < best_metric_value:
+                    best_circuit = circuit
+                    best_fit, best_uns = res_fit, uns_fit
+                    best_metric_value = current_metric_value
+            except Exception as e:
+                print(f"Fitting failed for circuit {circuit}: {e}")
+                continue
+        #print(f"The best circuit: {best_circuit}, with metric value: {best_metric_value:.2e} and chi2_KK of data: {chi2_KK:.2e}")
+        return best_circuit, best_fit, best_uns, best_metric_value, chi2_KK, Z_fit
 
-    threshold = 90
-    window_size = 5
-
-    ids_min = local_minimum(angle, threshold, window_size)
-    id0 = next((index for index, value in enumerate(angle) if value > 0), 0)
-    R0_guess = 0.95*ReZ[id0]
-    R0_min = 0.5*R0_guess
-    R0_max = 1.05*R0_guess
-
-    if ids_min[0] == None:
-        R1_guess = 1000
-        R1_min = 0
-        R1_max = 100000
-    else:
-        R1_guess = abs(ReZ[ids_min[0]] - R0_guess)
-        R1_min = abs(0.5*R1_guess)
-        R1_max = abs(1.75*R1_guess)
-
-    if ids_min[1] == None:
-        R2_guess = 10000
-        R2_min = 0
-        R2_max = 5000000
-    else:
-        R2_guess = abs(ReZ[ids_min[1]] - R1_guess - R0_guess)
-        R2_min = abs(0.75*R2_guess)
-        R2_max = abs(2*R2_guess)
-
-    if ids_min[2] == None:    
-        circuit_1='R_0-p(R_1,CPE_1)-p(R_2-W_1,CPE_2)'
-        initial_guess_1=[R0_guess, R1_guess, 1e-10,0.98, R2_guess,1e+5, 1e-6,0.9]
-        bounds_1 = (R0_min, R1_min, 1e-13,0.001, R2_min,1e-1, 1e-13,0.001),(R0_max, R1_max, 1e-6,1, R2_max,1e+10, 1,1)
-        if len(ReZ)<4:
-            R0, R1, CPE1_Y, CPE1_n, R2, W1, CPE2_Y, CPE2_n = ReZ[0], None, None, None, None, None, None, None
-            R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, W1_err, CPE2_Y_err, CPE2_n_err = None, None, None, None, None, None, None, None
-            chi2, chi2_KK = None, None
+    @staticmethod
+    def plotting(Z, Z_fit, best_metric_value, metric, path, run):
+        fig, ax = plt.subplots(figsize=(9,6),dpi=100)
+        scatter = ax.scatter(Z.real/1e3, -Z.imag/1e3, facecolors='none', edgecolors='b', linewidth = 1, s = 15, label = 'Data')
+        line, = ax.plot(Z_fit.real/1e3, -Z_fit.imag/1e3, color='r', alpha = 1.00, linewidth = 1.5, label = 'Fit')
+        max_ = 1.05*max(max(Z.real/1e3), max(-Z.imag/1e3))
+        ax.set_xlim(xmin=0, xmax=max_)
+        ax.set_ylim(ymin=0, ymax=max_)
+        ax.set_aspect('equal', adjustable='box')
+        tick_interval = np.round(max_ / 5, -int(np.floor(np.log10(max_ / 5))))
+        tick_values = np.arange(0, max_ + tick_interval, tick_interval)
+        ax.set_xticks(tick_values)
+        ax.set_yticks(tick_values)
+        ax.tick_params(which='both', labelsize=16, width=1.5)
+        ax.set_xlabel("Z', kΩ", fontsize=20)
+        ax.set_ylabel("-Z'', kΩ", fontsize=20)
+        handles = [scatter, line, plt.Line2D([], [], color='none')]
+        if metric == 'chi2':
+            labels = ['Data', 'Fit', f'χ²: {best_metric_value:.4f}']
         else:
-            res_fit, uns_fit = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_1, initial_guess=initial_guess_1, constants={}, bounds=bounds_1, weight_by_modulus=True, global_opt=False)
-            R0, R1, CPE1_Y, CPE1_n, R2, W1, CPE2_Y, CPE2_n = res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5], res_fit[6], res_fit[7]
-            if isinstance(uns_fit, type(None)): 
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, W1_err, CPE2_Y_err, CPE2_n_err = None, None, None, None, None, None, None, None
-            else:
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, W1_err, CPE2_Y_err, CPE2_n_err = uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5], uns_fit[6], uns_fit[7]
-            ###chi2
-            circuit_test = circuits.CustomCircuit(circuit=circuit_1, initial_guess=res_fit)
-            Z_fit = circuit_test.predict(freq)
-            chi2 = np.sum((Z_fit.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
-            chi2_KK = np.sum((res_real)**2) + np.sum((res_imag)**2)
-            ### plot
-            plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-            plt.rcParams["axes.labelweight"] = "bold" # general thing
-            fig, ax = plt.subplots(figsize=(9,6),dpi=100)
-            scatter = ax.scatter(Z.real/1e3, -Z.imag/1e3, facecolors='none', edgecolors='b', linewidth = 1, s = 15, label = 'Data')
-            line, = ax.plot(Z_fit.real/1e3, -Z_fit.imag/1e3, color='r', alpha = 1.00, linewidth = 1.5, label = 'Fit')
-            max_ = 1.05*max(max(Z.real/1e3), max(-Z.imag/1e3))
-            ax.set_xlim(xmin=0, xmax=max_)
-            ax.set_ylim(ymin=0, ymax=max_)
-            ax.set_aspect('equal', adjustable='box')
-            tick_interval = np.round(max_ / 5, -int(np.floor(np.log10(max_ / 5))))
-            tick_values = np.arange(0, max_ + tick_interval, tick_interval)
-            ax.set_xticks(tick_values)
-            ax.set_yticks(tick_values)
-            ax.tick_params(which='both', labelsize=16, width=1.5)
-            ax.set_xlabel("Z', kΩ", fontsize=20)
-            ax.set_ylabel("-Z'', kΩ", fontsize=20)
-            handles = [scatter, line, plt.Line2D([], [], color='none')]
-            labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
-            ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
-            plt.clf()
-            plt.close('all')
-            #return
-        retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'R2': R2, 'W1': W1, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n},
-                                                                        'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'R2': R2_err, 'W1': W1_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err},
-                                                                        'chi2':{'fit': chi2, 'KK':chi2_KK}})
-    else:
-        R3_guess = abs(ReZ[ids_min[2]] - R2_guess - R1_guess - R0_guess)
-        R3_min = abs(0.75*R3_guess)
-        R3_max = abs(2.25*R3_guess)
-        circuit_1='R_0-p(R_1,CPE_1)-p(R_2,CPE_2)-p(R_3-W_1,CPE_3)'
-        initial_guess_1=[R0_guess, R1_guess, 1e-10,0.98, R2_guess, 1e-10,0.98, R3_guess,1e+5, 1e-6,0.9]
-        bounds_1 = (R0_min, R1_min, 1e-13,0.001, R2_min, 1e-13,0.001, R3_min,1e-1, 1e-13,0.001),(R0_max, R1_max, 1e-6,1, R2_max, 1e-6,1, R3_max,1e+10, 1,1)
-        if len(ReZ)<4:
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, R3, W1, CPE3_Y, CPE3_n = ReZ[0], None, None, None, None, None, None, None, None, None, None
-            R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, R3_err, W1_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None, None, None
-            chi2, chi2_KK = None, None
-        else:
-            res_fit, uns_fit = circuits.fitting.circuit_fit(freq, Z, circuit=circuit_1, initial_guess=initial_guess_1, constants={}, bounds=bounds_1, weight_by_modulus=True, global_opt=False)
-            R0, R1, CPE1_Y, CPE1_n, R2, CPE2_Y, CPE2_n, R3, W1, CPE3_Y, CPE3_n = res_fit[0], res_fit[1], res_fit[2], res_fit[3], res_fit[4], res_fit[5], res_fit[6], res_fit[7], res_fit[8], res_fit[9], res_fit[10]
-            if isinstance(uns_fit, type(None)): 
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, R3_err, W1_err, CPE3_Y_err, CPE3_n_err = None, None, None, None, None, None, None, None, None, None, None
-            else:
-                R0_err, R1_err, CPE1_Y_err, CPE1_n_err, R2_err, CPE2_Y_err, CPE2_n_err, R3_err, W1_err, CPE3_Y_err, CPE3_n_err = uns_fit[0], uns_fit[1], uns_fit[2], uns_fit[3], uns_fit[4], uns_fit[5], uns_fit[6], uns_fit[7], uns_fit[8], uns_fit[9], uns_fit[10]
-            ###chi2
-            circuit_test = circuits.CustomCircuit(circuit=circuit_1, initial_guess=res_fit)
-            Z_fit = circuit_test.predict(freq)
-            chi2 = np.sum((Z_fit.real - Z.real)**2/(Z.real**2+Z.imag**2))+np.sum((Z_fit.imag - Z.imag)**2/(Z.real**2+Z.imag**2))
-            M, mu, Z_linKK, res_real, res_imag = linKK(freq, Z, c=0.85, max_M=1000, fit_type='complex', add_cap=True)
-            chi2_KK = np.sum((res_real)**2) + np.sum((res_imag)**2)
-            ### plot
-            plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-            plt.rcParams["axes.labelweight"] = "bold" # general thing
-            fig, ax = plt.subplots(figsize=(9,6),dpi=100)
-            scatter = ax.scatter(Z.real/1e3, -Z.imag/1e3, facecolors='none', edgecolors='b', linewidth = 1, s = 15, label = 'Data')
-            line, = ax.plot(Z_fit.real/1e3, -Z_fit.imag/1e3, color='r', alpha = 1.00, linewidth = 1.5, label = 'Fit')
-            max_ = 1.05*max(max(Z.real/1e3), max(-Z.imag/1e3))
-            ax.set_xlim(xmin=0, xmax=max_)
-            ax.set_ylim(ymin=0, ymax=max_)
-            ax.set_aspect('equal', adjustable='box')
-            tick_interval = np.round(max_ / 5, -int(np.floor(np.log10(max_ / 5))))
-            tick_values = np.arange(0, max_ + tick_interval, tick_interval)
-            ax.set_xticks(tick_values)
-            ax.set_yticks(tick_values)
-            ax.tick_params(which='both', labelsize=16, width=1.5)
-            ax.set_xlabel("Z', kΩ", fontsize=20)
-            ax.set_ylabel("-Z'', kΩ", fontsize=20)
-            handles = [scatter, line, plt.Line2D([], [], color='none')]
-            labels = ['Data', 'Fit', f'χ²: {chi2:.4f}']
-            ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
-            plt.savefig(f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/EIS/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
-            plt.clf()
-            plt.close('all')
-            #return
-        retc = return_class(parameters={'addresses':address}, data={'res':{'R0': R0, 'R1': R1, 'CPE1_Y': CPE1_Y, 'CPE1_n': CPE1_n, 'R2': R2, 'CPE2_Y': CPE2_Y, 'CPE2_n': CPE2_n, 'R3': R3, 'W1': W1, 'CPE3_Y': CPE3_Y, 'CPE3_n': CPE3_n},
-                                                                        'err':{'R0': R0_err, 'R1': R1_err, 'CPE1_Y': CPE1_Y_err, 'CPE1_n': CPE1_n_err, 'R2': R2_err, 'CPE2_Y': CPE2_Y_err, 'CPE2_n': CPE2_n_err, 'R3': R3_err, 'W1': W1_err, 'CPE3_Y': CPE3_Y_err, 'CPE3_n': CPE3_n_err},
-                                                                        'chi2':{'fit': chi2, 'KK':chi2_KK}})
-    return retc
-
-@app.get("/analysis/cp")
-### input: query (coordinates and theoretical capacities), measured x and y, CP Corrected time
-### output: id, concentrations, x,y coordinates, measured capacity
-def cp(query: str, address:str):
-    global data
-    print(data)
-    query = json.loads(query)
-    q_query = query['q_query']
-    x_query = query['x_query']
-    c_query = query['c_query']
-    i_query = query['i_query']
-    m_query = query['m_query']
-    x = data[0][0]
-    y = data[0][1]
-    tc1 = data[0][2][:-4]
-    Ic1 = data[0][3][:-4]
-    Vc1 = data[0][4][:-4]
-    td1 = data[0][5][:-4]
-    Id1 = data[0][6][:-4]
-    Vd1 = data[0][7][:-4]
-    tc2 = data[0][8][:-4]
-    Ic2 = data[0][9][:-4]
-    Vc2 = data[0][10][:-4]
-    td2 = data[0][11][:-4]
-    Id2 = data[0][12][:-4]
-    Vd2 = data[0][13][:-4]
-    tc3 = data[0][14][:-4]
-    Ic3 = data[0][15][:-4]
-    Vc3 = data[0][16][:-4]
-    td3 = data[0][17][:-4]
-    Id3 = data[0][18][:-4]
-    Vd3 = data[0][19][:-4]
-    key_x = [data[0][0], data[0][1]]
-    id = x_query.index(key_x)
-    c = c_query[id]
-    c1, c2, c3 = c[0], c[1], c[2]
-    Q1 = td1[-1]*q_query[id]*np.mean(Id1)/i_query[id]/3600
-    Q2 = td2[-1]*q_query[id]*np.mean(Id2)/i_query[id]/3600
-    Q3 = td3[-1]*q_query[id]*np.mean(Id3)/i_query[id]/3600
-    print(Q3)
-    M_an = m_query[id]
-    M_cat = q_query[id]*m_query[id]/147 # 147 = Q(LiNiMnO2)
-    if len(td1) > 4:
-        V_av1 = simpson(Vd1, td1)/td1[-1]
-        E1 = (4.7 * td1[-1] - simpson(Vd1, td1))/3600 * np.mean(Id1) / (M_an + M_cat) * 1000 
-        CE1 = np.mean(Id1)*td1[-1]/np.abs(np.mean(Ic1))/tc1[-1]
-        VE1 = (4.7 - simpson(Vd1, td1)/td1[-1])/(4.7 - simpson(Vc1, tc1)/tc1[-1])
-        EE1 = VE1*CE1
-    else:
-        V_av1, E1, CE1, VE1, EE1 = 0, 0, 0, 0, 0
-    if len(td2) > 4:
-        V_av2 = simpson(Vd2, td2)/td2[-1]
-        E2 = (4.7 * td2[-1] - simpson(Vd2, td2))/3600 * np.mean(Id2) / (M_an + M_cat) * 1000  
-        CE2 = np.mean(Id2)*td2[-1]/np.abs(np.mean(Ic2))/tc2[-1]
-        VE2 = (4.7 - simpson(Vd2, td2)/td2[-1])/(4.7 - simpson(Vc2, tc2)/tc2[-1])
-        EE2 = VE2*CE2
-    else:
-        V_av2, E2, CE2, VE2, EE2 = 0, 0, 0, 0, 0
-    if len(td3) > 4:
-        V_av3 = simpson(Vd3, td3)/td3[-1]
-        E3 = (4.7 * td3[-1] - simpson(Vd3, td3))/3600 * np.mean(Id3) / (M_an + M_cat) * 1000   
-        CE3 = np.mean(Id3)*td3[-1]/np.abs(np.mean(Ic3))/tc3[-1]
-        VE3 = (4.7 - simpson(Vd3, td3)/td3[-1])/(4.7 - simpson(Vc3, tc3)/tc3[-1])
-        EE3 = VE3*CE3
-    else:
-        V_av3, E3, CE3, VE3, EE3 = 0, 0, 0, 0, 0
-    retc = return_class(parameters={'addresses':address}, 
-                        data={'id':{'id': id}, 
-                              'C':{'c1': c1, 'c2': c2, 'c3': c3},
-                              'X':{'x': x, 'y': y}, 
-                              'Y':{'Q1': Q1, 'E1': E1, 'V_av1': V_av1,
-                                   'Q2': Q2, 'E2': E2, 'V_av2': V_av2,
-                                   'Q3': Q3, 'E3': E3, 'V_av3': V_av3}, 
-                              'Efficiencies': {'CE1': CE1, 'VE1': VE1, 'EE1': EE1,
-                                               'CE2': CE2, 'VE2': VE2, 'EE2': EE2,
-                                               'CE3': CE3, 'VE3': VE3, 'EE3': EE3}})
-    return retc
-
-
+            labels = ['Data', 'Fit', f'RMSE: {best_metric_value:.2f}']
+        ax.legend(handles, labels, title=f"Run {int(run/4)}, cycle {int(run%4)}", title_fontsize='medium', prop={'size': 'medium'})
+        plt.savefig(f"{path}/eis_{int(run/4)}_{int(run%4)}.png", transparent=False)
+        plt.clf()
+        plt.close('all')
 
 """
 @app.get("/analysis/dummy")

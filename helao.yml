@@ -58,6 +58,7 @@ dependencies:
   - pyparsing
   - pyqt
   - pyserial
+  - PySimpleGUI=4
   - pysocks
   - python=3
   - python-dateutil

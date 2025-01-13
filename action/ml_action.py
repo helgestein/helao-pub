@@ -114,11 +114,31 @@ def active_learning_random_forest_simulation(name: str, num: int, query: str, ad
     global awaitedpoints
     ap = awaitedpoints[modelid]
     beta = math.exp(-0.05*num)
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_random_forest_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta)
+    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_random_forest_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta) # check
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
     print(next_exp_dx, next_exp_dy)
     retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
         next_x=next_exp_dx, next_y=next_exp_dy, next_i=json.dumps({'recordsignal': {'Duration': next_exp_i, 'Interval time in µs': 0.02}})))
+    return retc
+
+@app.get("/ml/activeLearningParallel")
+def active_learning_random_forest_simulation_parallel(name: str, num: int, query: str, address: str, modelid=0):
+
+    global data
+    dat = data[modelid]
+    #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
+    # check whether the point is already in waiting list or not
+    global awaitedpoints
+    ap = awaitedpoints[modelid]
+    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
+        name, num, query, dat, json.dumps(ap))
+    awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
+    # next_exp_pos : would be a [dx, dy] of the next move
+    # prediction : list of predicted schwefel function for the remaning positions
+    print(next_exp_dx, next_exp_dy)
+    # return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
+    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
+        next_x=next_exp_dx, next_y=next_exp_dy))
     return retc
 
 @app.get("/ml/activeLearningGaussian")
@@ -147,7 +167,7 @@ def active_learning_gaussian_simulation(name: str, num: int, query: str, address
     ap = awaitedpoints[modelid]
     #beta = 0.4
     beta = 0.6*math.exp(-0.06*num)+0.2
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta)
+    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_wafer(name, num, query, dat, json.dumps(ap), beta)
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
     print(next_exp_dx, next_exp_dy)
     next_ci=json.dumps({'switchgalvanostatic': {'WE(1).Current range': round(math.log10(next_exp_i))},
@@ -183,36 +203,10 @@ def active_learning_random_forest_simulation_parallel(name: str, num: int, query
         next_x=next_exp_dx, next_y=next_exp_dy))
     return retc'''
 
-
 @app.get("ml/addData")
 def addData(address: str, modelid=0):
     retc = return_class(
         parameters={'address': address, 'modelid': modelid}, data=None)
-    return retc
-
-@app.get("/ml/sdc4")
-def active_learning_sdc_4(address: str, modelid=0):
-    print(data[modelid])
-    x = data[modelid][0][0][0]
-    y = data[modelid][0][0][1]
-    print("x and y:", x,y)
-    #x = data[modelid][:][:2]
-    #y = data[modelid][:][2]
-    #y = y[:][-1]
-    #df = pd.read_csv(r'C:\Users\LaborRatte23-2\Documents\SDC functions\Python scripts\df.csv').to_numpy()
-    #XY, C, I, Q = df[:,0:2], df[:,2:5], df[:,-2], df[:,-1]
-    ##x = np.array([[-6.25, 86.5],[-6.25, 91.5],[-11.25, 86.5]])
-    #id_ = [np.where((XY == i).all(axis=1))[0][0] for i in x] # conversion of coordinates into ids of measured points
-    #C_ = C[id_] # composition of all measured points
-    #Q_ = y/3600*Q[id_] # capacity of all measured points
-    #x_query = C_
-    #y_query = Q_
-    #train_ix = [x_query.index(j) for j in key_x]
-    #regr = RandomForestRegressor(n_estimators=50,random_state=1337)
-    #regr.fit(x,y)
-    #pred = regr.predict(C)
-    retc = return_class(parameters={'x':x,'y':y}, data={
-                        'key_y': x+y})
     return retc
 
 if __name__ == "__main__":

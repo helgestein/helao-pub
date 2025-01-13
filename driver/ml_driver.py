@@ -14,12 +14,19 @@ from scipy.interpolate import griddata
 import matplotlib.pyplot as plt
 import random
 import sys
+import os
+import requests
+from importlib import import_module
 import matplotlib
 matplotlib.use('agg')
 sys.path.append(r"../")
+helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.join(helao_root, 'config'))
+config = import_module(sys.argv[1]).config
 
 # for the test we just need active_learning_random_forest_simulation function
 kadiurl = None
+filepath = "C:/Users/jkflowers/Downloads"
 
 class DataUtilSim:
     def __init__(self):
@@ -63,7 +70,7 @@ class DataUtilSim:
         if type(y) != np.ndarray:
             y = np.array(y)
 
-        model = self.gaus_model().fit(X, y)
+        model = DataUtilSim().gaus_model().fit(X, y) #as static method we can't call self
         alpha = model.alpha_
         mu, var = model.predict(X, return_std=True)
 
@@ -176,7 +183,6 @@ class DataUtilSim:
         self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
         self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
         self.plot_prediction(name, num, pred, i, x_query, y_query, test_ix, train_ix)
-        self.plot_target_wafer(name, num, x_query, y_query, i, test_ix, train_ix)
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
@@ -205,13 +211,19 @@ class DataUtilSim:
             x_query = np.array(x_query) 
         if type(y_query) != np.ndarray:
             y_query = np.array(y_query)
+        if type(c_query) != np.ndarray:
+            c_query = np.array(c_query)
+        if type(q_query) != np.ndarray:
+            q_query = np.array(q_query)
+        if type(i_query) != np.ndarray:
+            i_query = np.array(i_query)
 
         regr = self.gaus_model()
         #regr.fit(x_query[train_ix], y_query[train_ix])
-        regr.fit(C[train_ix], y_query[train_ix])
+        regr.fit(c_query[train_ix], y_query[train_ix])
 
         #y_mean, y_var = regr.predict(x_query[test_ix], return_std=True)
-        y_mean, y_var = regr.predict(C[test_ix], return_std=True)
+        y_mean, y_var = regr.predict(c_query[test_ix], return_std=True)
         aqf = exp_exl_ratio * y_mean + (1 - exp_exl_ratio) * y_var
 
         ix = np.where(aqf == np.max(aqf))[0]
@@ -223,7 +235,7 @@ class DataUtilSim:
         self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
         self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
         self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix)
-        self.plot_target_wafer(name, num, x_query, y_query, i, test_ix, train_ix)
+        #self.plot_target(name, num, x_query, y_query, i, test_ix, train_ix)
 
         #self.plot_aqf("sdc_2_{}".format(num) , aqf, i[1], x_query, test_ix)
         #self.plot_variance("sdc_2_{}".format(num), y_var, i[1], x_query, test_ix)
@@ -238,12 +250,12 @@ class DataUtilSim:
 
         return next_exp[0], next_exp[1]
 
-    def active_learning_gaussian_simulation_parallel_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
+    def active_learning_gaussian_simulation_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
         
         random.seed(1)
         awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]
         awaitedpoints = [[i['x'], i['y']] for i in awaitedpoints]
-        print(f"the awaiting points are {awaitedpoints}")
+        #print(f"the awaiting points are {awaitedpoints}")
         query = json.loads(query)
         x_query = query["x_query"]
         c_query = query['c_query']
@@ -251,7 +263,7 @@ class DataUtilSim:
         i_query = query['i_query']
         key_x = [[dat['X']['x'], dat['X']['y']] for dat in data]
         key_y = [dat['Y']['Q3']/1000 for dat in data]
-        print(f"data is {data}, key_x or current points are {key_x}, key_y are {key_y}")
+        #print(f"data is {data}, key_x or current points are {key_x}, key_y are {key_y}")
         train_ix = [x_query.index(j) for j in key_x] # only data from current experiment or all measured data?!
         test_ix = [x_query.index(i) for i in x_query if i not in key_x and i not in awaitedpoints]
 
@@ -268,8 +280,8 @@ class DataUtilSim:
         # print(f"test indeces are {test_ix}")
         # train_ix = [np.where(x_query == j)[0] for j in key_x]
         # print(f"the train indeces are {train_ix}  and the train data are {x_query[train_ix]}")
-        print('Capacity measured:', key_y[-1]*1000)
-        print('Capacity expected:', q_query[train_ix][-1])
+        #print('Capacity measured:', key_y[-1]*1000)
+        #print('Capacity expected:', q_query[train_ix][-1])
 
         for i in range(len(key_y) - 1, -1, -1):
             if 1000 * key_y[i] < 0.25 * q_query[train_ix][i] or 1000 * key_y[i] > 1.25 * q_query[train_ix][i]:
@@ -277,8 +289,8 @@ class DataUtilSim:
                 del train_ix[i]
 
         #print(f"the train indices are {train_ix} and the train data are {x_query[train_ix]} and test indices are {test_ix}")
-        print('Training data', c_query[train_ix], key_y)
-        print('Testing data', c_query[test_ix])
+        #print('Training data', c_query[train_ix], key_y)
+        #print('Testing data', c_query[test_ix])
         regr = self.gaus_model()
         #regr.fit(x_query[train_ix], y_query[train_ix])
         regr.fit(c_query[train_ix], key_y)
@@ -288,18 +300,18 @@ class DataUtilSim:
         y_mean, y_var = 1000*y_mean, 1000*y_var
         aqf = (1 - exp_exl_ratio) * y_mean + exp_exl_ratio * y_var
         
-        print('y_mean', y_mean)
-        print('aqf', aqf)
+        #print('y_mean', y_mean)
+        #print('aqf', aqf)
         if len(train_ix) == 1:
             i = random.choice(test_ix)
         else:
             ix = np.where(aqf == np.max(aqf))[0]
             i = np.random.choice(ix)
-            print("ids max aqf", ix)
+            #print("ids max aqf", ix)
 
         #####print(f"indeces for the next experiment are {i}")
-        print(f"indices for the next experiment are {test_ix[i]}")
-        print(f"train indices before popping {train_ix}")
+        #print(f"indices for the next experiment are {test_ix[i]}")
+        #print(f"train indices before popping {train_ix}")
 
         #x_grid, y_grid = np.meshgrid(
         #    [2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
@@ -307,31 +319,30 @@ class DataUtilSim:
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
         
-        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
-        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
-        self.plot_prediction(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix)
+        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, config['ml']['ternary_path'])
         #self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix) # when y values are known in advance
-        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix)
-        #self.plot_target_wafer(name, num, x_query, y_query, i, test_ix, train_ix) # when y values are known in advance
+        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, config['ml']['ternary_path'])
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
 
-        ternary_plot = TernaryPlot(labels=('Si', 'Ge', 'Sn'))
-        ternary_plot.plot(c_query[train_ix], [1000*i for i in key_y], name, num)
+        ternary_plot = TernaryPlot(labels=config['ml']['ternary_labels'])
+        ternary_plot.plot(c_query[train_ix], [1000*i for i in key_y], name, num, path=config['ml']['ternary_path'])
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
         next_cur = i_query[train_ix[-1]].tolist() # correct for real exp
         #next_cur = 0.001*q_query[train_ix[-1]].tolist() # correct for real exp
-        print(f"next first position is : {next_exp}, next current is {next_cur}")
+        #print(f"next first position is : {next_exp}, next current is {next_cur}")
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, train_ix, ind=-1)
         return next_exp[0], next_exp[1], next_cur
 
-    def active_learning_random_forest_simulation_parallel_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
+    def active_learning_random_forest_simulation_wafer(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
         
         random.seed(11)
         awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]
         awaitedpoints = [[i['x'], i['y']] for i in awaitedpoints]
-        print(f"the awaiting points are {awaitedpoints}")
+        #print(f"the awaiting points are {awaitedpoints}")
         query = json.loads(query)
         x_query = query["x_query"]
         c_query = query['c_query']
@@ -339,7 +350,7 @@ class DataUtilSim:
         i_query = query['i_query']
         key_x = [[dat['X']['x'], dat['X']['y']] for dat in data]
         key_y = [dat['Y']['Q']/1 for dat in data]
-        print(f"data is {data}, key_x or current points are {key_x}, key_y are {key_y}")
+        #print(f"data is {data}, key_x or current points are {key_x}, key_y are {key_y}")
         train_ix = [x_query.index(j) for j in key_x] # only data from current experiment or all measured data?!
         test_ix = [x_query.index(i) for i in x_query if i not in key_x and i not in awaitedpoints]
 
@@ -358,8 +369,8 @@ class DataUtilSim:
         # print(f"the train indeces are {train_ix}  and the train data are {x_query[train_ix]}")
 
         #print(f"the train indices are {train_ix} and the train data are {x_query[train_ix]} and test indices are {test_ix}")
-        print('Training data', c_query[train_ix], key_y)
-        print('Testing data', c_query[test_ix])
+        #print('Training data', c_query[train_ix], key_y)
+        #print('Testing data', c_query[test_ix])
 
         regr = RandomForestRegressor(n_estimators=50, random_state=36)
 
@@ -374,15 +385,15 @@ class DataUtilSim:
         y_var = np.var(y_var_, axis=0) * 1
         aqf = exp_exl_ratio * y_mean + (1 - exp_exl_ratio) * y_var
         
-        print('y_mean', y_mean)
-        print('aqf', aqf)
+        #print('y_mean', y_mean)
+        #print('aqf', aqf)
         ix = np.where(aqf == np.max(aqf))[0]
-        print("ids", ix)
+        #print("ids", ix)
         i = np.random.choice(ix)
 
         #####print(f"indeces for the next experiment are {i}")
-        print(f"indices for the next experiment are {test_ix[i]}")
-        print(f"train indices before popping {train_ix}")
+        #print(f"indices for the next experiment are {test_ix[i]}")
+        #print(f"train indices before popping {train_ix}")
 
         #x_grid, y_grid = np.meshgrid(
         #    [2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
@@ -390,98 +401,159 @@ class DataUtilSim:
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
         
-        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
-        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
+        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
         #self.plot_prediction(name, num, y_mean, i, x_query, key_y, test_ix, train_ix)
-        self.plot_prediction(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix)
+        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, config['ml']['ternary_path'])
         #self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix) # when y values are known in advance
-        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix)
+        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, config['ml']['ternary_path'])
         #self.plot_target_wafer(name, num, x_query, y_query, i, test_ix, train_ix) # when y values are known in advance
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
 
-        ternary_plot = TernaryPlot(labels=('Si', 'Ge', 'Sn'))
-        ternary_plot.plot(c_query[train_ix], [1*i for i in key_y], name, num)
+        ternary_plot = TernaryPlot(labels=config['ml']['ternary_labels'])
+        ternary_plot.plot(c_query[train_ix], [1*i for i in key_y], name, num, path=config['ml']['ternary_path'])
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
         #next_cur = i_query[train_ix[-1]].tolist() # correct for real exp
         next_cur = 0.001*q_query[train_ix[-1]].tolist() # correct for real exp
-        print(f"next first position is : {next_exp}, next current is {next_cur}")
+        #print(f"next first position is : {next_exp}, next current is {next_cur}")
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, train_ix, ind=-1)
         return next_exp[0], next_exp[1], next_cur
     
-    '''def active_learning_gaussian_simulation_parallel(self, name, num, query, data, exp_exl_ratio=0.4):
-
+    def active_learning_random_forest_simulation(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
+        random.seed(1)
+        awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]
+        awaitedpoints = [[i['x'], i['y']] for i in awaitedpoints]
         query = json.loads(query)
-    
         x_query = query['x_query']
-        y_query = query['y_query'] 
-        print("DATA", data)
-        x = [dat['x']['x'] for dat in data] 
-        y = [dat['x']['y'] for dat in data] 
-        key_x = np.array([[i, j] for i, j in zip(x, y)]) 
-        print("x,y,key_x", x, y, key_x)
-        key_y = [dat['y']['schwefel'] for dat in data] 
+        y_query = query['y_query']
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
+        key_x = np.array([[i, j] for i, j in zip(x, y)])
+        key_y = [dat['y']['schwefel'] for dat in data]
+        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
 
         if type(x_query) != np.ndarray:
-            x_query = np.array(x_query) 
+            x_query = np.array(x_query)
         if type(y_query) != np.ndarray:
             y_query = np.array(y_query)
 
-        test_ix = [i for i in range(len(x_query))] 
+        test_ix = [i for i in range(len(x_query))]
+        #train_ix = [np.random.choice(quin.shape[0], 1, replace=False)[0]]
+        # we have the  first pos now (the initial point that motor goes there)
+        train_ix = [np.where(x_query == j)[0][0] for j in key_x]
+        #print(f"train_ix: {train_ix}")
+        # move the motor to the first point
+
+        # we no longer need to put it in for loop
+        # for i_ in tqdm(range(len(x_query))):
+        # if i_ == 0:
+        #    print(x_query[train_ix[-1]])
+        # motor should go to the first random position
+        # else:
+        # move to the last added train position and pretend we meaure there
+        # the actual value that was added in the last learning cycle is quin[train[-1]]
+        regr.fit(x_query[train_ix], y_query[train_ix])
+        pred = regr.predict(x_query[test_ix])
+
+        y_var = np.zeros([50, len(x_query[test_ix])])
+
+        for j in range(50):
+            y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+
+        aqf = pred+np.var(y_var, axis=0)
+
+        ix = np.where(aqf == np.max(aqf))[0]
+        #print(f"aqf : {ix}")
+        i = np.random.choice(ix)
+        #print(f"chosen random : {i}")
+        train_ix.append(test_ix.pop(i))
+        # next position that motor needs to go
+        print(f"next position is : {x_query[train_ix[-1]].tolist()}")
+        next_exp = x_query[train_ix[-1]].tolist()
+        #next_exp_2 = x_query[train_ix[-2]].tolist()
+
+        #print(f"predicitons are {pred}")
+        # For the sake of tracibility, we need to save the predicitons at every step
+        # for i in test_ix:
+        #print(f"Are you float ?! {i}")
+        #prediction.update({json.dumps(x_query[{}]).format(i): pred[i]})
+        return next_exp[0], next_exp[1]
+    
+    def active_learning_gaussian_simulation(self, name, num, query, data, awaitedpoints, exp_exl_ratio):
+        random.seed(1)
+        awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]
+        awaitedpoints = [[i['x'], i['y']] for i in awaitedpoints]
+        # this is how the data is created in the analyis action and should be transfer here
+        # data format: data={'x':{'x':d[0],'y':d[1]},'y':{'schwefel':d[2]}}
+        # an example
+        # data = [{'x': {'x': 1, 'y': 2}, 'y':{'schwefel': .1}}},{'x': {'x': 2, 'y': 4}, 'y':{'schwefel': .5}}}]
+
+        #session = json.loads(session)
+        # print(session)
+        # print(addresses)
+        # data = interpret_input(
+        #    session, "session", json.loads(addresses))
+        # print(data)
+        query = json.loads(query)
+        x_query = query['x_query']
+        y_query = query['y_query']
+        x = [dat['x']['x'] for dat in data]
+        y = [dat['x']['y'] for dat in data]
+        key_x = np.array([[i, j] for i, j in zip(x, y)])
+        #key_x = [[eval(d[2])[0], eval(d[2])[1]] for d in data]
+        #print(f"key_x: {key_x[0]}")
+        # accumulated result at every step (n+1)
+        #y_query = [d[1] for d in data]
+        key_y = [dat['y']['schwefel'] for dat in data]
+        #print(f"y_query: {y_query}")
+        # we still need to check the format of the data
+        # if x_query and y_query are string then:
+        # x_query = json.loads(x_query)  # all the points of exp
+
+        # the key_x should be in following [[4, 5], [4, 6]...]
+        #key_x = np.array([[i, j] for i, j in zip(key_x['dx'], key_x['dy'])])
+
+        # define a random forest regressor containing 50 estimators
+        regr = RandomForestRegressor(n_estimators=50, random_state=1337)
+
+        if type(x_query) != np.ndarray:
+            x_query = np.array(x_query)
+        if type(y_query) != np.ndarray:
+            y_query = np.array(y_query)
+
+        test_ix = [i for i in range(len(x_query))]
 
         train_ix = [np.where(x_query == j)[0][0] for j in key_x]
 
-        regr = self.gaus_model()
         regr.fit(x_query[train_ix], y_query[train_ix])
+        pred = regr.predict(x_query[test_ix])
 
-        y_mean, y_var = regr.predict(x_query[test_ix], return_std=True)
-        aqf = exp_exl_ratio * y_mean + (1 - exp_exl_ratio) * y_var
+        y_var = np.zeros([50, len(x_query[test_ix])])
+
+        for j in range(50):
+            y_var[j, :] = regr.estimators_[j].predict(x_query[test_ix])
+
+        aqf = pred+np.var(y_var, axis=0)
 
         ix = np.where(aqf == np.max(aqf))[0]
-        print(f"length od indees are {len(ix)} and they are {ix}")
-        if len(ix) == 1:
-            i = np.random.choice(ix, size=2, replace=True)
-        else:
-            i = np.random.choice(ix, size=2, replace=False)
-        print(f"indeces for the next experiment are {i[0]} and {i[1]}")
-        print(f"train indeces before popping {train_ix}")
+        #print(f"aqf : {ix}")
+        i = np.random.choice(ix)
         #print(f"chosen random : {i}")
-
-        self.plot_aqf("{}".format(num), aqf, i[0], x_query, test_ix)
-        self.plot_variance("{}".format(num), y_var, i[0], x_query, test_ix)
-
-        #self.plot_aqf("sdc_2_{}".format(num) , aqf, i[1], x_query, test_ix)
-        #self.plot_variance("sdc_2_{}".format(num), y_var, i[1], x_query, test_ix)
-
-        train_ix.append(test_ix.pop(i[0]))
-        train_ix.append(test_ix.pop(i[1]))
-
-        print(f"Train indeces are {train_ix}")
-        x_grid = np.array(query['x_grid'])
-        y_grid = np.array(query['y_grid'])
-        z_con = np.array(query['z_con'])
-
-        self.plot_target("{}".format(num), x_grid, y_grid,
-                         z_con, x_query, train_ix, ind=-1)
-        #self.plot_target("sdc_2_{}".format(num), x_grid, y_grid, z_con, x_query, train_ix, ind=-2)
-
+        train_ix.append(test_ix.pop(i))
         # next position that motor needs to go
-        print(f"next first position is : {x_query[train_ix[-1]].tolist()}")
-        print(f"next second position is: {x_query[train_ix[-2]].tolist()} ")
+        print(f"next position is : {x_query[train_ix[-1]].tolist()}")
         next_exp = x_query[train_ix[-1]].tolist()
-        next_exp_2 = x_query[train_ix[-2]].tolist()
 
-        return next_exp[0], next_exp[1], next_exp_2[0], next_exp_2[1]'''
+        return next_exp[0], next_exp[1]
 
     def transformations(self):
         df = pd.read_csv(r'C:\Users\LaborRatte23-2\Documents\SDC functions\Python scripts\df_lim.csv').to_numpy()
         XY, C, I, Q = df[:,0:2], df[:,2:5], df[:,-2], df[:,-1]
         return XY, C, I, Q
     
-    def plot_variance(self, name, num, y_var, rnd_ix, quin, test_ix, train_ix):
-        plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-        plt.rcParams["axes.labelweight"] = "bold"
+    def plot_variance_wafer(self, name, num, y_var, rnd_ix, quin, test_ix, train_ix, path):
         plt.subplots(dpi=100)
         #pointlist = np.array(
         #    [[quin[test_ix][i][0], quin[test_ix][i][1], y_var[i]] for i in range(len(y_var))])
@@ -504,14 +576,11 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/var/var_{name}_{num}.png", transparent=False)
+        plt.savefig(f"{path}/var/var_{name}_{num}.png", transparent=False)
         plt.clf()
         plt.close('all')
 
-    def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix, train_ix):
-        plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-        plt.rcParams["axes.labelweight"] = "bold"
+    def plot_aqf_wafer(self, name, num, aqf, rnd_ix, quin, test_ix, train_ix, path):
         plt.subplots(dpi=100)
         #pointlist = np.array(
         #    [[quin[test_ix][i][0], quin[test_ix][i][1], aqf[i]] for i in range(len(aqf))])
@@ -534,15 +603,12 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/aqf/aqf_{name}_{num}.png", transparent=False)
+        plt.savefig(f"{path}/aqf/aqf_{name}_{num}.png", transparent=False)
         plt.clf()
         plt.close('all')
 
     #def plot_target(self, name, num, x, y, z_con, quin, train_ix, ind=-1):
-    def plot_target(self, name, num, x, y, z_con, quin, rnd_ix, test_ix, train_ix):
-        plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-        plt.rcParams["axes.labelweight"] = "bold"
+    def plot_target_wafer(self, name, num, x, y, z_con, quin, rnd_ix, test_ix, train_ix, path):
         plt.subplots(dpi=100)
         plt.contourf(x, y, z_con, levels=25, cmap = plt.cm.viridis)
         #plt.title("Next sample will be (%.2f, %.2f)" %
@@ -560,44 +626,11 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.ylabel("Y, mm")
         plt.xlabel("X, mm")
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/tar/tar_{name}_{num}.png", transparent=False)
+        plt.savefig(f"{path}/tar_{name}_{num}.png", transparent=False)
         plt.clf()
         plt.close('all')
 
-    def plot_target_wafer(self, name, num, quin, y_query, rnd_ix, test_ix, train_ix):
-        plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-        plt.rcParams["axes.labelweight"] = "bold"
-        plt.subplots(dpi=100)
-        #xi = np.linspace(min(quin[:,0]), max(quin[:,0]), 1000)
-        xi = np.linspace(min(-quin[:,0]-16.25), max(-quin[:,0]-16.25), 1000)
-        #yi = np.linspace(min(quin[:,1]), max(quin[:,1]), 1000)
-        yi = np.linspace(min(quin[:,1]-48.15), max(quin[:,1]-48.15), 1000)
-        xi, yi = np.meshgrid(xi, yi)
-        #zi = griddata((quin[:,0], quin[:,1]), y_query, (xi, yi), method='linear')
-        zi = griddata((-quin[:,0]-16.25, quin[:,1]-48.15), y_query, (xi, yi), method='linear')
-        plt.contourf(xi, yi, zi, levels=25, cmap = plt.cm.viridis)
-        #plt.title("Next sample will be (%.2f, %.2f)" %
-        #          (quin[test_ix[rnd_ix]][0], quin[test_ix[rnd_ix]][1]), y=1.04)
-        plt.title("Next sample will be (%.2f, %.2f)" %
-                  (quin[test_ix[rnd_ix]][0], quin[test_ix[rnd_ix]][1]), y=1.04)
-        plt.colorbar()
-        #plt.axvline(quin[test_ix[rnd_ix]][0], color='k')
-        plt.axvline(-quin[test_ix[rnd_ix]][0]-16.25, color='k')
-        #plt.axhline(quin[test_ix[rnd_ix]][1], color='k')
-        plt.axhline(quin[test_ix[rnd_ix]][1]-48.15, color='k')
-        #plt.scatter(quin[test_ix[rnd_ix]][0], quin[test_ix[rnd_ix]][1], color='r', label = 'Next sample')
-        plt.scatter(-quin[test_ix[rnd_ix]][0]-16.25, quin[test_ix[rnd_ix]][1]-48.15, color='r', label = 'Next sample')
-        #plt.scatter(quin[train_ix][:,0], quin[train_ix][:,1], color='k', label = 'Measured points')
-        plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
-        plt.ylabel("Y, mm")
-        plt.xlabel("X, mm")
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/tar/tar_{name}_{num}.png", transparent=False)
-        plt.clf()
-        plt.close('all')
-
-    def plot_prediction(self, name, num, pred, rnd_ix, quin, y_query, test_ix, train_ix):
+    def plot_prediction_wafer(self, name, num, pred, rnd_ix, quin, y_query, test_ix, train_ix, path):
         plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
         plt.rcParams["axes.labelweight"] = "bold"
         plt.subplots(dpi=100)
@@ -622,10 +655,57 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, c=y_query, label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/pred/pred_{name}_{num}.png", transparent=False)
+        plt.savefig(f"{path}/pred/pred_{name}_{num}.png", transparent=False)
         plt.clf()
         plt.close('all')
+
+    def plot_variance(self, name, num, y_var, rnd_ix, quin, test_ix):
+        pointlist = np.array(
+            [[quin[test_ix][i][0], quin[test_ix][i][1], y_var[i]] for i in range(len(y_var))])
+        aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
+        plt.colorbar(aq)
+        plt.title("Next sample will be (%.2f, %.2f) with variance (%.2f)" %
+                  (quin[rnd_ix][0], quin[rnd_ix][1], y_var[rnd_ix]))
+        # ax.autoscale(False)
+        plt.axvline(quin[rnd_ix][0], color='k')
+        plt.axhline(quin[rnd_ix][1], color='k')
+        plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/variance/variance_{name}_{num}.png")
+        plt.clf()
+
+    def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix):
+        pointlist = np.array(
+            [[quin[test_ix][i][0], quin[test_ix][i][1], aqf[i]] for i in range(len(aqf))])
+        aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
+        plt.colorbar(aq)
+        plt.title("Next sample will be (%.2f, %.2f) with acquisition of (%.2f)" % (
+            quin[rnd_ix][0], quin[rnd_ix][1], aqf[rnd_ix]))
+        # ax.autoscale(False)
+        plt.axvline(quin[rnd_ix][0], color='k')
+        plt.axhline(quin[rnd_ix][1], color='k')
+        plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/aqf/aqf_{name}_{num}.png")
+        plt.clf()
+
+    def plot_target(self, name, num, x, y, z_con, quin, train_ix, ind=-1):
+        plt.contourf(x, y, z_con)
+        plt.title("Next sample will be (%.2f, %.2f)" %
+                  (quin[train_ix[ind]][0], quin[train_ix[ind]][1]))
+        plt.colorbar()
+        plt.axvline(quin[train_ix[ind]][0], color='k')
+        plt.axhline(quin[train_ix[ind]][1], color='k')
+        plt.scatter(quin[train_ix[ind]][0], quin[train_ix[ind]][1], color='r')
+        plt.ylabel("Y")
+        plt.xlabel("X")
+        plt.savefig(
+            f"C:/Users/SDC_1/Documents/performance/tar/tar_{name}_{num}.png")
+        plt.clf()    
 
     # @staticmethod
     # @app.task(name='driver.ml_driver.gaussian_simulation')
@@ -1009,7 +1089,7 @@ class TernaryPlot:
         lines = [[0,0],[0.5,np.sqrt(3)/2],[1,0]]
         for i in [[0,1],[1,2],[2,0]]:
             plt.plot([lines[i[0]][0],lines[i[1]][0]],[lines[i[0]][1],lines[i[1]][1]],color='black',linewidth=2.5, zorder=100)
-    def plot(self, data, Y, name, num):
+    def plot(self, data, Y, name, num, path):
         """
         Plot ternary diagram with given data.
         :param data: Array of ternary coordinates.
@@ -1026,7 +1106,6 @@ class TernaryPlot:
         plt.axis('equal')
         plt.axis('off')
         fig.patch.set_facecolor('white')
-        plt.savefig(
-            f"C:/Users/LaborRatte23-2/Documents/data/substrate_109/AL/ter/ter_{name}_{num}.png", transparent=False)
+        plt.savefig(f"{path}/ter_{name}_{num}.png", transparent=False)
         plt.clf()
         plt.close('all')

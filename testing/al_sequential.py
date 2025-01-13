@@ -5,7 +5,7 @@ import random
 import sys
 sys.path.append(r'../config')
 sys.path.append('config')
-from sdc_4 import config
+from sdc_2 import config
 
 
 def test_fnc(sequence,thread=0):
@@ -15,7 +15,6 @@ def test_fnc(sequence,thread=0):
     print("requesting")
     requests.post("http://{}:{}/{}/{}".format(
         config['servers']['orchestrator']['host'], 13380, server, action), params=params).json()
-
 
 
 def schwefel_function(x, y):
@@ -45,16 +44,19 @@ dz = config['lang:2']['safe_sample_pos'][2]
 
 
 n = 100
-
-substrate = -999
-test_fnc(dict(soe=['orchestrator/start','lang/getPos_0','ml/sdc4_0'], 
-            params={'start': {'collectionkey' : f'substrate_{substrate}'},
-                    'getPos_0': {}, 
-                    'sdc4_0': {'address':['experiment_0:0/getPos_0/data/data/pos']}}, #:['experiment_0:0/getPos_0/data/data/pos'] 3 addresses in list, x,y,t
+test_fnc(dict(soe=['orchestrator/start','lang:2/moveWaste_0', 'lang:2/RemoveDroplet_0',
+                   'lang:2/moveSample_0','lang:2/moveAbs_0','lang:2/moveDown_0','measure:2/schwefelFunction_0','analysis/dummy_0'], 
+            params={'start': {'collectionkey' : 'al_sequential'},
+                    'moveWaste_0':{'x': 0, 'y':0, 'z':0},
+                    'RemoveDroplet_0': {'x':0, 'y':0, 'z':0},
+                    'moveSample_0': {'x':0, 'y':0, 'z':0},
+                    'moveAbs_0': {'dx':dx0, 'dy':dy0, 'dz':dz}, 
+                    'moveDown_0': {'dz':0.12, 'steps':4, 'maxForce':1.4, 'threshold': 0.13},
+                    'schwefelFunction_0':{'x':dx0,'y':dy0},
+                    'dummy_0':{'x_address':'experiment_0:0/schwefelFunction_0/data/parameters/x',
+                                'y_address':'experiment_0:0/schwefelFunction_0/data/parameters/y',
+                                'schwefel_address':'experiment_0:0/schwefelFunction_0/data/data/key_y'}}, 
             meta=dict()))
-
-test_fnc(dict(soe=['orchestrator/finish'], params={'finish': None}, meta={}))
-
 
 for i in range(n):
     test_fnc(dict(soe=[f'ml/activeLearningParallel_{i}',f'orchestrator/modify_{i}',f'lang:2/moveWaste_{i+1}', f'lang:2/RemoveDroplet_{i+1}',

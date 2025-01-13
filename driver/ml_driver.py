@@ -24,10 +24,6 @@ helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
 config = import_module(sys.argv[1]).config
 
-# for the test we just need active_learning_random_forest_simulation function
-kadiurl = None
-filepath = "C:/Users/jkflowers/Downloads"
-
 class DataUtilSim:
     def __init__(self):
         return
@@ -81,7 +77,6 @@ class DataUtilSim:
 
             return result
 
-
     def schwefel_function(self, x, y):
         comp = np.array([x, y])
         sch_comp = 20 * np.array(comp) - 500
@@ -90,10 +85,6 @@ class DataUtilSim:
             #print(f"index is {index} and element is {element}")
             result += - element * np.sin(np.sqrt(np.abs(element)))
         result = (-result) / 1000
-        #const = 418.9829*2
-        # const = (420.9687 + 500) / 20
-        #result = result + const
-        # result = (-1)*result
         return result
 
     # @staticmethod
@@ -126,7 +117,7 @@ class DataUtilSim:
         random.seed(25)
         awaitedpoints = json.loads(awaitedpoints) ## [[0.0, 12.5], [5.0, -7.5], [-7.5, 5.0]]
         awaitedpoints = [[i['x'],i['y']] for i in awaitedpoints]
-        print(f"the awaiting points are {awaitedpoints}")
+        #print(f"the awaiting points are {awaitedpoints}")
         query = json.loads(query)
         x_query = query["x_query"]
         y_query = query["y_query"]
@@ -134,7 +125,7 @@ class DataUtilSim:
         #y_query = [self.schwefel_function(x[0], x[1])for x in x_query]
         #y_query_all = query["y_query"]
         key_x = [[dat['x']['x'], dat['x']['y']] for dat in data]
-        print(f"data is {data}, key_x or current points are {key_x}")
+        #print(f"data is {data}, key_x or current points are {key_x}")
         #print(f"data is {data}, key_x or current points are {key_x} and the x query is {x_query}")
         train_ix = [x_query.index(j) for j in key_x] # only data from current experiment or all measured data?!
         #train_ix = [np.where(x_query == j)[0] for j in key_x]
@@ -171,23 +162,22 @@ class DataUtilSim:
         #print(f"aqf : {ix}")
         i = np.random.choice(ix)
         #####print(f"indeces for the next experiment are {i}")
-        print(f"indices for the next experiment are {test_ix[i]}")
-        print(f"train indices before popping {train_ix}")
+        #print(f"indices for the next experiment are {test_ix[i]}")
+        #print(f"train indices before popping {train_ix}")
 
         #x_grid, y_grid = np.meshgrid(
         #    [2.5 * i for i in range(21)], [2.5 * i for i in range(21)])
         #schwefel_grid = np.array(y_query_all).reshape(21, 21)
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
-        
-        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
-        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
-        self.plot_prediction(name, num, pred, i, x_query, y_query, test_ix, train_ix)
-        #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
+        path = config['ml']['ternary_path']
+        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix, path)
+        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix, path)
+        self.plot_target(name, num, x_query, y_query, i, test_ix, train_ix, path)
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
-        print(f"next first position is : {next_exp}")
+        #print(f"next first position is : {next_exp}")
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, train_ix, ind=-1)
         return next_exp[0], next_exp[1]
 
@@ -198,12 +188,12 @@ class DataUtilSim:
         random.seed(42)
         awaitedpoints = json.loads(awaitedpoints)
         awaitedpoints = [[i['x'],i['y']] for i in awaitedpoints]
-        print(f"the awaiting points are {awaitedpoints}")
+        #print(f"the awaiting points are {awaitedpoints}")
         query = json.loads(query)
         x_query = query['x_query']
         y_query = query['y_query'] 
         key_x = [[dat['x']['x'], dat['x']['y']] for dat in data]
-        print(f"data is {data}, key_x or current points are {key_x}")
+        #print(f"data is {data}, key_x or current points are {key_x}")
         train_ix = [x_query.index(j) for j in key_x]
         test_ix = [x_query.index(i) for i in x_query if i not in key_x and i not in awaitedpoints]
 
@@ -229,13 +219,12 @@ class DataUtilSim:
         ix = np.where(aqf == np.max(aqf))[0]
         i = np.random.choice(ix)
         
-        print(f"indices for the next experiment are {test_ix[i]}")
-        print(f"train indices before popping {train_ix}")
-        
-        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix)
-        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix)
-        self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix)
-        #self.plot_target(name, num, x_query, y_query, i, test_ix, train_ix)
+        #print(f"indices for the next experiment are {test_ix[i]}")
+        #print(f"train indices before popping {train_ix}")
+        path = config['ml']['ternary_path']
+        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix, path)
+        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix, path)
+        self.plot_target(name, num, x_query, y_query, i, test_ix, train_ix, path)
 
         #self.plot_aqf("sdc_2_{}".format(num) , aqf, i[1], x_query, test_ix)
         #self.plot_variance("sdc_2_{}".format(num), y_var, i[1], x_query, test_ix)
@@ -245,8 +234,8 @@ class DataUtilSim:
         # next position that motor needs to go
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
-        print(f"next first position is : {next_exp}")
-        print(f"train indices after popping {train_ix}")
+        #print(f"next first position is : {next_exp}")
+        #print(f"train indices after popping {train_ix}")
 
         return next_exp[0], next_exp[1]
 
@@ -318,16 +307,16 @@ class DataUtilSim:
         #schwefel_grid = np.array(y_query_all).reshape(21, 21)
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
-        
-        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
-        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
-        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, config['ml']['ternary_path'])
+        path = config['ml']['ternary_path']
+        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, path)
+        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, path)
+        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, path)
         #self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix) # when y values are known in advance
-        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, path)
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
 
         ternary_plot = TernaryPlot(labels=config['ml']['ternary_labels'])
-        ternary_plot.plot(c_query[train_ix], [1000*i for i in key_y], name, num, path=config['ml']['ternary_path'])
+        ternary_plot.plot(c_query[train_ix], [1000*i for i in key_y], name, num, path)
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
@@ -400,18 +389,18 @@ class DataUtilSim:
         #schwefel_grid = np.array(y_query_all).reshape(21, 21)
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
-        
-        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
-        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, config['ml']['ternary_path'])
+        path = config['ml']['ternary_path']
+        self.plot_aqf_wafer(name, num, aqf, i, x_query, test_ix, train_ix, path)
+        self.plot_variance_wafer(name, num, y_var, i, x_query, test_ix, train_ix, path)
         #self.plot_prediction(name, num, y_mean, i, x_query, key_y, test_ix, train_ix)
-        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_prediction_wafer(name, num, y_mean, i, x_query, [1000*i for i in key_y], test_ix, train_ix, path)
         #self.plot_prediction(name, num, y_mean, i, x_query, y_query, test_ix, train_ix) # when y values are known in advance
-        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, config['ml']['ternary_path'])
+        self.plot_target_wafer(name, num, x_query, q_query, i, test_ix, train_ix, path)
         #self.plot_target_wafer(name, num, x_query, y_query, i, test_ix, train_ix) # when y values are known in advance
         #self.plot_target(name, num, x_grid, y_grid, z_grid, x_query, i, test_ix) # if standard grid is used
 
         ternary_plot = TernaryPlot(labels=config['ml']['ternary_labels'])
-        ternary_plot.plot(c_query[train_ix], [1*i for i in key_y], name, num, path=config['ml']['ternary_path'])
+        ternary_plot.plot(c_query[train_ix], [1*i for i in key_y], name, num, path)
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
@@ -547,11 +536,6 @@ class DataUtilSim:
         next_exp = x_query[train_ix[-1]].tolist()
 
         return next_exp[0], next_exp[1]
-
-    def transformations(self):
-        df = pd.read_csv(r'C:\Users\LaborRatte23-2\Documents\SDC functions\Python scripts\df_lim.csv').to_numpy()
-        XY, C, I, Q = df[:,0:2], df[:,2:5], df[:,-2], df[:,-1]
-        return XY, C, I, Q
     
     def plot_variance_wafer(self, name, num, y_var, rnd_ix, quin, test_ix, train_ix, path):
         plt.subplots(dpi=100)
@@ -631,8 +615,6 @@ class DataUtilSim:
         plt.close('all')
 
     def plot_prediction_wafer(self, name, num, pred, rnd_ix, quin, y_query, test_ix, train_ix, path):
-        plt.rcParams.update({'font.size': 12, 'font.family': 'Arial'}) # general parameters
-        plt.rcParams["axes.labelweight"] = "bold"
         plt.subplots(dpi=100)
         #pointlist = np.array(
         #    [[quin[test_ix][i][0], quin[test_ix][i][1], pred[i]] for i in range(len(pred))])
@@ -659,7 +641,7 @@ class DataUtilSim:
         plt.clf()
         plt.close('all')
 
-    def plot_variance(self, name, num, y_var, rnd_ix, quin, test_ix):
+    def plot_variance(self, name, num, y_var, rnd_ix, quin, test_ix, path):
         pointlist = np.array(
             [[quin[test_ix][i][0], quin[test_ix][i][1], y_var[i]] for i in range(len(y_var))])
         aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
@@ -673,10 +655,10 @@ class DataUtilSim:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.savefig(
-            f"C:/Users/SDC_1/Documents/performance/variance/variance_{name}_{num}.png")
+            f"{path}/variance_{name}_{num}.png")
         plt.clf()
 
-    def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix):
+    def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix, path):
         pointlist = np.array(
             [[quin[test_ix][i][0], quin[test_ix][i][1], aqf[i]] for i in range(len(aqf))])
         aq = plt.tricontourf(pointlist[:, 0], pointlist[:, 1], pointlist[:, 2])
@@ -690,10 +672,10 @@ class DataUtilSim:
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.savefig(
-            f"C:/Users/SDC_1/Documents/performance/aqf/aqf_{name}_{num}.png")
+            f"{path}/aqf/aqf_{name}_{num}.png")
         plt.clf()
 
-    def plot_target(self, name, num, x, y, z_con, quin, train_ix, ind=-1):
+    def plot_target(self, name, num, x, y, z_con, quin, train_ix, path, ind=-1):
         plt.contourf(x, y, z_con)
         plt.title("Next sample will be (%.2f, %.2f)" %
                   (quin[train_ix[ind]][0], quin[train_ix[ind]][1]))
@@ -704,7 +686,7 @@ class DataUtilSim:
         plt.ylabel("Y")
         plt.xlabel("X")
         plt.savefig(
-            f"C:/Users/SDC_1/Documents/performance/tar/tar_{name}_{num}.png")
+            f"{path}/tar_{name}_{num}.png")
         plt.clf()    
 
     # @staticmethod
@@ -961,45 +943,6 @@ def interpret_input(sources: str, types: str, addresses: str, experiment_numbers
         addresses = [addresses]
     if isinstance(experiment_numbers, int) or experiment_numbers == None:
         experiment_numbers = [experiment_numbers]
-
-    datas = []
-    for source, typ in zip(sources, types):
-        if typ == "kadi":
-            requests.get(f"{kadiurl}/data/downloadfilesfromrecord",
-                         params={'ident': source, 'filepath': filepath})
-            source = os.path.join(filepath, source+".hdf5")
-        if typ in ("kadi", "hdf5"):
-            source = dict(hdfdict.load(source, lazy=False, mode="r+"))
-        if typ in ("kadi", "hdf5", "session"):
-            data = []
-            run = highestName(
-                list(filter(lambda k: k != 'meta', source.keys())))
-            # maybe it would be better to sort keys before iterating over them
-            for key in source[run].keys():
-                if key != 'meta' and (experiment_numbers == [None] or key.split('_')[-1] in experiment_numbers):
-                    datum = []
-                    for address in addresses:
-                        # possibilities: address has no number and key(s) do
-                        #               multiple numbered addresses and keys
-                        topadd = address.split('/')[0].split('_')
-                        actions = sorted(list(filter(lambda a: a.split('_')[
-                                         0] == topadd[0], source[run][key].keys())), key=lambda a: int(a.split('_')[1]))
-                        try:
-                            if len(topadd) > 1:
-                                action = actions[int(topadd[1])]
-                            else:
-                                action = actions[0]
-                            datum.append(dict_address(
-                                '/'.join(address.split('/')[1:]), source[run][key][action]))
-                        except:
-                            print(
-                                f"item {key} does not have what we are looking for")
-                    if datum != []:
-                        data.append(datum)
-            source = data
-        if typ in ("kadi", "hdf5", "session", "pure"):
-            datas += source
-    return datas
 
 class TernaryPlot:
     def __init__(self, labels=('C1', 'C2', 'C3'), font = {'fontname':'Arial'}):

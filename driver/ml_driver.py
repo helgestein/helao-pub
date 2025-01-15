@@ -121,6 +121,7 @@ class DataUtilSim:
         query = json.loads(query)
         x_query = query["x_query"]
         y_query = query["y_query"]
+        z_query = query["z_con"]
         #x_query = list(filter(lambda x: x not in awaitedpoints, x_query))
         #y_query = [self.schwefel_function(x[0], x[1])for x in x_query]
         #y_query_all = query["y_query"]
@@ -138,6 +139,8 @@ class DataUtilSim:
             x_query = np.array(x_query)
         if type(y_query) != np.ndarray:
             y_query = np.array(y_query)
+        if type(z_query) != np.ndarray:
+            y_query = np.array(z_query)
 
         # test_ix = [i for i in range(len(x_query))]
         # print(f"test indeces are {test_ix}")
@@ -171,9 +174,9 @@ class DataUtilSim:
         #x_grid, y_grid = np.meshgrid(np.arange(-25, 27.5, 2.5),np.arange(-25, 27.5, 2.5))
         #z_grid = np.array(y_query).reshape(21, 21)
         path = config['ml']['ternary_path']
-        self.plot_aqf(name, num, aqf, i, x_query, test_ix, train_ix, path)
-        self.plot_variance(name, num, y_var, i, x_query, test_ix, train_ix, path)
-        self.plot_target(name, num, x_query, y_query, i, test_ix, train_ix, path)
+        self.plot_aqf(name, num, aqf, i, x_query, test_ix, path)
+        self.plot_variance(name, num, y_var, i, x_query, test_ix, path)
+        self.plot_target(name, num, x_query, y_query, z_query, i, train_ix, path)
 
         train_ix.append(test_ix.pop(i)) ### seems to be correct
         next_exp = x_query[train_ix[-1]].tolist()
@@ -560,7 +563,7 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(f"{path}/var/var_{name}_{num}.png", transparent=False)
+        plt.savefig(os.path.join(path, "var", f"var_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -587,7 +590,7 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(f"{path}/aqf/aqf_{name}_{num}.png", transparent=False)
+        plt.savefig(os.path.join(path, "aqf", f"aqf_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -610,7 +613,7 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, color='k', label = 'Measured points')
         plt.ylabel("Y, mm")
         plt.xlabel("X, mm")
-        plt.savefig(f"{path}/tar_{name}_{num}.png", transparent=False)
+        plt.savefig(os.path.join(path, "tar", f"tar_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -637,7 +640,7 @@ class DataUtilSim:
         plt.scatter(-quin[train_ix][:,0]-16.25, quin[train_ix][:,1]-48.15, c=y_query, label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(f"{path}/pred/pred_{name}_{num}.png", transparent=False)
+        plt.savefig(os.path.join(path, "pred", f"pred_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -654,8 +657,7 @@ class DataUtilSim:
         plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
         plt.xlabel("X")
         plt.ylabel("Y")
-        plt.savefig(
-            f"{path}/variance_{name}_{num}.png")
+        plt.savefig(os.path.join(path, "var", f"var_{name}_{num}.png"), transparent=False)
         plt.clf()
 
     def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix, path):
@@ -671,8 +673,7 @@ class DataUtilSim:
         plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
         plt.xlabel("X")
         plt.ylabel("Y")
-        plt.savefig(
-            f"{path}/aqf/aqf_{name}_{num}.png")
+        plt.savefig(os.path.join(path, "aqf", f"aqf_{name}_{num}.png"), transparent=False)
         plt.clf()
 
     def plot_target(self, name, num, x, y, z_con, quin, train_ix, path, ind=-1):
@@ -685,8 +686,7 @@ class DataUtilSim:
         plt.scatter(quin[train_ix[ind]][0], quin[train_ix[ind]][1], color='r')
         plt.ylabel("Y")
         plt.xlabel("X")
-        plt.savefig(
-            f"{path}/tar_{name}_{num}.png")
+        plt.savefig(os.path.join(path, "tar", f"tar_{name}_{num}.png"), transparent=False)
         plt.clf()    
 
     # @staticmethod

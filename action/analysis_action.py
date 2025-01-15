@@ -44,32 +44,44 @@ async def app_lifespan(app: FastAPI):
 @app.get("/analysis/receiveData")
 def receiveData(path: str, run: int, address: str):
     global data
-    data = [] #don't need to load the data from pervious exp
+    data = []
     try:
         address = json.loads(address)
-    except:
+    except json.JSONDecodeError:
         address = [address]
     newdata = []
-    #print(address)
+    #print(f'address is {address}')
     for add in address:
         with h5py.File(path, 'r') as h5file:
             add = f'run_{run}/'+add+'/'
-            print(add)
-            if isinstance(h5file[add],h5py.Group):
+            #print(f'add is {add}')
+            if isinstance(h5file[add], h5py.Group):
                 newdata.append(hdf5_group_to_dict(h5file, add))
             else:
                 newdata.append(h5file[add][()])
-    #print(f"data is {newdata}")
+    #print(f"newdata is {newdata}")
     data.append(newdata[0] if len(newdata) == 1 else newdata)
     #print(f'Data is {data}')
 
 @app.get("/analysis/dummy")
 def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
+    global data
+    print(data)
     x = data[x_address]
     y = data[y_address]
     schwefel = data[schwefel_address]
     retc = return_class(parameters={'x_address':x_address,'y_address':y_address,'schwefel_address':schwefel_address},
                         data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
+    return retc
+
+@app.get("/analysis/dummy0")
+def schwefel_bridge(address:str):
+    global data
+    print("data", data)
+    x = data[0][0]
+    y = data[0][1]
+    schwefel = data[0][2]
+    retc = return_class(data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
     return retc
 
 @app.get("/analysis/ocp")

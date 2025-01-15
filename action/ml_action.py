@@ -26,11 +26,6 @@ from importlib import import_module
 config = import_module(sys.argv[1]).config
 serverkey = sys.argv[2]
 
-app = FastAPI(title="analysis action server",
-              description="This is a test measure action",
-              version="1.0")
-
-
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
@@ -44,15 +39,23 @@ class return_class(BaseModel):
 
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
-    global data, awaitedpoints
-    data = {}
-    awaitedpoints = {}
     yield
+
+app = FastAPI(title="analysis action server",
+              description="This is a test measure action",
+              version="1.0",
+              lifespan=app_lifespan)
+
+data = {}
+awaitedpoints = {}
 
 @app.get("/ml/receiveData")
 def receiveData(path: str, run: int, address: str, modelid: int = 0):
     global data
     global awaitedpoints
+    print("data is", data)
+    print("awaitedpoints is", awaitedpoints)
+    print("data.keys", data.keys())
     if modelid not in data.keys():
         data[modelid] = []
     if modelid not in awaitedpoints.keys():
@@ -62,22 +65,22 @@ def receiveData(path: str, run: int, address: str, modelid: int = 0):
     except:
         address = [address]
     newdata = []
-    #print(address)
+    print("address is", address)
     for add in address:
         with h5py.File(path, 'r') as h5file:
             add = f'run_{run}/'+add+'/'
-            #print(add)
+            print("add is", add)
             if isinstance(h5file[add],h5py.Group):
                 newdata.append(hdf5_group_to_dict(h5file, add))
             else:
                 newdata.append(h5file[add][()])
-            #print(newdata) # why is that a list?
+            print("newdata is", newdata) # why is that a list?
     data[modelid].append(newdata[0] if len(newdata) == 1 else newdata)
-    #print(f"newdata is {newdata}")
+    print(f"newdata is {newdata}")
     #if newdata['x'] in awaitedpoints[modelid]:
     #    awaitedpoints[modelid].remove(newdata['x'])
-    #print(data)
-    #print("AP", awaitedpoints[modelid])
+    print("DATA is", data)
+    print("AP", awaitedpoints[modelid])
 
 '''@app.get("/ml/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):

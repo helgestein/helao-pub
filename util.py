@@ -211,7 +211,10 @@ def hdf5_group_to_dict(h5file, path):
     dic = {}
     if isinstance(h5file[path],h5py._hl.group.Group):
         for key in h5file[path].keys():
-            dic.update({key:hdf5_group_to_dict(h5file,os.path.join(path,key))})
+            try:
+                dic.update({key: hdf5_group_to_dict(h5file, os.path.join(path, key))})
+            except KeyError:
+                dic.update({key:hdf5_group_to_dict(h5file,os.path.join(path,key).replace("\\","/"))})
     elif isinstance(h5file[path],h5py._hl.dataset.Dataset):
         return h5file[path][()]
     else:

@@ -6,7 +6,7 @@ sys.path.append(r'../server')
 import uvicorn
 from fastapi import FastAPI
 from dataclasses import dataclass
-#from pydantic import BaseModel
+from pydantic import BaseModel
 import json
 import requests
 import os
@@ -25,7 +25,7 @@ app = FastAPI(title="ForceDriver server V2",
 #    data: dict = None
 
 @dataclass
-class return_class:
+class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 

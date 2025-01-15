@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-
+from pydantic import BaseModel
 import requests
 import uvicorn
 from fastapi import FastAPI
@@ -21,7 +21,7 @@ app = FastAPI(title="dobot server",
               version="1.0")
 
 @dataclass
-class return_class:
+class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 

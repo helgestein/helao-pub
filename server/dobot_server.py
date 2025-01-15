@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 from importlib import import_module
 from dataclasses import dataclass
+from pydantic import BaseModel
 
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.append(os.path.join(helao_root, 'config'))
@@ -20,9 +21,8 @@ app = FastAPI(title="dobot server",
               description="Dobot server to control a robot.",
               version="1.0")
 
-
 @dataclass
-class return_class:
+class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 

@@ -2,6 +2,7 @@ import sys
 import uvicorn
 from fastapi import FastAPI
 from dataclasses import dataclass
+from pydantic import BaseModel
 import json
 import os
 import sys
@@ -23,7 +24,7 @@ app = FastAPI(title="Force driver new one",
             version= "2.0")
 
 @dataclass        
-class return_class:
+class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
 

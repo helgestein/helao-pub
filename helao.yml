@@ -24,11 +24,14 @@ dependencies:
   - graphql-core
   - graphql-relay
   - h11
+  - h5py
   - icc_rt
   - icu
   - idna
+  - impedance
   - intel-openmp
   - ipykernel
+  - ipython
   - itsdangerous
   - jinja2
   - jpeg
@@ -38,6 +41,7 @@ dependencies:
   - markupsafe
   - matplotlib
   - matplotlib-base
+  - matplotlib-inline
   - mkl
   - mkl-service
   - mkl_fft
@@ -58,15 +62,18 @@ dependencies:
   - pyparsing
   - pyqt
   - pyserial
-  - PySimpleGUI=4
+  - pysimplegui=4.45
   - pysocks
   - python=3
   - python-dateutil
   - python-multipart
   - python_abi
+  - pythonnet=3
   - pyyaml
   - qt
   - requests
+  - scikit-learn
+  - scipy
   - setuptools
   - sip
   - six

@@ -21,7 +21,6 @@ app = FastAPI(title="dobot server",
               description="Dobot server to control a robot.",
               version="1.0")
 
-@dataclass
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None

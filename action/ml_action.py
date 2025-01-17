@@ -37,6 +37,9 @@ class return_class(BaseModel):
 #    global awaitedpoints
 #    awaitedpoints = {}
 
+data = {}
+awaitedpoints = {}
+
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     yield
@@ -46,16 +49,13 @@ app = FastAPI(title="analysis action server",
               version="1.0",
               lifespan=app_lifespan)
 
-data = {}
-awaitedpoints = {}
-
 @app.get("/ml/receiveData")
 def receiveData(path: str, run: int, address: str, modelid: int = 0):
     global data
     global awaitedpoints
-    print("data is", data)
-    print("awaitedpoints is", awaitedpoints)
-    print("data.keys", data.keys())
+    #print("data is", data)
+    #print("awaitedpoints is", awaitedpoints)
+    #print("data.keys", data.keys())
     if modelid not in data.keys():
         data[modelid] = []
     if modelid not in awaitedpoints.keys():
@@ -65,22 +65,22 @@ def receiveData(path: str, run: int, address: str, modelid: int = 0):
     except:
         address = [address]
     newdata = []
-    print("address is", address)
+    #print("address is", address)
     for add in address:
         with h5py.File(path, 'r') as h5file:
             add = f'run_{run}/'+add+'/'
-            print("add is", add)
+            #print("add is", add)
             if isinstance(h5file[add],h5py.Group):
                 newdata.append(hdf5_group_to_dict(h5file, add))
             else:
                 newdata.append(h5file[add][()])
-            print("newdata is", newdata) # why is that a list?
+            #print("newdata is", newdata) # why is that a list?
     data[modelid].append(newdata[0] if len(newdata) == 1 else newdata)
-    print(f"newdata is {newdata}")
+    #print(f"newdata is {newdata}")
     #if newdata['x'] in awaitedpoints[modelid]:
     #    awaitedpoints[modelid].remove(newdata['x'])
-    print("DATA is", data)
-    print("AP", awaitedpoints[modelid])
+    #print("DATA is", data)
+    #print("AP", awaitedpoints[modelid])
 
 '''@app.get("/ml/gaus_model")
 def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state: int = 42):
@@ -91,8 +91,28 @@ def gaus_model(length_scale: int = 1, restart_optimizer: int = 10, random_state:
 
 # we still need to discuss about the data type that we are adding here.
 
+@app.get("/ml/activeLearningParallel")
+def active_learning_random_forest_simulation_parallel(name: str, num: int, query: str, address: str, modelid=0):
 
-@app.get("/ml/activeLearning")
+    global data
+    dat = data[modelid]
+    #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
+    # check whether the point is already in waiting list or not
+    global awaitedpoints
+    ap = awaitedpoints[modelid]
+    beta = 0.5
+    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
+        name, num, query, dat, json.dumps(ap), beta)
+    awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
+    # next_exp_pos : would be a [dx, dy] of the next move
+    # prediction : list of predicted schwefel function for the remaning positions
+    print(next_exp_dx, next_exp_dy)
+    # return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
+    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
+        next_x=next_exp_dx, next_y=next_exp_dy))
+    return retc
+
+@app.get("/ml/activeLearningRandomForest")
 def active_learning_random_forest_simulation(name: str, num: int, query: str, address: str, modelid=0):
     """
     if sources == "session":
@@ -116,59 +136,34 @@ def active_learning_random_forest_simulation(name: str, num: int, query: str, ad
     #print("dat", dat)
     global awaitedpoints
     ap = awaitedpoints[modelid]
-    beta = math.exp(-0.05*num)
-    next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_random_forest_simulation_parallel_wafer(name, num, query, dat, json.dumps(ap), beta) # check
+    beta = 0.4
+    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(name, num, query, dat, json.dumps(ap), beta)
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
-    print(next_exp_dx, next_exp_dy)
-    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
-        next_x=next_exp_dx, next_y=next_exp_dy, next_i=json.dumps({'recordsignal': {'Duration': next_exp_i, 'Interval time in µs': 0.02}})))
-    return retc
-
-@app.get("/ml/activeLearningParallel")
-def active_learning_random_forest_simulation_parallel(name: str, num: int, query: str, address: str, modelid=0):
-
-    global data
-    dat = data[modelid]
-    #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
-    # check whether the point is already in waiting list or not
-    global awaitedpoints
-    ap = awaitedpoints[modelid]
-    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
-        name, num, query, dat, json.dumps(ap))
-    awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
-    # next_exp_pos : would be a [dx, dy] of the next move
-    # prediction : list of predicted schwefel function for the remaning positions
-    print(next_exp_dx, next_exp_dy)
-    # return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
     retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
         next_x=next_exp_dx, next_y=next_exp_dy))
     return retc
 
 @app.get("/ml/activeLearningGaussian")
 def active_learning_gaussian_simulation(name: str, num: int, query: str, address: str, modelid=0):
-    """
-    if sources == "session":
-        sources = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
-                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
-    else:
-        try:
-            sources = json.loads(sources)
-            if "session" in sources:
-                sources[sources.index("session")] = requests.get("http://{}:{}/{}/{}".format(config['servers']['orchestrator']['host'], 
-                config['servers']['orchestrator']['port'], 'orchestrator', 'getSession'), params=None).json()
-        except:
-            pass
-    """
-    # with open('C:/Users/LaborRatte23-3/Documents/session/sessionLearning.pck', 'rb') as banana:
-    #    sources = pickle.load(banana)
-    # print(sources)
+    global data
+    dat = data[modelid]
+    global awaitedpoints
+    ap = awaitedpoints[modelid]
+    beta = 0.4
+    next_exp_dx, next_exp_dy = d.active_learning_gaussian_simulation_parallel(name, num, query, dat, json.dumps(ap), beta)
+    awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
+    print(next_exp_dx, next_exp_dy)                                                                                                                    
+    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(next_x=next_exp_dx, next_y=next_exp_dy))
+    return retc
+
+@app.get("/ml/activeLearningWafer")
+def active_learning_gaussian_simulation(name: str, num: int, query: str, address: str, modelid=0):
     global data
     #print("data", data)
     dat = data[modelid]
     #print("dat", dat)
     global awaitedpoints
     ap = awaitedpoints[modelid]
-    #beta = 0.4
     beta = 0.6*math.exp(-0.06*num)+0.2
     next_exp_dx, next_exp_dy, next_exp_i = d.active_learning_gaussian_simulation_wafer(name, num, query, dat, json.dumps(ap), beta)
     awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
@@ -185,26 +180,6 @@ def active_learning_gaussian_simulation(name: str, num: int, query: str, address
     #    next_x=next_exp_dx, next_y=next_exp_dy, next_i=json.dumps({'recordsignal': {'Duration': next_exp_i, 'Interval time in µs': 0.02}})))
     retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(next_x=next_exp_dx, next_y=next_exp_dy, next_ci=next_ci, next_di=next_di))
     return retc
-
-'''@app.get("/ml/activeLearningParallel")
-def active_learning_random_forest_simulation_parallel(name: str, num: int, query: str, address: str, modelid=0):
-    global data
-    dat = data[modelid]
-    print(dat)
-    #next_exp_dx, next_exp_dy, next_exp_dx_2, next_exp_dy_2 = d.active_learning_gaussian_simulation_parallel(num, query, dat)
-    # check whether the point is already in waiting list or not
-    global awaitedpoints
-    ap = awaitedpoints[modelid]
-    next_exp_dx, next_exp_dy = d.active_learning_random_forest_simulation_parallel(
-        name, num, query, dat, json.dumps(ap))
-    awaitedpoints[modelid].append({'x':next_exp_dx, 'y':next_exp_dy})
-    # next_exp_pos : would be a [dx, dy] of the next move
-    # prediction : list of predicted schwefel function for the remaning positions
-    print(next_exp_dx, next_exp_dy)
-    # return next_exp_pos[0], next_exp_pos[1], str(next_exp_pos)
-    retc = return_class(parameters={'query': query, 'address': address, 'modelid': modelid}, data=dict(
-        next_x=next_exp_dx, next_y=next_exp_dy))
-    return retc'''
 
 @app.get("ml/addData")
 def addData(address: str, modelid=0):

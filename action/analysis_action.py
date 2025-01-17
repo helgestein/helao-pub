@@ -66,7 +66,7 @@ def receiveData(path: str, run: int, address: str):
 @app.get("/analysis/dummy")
 def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
     global data
-    print(data)
+    #print(data)
     x = data[x_address]
     y = data[y_address]
     schwefel = data[schwefel_address]
@@ -74,10 +74,10 @@ def schwefel_bridge(x_address:str,y_address:str,schwefel_address:str):
                         data={'x':{'x':x,'y':y},'y':{'schwefel':schwefel}})
     return retc
 
-@app.get("/analysis/dummy0")
+@app.get("/analysis/dummySchwefel")
 def schwefel_bridge(address:str):
     global data
-    print("data", data)
+    #print("data", data)
     x = data[0][0]
     y = data[0][1]
     schwefel = data[0][2]

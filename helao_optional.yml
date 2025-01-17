@@ -1,0 +1,10 @@
+name: helao_optional
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - pip:
+    - impedance
+    - pyHamiltonPSD
+    
+

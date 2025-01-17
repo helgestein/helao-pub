@@ -28,7 +28,6 @@ dependencies:
   - icc_rt
   - icu
   - idna
-  - impedance
   - intel-openmp
   - ipykernel
   - ipython

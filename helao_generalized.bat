@@ -20,14 +20,11 @@ if exist "C:\ProgramData\anaconda3\condabin\conda.bat" (
 )
 
 :: Check for helao repository paths
-if exist "C:\Users\%USERNAME%\helao-dev\testing\helao_interface.py" (
-    set "helao_repo=C:\Users\%USERNAME%\helao-dev"
-) else if exist "C:\Users\%USERNAME%\Documents\helao-dev\testing\helao_interface.py" (
-    set "helao_repo=C:\Users\%USERNAME%\Documents\helao-dev"
-) else if exist "C:\Users\%USERNAME%\helao-pub\testing\helao_interface.py" (
+if exist "C:\Users\%USERNAME%\helao-pub" (
     set "helao_repo=C:\Users\%USERNAME%\helao-pub"
-) else if exist "C:\Users\%USERNAME%\Documents\helao-pub\testing\helao_interface.py" (
+) else if exist "C:\Users\%USERNAME%\Documents\helao-pub" (
     set "helao_repo=C:\Users\%USERNAME%\Documents\helao-pub"
+)
 
 else (
     echo helao repository not found.
@@ -38,8 +35,7 @@ else (
 :: Activate Conda environment
 call "%conda_path%" activate helao
 :: Change directory to the helao repository
-cd /d "%helao_repo%\testing"
 title HELAO
 :: Run the ipython script
-ipython helao_interface.py world
+ipython helao.py sdc_tum
 PAUSE

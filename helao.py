@@ -1,304 +1,162 @@
-"""
-helao.py is a full-stack launcher for initializing API servers
-
-launch via 'python helao.py {config_prefix}'
-
-where config_prefix specifies the config/{config_prefix}.py 
-contains parameters for a jointly-managed group of servers and 
-server_key references the API server's unique subdictionary defined
-in config_prefix.py
-
-  
-See config/world.py for example.
-
-Requirements:
-1. All API server instances must take a {config_prefix} argument 
-when launched in order to reference the same configuration parameters.
-This allows server code to be reused for separate instances.
-
-2. All API server instances must include a {server_key} argument
-following the {config_prefix} argument. This the subdictionary
-referenced by server_key must be unique.
-
-3. Consequently, only class and function definitions are allowed in 
-driver code, and driver configuration must be supplied during class 
-initialization by an API server's @app.startup method.
-
-"""
-
 import os
 import sys
-import pickle
-import psutil
-import time
-# import signal
 import subprocess
+import psutil
 from importlib import import_module
+import PySimpleGUI as gui
 
-from munch import munchify
+import time
 
 helao_root = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(helao_root, 'config'))
-confPrefix = sys.argv[1]
-config = import_module(f"{confPrefix}").config
-conf = munchify(config)
+config = import_module(sys.argv[1]).config
 
-class Pidd:
-    def __init__(self, pidFile, retries=3):
-        self.PROC_NAMES = ["python.exe", "python"]
-        self.pidFile = pidFile
-        self.RETRIES = retries
-        self.reqKeys = ("host", "port", "group")
-        self.codeKeys = ("fast", "bokeh")
-        self.d = {}
-        try:
-            self.load_global()
-        except IOError:
-            print(f"'{pidFile}' does not exist, writing empty global dict.")
-            self.write_global()
-        except Exception:
-            print(f"Error loading '{pidFile}', writing empty global dict.")
-            self.write_global()
-
-    def load_global(self):
-        self.d = pickle.load(open(self.pidFile, "rb"))
-        # print(f"Succesfully loaded '{self.pidFile}'.")
-
-    def write_global(self):
-        pickle.dump(self.d, open(self.pidFile, "wb"))
-
-    def list_pids(self):
-        self.load_global()
-        return [(k, d['host'], d['port'], d['pid']) for k, d in self.d.items()]
-
-    def store_pid(self, k, host, port, pid):
-        self.d[k] = {"host": host, "port": port, "pid": pid}
-        self.write_global()
-
-    def list_active(self):
-        helaoPids = self.list_pids()
-        # print(helaoPids)
-        running = [tup for tup in helaoPids if psutil.pid_exists(tup[3])]
-        active = []
-        for tup in running:
-            pid = tup[3]
-            port = tup[2]
-            host = tup[1]
-            proc = psutil.Process(pid)
-            if proc.name() in self.PROC_NAMES:
-                connections = [c for c in proc.connections(
-                    'tcp4') if c.status == 'LISTEN']
-                if (host, port) in [(c.laddr.ip, c.laddr.port) for c in connections]:
-                    active.append(tup)
-        return active
-
-    def find_bokeh(self, host, port):
-        pyPids = {p.pid: p.info['connections'] for p in psutil.process_iter(
-            ['name', 'connections']) if p.info['name'].startswith('python')}
-        # print(pyPids)
-        match = {pid: connections for pid,
-                 connections in pyPids.items() if connections}
-        for pid, connections in match.items():
-            if (host, port) in [(c.laddr.ip, c.laddr.port) for c in connections]:
-                return pid
-        raise Exception(
-            f"Could not find running bokeh server at {host}:{port}")
-
-    def kill_server(self, k):
-        self.load_global() # reload in case any servers were appended
-        if k not in self.d.keys():
-            print(f"Server '{k}' not found in pid dict.")
-            return True
-        else:
-            active = self.list_active()
-            if k not in [key for key, _, _, _ in active]:
-                print(
-                    f"Server '{k}' is not running, removing from global dict.")
-                del self.d[k]
-                return True
-            else:
-                try:
-                    p = psutil.Process(self.d[k]['pid'])
-                    for _ in range(self.RETRIES):
-                        # os.kill(p.pid, signal.SIGTERM)
-                        p.terminate()
-                        time.sleep(0.5)
-                        if not psutil.pid_exists(p.pid):
-                            print(f"Successfully terminated server '{k}'.")
-                            return True
-                    if psutil.pid_exists(p.pid):
-                        print(
-                            f"Failed to terminate server '{k}' after {self.RETRIES} retries.")
-                        return False
-                except Exception as e:
-                    print(f"Error terminating server '{k}'")
-                    print(e)
-                    return False
-
-    def close(self):
-        active = self.list_active()
-        print(active)
-        for k, _, _, _ in self.list_active():
-            self.kill_server(k)
-        active = self.list_active()
-        if active:
-            print("Following processes failed to terminate:")
-            for x in active:
-                print(x)
-        else:
-            print(f"All processes terminated. Removing '{self.pidFile}'")
-            os.remove(self.pidFile)
-
-
-def validateConfig(PIDD, confDict):
-    if len(confDict["servers"].keys()) != len(set(confDict["servers"].keys())):
-        print("Server keys are not unique.")
-        return False
-    if "servers" not in confDict.keys():
-        print(f"'servers' key not defined in config dictionary.")
-        return False
-    for server in confDict["servers"].keys():
-        serverDict = confDict["servers"][server]
-        hasKeys = [k in serverDict.keys() for k in PIDD.reqKeys]
-        hasCode = [k for k in serverDict.keys() if k in PIDD.codeKeys]
-        if not all(hasKeys):
-            print(
-                f"{server} config is missing {[k for k,b in zip(PIDD.reqKeys, hasKeys) if b]}.")
-            return False
-        if not isinstance(serverDict["host"], str):
-            print(f"{server} server 'host' is not a string")
-            return False
-        if not isinstance(serverDict["port"], int):
-            print(f"{server} server 'port' is not an integer")
-            return False
-        if not isinstance(serverDict["group"], str):
-            print(f"{server} server 'group' is not a string")
-            return False
-        if hasCode:
-            if len(hasCode)!=1:
-                print(
-                    f"{server} cannot have more than one code key {PIDD.codeKeys}")
-                return False
-            if not isinstance(serverDict[hasCode[0]], str):
-                print(f"{server} server '{hasCode[0]}' is not a string")
-                return False
-            launchPath = os.path.join(serverDict["group"], serverDict[hasCode[0]]+".py")
-            if not os.path.exists(os.path.join(os.getcwd(), launchPath)):
-                print(
-                    f"{server} server code {serverDict['group']}/{serverDict[hasCode[0]]+'.py'} does not exist.")
-                return False
-    serverAddrs = [
-        f"{d['host']}:{d['port']}" for d in confDict["servers"].values()]
-    if len(serverAddrs) != len(set(serverAddrs)):
-        print("Server host:port locations are not unique.")
-        return False
-    return True
-
-
-def wait_key():
-    ''' Wait for a key press on the console and return it. '''
-    result = None
-    if os.name == 'nt':
-        import msvcrt
-        result = msvcrt.getch()
-    else:
-        import termios
-        fd = sys.stdin.fileno()
-
-        oldterm = termios.tcgetattr(fd)
-        newattr = termios.tcgetattr(fd)
-        newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
-        termios.tcsetattr(fd, termios.TCSANOW, newattr)
-
-        try:
-            result = sys.stdin.read(1)
-        except IOError:
-            pass
-        finally:
-            termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
-
-    return result
-
-
-def launcher(confPrefix, confDict):
-
-    # API server launch priority (matches folders in root helao-dev/)
-    LAUNCH_ORDER = ["server", "action", "orchestrators", "visualizer"]
+def keytofile(key:str):
     
-    pidd = Pidd(f"pids_{confPrefix}.pck")
-    if not validateConfig(pidd, confDict):
-        raise Exception(f"Configuration for '{confPrefix}' is invalid.")
+    server = key.split(':')[0]
+    #translationdict = {'owis':'owis_action','owisDriver':'owis_server',
+    #                    'ocean':'ocean_action','oceanDriver':'ocean_server',
+    #                    'kadi':'kadi_action','kadiDriver':'kadi_server',
+    #                    'arcoptix':'arcoptix_action','arcoptixDriver':'arcoptix_server',
+    #                    'orchestrator':'mischbares',
+    #                    'dummy':'dummy_action'}
+    #return translationdict[server]
+    if server == 'orchestrator':
+        return server
+    if "Driver" in server:
+        return server[:-6] + "_server"
+    elif "process" in server:
+        return server
+    elif "visualizer" in server:
+        return server
     else:
-        print(f"Configuration for '{confPrefix}' is valid.")
-    # get running pids
-    active = pidd.list_active()
-    activeKHP = [(k, h, p) for k, h, p, _ in active]
-    activeHP = [(h, p) for k, h, p, _ in active]
-    allGroup = {k: {sk: sv for sk, sv in confDict['servers'].items(
-    ) if sv['group'] == k} for k in LAUNCH_ORDER}
-    A = munchify(allGroup)
-    for group in LAUNCH_ORDER:
-        if group in A:
-            G = A[group]
-            for server in G:
-                S = G[server]
-                codeKey = [k for k in S.keys() if k in pidd.codeKeys]
-                if codeKey:
-                    codeKey = codeKey[0]
-                    servPy = S[codeKey]
-                else:
-                    servPy = None
-                servHost = S.host
-                servPort = S.port
-                servKHP = (server, servHost, servPort)
-                servHP = (servHost, servPort)
-                # if 'py' key is None, assume remotely started or monitored by a separate process
-                if servPy is None:
-                    print(
-                        f"{server} does not specify one of ({pidd.codeKeys}) so process not be managed.")
-                elif servKHP in activeKHP:
-                    print(
-                        f"{server} already running with pid [{active[activeKHP.index(servKHP)][3]}]")
-                elif servHP in activeHP:
-                    raise(
-                        f"Cannot start {server}, {servHost}:{servPort} is already in use.")
-                else:
-                    print(
-                        f"Launching {server} at {servHost}:{servPort} using {group}/{servPy}.py")
-                    if codeKey == "fast":
-                        cmd = [
-                            "python", f"{group}/{servPy}.py", confPrefix, server]
-                        p = subprocess.Popen(cmd, cwd=helao_root)
-                        ppid = p.pid
-                    elif codeKey == "bokeh":
-                        cmd = ["bokeh", "serve", f"--allow-websocket-origin={servHost}:{servPort}",
-                               "--address", servHost, "--port", f"{servPort}", f"{group}/{servPy}.py",
-                               "--args", confPrefix, server]
-                        p = subprocess.Popen(cmd, cwd=helao_root)
-                        try:
-                            time.sleep(3)
-                            ppid = pidd.find_bokeh(servHost, servPort)
-                        except:
-                            print(
-                                f"Could not find running bokeh server at {servHost}:{servPort}")
-                            print(
-                                "Unable to manage bokeh process. See bokeh output for correct PID.")
-                            ppid = p.pid
-                    else:
-                        print(f"No launch method available for code type '{codeKey}', cannot launch {group}/{servPy}.py")
-                        continue
-                    pidd.store_pid(server, servHost, servPort, ppid)
-    return pidd
+        return server + "_action"
 
 
-if __name__ == "__main__":
-    pidd = launcher(confPrefix, config)
-    result = None
-    while result not in [b'\x18', b'\x04']:
-        print("CTRL-x to terminate process group. CTRL-d to disconnect.")
-        result = wait_key()
-    if result == b'\x18':
-        pidd.close()
-    else:
-        print(
-            f"Disconnecting process monitor. Launch 'python helao.py {confPrefix}' to reconnect.")
+items = config['launch']['server']+config['launch']['action']+config['launch']['orchestrator']+config['launch']['visualizer']+config['launch']['process']
+layout = [[gui.Text(text=item,k=item),
+           gui.Button("open",enable_events=True,k=item+"-open"),
+           gui.Button("close",button_color='green',disabled=True,enable_events=True,k=item+"-close"),
+           gui.Button("refresh",disabled=True,enable_events=True,k=item+"-refresh")] for  item in items]
+window = gui.Window('HELAO',layout)
+
+servers = {}
+
+while True:
+    event, values = window.read(timeout=1000)
+    ps = [p.pid for p in list(psutil.process_iter())]
+    closed = []
+    for s in servers.items():
+        if not (s[1][1].pid in ps and s[1][0].pid in ps):
+            print(f"Server {keytofile(s[0])} with server key {s} seems to have closed unexpectedly")
+            closed.append(s[0])
+            window[s[0]+"-open"].update(disabled = False)
+            window[s[0]+"-close"].update(disabled = True)
+            window[s[0]+"-refresh"].update(disabled = True)
+    for c in closed:
+        del servers[c]
+    if event == gui.WIN_CLOSED:
+        for s in servers.items():
+            s[1][0].terminate()
+            s[1][1].terminate()
+        print("All servers closed")
+        break
+    elif event.split('-')[0] in config['launch']['server'] or event.split('-')[0] in config['launch']['action'] or event.split('-')[0] in config['launch']['orchestrator'] or event.split('-')[0] in config['launch']['visualizer'] or event.split('-')[0] in config['launch']['process']:
+        s = event.split('-')[0]
+        api = "orchestrators"
+        if event.split('-')[0] in config['launch']['server']:
+            api = "server" 
+        elif event.split('-')[0] in config['launch']['action']:
+            api = "action"
+        elif event.split('-')[0] in config['launch']['visualizer']:
+            api = "visualizer"
+        elif event.split('-')[0] in config['launch']['process']:
+            api= "."
+
+        #api =  "server" if event.split('-')[0] in config['launch']['server'] else "action" if event.split('-')[0] in config['launch']['action'] else "orchestrators"
+        if event.split('-')[1] == 'open':
+            l = list(psutil.process_iter())
+            if api == "visualizer" and "palmsens" not in s:
+                cmd = ["bokeh", "serve", "--show", f"{api}/{keytofile(s)}.py", "--args", sys.argv[1]]
+            else:
+                cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+            print(f"Starting {api}/{keytofile(s)} with server key {s}")
+            p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True, stderr=subprocess.STDOUT)
+            time.sleep(.1)
+            p1,p2 = None, None
+            for p in psutil.process_iter():
+                if p not in l:
+                    if p.name() == 'cmd.exe':
+                        p1 = p
+                    if p.name() == 'python.exe':
+                        p2 = p
+            if not (p1.pid == p0.pid and p2 != None):
+                print(f"server {keytofile(s)} failed to start")
+            else:
+                servers.update({s:(p0,p2)})
+                window[s+"-open"].update(disabled = True)
+                window[s+"-close"].update(disabled = False)
+                window[s+"-refresh"].update(disabled = False)
+        elif event.split('-')[1] == 'close':
+            print(f"Killing {api}/{keytofile(s)}.py with server key {s}")
+            l = list(psutil.process_iter())
+            servers[s][1].terminate()
+            servers[s][0].terminate()
+            time.sleep(.1)
+            terminated = [None,None]
+            l2 = list(psutil.process_iter())
+            for p in l:
+                if p not in l2:
+                    if p.name() == 'cmd.exe':
+                        terminated[0] = servers[s][0].pid
+                    if p.name() == 'python.exe':
+                        terminated[1] = servers[s][1].pid
+            if not terminated == [servers[s][0].pid,servers[s][1].pid]:
+                print(f"server {keytofile(s)} failed to close")
+            else: 
+                del servers[s]
+                window[s+"-open"].update(disabled = False)
+                window[s+"-close"].update(disabled = True)
+                window[s+"-refresh"].update(disabled = True)
+        elif event.split('-')[1] == 'refresh':
+            print(f"Killing {api}/{keytofile(s)}.py with server key {s}")
+            l = list(psutil.process_iter())
+            servers[s][0].terminate()
+            servers[s][1].terminate()
+            time.sleep(.1)
+            terminated = [None,None]
+            l2 = list(psutil.process_iter())
+            for p in l:
+                if p not in l2:
+                    if p.name() == 'cmd.exe':
+                        terminated[0] = servers[s][0].pid
+                    if p.name() == 'python.exe':
+                        terminated[1] = servers[s][1].pid
+            if not terminated == [servers[s][0].pid,servers[s][1].pid]:
+                print(f"server {keytofile(s)} failed to close")
+            else: 
+                del servers[s]
+                window[s+"-open"].update(disabled = False)
+                window[s+"-close"].update(disabled = True)
+                window[s+"-refresh"].update(disabled = True)
+                if api == "visualizer" and "palmsens" not in s:
+                    cmd = ["bokeh", "serve", "--show", f"{api}/{keytofile(s)}.py", "--args", sys.argv[1]]
+                else:
+                    cmd = ["python", f"{api}/{keytofile(s)}.py", sys.argv[1], s]
+                print(f"Starting {api}/{keytofile(s)} with server key {s}")
+                p0 = subprocess.Popen(cmd, cwd=helao_root, shell=True)
+                time.sleep(.1)
+                p1,p2 = None, None
+                for p in psutil.process_iter():
+                    if p not in l2:
+                        if p.name() == 'cmd.exe':
+                            p1 = p
+                        if p.name() == 'python.exe':
+                            p2 = p
+                if not (p1.pid == p0.pid and p2 != None):
+                    print(f"server {keytofile(s)} failed to start")
+                else:
+                    servers.update({s:(p0,p2)})
+                    window[s+"-open"].update(disabled = True)
+                    window[s+"-close"].update(disabled = False)
+                    window[s+"-refresh"].update(disabled = False)

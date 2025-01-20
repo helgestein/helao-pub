@@ -20,7 +20,7 @@ from munch import munchify
 helao_root = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(helao_root, 'config'))
 sys.path.append(helao_root)
-from helao import wait_key, validateConfig, Pidd
+from helao_launch import wait_key, validateConfig, Pidd
 
 init()
 

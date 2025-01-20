@@ -1,5 +1,4 @@
 import pickle
-import pickle
 from util import highestName, dict_address
 from time import sleep
 #from celery_conf import app
@@ -349,7 +348,7 @@ class DataUtilSim:
         plt.scatter(quin[train_ix][:,0], quin[train_ix][:,1], color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(os.path.join(path, "var", f"var_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"var_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -372,7 +371,7 @@ class DataUtilSim:
         plt.scatter(quin[train_ix][:,0], quin[train_ix][:,1], color='k', label = 'Measured points')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(os.path.join(path, "aqf", f"aqf_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"aqf_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -389,7 +388,7 @@ class DataUtilSim:
         plt.scatter(quin[train_ix][:,0], quin[train_ix][:,1], color='k', label = 'Measured points')
         plt.ylabel("Y, mm")
         plt.xlabel("X, mm")
-        plt.savefig(os.path.join(path, "tar", f"tar_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"tar_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -408,7 +407,7 @@ class DataUtilSim:
         plt.scatter(quin[train_ix][:,0], quin[train_ix][:,1], c=y_query[train_ix], label = 'Measured points') # when all the values are known
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(os.path.join(path, "pred", f"pred_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"pred_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -425,7 +424,7 @@ class DataUtilSim:
         plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
         plt.xlabel("X")
         plt.ylabel("Y")
-        plt.savefig(os.path.join(path, "var", f"var_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"var_{name}_{num}.png"), transparent=False)
         plt.clf()
 
     def plot_aqf(self, name, num, aqf, rnd_ix, quin, test_ix, path):
@@ -441,7 +440,7 @@ class DataUtilSim:
         plt.scatter(quin[rnd_ix][0], quin[rnd_ix][1], color='r')
         plt.xlabel("X")
         plt.ylabel("Y")
-        plt.savefig(os.path.join(path, "aqf", f"aqf_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"aqf_{name}_{num}.png"), transparent=False)
         plt.clf()
 
     def plot_prediction(self, name, num, pred, rnd_ix, quin, test_ix, path):
@@ -456,7 +455,7 @@ class DataUtilSim:
         plt.scatter(-quin[test_ix][rnd_ix][0], quin[test_ix][rnd_ix][1], color='r', label = 'Next sample')
         plt.xlabel("X, mm")
         plt.ylabel("Y, mm")
-        plt.savefig(os.path.join(path, "pred", f"pred_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"pred_{name}_{num}.png"), transparent=False)
         plt.clf()
         plt.close('all')
 
@@ -470,7 +469,7 @@ class DataUtilSim:
         plt.scatter(x_quin[train_ix[ind]][0], x_quin[train_ix[ind]][1], color='r')
         plt.xlabel("X")
         plt.ylabel("Y")
-        plt.savefig(os.path.join(path, "tar", f"tar_{name}_{num}.png"), transparent=False)
+        plt.savefig(os.path.join(path, f"tar_{name}_{num}.png"), transparent=False)
         plt.clf()    
 
     # @staticmethod

@@ -14,7 +14,7 @@ The hdf5 files created during a simulated active learning run both in parallel a
 Since there are multiple versions of the HELAO, here is the brief overview all branches and versions:
 
 | **Branch and repository**                                                        | **Description**                                                               | 
-| ------------------------------------------------------------------------------   | ----------------------------------------------------------------------------- |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [helao-pub/master](https://github.com/helgestein/helao-pub/tree/master)          | The most actual version of the HELAO used at KIT and further developed at TUM |
 | [helao-pub/publication](https://github.com/helgestein/helao-pub/tree/publication)| The version as of the publication date with a minor corrections               |
 | [helao-pub/SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn)          | The version used for exploration of Si-Ge-Sn anodes                           |
@@ -37,7 +37,7 @@ The currently implemented hardware is the following:
 | **Device Name** | **Type**                      | **Communication**             | **Measures**     | **Manufacturer**          | **natively blocking** |
 | --------------- | ----------------------------- | ----------------------------- | ---------------- | ------------------------- | --------------------- |
 | lang            | Motion                        | .net API                      | position         | Lang GmbH                 | no                    |
-| dobot           | Motion                        | TCP/IP                        | position         | Dobot Europe GmbH         | yes                   |
+| dobot           | Motion                        | TCP/IP                        | position         | Dobot Europe GmbH         | no                   |
 | galil           | Motion, IO                    | TCP/IP                        | position         | Galil Motion Control Inc. | no                    |
 | owis            | Motion                        | serial commands               | position         | Owis GmbH                 | no                    |
 | mecademic       | Motion                        | python TCP/IP API             | position, state  | Mecademic Ltd.            | no                    |
@@ -62,7 +62,7 @@ There are dummy drivers and dummy analysis "devices" indicating how you can your
 
 HELAO is very lightweight and besides hardware drivers you just need a working python installation with fastAPI and starlette.
 If you wish to setup thing super easy from scratch just follow these steps:
-- install [miniconda](https://docs.conda.io/en/latest/miniconda.html), python 3 only
+- install [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [anaconda](https://www.anaconda.com/download/success), python 3 only
 - clone git repository
 - from repo directory, setup conda environment using `conda env create -f helao.yml`
 - if you need to use specific software (e.g. hamilton pumps or impedance analysis), update created conda environment using `conda env update -d helao_optional.yml`
@@ -74,9 +74,11 @@ If you wish to setup thing super easy from scratch just follow these steps:
 
 ## Launch script (with a GUI)
 
-- `python helao.py config_prefix` will launch a GUI with servers defined in `config/config_prefix.py`
+- activate your HELAO environment and run `python helao.py config_prefix` to launch a GUI with servers defined in `config/config_prefix.py`
 - open all servers and driver servers required for the experimentation
 - run your script as a .py file (examples are available in `testing` folder, e.g. `testing/al_schwefel.py` shows capabilities of analysis and active learning without any additional hardware)
+
+Alternatively, on Windows you can run `helao_batch.bat` (check paths to conda and helao folders)
 
 ## Design
 
@@ -85,7 +87,7 @@ High level layout of HELAO where experiments are executed by sequentially callin
 
 ## List of updates
 
-- Stable with Python 3.12
+- Stable with Python 3.11+
 - New instruments are added: PalmSens4 potentiostat, Dobot M1 Pro SCARA robot, PSD/4 Hamilton Pump
 - New visualizer for PalmSens (based on Matplotlib)
 - Fixed minor bugs in Orchestrator, ML and analysis servers, etc.

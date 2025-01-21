@@ -1,4 +1,6 @@
-@ECHO on
+@ECHO off
+
+setlocal EnableDelayedExpansion
 
 :: Check for Anaconda and Miniconda installation paths
 if exist "C:\ProgramData\anaconda3\condabin\conda.bat" (
@@ -19,23 +21,36 @@ if exist "C:\ProgramData\anaconda3\condabin\conda.bat" (
     exit /b
 )
 
-:: Check for helao repository paths
-if exist "C:\Users\%USERNAME%\helao-pub" (
-    set "helao_repo=C:\Users\%USERNAME%\helao-pub"
-) else if exist "C:\Users\%USERNAME%\Documents\helao-pub" (
-    set "helao_repo=C:\Users\%USERNAME%\Documents\helao-pub"
-)
+echo Found Conda at: !conda_path!
+call "!conda_path!" activate helao
 
-else (
-    echo helao repository not found.
+:: Check for Helao repository paths
+if exist "C:\Users\%USERNAME%\helao-dev" (
+    set "helao_repo=C:\Users\%USERNAME%\helao-dev"
+) else if exist "C:\Users\%USERNAME%\Documents\helao-dev" (
+    set "helao_repo=C:\Users\%USERNAME%\Documents\helao-dev"
+) else if exist "C:\Users\%USERNAME%\Documents\helao-dev" (
+    set "helao_repo=C:\Users\%USERNAME%\Documents\helao-dev"
+) else if exist "C:\Users\%USERNAME%\Documents\helao" (
+    set "helao_repo=C:\Users\%USERNAME%\Documents\helao"
+) else (
+    echo Helao repository not found.
     PAUSE
     exit /b
 )
 
+echo Found HELAO repository at: !helao_repo!
+
 :: Activate Conda environment
-call "%conda_path%" activate helao
-:: Change directory to the helao repository
+call "!conda_path!" activate helao
+
+:: Change directory to the Helao repository
+cd /d "!helao_repo!"
+
+:: Set window title
 title HELAO
+
 :: Run the ipython script
 ipython helao.py sdc_tum
+
 PAUSE

@@ -24,7 +24,6 @@ app = FastAPI(title="ForceDriver server V2",
 #    parameters: dict = None
 #    data: dict = None
 
-@dataclass
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None

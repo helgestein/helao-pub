@@ -17,17 +17,14 @@ sys.path.append(os.path.join(helao_root, 'driver'))
 config = import_module(sys.argv[1]).config
 from force_driver import GSV3USB
 serverkey = sys.argv[2]
-#serverkey = 'forceDriver'
 
 app = FastAPI(title="Force driver new one", 
             description= " this is a fancy force driver server",
             version= "2.0")
-
-@dataclass        
+  
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
-
 
 @app.get("/forceDriver/setoffset")
 def set_offset():
@@ -43,7 +40,6 @@ def set_zero():
 
 @app.get("/forceDriver/read")
 def read_value():
-    #this is wrong!
     data = g.read_value()
     retc = return_class(parameters={},data= {"value": data, 'units':'mN'})
     return retc

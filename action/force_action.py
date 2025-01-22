@@ -20,10 +20,6 @@ app = FastAPI(title="ForceDriver server V2",
     description="This is a fancy forceDriver sensor action server", 
     version="2.0")
 
-#class return_class(BaseModel):
-#    parameters: dict = None
-#    data: dict = None
-
 class return_class(BaseModel):
     parameters: dict = None
     data: dict = None
@@ -31,7 +27,7 @@ class return_class(BaseModel):
 @app.get("/force/setzero")
 def setzero():
     requests.get("{}/forceDriver/setzero".format(url)).json()
-    retc = return_class(parameters=None, data=None)
+    retc = return_class(parameters={}, data={})
 
 @app.get("/force/read")
 def read():
@@ -40,10 +36,9 @@ def read():
         data = requests.get("{}/forceDriver/read".format(url)).json()
         if data['data']['value'] != None:
             break
-    retc = return_class(parameters=None, data=data)
+        print(data)
+    retc = return_class(parameters={}, data=data)
     return retc
-
-
 
 if __name__ == "__main__":
     url = config[serverkey]['url']

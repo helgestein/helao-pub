@@ -36,7 +36,7 @@ def read():
         data = requests.get("{}/forceDriver/read".format(url)).json()
         if data['data']['value'] != None:
             break
-        print(data)
+        #print(data)
     retc = return_class(parameters={}, data=data)
     return retc
 

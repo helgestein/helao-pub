@@ -41,39 +41,36 @@ def pumpSimple(volume: float=0, valve: int=1, speed: int=10, times: int=1):
         In = int((config[serverkey]['valve']['Out']-1) * 45)
         Out = valve_angle
         
-    retl = []
+    response = {}
 
     if speed != config[serverkey]['speed']:
         speed_param = {'speed': speed}
-        res = requests.get("{}/psdDriver/speed".format(psdurl),
+        response['speed'] = requests.get("{}/psdDriver/speed".format(psdurl),
                             params=speed_param).json()
+        
 
     for i in range(times):
         #first aspirate a negative volume through the preferred in port
         valve_param = {'valve_angle': In}
         asp_param = {'step': abs(steps)}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+        response[f'valveIn_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                             params=valve_param).json()
-        retl.append(res)
         time.sleep(0.2)
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response[f'pumpIn_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                             params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
         #then eject through the preferred out port
         valve_param = {'valve_angle': Out}
         asp_param = {'step': 0}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+        response[f'valveOut_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                             params=valve_param).json()
-        retl.append(res)
         time.sleep(0.2)
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response[f'pumpOut_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                             params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
 
     retc = return_class(parameters= {'valve': valve,'volume (uL)': volume, 'speed': speed, 'times': times},
-                        data = {i:retl[i] for i in range(len(retl))})
+                        data = response)
     return retc
 
 
@@ -92,82 +89,71 @@ def pumpMix(V1: float=0, V2: float=0, V3: float=0, V4: float=0, V5: float=0, V6:
         s4 = int(round(V4/config[serverkey]['volume']*3000))
         s5 = int(round(V5/config[serverkey]['volume']*3000))
         s6 = int(round(V6/config[serverkey]['volume']*3000))
-        retl = []
+        response = {}
 
     if mix_speed != config[serverkey]['speed']:
         speed_param = {'speed': mix_speed}
-        res = requests.get("{}/psdDriver/speed".format(psdurl),
+        response['speed'] = requests.get("{}/psdDriver/speed".format(psdurl),
                             params=speed_param).json()
 
     for i in range(times):
         summ = 0
-        for i, s in enumerate([s1, s2, s3, s4, s5, s6], start=1):
+        for j, s in enumerate([s1, s2, s3, s4, s5, s6], start=1):
             if s != 0:
                 #first aspirate all volumes through the preferred in port
-                #valve_param = {'valve_angle': int((i-2)*45)}
-                valve_param = {'valve_angle': int((config[serverkey]['valve']['S{}'.format(i)] - 1) * 45)}
+                valve_param = {'valve_angle': int((config[serverkey]['valve']['S{}'.format(j)] - 1) * 45)}
                 summ += s
                 asp_param = {'step': abs(summ)}
-                res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+                response[f'valveIn_{j}_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                             params=valve_param).json()
-                retl.append(res)
-                res = requests.get("{}/psdDriver/pump".format(psdurl),
+                response[f'pumpIn_{j}_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                             params=asp_param).json()
-                retl.append(res)
                 time.sleep(0.2)
         if mix != 0:
             if vial_speed != config[serverkey]['speed']:
                 speed_param = {'speed': vial_speed}
-                res = requests.get("{}/psdDriver/speed".format(psdurl),
+                response['speed_mix'] = requests.get("{}/psdDriver/speed".format(psdurl),
                                     params=speed_param).json()
-            for i in range(abs(mix)):        
+            for k in range(abs(mix)):        
                 #then eject through the preferred out port to the vial
                 valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
                 asp_param = {'step': 0}
-                res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+                response[f'valveVialIn_{k}_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                     params=valve_param).json()
-                retl.append(res)
-                res = requests.get("{}/psdDriver/pump".format(psdurl),
+                response[f'pumpVialIn_{k}_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-                retl.append(res)
                 time.sleep(0.2)
                 #then aspirate through the preferred out port from the vial
                 valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
                 sum = abs(s1)+abs(s2)+abs(s3)+abs(s4)+abs(s5)+abs(s6)
                 asp_param = {'step': abs(sum)}
-                res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+                response[f'valveVialOut_{k}_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                     params=valve_param).json()
-                retl.append(res)
-                res = requests.get("{}/psdDriver/pump".format(psdurl),
+                response[f'pumpVialOut_{k}_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-                retl.append(res)
                 time.sleep(0.2)
         # decide whether to eject to the cell or to the vial
         if mix_speed != config[serverkey]['speed']:
             speed_param = {'speed': mix_speed}
-            res = requests.get("{}/psdDriver/speed".format(psdurl),
+            response['speed_back'] = requests.get("{}/psdDriver/speed".format(psdurl),
                                 params=speed_param).json()
         if cell == False:
             #eject the whole volume back to the vial
             valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
             asp_param = {'step': 0}
-            res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+            response[f'valveVialBack_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                 params=valve_param).json()
-            retl.append(res)
-            res = requests.get("{}/psdDriver/pump".format(psdurl),
+            response[f'pumpVialBack_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                 params=asp_param).json()
-            retl.append(res)
             time.sleep(0.2)
         else:
             #then eject the whole volume through the preferred out port to the cell
             valve_param = {'valve_angle': int((config[serverkey]['valve']['Out']-1)*45)}
             asp_param = {'step': 0}
-            res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+            response[f'valveOut_{i}'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                 params=valve_param).json()
-            retl.append(res)
-            res = requests.get("{}/psdDriver/pump".format(psdurl),
+            response[f'pumpOut_{i}'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                 params=asp_param).json()
-            retl.append(res)
             time.sleep(0.2)
 
     retc = return_class(
@@ -176,7 +162,7 @@ def pumpMix(V1: float=0, V2: float=0, V3: float=0, V4: float=0, V5: float=0, V6:
         'mix_speed': mix_speed, 'mix': mix, 'vial_speed': vial_speed,
         'times': times, 'cell': cell
     },
-    data={f'response_{i}': retl[i] for i in range(len(retl))})
+    data=response)
     return retc
 
 @app.get("/psd/pumpVial")
@@ -184,68 +170,59 @@ def pumpVial(volume: float=0, speed: int=10, times: int=1):
     #we usually had all volumes for the other pumps in microliters
     #so here we expect he input to be in microliters and convert to steps from 0 to 3000 for psd4
     #here we are pumping only between the vial and the cell
-    retl = []
+    response = {}
 
     steps = int(round(volume/config[serverkey]['volume']*3000))
 
     if speed != config[serverkey]['speed']:
         speed_param = {'speed': speed}
-        res = requests.get("{}/psdDriver/speed".format(psdurl),
+        response['speed'] = requests.get("{}/psdDriver/speed".format(psdurl),
                             params=speed_param).json()
 
     if volume > 0:
         #if volume is positive, then pump from vial to syringe and then to cell
         valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+        response['valveIn'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                     params=valve_param).json()
-        retl.append(res)
         asp_param = {'step': abs(steps)}
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response['pumpIn'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
         valve_param = {'valve_angle': int((config[serverkey]['valve']['Out']-1)*45)}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),	
+        response['valveOut'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),	
                                     params=valve_param).json()
-        retl.append(res)
         asp_param = {'step': 0}
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response['pumpOut'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
     else:
         #if volume is negative, then pump from cell to syringe and then to vial
         valve_param = {'valve_angle': int((config[serverkey]['valve']['Out']-1)*45)}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),	
+        response['valveOut'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),	
                                     params=valve_param).json()
-        retl.append(res)
         asp_param = {'step': abs(steps)}
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response['pumpOut'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
         valve_param = {'valve_angle': int((config[serverkey]['valve']['Mix']-1)*45)}
-        res = requests.get("{}/psdDriver/valve_angle".format(psdurl),
+        response['valveIn'] = requests.get("{}/psdDriver/valve_angle".format(psdurl),
                                     params=valve_param).json()
-        retl.append(res)
         asp_param = {'step': 0}
-        res = requests.get("{}/psdDriver/pump".format(psdurl),
+        response['pumpIn'] = requests.get("{}/psdDriver/pump".format(psdurl),
                                     params=asp_param).json()
-        retl.append(res)
         time.sleep(0.2)
 
     retc = return_class(parameters= {'volume': volume, 'speed': speed, 'times': times},
-                        data = {i:retl[i] for i in range(len(retl))})
+                        data = response)
     return retc
 
 @app.get("/psd/pumpRead")
 def read():
-    retl = []
-    res = requests.get("{}/psdDriver/read".format(psdurl),
+    response = {}
+    response = requests.get("{}/psdDriver/read".format(psdurl),
                                 params={}).json()
-    retl.append(res)
     retc = return_class(parameters={},
-                        data = {i:retl[i] for i in range(len(retl))})
+                        data = response)
     return retc
 
 if __name__ == "__main__":

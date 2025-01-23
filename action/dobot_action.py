@@ -47,14 +47,12 @@ def move_joint_relative(x: float, y: float, z: float, r: float):
 
 @app.get("/dobot/moveLinearRelative")
 def move_linear_relative(x: float, y: float, z: float, r: float):
-    retl = []
     parameters = {"x": x, "y": y, "z": z, "r": r}
     lin_parameters = {"x": x, "y": y, "z": z, "r": 0}
     joint_parameters = {"x": 0, "y": 0, "z": 0, "r": r}
-    response = requests.get(f"{url}/dobotDriver/move_linear_relative", params=lin_parameters).json()
-    retl.append(response)
-    response = requests.get(f"{url}/dobotDriver/move_joint_relative", params=joint_parameters).json()
-    retl.append(response)
+    response_lin = requests.get(f"{url}/dobotDriver/move_linear_relative", params=lin_parameters).json()
+    response_rot = requests.get(f"{url}/dobotDriver/move_joint_relative", params=joint_parameters).json()
+    retl = dict(response_lin=response_lin, response_rot=response_rot)
     return return_class(parameters=parameters, data=retl)
 
 @app.get("/dobot/setJointSpeed")
@@ -147,51 +145,49 @@ def move_sample(x: float = 0, y: float = 0, z: float = 0, r: float = 0):
 
 @app.get("/dobot/removeDrop")
 def remove_drop(x: float = 0, y: float = 0, z: float = 0, r: float = 0):
-    raw = []
-    raw.append(requests.get(f"{url}/dobotDriver/move_joint_absolute",
+    response = {}
+    response['move_joint_absolute_1'] = requests.get(f"{url}/dobotDriver/move_joint_absolute",
                             params={"x": x + config[server_key]["remove_drop_pose"][0],
                                     "y": y + config[server_key]["remove_drop_pose"][1],
                                     "z": z + config[server_key]["safe_waste_pose"][2],
-                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json())
-    raw.append(requests.get(f"{url}/dobotDriver/move_joint_absolute",
+                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json()
+    response['move_joint_absolute_2'] = requests.get(f"{url}/dobotDriver/move_joint_absolute",
                             params={"x": x + config[server_key]["remove_drop_pose"][0],
                                     "y": y + config[server_key]["remove_drop_pose"][1],
                                     "z": z + config[server_key]["remove_drop_pose"][2],
-                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json())
-    response = requests.get(f"{url}/dobotDriver/pose").json()
-    raw.append(requests.get(f"{url}/dobotDriver/move_joint_absolute",
+                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json()
+    pos = requests.get(f"{url}/dobotDriver/pose").json()
+    response['move_joint_absolute_3'] = requests.get(f"{url}/dobotDriver/move_joint_absolute",
                             params={"x": x + config[server_key]["remove_drop_pose"][0],
                                     "y": y + config[server_key]["remove_drop_pose"][1],
                                     "z": z + config[server_key]["safe_waste_pose"][2],
-                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json())
-    raw.append(response)
-    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data={"raw": raw, "response": response})
+                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json()
+    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data={"pos": pos, "response": response})
 
 @app.get("/dobot/removeDropEdge")
 def remove_drop(x: float = 0, y: float = 0, z: float = 0, r: float = 0):
-    raw = []
-    raw.append(requests.get(f"{url}/dobotDriver/move_joint_absolute",
+    response = {}
+    response['move_joint_absolute_1'] = requests.get(f"{url}/dobotDriver/move_joint_absolute",
                             params={"x": x + config[server_key]["safe_waste_pose"][0],
                                     "y": y + config[server_key]["safe_waste_pose"][1],
                                     "z": z + config[server_key]["remove_drop_pose"][2],
-                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json())
-    raw.append(requests.get(f"{url}/dobotDriver/move_joint_absolute",
+                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json()
+    response['move_joint_absolute_2'] = requests.get(f"{url}/dobotDriver/move_joint_absolute",
                             params={"x": x + config[server_key]["remove_drop_pose"][0],
                                     "y": y + config[server_key]["remove_drop_pose"][1],
                                     "z": z + config[server_key]["remove_drop_pose"][2],
-                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json())
-    response = requests.get(f"{url}/dobotDriver/pose").json()
-    raw.append(response)
-    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data={"raw": raw, "response": response})
+                                    "r": r + config[server_key]["remove_drop_pose"][3]}).json()
+    pos = requests.get(f"{url}/dobotDriver/pose").json()
+    return return_class(parameters={"x": x, "y": y, "z": z, "r": r}, data={"pos": pos, "response": response})
 
 @app.get("/dobot/moveDown")
 def move_down(dz: float, steps: int, maxForce: float, threshold: float):
     steps = int(steps)
-    force_value = []
+    force_value = {}
     for i in range(steps):
         forceurl = config[server_key]['forceurl']
         response = requests.get("{}/force/read".format(forceurl), params=None).json()
-        force_value.append(response)
+        force_value[f'step_{i}'] = response['data']['data']
         print(response['data']['data']['value'])
         if dz > threshold:
             if abs(response['data']['data']['value']) > maxForce:

@@ -1,7 +1,6 @@
 import os
 import sys
 import numpy as np
-import asyncio
 import pyHamiltonPSD as PSD
 from importlib import import_module
 helao_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))

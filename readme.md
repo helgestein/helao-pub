@@ -1,9 +1,10 @@
 # HELAO public repository :robot: :rocket: :handshake: :woman_scientist: :man_scientist:
 
 HELAO deploys Hierachical Experimental Laboratory Automation and Orchestration
-The idea behind this project is that we wanted to deploy active learning to different devices located in our laboratory and to others and even to many instruments running in parallel. To to this we utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs. This project originated at Caltech and KIT and was later further advanced at TUM.
 
-You may find the publicaton [here](https://doi.org/10.1002/admi.202101987)
+The project aims to deploy active learning to different devices located in our laboratory and beyond, enabling parallel opeation of various instruments. We utilized [fastAPI](https://fastapi.tiangolo.com/), a web framework that allows the facile developement of APIs. This project originated at Caltech and KIT and was later further advanced at TUM.
+
+You may find the original publication [here](https://doi.org/10.1002/admi.202101987)
 
 The hdf5 files created during a simulated active learning run both in parallel and sequential instrument operation can be found [here](https://doi.org/10.6084/m9.figshare.16798177.v1)
 
@@ -17,9 +18,9 @@ Since there are multiple versions of the HELAO, here is the brief overview all b
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [helao-pub/master](https://github.com/helgestein/helao-pub/tree/master)          | The most actual version of the HELAO used at KIT and further developed at TUM |
 | [helao-pub/publication](https://github.com/helgestein/helao-pub/tree/publication)| The version as of the publication date with a minor corrections               |
-| [helao-pub/SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn)          | The version used for exploration of Si-Ge-Sn anodes                           |
+| [helao-pub/SiGeSn](https://github.com/helgestein/helao-pub/tree/SiGeSn)          | The version used for [exploration of Si-Ge-Sn anodes](https://doi.org/10.1002/aenm.202404961)                           |
 | [helao-async](https://github.com/High-Throughput-Experimentation/helao-async)    | The async version further developed and used at Caltech                       |
-| [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                      | The further development of HELAO with built-in web interface and SQL database |
+| [MISCHBARES](https://github.com/fuzhanrahmanian/MISCHBARES)                      | The spin-off project of HELAO with built-in web interface and SQL database |
 
 ## Abstract
 
@@ -65,7 +66,7 @@ If you wish to setup thing super easy from scratch just follow these steps:
 - install [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [anaconda](https://www.anaconda.com/download/success), python 3 only
 - clone git repository
 - from repo directory, setup conda environment using `conda env create -f helao.yml`
-- if you need to use specific software (e.g. hamilton pumps or impedance analysis), update created conda environment using `conda env update -d helao_optional.yml`
+- if you need to use specific software (e.g. hamilton pumps or impedance analysis), update created conda environment using `conda env update -d helao_optional.yml`, also please note that for some of the instruments one needs to install the software from the manufacturer and provide the path to the software and .dll files (check config files)
 
 ## Simulation servers
 
@@ -87,7 +88,7 @@ High level layout of HELAO where experiments are executed by sequentially callin
 
 ## List of updates
 
-- Stable with Python 3.11+
+- Stable with Python 3.12
 - New instruments are added: PalmSens4 potentiostat, Dobot M1 Pro SCARA robot, PSD/4 Hamilton Pump
 - New visualizer for PalmSens (based on Matplotlib)
 - Fixed minor bugs in Orchestrator, ML and analysis servers, etc.
